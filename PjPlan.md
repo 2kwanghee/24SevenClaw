@@ -110,32 +110,41 @@
 
 ## Phase별 개발 계획
 
-### Phase 0: 프로젝트 셋업 (Week 1-2)
-- [ ] 5개 레포 초기화 (web, api, agent, infra, contracts)
-- [ ] Docker Compose (클라우드: PostgreSQL + Redis)
-- [ ] FastAPI 스켈레톤 + DB 연결
-- [ ] 인증 시스템 (회원가입/로그인/JWT)
-- [ ] Next.js 스켈레톤 + 인증 UI
-- [ ] CI/CD 파이프라인
-- [ ] Projects CRUD (API + UI)
-- [ ] OpenAPI Contract 파이프라인
-- [ ] 환경 강화 (에러 핸들링, 로깅, Rate Limiting)
+> 세부 일별 태스크는 `TODO.md`에서 관리, 완료분은 `docs/daily/`에 아카이브.
 
-### Phase 1: MVP Core + Agent 기본 통신 (Week 3-5)
-- [ ] 에이전트/스킬/MCP 레지스트리 연동 (외부 MCP)
+### Phase 0: 프로젝트 셋업 (Week 1-2) — 03-23 ~ 04-05
+
+- [x] 5개 레포 초기화 (web, api, agent, infra, contracts) — Day 1 (03-23)
+- [x] Docker Compose (클라우드: PostgreSQL + Redis) — Day 2 (03-24)
+- [x] FastAPI 스켈레톤 + DB 연결 + Alembic + Users 마이그레이션 — Day 2 (03-24)
+- [ ] 인증 시스템 (회원가입/로그인/JWT) — Day 3 (03-25)
+- [ ] Next.js 스켈레톤 + 인증 UI — Day 4 (03-26)
+- [ ] CI/CD 파이프라인 — Day 5 (03-27)
+- [ ] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
+- [ ] Projects CRUD (API + UI) — Day 7, 9 (03-29, 03-31)
+- [ ] OpenAPI Contract 파이프라인 — Day 8 (03-30)
+- [ ] 환경 강화 (에러 핸들링, 로깅, Rate Limiting) — Day 10 (04-01)
+- [ ] Agent 기본 데몬 + WebSocket 연결 — Day 11-12 (04-02~03)
+- [ ] E2E 통합 테스트 + Phase 0 마무리 — Day 13-14 (04-04~05)
+
+### Phase 1: MVP Core + Agent 기본 통신 (Week 3-5) — 04-06 ~ 04-19
+
+- [ ] 에이전트/스킬/MCP 레지스트리 CRUD API
 - [ ] 레지스트리 브라우저 UI
-- [ ] 프로젝트 설정 UI (JSON Schema 기반 동적 설정)
-- [ ] **Agent 데몬 기본 구조 구현**
-- [ ] **Agent ↔ Cloud WebSocket 통신 프로토콜**
-- [ ] **Agent 등록/인증 흐름**
-- [ ] 대시보드 셸 + 에이전트 연결 상태 표시
+- [ ] 프로젝트 설정 UI (JSON Schema 기반 동적 폼)
+- [ ] Agent 등록/인증 흐름 (라이센스 키 검증 → 토큰 발급)
+- [ ] WebSocket Hub (Agent 연결 관리, Redis Pub/Sub)
+- [ ] Agent 메시지 디스패처 + Cloud ↔ Agent 명령/상태 프로토콜
+- [ ] 대시보드 셸 + 에이전트 연결 상태 실시간 표시
+- [ ] Contracts 동기화 (TS ↔ Python 타입 검증)
 
-### Phase 2: Agent - Docker 프로비저닝 + 환경 셋업 (Week 6-9)
+### Phase 2: Agent Docker 프로비저닝 + 환경 셋업 (Week 6-9) — 04-20 ~
+
 - [ ] Agent: Docker 컨테이너 생성/삭제/관리
 - [ ] Agent: 환경 템플릿 시스템 (프로젝트 설정 → Docker 구성)
-- [ ] Agent: 선택된 에이전트/스킬/MCP 자동 설치
+- [ ] Agent: 에이전트/스킬/MCP 자동 설치 파이프라인
 - [ ] Agent: Claude 인스턴스 설치 + 구성
-- [ ] Agent: Git 저장소 초기화
+- [ ] Agent: Git 저장소 초기화 + 기본 워크플로
 - [ ] 클라우드 UI: 환경 셋업 마법사 + 실시간 진행 표시
 - [ ] 클라우드 UI: 고객 서버 환경 상태 모니터링
 
@@ -168,74 +177,12 @@
 
 ---
 
-## 일자별 개발 계획 (2026-03-23 ~ 2026-04-30)
-
-> 1인 개발 기준. 계획 변경 시 수정일을 기록한다.
-> ✅ 완료 | 🔄 진행중 | ⏳ 예정 | ❌ 변경/취소
-
-### Phase 0: 프로젝트 셋업 (03-23 ~ 04-05)
-
-| 일자 | 작업 내용 | 모듈 | 상태 |
-|------|----------|------|------|
-| **03-23 (일)** | Day 1: 5개 레포 초기화, 디렉토리 구조, 의존성, .gitignore | all | ✅ |
-| **03-24 (월)** | Day 2: FastAPI 스켈레톤 완성 + DB 연결 + health 엔드포인트 + Alembic users 마이그레이션 | api, infra | ✅ |
-| **03-25 (화)** | Day 3: 인증 백엔드 (bcrypt, JWT, auth 엔드포인트 4개, get_current_user, test_auth) | api | ⏳ |
-| **03-26 (수)** | Day 4: Next.js 인증 UI (Auth.js v5, shadcn 컴포넌트, 로그인/회원가입, 대시보드 레이아웃) | web | ⏳ |
-| **03-27 (목)** | Day 5: CI/CD 파이프라인 (API/Web/Agent/Contracts CI, 브랜치 보호) | infra | ⏳ |
-| **03-28 (금)** | Day 6: DB 스키마 전체 (licenses, projects, agent_connections 등) + Alembic 마이그레이션 | api | ⏳ |
-| **03-29 (토)** | Day 7: Projects CRUD (API 서비스 + 라우터 + 테스트) | api | ⏳ |
-| **03-30 (일)** | Day 8: OpenAPI Contract 파이프라인 (스펙 생성 → TS 클라이언트 자동 생성) | contracts, api | ⏳ |
-| **03-31 (월)** | Day 9: 프로젝트 목록/생성 UI (TanStack Query + Zustand + use-projects 훅) | web | ⏳ |
-| **04-01 (화)** | Day 10: 환경 강화 (에러 핸들링 미들웨어, 구조화 로깅, Rate Limiting) | api | ⏳ |
-| **04-02 (수)** | Day 11: Agent 기본 데몬 구조 (main, config, connection, dispatcher) | agent | ⏳ |
-| **04-03 (목)** | Day 12: Agent → Cloud WebSocket 연결 + 재연결 전략 + heartbeat | agent, api | ⏳ |
-| **04-04 (금)** | Day 13: E2E 통합 테스트 (Docker Compose up → API → Web → Agent 연결) | all | ⏳ |
-| **04-05 (토)** | Day 14: Phase 0 마무리 — README 완성, .env.example, v0.1.0-phase0 태깅 | all | ⏳ |
-
-### Phase 1: MVP Core + Agent 기본 통신 (04-06 ~ 04-19)
-
-| 일자 | 작업 내용 | 모듈 | 상태 |
-|------|----------|------|------|
-| **04-06 (일)** | Day 15: 에이전트 레지스트리 모델 + CRUD API | api | ⏳ |
-| **04-07 (월)** | Day 16: 스킬/MCP 레지스트리 모델 + CRUD API | api | ⏳ |
-| **04-08 (화)** | Day 17: 레지스트리 브라우저 UI (목록, 검색, 상세) | web | ⏳ |
-| **04-09 (수)** | Day 18: 프로젝트 설정 UI (JSON Schema 기반 동적 폼) — 에이전트/스킬/MCP 선택 | web | ⏳ |
-| **04-10 (목)** | Day 19: project_configs API + 프로젝트↔레지스트리 연결 로직 | api | ⏳ |
-| **04-11 (금)** | Day 20: Agent 등록/인증 흐름 (라이센스 키 검증 → 토큰 발급) | agent, api | ⏳ |
-| **04-12 (토)** | Day 21: WebSocket Hub 구현 (Agent 연결 관리, Redis Pub/Sub) | api | ⏳ |
-| **04-13 (일)** | Day 22: Agent 메시지 디스패처 + 핸들러 인터페이스 | agent | ⏳ |
-| **04-14 (월)** | Day 23: Cloud → Agent 명령 전송 (command.setup_env, config.update) | api, agent | ⏳ |
-| **04-15 (화)** | Day 24: Agent 상태 보고 (heartbeat, status, result) → Cloud 수신 처리 | agent, api | ⏳ |
-| **04-16 (수)** | Day 25: 대시보드 셸 — 에이전트 연결 상태 실시간 표시 (WebSocket → UI) | web | ⏳ |
-| **04-17 (목)** | Day 26: Contracts 동기화 — TS ↔ Python 타입 검증 + 자동화 스크립트 | contracts | ⏳ |
-| **04-18 (금)** | Day 27: Phase 1 통합 테스트 + 버그 수정 | all | ⏳ |
-| **04-19 (토)** | Day 28: Phase 1 마무리 — 문서 업데이트, v0.2.0-phase1 태깅 | all | ⏳ |
-
-### Phase 2 시작: Agent Docker 프로비저닝 (04-20 ~ 04-30)
-
-| 일자 | 작업 내용 | 모듈 | 상태 |
-|------|----------|------|------|
-| **04-20 (일)** | Day 29: docker_handler 구현 (컨테이너 생성/시작/중지/삭제) | agent | ⏳ |
-| **04-21 (월)** | Day 30: 환경 템플릿 시스템 (프로젝트 설정 → Docker Compose 생성) | agent | ⏳ |
-| **04-22 (화)** | Day 31: env_handler (에이전트/스킬/MCP 자동 설치 파이프라인) | agent | ⏳ |
-| **04-23 (수)** | Day 32: claude_handler (Claude 인스턴스 설치 + 구성) | agent | ⏳ |
-| **04-24 (목)** | Day 33: git_handler (Git 저장소 초기화 + 기본 워크플로) | agent | ⏳ |
-| **04-25 (금)** | Day 34: 클라우드 UI — 환경 셋업 마법사 (단계별 위자드) | web | ⏳ |
-| **04-26 (토)** | Day 35: 클라우드 UI — 셋업 실시간 진행 표시 (WebSocket 스트리밍) | web | ⏳ |
-| **04-27 (일)** | Day 36: 클라우드 UI — 고객 서버 환경 상태 모니터링 대시보드 | web | ⏳ |
-| **04-28 (월)** | Day 37: Agent 핸들러 통합 테스트 (Docker 환경 프로비저닝 E2E) | agent | ⏳ |
-| **04-29 (화)** | Day 38: 버그 수정 + 엣지 케이스 처리 | all | ⏳ |
-| **04-30 (수)** | Day 39: 4월 마무리 — Phase 2 중간 점검, 문서 업데이트, 회고 | all | ⏳ |
-
-> Phase 2 나머지 + Phase 3~5는 5월 이후 계획에서 상세화
-
----
-
 ## 계획 변경 이력
 
 | 변경일 | 변경 내용 | 사유 |
 |--------|----------|------|
 | 2026-03-24 | 일자별 계획 최초 작성 (03-23 ~ 04-30) | fix_plan 요청: 일자별 순차 플랜 |
+| 2026-03-24 | 일자별 테이블 제거, Phase별 체크리스트로 통합 | TODO.md와 역할 중복 해소 |
 
 ---
 
