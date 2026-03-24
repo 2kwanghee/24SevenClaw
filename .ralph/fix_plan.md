@@ -8,14 +8,11 @@
 
 ## P2: 기능 요구사항
 
-- [x] **1. Docker 환경 확인 (infra)**
-  > 요청사항: Docker 환경 확인 완료
-  > - PostgreSQL 16 (sevenclaw-db): healthy, accepting connections
-  > - Redis 7 (sevenclaw-redis): healthy, PONG
-  > - .env.example: DATABASE_URL, REDIS_URL 템플릿 이미 존재
-
 - [x] **7. 마무리**
-  > Alembic 초기 마이그레이션(users 테이블) 생성 + PjPlan.md Day 2 ✅ 업데이트
+  > 요청사항: ```
+변경사항 정리 + 커밋 (`[api] FastAPI 스켈레톤 + DB 연결 + Alembic 마이그레이션`)
+PjPlan.md Day 2 상태 업데이트 (✅)
+```
 
 ---
 
@@ -25,3 +22,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-03-24 | 7. 마무리 | ✅ | 커밋 44cba30에서 이미 완료 확인, fix_plan [x] 표시 |
