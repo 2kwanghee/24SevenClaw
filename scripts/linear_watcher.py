@@ -206,6 +206,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="조회만 수행, 변경 없음")
     parser.add_argument("--per-task", action="store_true",
                         help="태스크별 개별 fix_plan 생성 (상태 미변경)")
+    parser.add_argument("--limit", type=int, default=0,
+                        help="처리할 이슈 수 제한 (0=전체, 1=순차 실행용)")
     parser.add_argument("--use-gpt-plan", action="store_true",
                         help="ChatGPT FC로 구조화된 fix_plan 생성 (fallback: 기존 방식)")
     args = parser.parse_args()
@@ -218,9 +220,11 @@ def main():
         print("EMPTY: Queued 이슈 없음.")
         sys.exit(2)
 
-    # 2. 태스크 정보 추출
+    # 2. 태스크 정보 추출 (--limit 적용)
+    if args.limit > 0:
+        issues = issues[:args.limit]
     tasks = [extract_task_info(issue) for issue in issues]
-    print(f"FOUND: {len(tasks)}개 Queued 이슈 발견")
+    print(f"FOUND: {len(tasks)}개 Queued 이슈{'(제한: ' + str(args.limit) + '개)' if args.limit > 0 else ''}")
     for t in tasks:
         print(f"  [{t['priority']}] {t['identifier']} {t['title']} → {t['branch']}")
 

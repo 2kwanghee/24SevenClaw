@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# 자동 기능 개발 파이프라인 (v4 — Linear + tmux + git worktree 병렬 실행)
+# 자동 기능 개발 파이프라인 (v5 — Linear 순차 실행)
 #
 # 워크플로우:
-#   1. Linear Queued 이슈 감지 → 태스크별 fix_plan 생성
-#   2. 태스크마다 git worktree + tmux 세션으로 Claude 병렬 실행
-#   3. 완료 시 Linear 상태 → Done (main 머지 안 함)
-#   4. 사용자가 Linear에서 Confirm으로 변경 → 정오 cron이 main 머지
+#   1. Linear Queued 이슈 1개 감지 → fix_plan 생성
+#   2. 브랜치 생성 → Claude 실행 → 완료 대기
+#   3. Linear 결과 보고 + PR 생성
+#   4. 다음 Queued 이슈로 반복
 #
 # 사용법:
 #   bash scripts/auto_dev_pipeline.sh
 #   bash scripts/auto_dev_pipeline.sh --max-turns 5        # 시연용 (짧은 루프)
 #   bash scripts/auto_dev_pipeline.sh --max-iterations 50
+#   bash scripts/auto_dev_pipeline.sh --once                # 1개만 처리 후 종료
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,11 +22,15 @@ source "$PROJECT_DIR/scripts/pipeline_config.sh" 2>/dev/null || true
 
 LOCK_FILE=".ralph/.pipeline_lock"
 TASK_MAPPING=".ralph/.task_mapping.json"
-LOG_PREFIX="[$(date '+%Y-%m-%d %H:%M:%S')]"
+
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
 
 # ── 파라미터 ──
 MAX_ITERATIONS=30
 MAX_TURNS=""
+ONCE_MODE=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --max-iterations)
@@ -36,8 +41,12 @@ while [[ $# -gt 0 ]]; do
       MAX_TURNS="$2"
       shift 2
       ;;
+    --once)
+      ONCE_MODE=true
+      shift
+      ;;
     *)
-      echo "$LOG_PREFIX 알 수 없는 옵션: $1"
+      log "알 수 없는 옵션: $1"
       exit 1
       ;;
   esac
@@ -47,10 +56,10 @@ done
 if [ -f "$LOCK_FILE" ]; then
   LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
   if [ -n "$LOCK_PID" ] && kill -0 "$LOCK_PID" 2>/dev/null; then
-    echo "$LOG_PREFIX SKIP: 이전 파이프라인 실행 중 (PID: $LOCK_PID)"
+    log "SKIP: 이전 파이프라인 실행 중 (PID: $LOCK_PID)"
     exit 0
   else
-    echo "$LOG_PREFIX WARN: 잔류 lock 파일 제거 (PID: $LOCK_PID 종료됨)"
+    log "WARN: 잔류 lock 파일 제거 (PID: $LOCK_PID 종료됨)"
     rm -f "$LOCK_FILE"
   fi
 fi
@@ -59,185 +68,151 @@ echo $$ > "$LOCK_FILE"
 
 cleanup() {
   rm -f "$LOCK_FILE"
-  rm -f "${TASK_LIST_FILE:-}" 2>/dev/null || true
-  # 메인 브랜치로 복귀
   git checkout main 2>/dev/null || true
 }
 trap cleanup EXIT
 
-echo "$LOG_PREFIX ======================================="
-echo "$LOG_PREFIX   자동 개발 파이프라인 v4 시작"
-echo "$LOG_PREFIX ======================================="
+log "======================================="
+log "  자동 개발 파이프라인 v5 (순차 실행)"
+log "======================================="
 
-# ── Step 1: Linear 요구사항 감지 (태스크별 분리 모드) ──
+# ── Linear Watcher 활성화 확인 ──
 if ! is_enabled "FLOWOPS_LINEAR_WATCHER" 2>/dev/null; then
-  echo "$LOG_PREFIX SKIP: Linear Watcher 비활성화됨 (FLOWOPS_LINEAR_WATCHER=false)"
-  echo "$LOG_PREFIX 수동으로 .ralph/tasks/ 에 fix_plan을 준비하세요."
+  log "SKIP: Linear Watcher 비활성화됨 (FLOWOPS_LINEAR_WATCHER=false)"
   exit 0
-fi
-
-echo "$LOG_PREFIX [1/3] Linear 요구사항 감지 중 (per-task 모드)..."
-WATCHER_OUTPUT=$(python3 scripts/linear_watcher.py --per-task 2>&1) || WATCHER_EXIT=$?
-WATCHER_EXIT=${WATCHER_EXIT:-0}
-
-echo "$WATCHER_OUTPUT"
-
-if [ "$WATCHER_EXIT" -eq 2 ]; then
-  echo "$LOG_PREFIX DONE: Queued 이슈 없음. 파이프라인 종료."
-  exit 0
-elif [ "$WATCHER_EXIT" -ne 0 ]; then
-  echo "$LOG_PREFIX ERROR: linear_watcher.py 실행 실패 (exit: $WATCHER_EXIT)"
-  python3 scripts/telegram_notify.py --message "파이프라인 에러: linear_watcher 실행 실패" 2>/dev/null || true
-  exit 1
 fi
 
 # ── DB 확인 ──
 if ! docker ps 2>/dev/null | grep -q sevenclaw-db; then
-  echo "$LOG_PREFIX  -> DB 미실행. 시작합니다..."
-  docker compose -f "$PROJECT_DIR/24SevenClaw-infra/docker/docker-compose.yml" up -d db
+  log "DB 미실행. 시작합니다..."
+  docker compose -f "$PROJECT_DIR/24SevenClaw-infra/docker/docker-compose.yml" up -d db redis
   sleep 10
 fi
 
-# ── Step 2: 태스크별 Claude 루프 실행 (멀티레포 — 브랜치 기반) ──
-echo ""
-echo "$LOG_PREFIX [2/3] 태스크별 Claude 루프 실행 (멀티레포 모드)..."
+# ── 순차 실행 루프 ──
+COMPLETED=0
+FAILED=0
 
-# task_mapping 존재 확인 및 백업
-if [ ! -f "$TASK_MAPPING" ]; then
-  echo "$LOG_PREFIX ERROR: $TASK_MAPPING 파일이 존재하지 않습니다."
-  exit 1
-fi
-cp "$TASK_MAPPING" ".ralph/.task_mapping_full.json"
+while true; do
+  log ""
+  log "── Queued 이슈 감지 중... ──"
 
-# 태스크 목록을 임시 파일로 추출
-TASK_LIST_FILE=".ralph/.task_list.tmp"
-python3 -c "
+  # 1개만 가져오기
+  WATCHER_OUTPUT=$(python3 scripts/linear_watcher.py --per-task --limit 1 2>&1) || WATCHER_EXIT=$?
+  WATCHER_EXIT=${WATCHER_EXIT:-0}
+
+  echo "$WATCHER_OUTPUT"
+
+  if [ "$WATCHER_EXIT" -eq 2 ]; then
+    log "DONE: Queued 이슈 없음. 순차 실행 종료."
+    break
+  elif [ "$WATCHER_EXIT" -ne 0 ]; then
+    log "ERROR: linear_watcher.py 실행 실패 (exit: $WATCHER_EXIT)"
+    python3 scripts/telegram_notify.py --message "파이프라인 에러: linear_watcher 실행 실패" 2>/dev/null || true
+    break
+  fi
+
+  # task_mapping에서 태스크 정보 추출
+  if [ ! -f "$TASK_MAPPING" ]; then
+    log "ERROR: $TASK_MAPPING 파일이 존재하지 않습니다."
+    break
+  fi
+
+  TASK_INFO=$(python3 -c "
 import json
 with open('$TASK_MAPPING') as f:
     m = json.load(f)
-with open('$TASK_LIST_FILE', 'w') as out:
-    for title, meta in m.items():
-        out.write(f\"{meta['identifier']}|{meta['issue_id']}|{meta['branch']}|{title}\n\")
-print(f'TASKS: {len(m)}개')
-"
+for title, meta in m.items():
+    print(f\"{meta['identifier']}|{meta['issue_id']}|{meta['branch']}|{title}\")
+    break
+")
 
-TASK_COUNT=$(wc -l < "$TASK_LIST_FILE")
-LAUNCHED=0
+  IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TITLE <<< "$TASK_INFO"
 
-# Step 2a: 태스크별 tmux 세션 (루트 디렉토리에서 직접 작업)
-while IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TITLE; do
-  LAUNCHED=$((LAUNCHED + 1))
-  echo ""
-  echo "$LOG_PREFIX ── 태스크 $LAUNCHED/$TASK_COUNT: $TITLE ──"
-  echo "$LOG_PREFIX    브랜치: $BRANCH"
+  COMPLETED=$((COMPLETED + 1))
+  log ""
+  log "══════════════════════════════════════"
+  log "  태스크 #$COMPLETED: $TITLE"
+  log "  이슈: $ISSUE_KEY | 브랜치: $BRANCH"
+  log "══════════════════════════════════════"
 
-  # 루트 레포에서 브랜치 생성
+  # 브랜치 생성/전환
+  git checkout main 2>/dev/null || true
   git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH" 2>/dev/null || {
-    echo "$LOG_PREFIX ERROR: 브랜치 생성 실패: $BRANCH"; continue
+    log "ERROR: 브랜치 생성 실패: $BRANCH"
+    FAILED=$((FAILED + 1))
+    continue
   }
 
   # fix_plan 준비
   mkdir -p ".ralph"
   cp ".ralph/tasks/${ISSUE_KEY}.md" ".ralph/fix_plan.md" 2>/dev/null || {
-    echo "$LOG_PREFIX ERROR: fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"
+    log "ERROR: fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"
     git checkout main 2>/dev/null || true
+    FAILED=$((FAILED + 1))
     continue
   }
 
-  # 단일 태스크 task_mapping 생성
-  python3 -c "
-import json
-with open('.ralph/.task_mapping_full.json') as f:
-    m = json.load(f)
-for title, meta in m.items():
-    if meta['identifier'] == '$ISSUE_KEY':
-        single = {title: meta}
-        with open('$TASK_MAPPING', 'w') as out:
-            json.dump(single, out, ensure_ascii=False, indent=2)
-        break
-"
-
-  # Linear 상태 → In Progress
+  # Linear 상태 → In Progress (1개만)
   python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "In Progress" 2>/dev/null || true
+  log "Linear 상태: In Progress"
 
-  # tmux 세션으로 Claude 실행 (루트 디렉토리에서, 인터랙티브 모드)
-  SESSION_NAME="ralph-$ISSUE_KEY"
+  # Claude 실행 (동기 — 완료까지 대기)
   CLAUDE_LOG="$PROJECT_DIR/logs/claude_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
-  tmux new-session -d -s "$SESSION_NAME" \
-    "cd '$PROJECT_DIR' && \
-     export RALPH_MAX_ITERATIONS=$MAX_ITERATIONS && \
-     rm -f .ralph/.iteration_count && \
-     echo '=== Claude 자율 개발 시작: $TITLE ===' && \
-     echo '프롬프트: .ralph/PROMPT.md | fix_plan: .ralph/fix_plan.md' && \
-     echo '로그: $CLAUDE_LOG' && \
-     echo '==========================================' && \
-     claude -p \"\$(cat .ralph/PROMPT.md)\" --dangerously-skip-permissions --verbose --output-format stream-json ${MAX_TURNS:+--max-turns $MAX_TURNS} 2>&1 | tee '$CLAUDE_LOG'; \
-     python3 scripts/linear_reporter.py --task-id '$ISSUE_KEY' 2>&1 || true; \
-     python3 scripts/auto_pr_creator.py --branch '$BRANCH' --auto-merge 2>&1 || true; \
-     echo '[DONE] $TITLE'; \
-     echo '완료. 이 세션은 자동 종료됩니다. (5초 후)'; sleep 5" \
-    || { echo "$LOG_PREFIX ERROR: tmux 세션 생성 실패: $SESSION_NAME"; continue; }
+  mkdir -p "$PROJECT_DIR/logs"
 
-  echo "$LOG_PREFIX    tmux 세션 시작: $SESSION_NAME (max-turns: ${MAX_TURNS:-unlimited})"
+  log "Claude 자율 개발 시작..."
+  log "로그: $CLAUDE_LOG"
 
-done < "$TASK_LIST_FILE"
+  export RALPH_MAX_ITERATIONS=$MAX_ITERATIONS
+  rm -f .ralph/.iteration_count
 
-# Step 2b: 전체 세션 완료 대기
-echo ""
-echo "$LOG_PREFIX 병렬 실행 중... (tmux list-sessions로 모니터링 가능)"
-echo "$LOG_PREFIX 개별 세션 접속: tmux attach -t ralph-XXXXXXXX"
-while tmux list-sessions 2>/dev/null | grep -q "^ralph-"; do
-  ACTIVE=$(tmux list-sessions 2>/dev/null | grep -c "^ralph-" || echo 0)
-  echo "$LOG_PREFIX [$(date '+%H:%M:%S')] 대기 중... 활성 세션: ${ACTIVE}개"
-  sleep 60
+  claude -p "$(cat .ralph/PROMPT.md)" \
+    --dangerously-skip-permissions \
+    --verbose \
+    --output-format stream-json \
+    ${MAX_TURNS:+--max-turns $MAX_TURNS} \
+    2>&1 | tee "$CLAUDE_LOG" || {
+    log "WARN: Claude 실행 비정상 종료"
+  }
+
+  log "Claude 실행 완료: $TITLE"
+
+  # Linear 결과 보고
+  python3 scripts/linear_reporter.py --task-id "$ISSUE_KEY" 2>&1 || {
+    log "WARN: Linear 결과 보고 실패"
+  }
+
+  # PR 생성
+  python3 scripts/auto_pr_creator.py --branch "$BRANCH" --auto-merge 2>&1 || {
+    log "WARN: PR 생성 실패"
+  }
+
+  # 메인으로 복귀
+  git checkout main 2>/dev/null || true
+
+  # 임시 파일 정리
+  rm -rf ".ralph/tasks"
+  rm -f "$TASK_MAPPING"
+
+  log "태스크 완료: $TITLE"
+
+  # --once 모드면 1개만 처리 후 종료
+  if [ "$ONCE_MODE" = true ]; then
+    log "--once 모드: 1개 태스크 완료 후 종료."
+    break
+  fi
+
+  log "다음 Queued 이슈로 진행..."
 done
 
-echo "$LOG_PREFIX 모든 tmux 세션 완료."
-
-# 메인 브랜치로 복귀
-git checkout main 2>/dev/null || true
-
-# 임시 파일 정리
-rm -f "$TASK_LIST_FILE"
-
-# task_mapping 복원 (Telegram 보고용 — 전체 버전)
-cp ".ralph/.task_mapping_full.json" "$TASK_MAPPING"
-
-# ── Step 3: Telegram 완료 보고 ──
-echo ""
-echo "$LOG_PREFIX [3/3] Telegram 완료 보고 전송..."
+# ── Telegram 완료 보고 ──
+log ""
+log "══════════════════════════════════════"
+log "  파이프라인 결과: 완료 ${COMPLETED}건, 실패 ${FAILED}건"
+log "══════════════════════════════════════"
 
 if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
-  # 테스트 결과 (멀티레포)
-  TEST_RESULT=""
-  if [ -d "$PROJECT_DIR/24SevenClaw-api" ]; then
-    cd "$PROJECT_DIR/24SevenClaw-api"
-    API_TEST=$(uv run pytest --tb=no -q 2>&1 | tail -1 || echo "API 테스트 실패")
-    TEST_RESULT="API: $API_TEST"
-    cd "$PROJECT_DIR"
-  fi
-  if [ -d "$PROJECT_DIR/24SevenClaw-agent" ]; then
-    cd "$PROJECT_DIR/24SevenClaw-agent"
-    AGENT_TEST=$(uv run pytest --tb=no -q 2>&1 | tail -1 || echo "Agent 테스트 실패")
-    TEST_RESULT="$TEST_RESULT | Agent: $AGENT_TEST"
-    cd "$PROJECT_DIR"
-  fi
-  [ -z "$TEST_RESULT" ] && TEST_RESULT="테스트 없음"
-
   python3 scripts/telegram_notify.py \
-    --pipeline-report \
-    --iterations "N/A" \
-    --test-result "$TEST_RESULT" 2>/dev/null || true
-else
-  echo "$LOG_PREFIX SKIP: Telegram 알림 비활성화됨"
+    --message "파이프라인 완료: ${COMPLETED}건 처리, ${FAILED}건 실패" 2>/dev/null || true
 fi
-
-# ── 잔류 데이터 정리 (Telegram 보고 후 수행) ──
-rm -f "$TASK_MAPPING" ".ralph/.task_mapping_full.json" ".ralph/.pipeline_result.json"
-rm -rf ".ralph/tasks"
-
-echo ""
-echo "$LOG_PREFIX ======================================="
-echo "$LOG_PREFIX   파이프라인 완료: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "$LOG_PREFIX   각 태스크 브랜치에 작업 보존 — Confirm 대기"
-echo "$LOG_PREFIX ======================================="
