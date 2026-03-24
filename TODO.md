@@ -1,83 +1,45 @@
 # 24SevenClaw - Daily TODO
 
----
-
-## Day 1 (2026-03-23) - 저장소 초기화
-
-### 24SevenClaw-api (클라우드 백엔드)
-- [ ] 프로젝트 디렉토리 생성 + git init
-- [ ] uv init + 의존성 추가 (fastapi, sqlalchemy, alembic, pydantic, pytest, httpx, ruff)
-- [ ] 디렉토리 구조 생성 (app/, tests/, alembic/)
-- [ ] .gitignore, .env.example, pyproject.toml 설정
-
-### 24SevenClaw-web (클라우드 프론트엔드)
-- [ ] create-next-app (TypeScript, Tailwind, App Router, ESLint)
-- [ ] shadcn/ui 초기화
-- [ ] 기본 의존성 추가 (zustand, @tanstack/react-query, react-hook-form, zod, lucide-react)
-
-### 24SevenClaw-agent (고객 서버 에이전트)
-- [ ] 프로젝트 디렉토리 생성 + git init
-- [ ] uv init + 의존성 추가 (websockets, docker, pydantic)
-- [ ] 디렉토리 구조 생성 (agent/, tests/)
-- [ ] .gitignore, .env.example 설정
-
-### 24SevenClaw-infra
-- [ ] docker-compose.yml (클라우드용: PostgreSQL 16 + Redis 7)
-- [ ] docker-compose.agent.yml (고객 서버 에이전트 테스트용)
-- [ ] setup-dev.sh 스크립트
-- [ ] Dockerfile.api, Dockerfile.agent 작성
-
-### 24SevenClaw-contracts
-- [ ] package.json + @hey-api/openapi-ts
-- [ ] 클라우드↔에이전트 통신 프로토콜 스키마 정의
-- [ ] 생성 스크립트 (fetch-spec.sh, generate.sh)
-
-### 공통
-- [ ] 각 레포 .gitignore 확인
-- [ ] docker-compose up으로 DB + Redis 실행 확인
+> Claude가 이 파일을 참고하여 순차적으로 개발한다.
+> 작업 완료 시 `[x]` 표시. 하루 마감 시 `/endwork` 명령으로 아카이브.
 
 ---
 
-## Day 2 - FastAPI 스켈레톤 + DB
-- [ ] app/main.py, config.py, database.py
-- [ ] health 엔드포인트
-- [ ] Alembic 설정 + users 테이블 마이그레이션
-- [ ] Docker에서 API + DB 연결 확인
+## 오늘: 2026-03-24 (월) — Day 2: FastAPI 스켈레톤 + DB 연결
 
-## Day 3 - 인증 백엔드
-- [ ] security.py (bcrypt, JWT)
-- [ ] auth schemas + auth_service
-- [ ] auth 엔드포인트 4개
-- [ ] get_current_user 의존성
-- [ ] test_auth.py
+### 1. Docker 환경 확인 (infra)
+- [ ] `docker-compose.yml`에서 PostgreSQL 16 + Redis 7 정상 기동 확인
+- [ ] API 컨테이너에서 DB 접속 가능 여부 확인
+- [ ] `.env.example`에 DB 연결 문자열 템플릿 추가 (DATABASE_URL, REDIS_URL)
 
-## Day 4 - Next.js 스켈레톤 + 인증 UI
-- [ ] Auth.js v5 설정
-- [ ] shadcn 컴포넌트 설치
-- [ ] 로그인/회원가입 페이지
-- [ ] 대시보드 레이아웃
-- [ ] auth middleware
+### 2. FastAPI 앱 완성 (api)
+- [ ] `app/main.py` — CORS, lifespan(startup/shutdown), 라우터 마운트 확인
+- [ ] `app/config.py` — Pydantic Settings에 DATABASE_URL, REDIS_URL, SECRET_KEY 등 환경변수 정의
+- [ ] `app/database.py` — async engine + async sessionmaker + get_db 의존성
+- [ ] `app/api/v1/health.py` — GET /health (DB ping + Redis ping 포함)
+- [ ] health 엔드포인트 수동 테스트 (curl 또는 httpx)
 
-## Day 5 - CI/CD
-- [ ] API CI (ruff, mypy, pytest)
-- [ ] Web CI (lint, typecheck, build)
-- [ ] Agent CI (ruff, mypy, pytest)
-- [ ] Contracts CI
-- [ ] 브랜치 보호 규칙
+### 3. Alembic 마이그레이션 설정 (api)
+- [ ] `alembic.ini` — sqlalchemy.url을 env에서 읽도록 수정
+- [ ] `alembic/env.py` — async 마이그레이션 설정 (run_migrations_online async)
+- [ ] `alembic/env.py` — target_metadata에 Base.metadata 연결
+- [ ] `app/models/__init__.py` — 모든 모델 import 집중 (autogenerate용)
 
-## Day 6 - DB 스키마 + Projects CRUD
-- [ ] 전체 SQLAlchemy 모델 (licenses, agent_connections 포함)
-- [ ] Alembic 마이그레이션
-- [ ] Projects API + 서비스 + 테스트
+### 4. Users 테이블 마이그레이션 (api)
+- [ ] `app/models/user.py` — User 모델 확인/보강 (id, email, password_hash, is_active, created_at, updated_at)
+- [ ] `alembic revision --autogenerate -m "create_users_table"` 실행
+- [ ] `alembic upgrade head` 실행
+- [ ] DB에 users 테이블 생성 확인 (psql 또는 SQLAlchemy inspect)
 
-## Day 7 - Contract 파이프라인 + 대시보드 UI
-- [ ] OpenAPI 스펙 생성 + TS 클라이언트 생성
-- [ ] TanStack Query + use-projects 훅
-- [ ] 프로젝트 목록/생성 페이지
+### 5. 테스트 인프라 (api)
+- [ ] `tests/conftest.py` — 테스트용 async DB 세션 fixture (SQLite in-memory 또는 test DB)
+- [ ] `tests/test_health.py` — health 엔드포인트 테스트 작성
+- [ ] `uv run pytest --tb=short -q` 통과 확인
 
-## Day 8 - Agent 기본 데몬 + 환경 강화
-- [ ] Agent 데몬 기본 구조 (main.py, config.py, connection.py)
-- [ ] Agent → Cloud WebSocket 연결 테스트
-- [ ] 에러 핸들링, 로깅, Rate Limiting
-- [ ] README, .env.example 완성
-- [ ] E2E 테스트 + v0.1.0-phase0 태깅
+### 6. 린트/타입체크 (api)
+- [ ] `uv run ruff check .` 통과
+- [ ] `uv run mypy app/` 통과 (또는 주요 에러 수정)
+
+### 7. 마무리
+- [ ] 변경사항 정리 + 커밋 (`[api] FastAPI 스켈레톤 + DB 연결 + Alembic 마이그레이션`)
+- [ ] PjPlan.md Day 2 상태 업데이트 (✅)
