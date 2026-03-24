@@ -956,9 +956,9 @@ def main() -> None:
     parser.add_argument("--daily", action="store_true", help="일일 보고서 생성")
     args = parser.parse_args()
 
-    # 인자 없으면 --all
+    # 인자 없으면 --daily (일일 보고서만 자동 생성, 기타 문서는 명시적 요청 필요)
     if not any([args.all, args.prd, args.api, args.tech, args.arch, args.daily]):
-        args.all = True
+        args.daily = True
 
     generators = []
     if args.all or args.prd:
