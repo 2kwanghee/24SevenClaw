@@ -8,7 +8,7 @@
 
 ## P2: 기능 요구사항
 
-- [!] **2. FastAPI 앱 완성 (api)** — 파이프라인 순차 실행 방식 개선 논의 중, 수동 진행 예정
+- [x] **2. FastAPI 앱 완성 (api)**
   > 요청사항: ```
 `app/main.py` — CORS, lifespan(startup/shutdown), 라우터 마운트 확인
 `app/config.py` — Pydantic Settings에 DATABASE_URL, REDIS_URL, SECRET_KEY 등 환경변수 정의
@@ -27,3 +27,4 @@ health 엔드포인트 수동 테스트 (curl 또는 httpx)
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-03-24 | FastAPI 앱 완성 (api) | ✅ | main.py lifespan(Redis init/close), config.py 환경변수, database.py async engine, redis.py 연결 풀, health.py DB+Redis ping, test_health.py 작성 |
