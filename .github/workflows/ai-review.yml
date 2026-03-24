@@ -16,6 +16,7 @@ jobs:
     if: startsWith(github.head_ref, 'ralph/')
 
     permissions:
+      contents: read
       pull-requests: write
 
     steps:
