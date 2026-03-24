@@ -8,14 +8,13 @@
 
 ## P2: 기능 요구사항
 
-- [x] **1. Docker 환경 확인 (infra)**
-  > 요청사항: Docker 환경 확인 완료
-  > - PostgreSQL 16 (sevenclaw-db): healthy, accepting connections
-  > - Redis 7 (sevenclaw-redis): healthy, PONG
-  > - .env.example: DATABASE_URL, REDIS_URL 템플릿 이미 존재
-
-- [x] **7. 마무리**
-  > Alembic 초기 마이그레이션(users 테이블) 생성 + PjPlan.md Day 2 ✅ 업데이트
+- [x] **4. Users 테이블 마이그레이션 (api)**
+  > 요청사항: ```
+`app/models/user.py` — User 모델 확인/보강 (id, email, password_hash, is_active, created_at, updated_at)
+`alembic revision --autogenerate -m "create_users_table"` 실행
+`alembic upgrade head` 실행
+DB에 users 테이블 생성 확인 (psql 또는 SQLAlchemy inspect)
+```
 
 ---
 
