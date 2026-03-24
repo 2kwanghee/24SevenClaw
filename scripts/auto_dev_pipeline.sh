@@ -160,16 +160,22 @@ for title, meta in m.items():
   # Linear 상태 → In Progress
   python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "In Progress" 2>/dev/null || true
 
-  # tmux 세션으로 Claude 실행 (루트 디렉토리에서)
+  # tmux 세션으로 Claude 실행 (루트 디렉토리에서, 인터랙티브 모드)
   SESSION_NAME="ralph-$ISSUE_KEY"
+  CLAUDE_LOG="$PROJECT_DIR/logs/claude_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
   tmux new-session -d -s "$SESSION_NAME" \
     "cd '$PROJECT_DIR' && \
      export RALPH_MAX_ITERATIONS=$MAX_ITERATIONS && \
      rm -f .ralph/.iteration_count && \
-     claude -p \"\$(cat .ralph/PROMPT.md)\" --dangerously-skip-permissions ${MAX_TURNS:+--max-turns $MAX_TURNS}; \
+     echo '=== Claude 자율 개발 시작: $TITLE ===' && \
+     echo '프롬프트: .ralph/PROMPT.md | fix_plan: .ralph/fix_plan.md' && \
+     echo '로그: $CLAUDE_LOG' && \
+     echo '==========================================' && \
+     claude -p \"\$(cat .ralph/PROMPT.md)\" --dangerously-skip-permissions --verbose --output-format stream-json ${MAX_TURNS:+--max-turns $MAX_TURNS} 2>&1 | tee '$CLAUDE_LOG'; \
      python3 scripts/linear_reporter.py --task-id '$ISSUE_KEY' 2>&1 || true; \
      python3 scripts/auto_pr_creator.py --branch '$BRANCH' --auto-merge 2>&1 || true; \
-     echo '[DONE] $TITLE'" \
+     echo '[DONE] $TITLE'; \
+     echo '완료. 이 세션은 자동 종료됩니다. (5초 후)'; sleep 5" \
     || { echo "$LOG_PREFIX ERROR: tmux 세션 생성 실패: $SESSION_NAME"; continue; }
 
   echo "$LOG_PREFIX    tmux 세션 시작: $SESSION_NAME (max-turns: ${MAX_TURNS:-unlimited})"
