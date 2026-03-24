@@ -1,0 +1,22 @@
+# === 하위 레포 (독립 git 관리) ===
+24SevenClaw-web/
+24SevenClaw-api/
+24SevenClaw-agent/
+24SevenClaw-infra/
+24SevenClaw-contracts/
+
+# === Node ===
+node_modules/
+
+# === Flow-Ops 파이프라인 런타임 ===
+.ralph/tasks/
+.ralph/fix_plan.md
+.ralph/.pipeline_lock
+.ralph/.task_mapping.json
+.ralph/.task_mapping_full.json
+.ralph/.iteration_count
+.ralph/.pipeline_result.json
+.ralph/.task_list.tmp
+.worktrees/
+logs/
+.env
