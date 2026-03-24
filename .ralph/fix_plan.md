@@ -8,18 +8,16 @@
 
 ## P2: 기능 요구사항
 
-- [x] **일일 작업 계획 Plan 설계**
-  > 요청사항: PjPlan.md 파일
+- [!] **2. FastAPI 앱 완성 (api)** — 파이프라인 순차 실행 방식 개선 논의 중, 수동 진행 예정
+  > 요청사항: ```
+`app/main.py` — CORS, lifespan(startup/shutdown), 라우터 마운트 확인
+`app/config.py` — Pydantic Settings에 DATABASE_URL, REDIS_URL, SECRET_KEY 등 환경변수 정의
+`app/database.py` — async engine + async sessionmaker + get_db 의존성
+`app/api/v1/health.py` — GET /health (DB ping + Redis ping 포함)
+health 엔드포인트 수동 테스트 (curl 또는 httpx)
 
-* 이 프로젝트를 진행하기 위한 전체 설계 계획에 대한 내용이 들어가야함
-* 일자별로 금일부터 4월말까지의 순차적인 플랜을 일자별로 계획하도록 해.
-* 개발(설계)를 진행하면서 추가로 계획이 변경 되거나 수정이 필요하면 꼭 반드시 해당 md 파일을 수정하고 기존 계획에서 수정된 날짜를 반드시 기록하도록 해
-
-TODO.md 파일
-
-* 해당 파일은 일자별로 작업해야할 항목을 세분화하고 Claude가 해당  md를 참고해서 순차적으로 개발할수 있도록 하는 개발 가이드 md로 사용해.
-* 최대한 상세하게 업무를 세분화해서 기록해.
-* 그날 작업이 마무리가 되면 별도로 내가 /endwork  라는 커멘드를 입력하면 TODO에 작성했던 작업을 docs/daily 디렉토리 하위에 20250324_Todo.md 형식으로 복사 생성하고 기존 TODO.md는 초기화 하는 skill을 생성해.
+완료된 항목은 [x]로 체크할 것
+```
 
 ---
 
@@ -29,4 +27,3 @@ TODO.md 파일
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-03-24 | 일일 작업 계획 Plan 설계 | ✅ | PjPlan.md 일자별 계획(03-23~04-30), TODO.md 상세화, /endwork 스킬 생성 |
