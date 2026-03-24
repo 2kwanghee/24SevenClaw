@@ -9,13 +9,14 @@
 ## P2: 기능 요구사항
 
 - [x] **1. Docker 환경 확인 (infra)**
-  > 요청사항: Docker 환경 확인 완료
-  > - PostgreSQL 16 (sevenclaw-db): healthy, accepting connections
-  > - Redis 7 (sevenclaw-redis): healthy, PONG
-  > - .env.example: DATABASE_URL, REDIS_URL 템플릿 이미 존재
+  > 요청사항: ```
+`docker-compose.yml`에서 PostgreSQL 16 + Redis 7 정상 기동 확인
+API 컨테이너에서 DB 접속 가능 여부 확인
+`.env.example`에 DB 연결 문자열 템플릿 추가 (DATABASE_URL, REDIS_URL)
 
-- [x] **7. 마무리**
-  > Alembic 초기 마이그레이션(users 테이블) 생성 + PjPlan.md Day 2 ✅ 업데이트
+완료된 항목은 [x]로 체크할 것
+```
+  > ✅ PostgreSQL 16.13 + Redis 7.4.8 정상 기동 확인, .env.example에 DATABASE_URL/REDIS_URL 이미 포함
 
 ---
 
@@ -25,3 +26,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-03-24 | 1. Docker 환경 확인 | ✅ | PG 16.13 + Redis 7.4.8 정상, .env.example 확인 |
