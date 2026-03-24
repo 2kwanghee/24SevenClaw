@@ -10,31 +10,31 @@
 ### 1. Docker 환경 확인 (infra)
 - [ ] `docker-compose.yml`에서 PostgreSQL 16 + Redis 7 정상 기동 확인
 - [ ] API 컨테이너에서 DB 접속 가능 여부 확인
-- [ ] `.env.example`에 DB 연결 문자열 템플릿 추가 (DATABASE_URL, REDIS_URL)
+- [x] `.env.example`에 DB 연결 문자열 템플릿 추가 (DATABASE_URL, REDIS_URL)
 
 ### 2. FastAPI 앱 완성 (api)
-- [ ] `app/main.py` — CORS, lifespan(startup/shutdown), 라우터 마운트 확인
-- [ ] `app/config.py` — Pydantic Settings에 DATABASE_URL, REDIS_URL, SECRET_KEY 등 환경변수 정의
-- [ ] `app/database.py` — async engine + async sessionmaker + get_db 의존성
-- [ ] `app/api/v1/health.py` — GET /health (DB ping + Redis ping 포함)
+- [x] `app/main.py` — CORS, lifespan(startup/shutdown), 라우터 마운트 확인
+- [x] `app/config.py` — Pydantic Settings에 DATABASE_URL, REDIS_URL, SECRET_KEY 등 환경변수 정의
+- [x] `app/database.py` — async engine + async sessionmaker + get_db 의존성
+- [x] `app/api/v1/health.py` — GET /health (DB ping + Redis ping 포함)
 - [ ] health 엔드포인트 수동 테스트 (curl 또는 httpx)
 
 ### 3. Alembic 마이그레이션 설정 (api)
-- [ ] `alembic.ini` — sqlalchemy.url을 env에서 읽도록 수정
-- [ ] `alembic/env.py` — async 마이그레이션 설정 (run_migrations_online async)
-- [ ] `alembic/env.py` — target_metadata에 Base.metadata 연결
-- [ ] `app/models/__init__.py` — 모든 모델 import 집중 (autogenerate용)
+- [x] `alembic.ini` — sqlalchemy.url을 env에서 읽도록 수정
+- [x] `alembic/env.py` — async 마이그레이션 설정 (run_migrations_online async)
+- [x] `alembic/env.py` — target_metadata에 Base.metadata 연결
+- [x] `app/models/__init__.py` — 모든 모델 import 집중 (autogenerate용)
 
 ### 4. Users 테이블 마이그레이션 (api)
-- [ ] `app/models/user.py` — User 모델 확인/보강 (id, email, password_hash, is_active, created_at, updated_at)
+- [x] `app/models/user.py` — User 모델 확인/보강 (id, email, password_hash, is_active, created_at, updated_at)
 - [ ] `alembic revision --autogenerate -m "create_users_table"` 실행
 - [ ] `alembic upgrade head` 실행
 - [ ] DB에 users 테이블 생성 확인 (psql 또는 SQLAlchemy inspect)
 
 ### 5. 테스트 인프라 (api)
-- [ ] `tests/conftest.py` — 테스트용 async DB 세션 fixture (SQLite in-memory 또는 test DB)
-- [ ] `tests/test_health.py` — health 엔드포인트 테스트 작성
-- [ ] `uv run pytest --tb=short -q` 통과 확인
+- [x] `tests/conftest.py` — 테스트용 async DB 세션 fixture (SQLite in-memory 또는 test DB)
+- [x] `tests/test_health.py` — health 엔드포인트 테스트 작성
+- [x] `uv run pytest --tb=short -q` 통과 확인
 
 ### 6. 린트/타입체크 (api)
 - [ ] `uv run ruff check .` 통과
