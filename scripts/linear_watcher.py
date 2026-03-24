@@ -60,9 +60,15 @@ def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
     if not data:
         return []
     nodes = data.get("issues", {}).get("nodes", [])
-    # Linear API doesn't support orderBy: priority, sort client-side
-    # priority: 0=No priority, 1=Urgent, 2=High, 3=Medium, 4=Low
-    nodes.sort(key=lambda x: x.get("priority", 0) or 99)
+    # identifier 숫자 순서로 정렬 (24S-1 → 24S-2 → ... → 24S-10)
+    # 동일 번호 내에서는 priority로 2차 정렬
+    import re
+    def sort_key(x):
+        match = re.search(r"-(\d+)$", x.get("identifier", ""))
+        num = int(match.group(1)) if match else 9999
+        priority = x.get("priority", 0) or 99
+        return (num, priority)
+    nodes.sort(key=sort_key)
     return nodes
 
 
