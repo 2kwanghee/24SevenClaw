@@ -8,18 +8,13 @@
 
 ## P2: 기능 요구사항
 
-- [x] **일일 작업 계획 Plan 설계**
-  > 요청사항: PjPlan.md 파일
-
-* 이 프로젝트를 진행하기 위한 전체 설계 계획에 대한 내용이 들어가야함
-* 일자별로 금일부터 4월말까지의 순차적인 플랜을 일자별로 계획하도록 해.
-* 개발(설계)를 진행하면서 추가로 계획이 변경 되거나 수정이 필요하면 꼭 반드시 해당 md 파일을 수정하고 기존 계획에서 수정된 날짜를 반드시 기록하도록 해
-
-TODO.md 파일
-
-* 해당 파일은 일자별로 작업해야할 항목을 세분화하고 Claude가 해당  md를 참고해서 순차적으로 개발할수 있도록 하는 개발 가이드 md로 사용해.
-* 최대한 상세하게 업무를 세분화해서 기록해.
-* 그날 작업이 마무리가 되면 별도로 내가 /endwork  라는 커멘드를 입력하면 TODO에 작성했던 작업을 docs/daily 디렉토리 하위에 20250324_Todo.md 형식으로 복사 생성하고 기존 TODO.md는 초기화 하는 skill을 생성해.
+- [x] **3. Alembic 마이그레이션 설정 (api)**
+  > 요청사항: ```
+`alembic.ini` — sqlalchemy.url을 env에서 읽도록 수정
+`alembic/env.py` — async 마이그레이션 설정 (run_migrations_online async)
+`alembic/env.py` — target_metadata에 Base.metadata 연결
+`app/models/__init__.py` — 모든 모델 import 집중 (autogenerate용)
+```
 
 ---
 
@@ -29,4 +24,4 @@ TODO.md 파일
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-03-24 | 일일 작업 계획 Plan 설계 | ✅ | PjPlan.md 일자별 계획(03-23~04-30), TODO.md 상세화, /endwork 스킬 생성 |
+| 2026-03-24 | 3. Alembic 마이그레이션 설정 | ✅ 완료 | ini 플레이스홀더 정리, env.py 와일드카드→명시적 import |
