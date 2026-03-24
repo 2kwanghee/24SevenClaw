@@ -14,6 +14,9 @@
   > - Redis 7 (sevenclaw-redis): healthy, PONG
   > - .env.example: DATABASE_URL, REDIS_URL 템플릿 이미 존재
 
+- [x] **7. 마무리**
+  > Alembic 초기 마이그레이션(users 테이블) 생성 + PjPlan.md Day 2 ✅ 업데이트
+
 ---
 
 ## 진행 로그

@@ -178,7 +178,7 @@
 | 일자 | 작업 내용 | 모듈 | 상태 |
 |------|----------|------|------|
 | **03-23 (일)** | Day 1: 5개 레포 초기화, 디렉토리 구조, 의존성, .gitignore | all | ✅ |
-| **03-24 (월)** | Day 2: FastAPI 스켈레톤 완성 + DB 연결 + health 엔드포인트 + Alembic users 마이그레이션 | api, infra | 🔄 |
+| **03-24 (월)** | Day 2: FastAPI 스켈레톤 완성 + DB 연결 + health 엔드포인트 + Alembic users 마이그레이션 | api, infra | ✅ |
 | **03-25 (화)** | Day 3: 인증 백엔드 (bcrypt, JWT, auth 엔드포인트 4개, get_current_user, test_auth) | api | ⏳ |
 | **03-26 (수)** | Day 4: Next.js 인증 UI (Auth.js v5, shadcn 컴포넌트, 로그인/회원가입, 대시보드 레이아웃) | web | ⏳ |
 | **03-27 (목)** | Day 5: CI/CD 파이프라인 (API/Web/Agent/Contracts CI, 브랜치 보호) | infra | ⏳ |
