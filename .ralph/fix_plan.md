@@ -8,14 +8,8 @@
 
 ## P2: 기능 요구사항
 
-- [x] **1. Docker 환경 확인 (infra)**
-  > 요청사항: Docker 환경 확인 완료
-  > - PostgreSQL 16 (sevenclaw-db): healthy, accepting connections
-  > - Redis 7 (sevenclaw-redis): healthy, PONG
-  > - .env.example: DATABASE_URL, REDIS_URL 템플릿 이미 존재
-
-- [x] **7. 마무리**
-  > Alembic 초기 마이그레이션(users 테이블) 생성 + PjPlan.md Day 2 ✅ 업데이트
+- [x] **8. 최종 TODO.md 적용**
+  > 요청사항: 태스크별로 요청된 작업이 완료된 항목은 \[x\]로 체크할 것
 
 ---
 
@@ -25,3 +19,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-03-24 | #8 TODO.md 적용 | ✅ | 코드 존재 확인 + pytest/ruff/mypy 통과 검증 후 전 항목 [x] 체크 |
