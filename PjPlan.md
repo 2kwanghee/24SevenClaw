@@ -117,7 +117,7 @@
 - [x] 5개 레포 초기화 (web, api, agent, infra, contracts) — Day 1 (03-23)
 - [x] Docker Compose (클라우드: PostgreSQL + Redis) — Day 2 (03-24)
 - [x] FastAPI 스켈레톤 + DB 연결 + Alembic + Users 마이그레이션 — Day 2 (03-24)
-- [ ] 인증 시스템 (회원가입/로그인/JWT) — Day 3 (03-25)
+- [x] 인증 시스템 (회원가입/로그인/JWT) — Day 3 (03-25)
 - [ ] Next.js 스켈레톤 + 인증 UI — Day 4 (03-26)
 - [ ] CI/CD 파이프라인 — Day 5 (03-27)
 - [ ] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
