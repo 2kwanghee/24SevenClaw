@@ -20,3 +20,4 @@ node_modules/
 .worktrees/
 logs/
 .env
+.mcp.json
