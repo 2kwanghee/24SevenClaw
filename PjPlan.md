@@ -120,12 +120,12 @@
 - [x] 인증 시스템 (회원가입/로그인/JWT) — Day 3 (03-25)
 - [x] Next.js 스켈레톤 + 인증 UI — Day 4 (03-26)
 - [x] CI/CD 파이프라인 — Day 5 (03-27)
-- [ ] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
-- [ ] Projects CRUD (API + UI) — Day 7, 9 (03-29, 03-31)
-- [ ] OpenAPI Contract 파이프라인 — Day 8 (03-30)
-- [ ] 환경 강화 (에러 핸들링, 로깅, Rate Limiting) — Day 10 (04-01)
-- [ ] Agent 기본 데몬 + WebSocket 연결 — Day 11-12 (04-02~03)
-- [ ] E2E 통합 테스트 + Phase 0 마무리 — Day 13-14 (04-04~05)
+- [x] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
+- [x] Projects CRUD (API + UI) — Day 7, 9 (03-29, 03-31)
+- [x] OpenAPI Contract 파이프라인 — Day 8 (03-30)
+- [x] 환경 강화 (에러 핸들링, 로깅, Rate Limiting) — Day 10 (04-01)
+- [x] Agent 기본 데몬 + WebSocket 연결 — Day 11-12 (04-02~03)
+- [x] E2E 통합 테스트 + Phase 0 마무리 — Day 13-14 (04-04~05)
 
 ### Phase 1: MVP Core + Agent 기본 통신 (Week 3-5) — 04-06 ~ 04-19
 
