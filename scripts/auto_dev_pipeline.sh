@@ -183,13 +183,74 @@ for title, meta in m.items():
     log "WARN: Linear 결과 보고 실패"
   }
 
-  # PR 생성
-  python3 scripts/auto_pr_creator.py --branch "$BRANCH" --auto-merge 2>&1 || {
-    log "WARN: PR 생성 실패"
-  }
+  # PR 생성 또는 직접 머지
+  if is_enabled "FLOWOPS_AUTO_MERGE" 2>/dev/null; then
+    log "AUTO_MERGE 활성화: 직접 머지 수행"
 
-  # 메인으로 복귀
-  git checkout main 2>/dev/null || true
+    # 머지 전 diff 정보 수집
+    MERGE_DIFF_STAT=$(git diff --stat "main..${BRANCH}" 2>/dev/null || echo "(diff 없음)")
+    MERGE_DIFF_FILES=$(git diff --name-only "main..${BRANCH}" 2>/dev/null || echo "")
+    MERGE_COMMITS=$(git log --oneline "main..${BRANCH}" 2>/dev/null || echo "(커밋 없음)")
+    MERGE_DIFF_DETAIL=$(git diff "main..${BRANCH}" 2>/dev/null || echo "")
+
+    # 메인으로 전환 후 머지
+    git checkout main 2>/dev/null || true
+    if git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
+      log "머지 성공: ${BRANCH} → main"
+
+      # 머지 로그 생성
+      MERGE_LOG_FILE="$PROJECT_DIR/logs/merge_$(date '+%Y%m%d_%H%M%S').log"
+      mkdir -p "$PROJECT_DIR/logs"
+      {
+        echo "════════════════════════════════════════════════════════════"
+        echo "  MERGE LOG"
+        echo "════════════════════════════════════════════════════════════"
+        echo ""
+        echo "일시:     $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "이슈:     ${ISSUE_KEY}"
+        echo "브랜치:   ${BRANCH} → main"
+        echo "제목:     ${TITLE}"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  커밋 목록"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_COMMITS"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  변경 파일"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_DIFF_STAT"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  상세 변경 내용 (diff)"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_DIFF_DETAIL"
+        echo ""
+        echo "════════════════════════════════════════════════════════════"
+      } > "$MERGE_LOG_FILE"
+      log "머지 로그: $MERGE_LOG_FILE"
+
+      # push
+      git push origin main 2>/dev/null || log "WARN: push 실패"
+
+      # 머지된 브랜치 정리
+      git branch -d "$BRANCH" 2>/dev/null || true
+      git push origin --delete "$BRANCH" 2>/dev/null || true
+    else
+      log "ERROR: 머지 실패. PR 생성으로 대체합니다."
+      git merge --abort 2>/dev/null || true
+      python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
+        log "WARN: PR 생성 실패"
+      }
+      git checkout main 2>/dev/null || true
+    fi
+  else
+    # AUTO_MERGE 비활성: PR만 생성
+    python3 scripts/auto_pr_creator.py --branch "$BRANCH" --auto-merge 2>&1 || {
+      log "WARN: PR 생성 실패"
+    }
+    git checkout main 2>/dev/null || true
+  fi
 
   # 임시 파일 정리
   rm -rf ".ralph/tasks"
