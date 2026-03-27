@@ -2,7 +2,7 @@
   "mcpServers": {
     "figma": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/figma-mcp-server@latest"],
+      "args": ["-y", "figma-developer-mcp@latest"],
       "env": {
         "FIGMA_ACCESS_TOKEN": "figd_O0H_a90fjztdvMLCHkVNjvocJ9vSUzULKr9fK8kH"
       }
