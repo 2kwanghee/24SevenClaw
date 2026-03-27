@@ -120,7 +120,7 @@
 - [x] 인증 시스템 (회원가입/로그인/JWT) — Day 3 (03-25)
 - [x] Next.js 스켈레톤 + 인증 UI — Day 4 (03-26)
 - [x] CI/CD 파이프라인 — Day 5 (03-27)
-- [ ] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
+- [x] DB 스키마 전체 + 마이그레이션 — Day 6 (03-28)
 - [ ] Projects CRUD (API + UI) — Day 7, 9 (03-29, 03-31)
 - [ ] OpenAPI Contract 파이프라인 — Day 8 (03-30)
 - [ ] 환경 강화 (에러 핸들링, 로깅, Rate Limiting) — Day 10 (04-01)
