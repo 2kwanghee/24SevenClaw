@@ -35,3 +35,5 @@
 | 03-27 | 환경 강화 (에러/로깅/Rate Limit) | ✅ | AppError+unhandled handler, structlog JSON/Console, Redis Rate Limit 100req/60s |
 | 03-27 | Agent 데몬 + WebSocket | ✅ | 데몬 main.py, WS client, Hub, dispatcher, handlers(stub), reporter |
 | 03-27 | E2E 통합 테스트 | ✅ | conftest(SQLite) + auth 9건 + projects 8건 + health 2건 = 19 테스트 |
+| 03-27 | E2E 흐름 테스트 추가 | ✅ | test_e2e_flow.py: 전체 CRUD 흐름 + 유저 간 격리 + 헬스체크 3건 |
+| 03-27 | CI openapi-sync job 추가 | ✅ | API/contracts 변경 시 OpenAPI export → TS generate → typecheck |
