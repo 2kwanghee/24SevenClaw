@@ -11,15 +11,102 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pipeline-lint:
-    name: Pipeline Scripts Validation
+  # ── 변경 감지 ──
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - '24SevenClaw-web/**'
+            api:
+              - '24SevenClaw-api/**'
+            scripts:
+              - 'scripts/**'
+              - 'CLAUDE.md'
+              - 'PjPlan.md'
+              - 'docs/**'
 
+  # ── Web: lint + typecheck + build ──
+  web:
+    name: Web (lint / typecheck / build)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 24SevenClaw-web
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: 24SevenClaw-web/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          AUTH_SECRET: ci-test-secret
+
+  # ── API: lint + typecheck ──
+  api:
+    name: API (lint / typecheck)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 24SevenClaw-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Mypy type check
+        run: uv run mypy app/ --ignore-missing-imports
+
+  # ── Scripts: 기존 검증 ──
+  scripts:
+    name: Scripts Validation
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
