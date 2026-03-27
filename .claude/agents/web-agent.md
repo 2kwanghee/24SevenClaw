@@ -105,6 +105,14 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 - **동적 임포트**: 무거운 컴포넌트는 `dynamic()` 사용
 - **메모이제이션**: 과도한 useMemo/useCallback 금지, 실제 성능 문제 시에만
 
+## UI/UX 작업 시
+
+UI/UX 관련 작업(페이지, 컴포넌트, 레이아웃, 디자인)은 반드시 아래를 따른다:
+- **에이전트**: `.claude/agents/uiux-agent.md` 참조
+- **스킬**: `/uiux` 스킬 활성화
+- **Figma MCP**: 디자인 데이터 조회 후 구현
+- **체크리스트**: `.claude/skills/uiux/design-checklist.md` 기반 검증
+
 ## Do NOT
 - shadcn/ui 컴포넌트 파일 직접 수정
 - 서버 데이터를 Zustand에 저장
@@ -112,3 +120,4 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 - any 타입 사용
 - console.log 커밋 (개발 중에만 사용)
 - 인라인 스타일 사용 (Tailwind 사용)
+- Figma 디자인 없이 UI 구현 착수 (디자인 없으면 요청)

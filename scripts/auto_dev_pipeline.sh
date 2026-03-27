@@ -153,6 +153,15 @@ for title, meta in m.items():
     continue
   }
 
+  # 프론트엔드 UI/UX 작업 감지 → PROMPT에 에이전트 지침 주입
+  UIUX_KEYWORDS="페이지|UI|컴포넌트|폼|대시보드|레이아웃|디자인|반응형|스타일|frontend|component|page"
+  if grep -qiE "$UIUX_KEYWORDS" ".ralph/fix_plan.md" 2>/dev/null; then
+    log "UI/UX 작업 감지: uiux-agent 지침 활성화"
+    export RALPH_UIUX_MODE=true
+  else
+    export RALPH_UIUX_MODE=false
+  fi
+
   # Linear 상태 → In Progress (1개만)
   python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "In Progress" 2>/dev/null || true
   log "Linear 상태: In Progress"

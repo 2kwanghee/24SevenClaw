@@ -42,10 +42,17 @@ Cloud (web + api) ←── WebSocket ──→ Agent (고객 서버)
 ## Module Agent Files
 각 모듈 개발 시 해당 에이전트 파일을 참조:
 - `.claude/agents/web-agent.md` — 프론트엔드 개발 가이드
+- `.claude/agents/uiux-agent.md` — UI/UX 전담 에이전트 (Figma MCP 연동)
 - `.claude/agents/api-agent.md` — 백엔드 API 개발 가이드
 - `.claude/agents/agent-agent.md` — 고객 서버 에이전트 개발 가이드
 - `.claude/agents/infra-agent.md` — 인프라/DevOps 가이드
 - `.claude/agents/contracts-agent.md` — 공유 계약/프로토콜 가이드
+
+## UI/UX 작업 규칙
+프론트엔드 UI 작업 시 반드시 UI/UX 에이전트(`uiux-agent.md`)를 참조한다.
+- Figma MCP로 디자인 데이터 조회 → 코드 변환
+- `/uiux` 스킬 + `design-checklist.md`로 품질 검증
+- 접근성(WCAG AA), 반응형, 다크모드 필수
 
 ## Skills
 - `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 (setup-module, api-endpoint, ui-page 등)
