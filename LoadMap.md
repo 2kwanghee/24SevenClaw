@@ -172,32 +172,32 @@ CLI 패키지 초기화 + `24sc init` 명령어의 기본 위저드 + 파일 생
 
 ### CLI 패키지 초기화
 
-- [ ] `24SevenClaw-cli/` 레포 생성 (TypeScript + tsup + vitest)
-- [ ] `package.json` 설정 (`name: @24sevenclaw/cli`, `bin: { "24sc": "./bin/cli.js" }`)
-- [ ] `tsconfig.json` + `tsup.config.ts` (빌드 설정)
-- [ ] Commander.js 기반 CLI 진입점 (`src/cli.ts`)
-- [ ] `bin/cli.js` (shebang + dist 연결)
+- [x] `24SevenClaw-cli/` 레포 생성 (TypeScript + tsup + vitest)
+- [x] `package.json` 설정 (`name: @24sevenclaw/cli`, `bin: { "24sc": "./bin/cli.js" }`)
+- [x] `tsconfig.json` + `tsup.config.ts` (빌드 설정)
+- [x] Commander.js 기반 CLI 진입점 (`src/cli.ts`)
+- [x] `bin/cli.js` (shebang + dist 연결)
 
 ### 대화형 위저드 (Step 1~2)
 
-- [ ] `src/commands/init.ts` — init 명령어 메인 로직
-- [ ] `src/wizard/project.ts` — Step 1: 프로젝트 이름, 유형, 기술 스택 선택
-- [ ] `src/wizard/agents.ts` — Step 2: 에이전트 고용 (체크박스 선택)
-- [ ] `src/catalog/agents.json` — 에이전트 카탈로그 (id, name, description, template)
-- [ ] `src/catalog/stacks.json` — 기술 스택 프리셋 (lint/test/type 명령어 매핑)
+- [x] `src/commands/init.ts` — init 명령어 메인 로직
+- [x] `src/wizard/project.ts` — Step 1: 프로젝트 이름, 유형, 기술 스택 선택
+- [x] `src/wizard/agents.ts` — Step 2: 에이전트 고용 (체크박스 선택)
+- [x] `src/catalog/agents.json` — 에이전트 카탈로그 (id, name, description, template)
+- [x] `src/catalog/stacks.json` — 기술 스택 프리셋 (lint/test/type 명령어 매핑)
 
 ### 파일 생성 엔진
 
-- [ ] `src/generators/agent.ts` — 에이전트 .md 파일 생성 (템플릿 → 출력)
-- [ ] `src/generators/settings.ts` — settings.json 생성 (선택한 옵션 반영)
-- [ ] `src/generators/claude-md.ts` — CLAUDE.md 생성 (프로젝트 정보 삽입)
-- [ ] `src/templates/agents/` — 에이전트 Handlebars 템플릿 (기존 .md를 템플릿화)
-- [ ] `src/templates/claude.md.hbs` — CLAUDE.md 템플릿
+- [x] `src/generators/agent.ts` — 에이전트 .md 파일 생성 (템플릿 → 출력)
+- [x] `src/generators/settings.ts` — settings.json 생성 (선택한 옵션 반영)
+- [x] `src/generators/claude-md.ts` — CLAUDE.md 생성 (프로젝트 정보 삽입)
+- [x] `src/templates/agents/` — 에이전트 Handlebars 템플릿 (기존 .md를 템플릿화)
+- [x] `src/templates/claude.md.hbs` — CLAUDE.md 템플릿
 
 ### 테스트
 
-- [ ] `tests/wizard.test.ts` — 위저드 입력 → 옵션 객체 생성 검증
-- [ ] `tests/generators.test.ts` — 파일 생성기 유닛 테스트
+- [x] `tests/wizard.test.ts` — 위저드 입력 → 옵션 객체 생성 검증
+- [x] `tests/generators.test.ts` — 파일 생성기 유닛 테스트
 - [ ] 로컬 실행 테스트: `npx tsx src/cli.ts init` → 파일 생성 확인
 
 ---
