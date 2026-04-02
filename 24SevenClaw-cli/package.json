@@ -9,7 +9,9 @@
   "main": "./dist/cli.js",
   "files": [
     "dist",
-    "bin"
+    "bin",
+    "src/templates",
+    "src/catalog"
   ],
   "scripts": {
     "build": "tsup",
