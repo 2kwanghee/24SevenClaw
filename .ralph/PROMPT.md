@@ -57,7 +57,10 @@ cd 24SevenClaw-web && npm run lint
 3. **프론트엔드 UI 작업 판별** → UI/UX 에이전트 연동 (아래 참조)
 4. 코드 구현
 5. 검증 (해당 모듈 테스트 + 린트)
-6. 성공 시: fix_plan.md에 [x] 표시 + git commit (커밋 메시지: `[module] 작업 내용`)
+6. 성공 시: fix_plan.md에 [x] 표시 + LoadMap.md 해당 항목 [x] 동기화 + git commit (커밋 메시지: `[module] 작업 내용`)
+   - LoadMap.md에서 현재 Phase/Week 섹션의 매칭되는 `- [ ]` 항목을 `- [x]`로 변경
+   - 매칭 기준: 파일명, 기능명, 또는 태스크 설명 일치
+   - LoadMap.md가 없으면 건너뜀
 7. 실패 시: 에러 분석 → 수정 → 재검증 (3회 실패 시 [!] 표시 후 건너뜀)
 8. contracts 변경 포함 시: TS ↔ Python 타입 동기화 확인
 9. 다음 미완료 항목으로 이동
