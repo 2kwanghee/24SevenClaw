@@ -74,6 +74,10 @@ AI 코드 작성을 4단계로 통제하여 환각/오류를 사전 차단하는
 | Loop | `harness-loop` | `ralph-loop`, `tdd-smart-coding`, `run-tests` |
 | Worker | `harness-worker` | `fullstack`, `ai-critique`, `uiux` |
 
+## Model Routing
+에이전트/스킬별 최적 모델(opus/sonnet/haiku)을 지정하여 토큰 비용을 최적화한다.
+- `.claude/MODEL-ROUTING.md` — 모델 라우팅 가이드 (티어 정의, 배정표, 격상/격하 규칙)
+
 ## Skills
 - `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 + 4개 하네스 스킬
 - `.claude/skills/` — flow-ops 자동화 스킬 13개 (run-pipeline, ralph-loop 등)
