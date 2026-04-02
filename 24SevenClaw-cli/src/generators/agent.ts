@@ -4,11 +4,10 @@ import Handlebars from "handlebars";
 import type { InitOptions, CatalogAgent } from "../types.js";
 import catalogAgents from "../catalog/agents.json" with { type: "json" };
 import catalogStacks from "../catalog/stacks.json" with { type: "json" };
-
-const TEMPLATES_DIR = new URL("../templates/", import.meta.url);
+import { TEMPLATES_DIR } from "../paths.js";
 
 async function loadTemplate(templatePath: string): Promise<string> {
-  const fullPath = new URL(templatePath, TEMPLATES_DIR);
+  const fullPath = path.join(TEMPLATES_DIR, templatePath);
   return fs.readFile(fullPath, "utf-8");
 }
 
