@@ -1,0 +1,50 @@
+[
+  {
+    "id": "backend",
+    "name": "시니어 백엔드 엔지니어",
+    "description": "API 설계, DB, 서버 로직 전담",
+    "outputFile": "api-agent.md",
+    "template": "agents/api-agent.md.hbs",
+    "required": false
+  },
+  {
+    "id": "frontend",
+    "name": "프론트엔드 전문가",
+    "description": "컴포넌트, 상태관리, 라우팅 전담",
+    "outputFile": "web-agent.md",
+    "template": "agents/web-agent.md.hbs",
+    "required": false
+  },
+  {
+    "id": "uiux",
+    "name": "UI/UX 디자이너",
+    "description": "접근성, 반응형, 디자인 시스템 전담",
+    "outputFile": "uiux-agent.md",
+    "template": "agents/uiux-agent.md.hbs",
+    "required": false
+  },
+  {
+    "id": "devops",
+    "name": "DevOps 엔지니어",
+    "description": "Docker, CI/CD, 배포 전담",
+    "outputFile": "infra-agent.md",
+    "template": "agents/infra-agent.md.hbs",
+    "required": false
+  },
+  {
+    "id": "fullstack",
+    "name": "풀스택 시니어",
+    "description": "백엔드+프론트 통합 개발",
+    "outputFile": "fullstack-agent.md",
+    "template": "agents/fullstack-agent.md.hbs",
+    "required": false
+  },
+  {
+    "id": "harness",
+    "name": "하네스 엔지니어 (필수)",
+    "description": "4단계 품질 통제 — Router→Context→Loop→Worker",
+    "outputFile": "harness-guide.md",
+    "template": "agents/harness-guide.md.hbs",
+    "required": true
+  }
+]
