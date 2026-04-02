@@ -45,6 +45,23 @@ python3 scripts/linear_tracker.py update \
   --status "Done"
 ```
 
+### Step 2.5: LoadMap.md 체크리스트 동기화
+
+완료한 작업이 LoadMap.md의 `- [ ]` 항목에 해당하면 `- [x]`로 변경한다.
+
+1. LoadMap.md를 읽고 현재 Phase/Week 섹션에서 관련 항목을 찾는다
+2. 완료한 작업과 매칭되는 `- [ ]` 항목을 `- [x]`로 변경한다
+3. 매칭 기준: 파일명, 기능명, 또는 태스크 설명이 일치하는 항목
+4. LoadMap.md가 없으면 이 단계를 건너뛴다
+5. 변경이 있으면 커밋에 포함한다
+
+```
+예시:
+  완료 작업: "src/commands/init.ts 구현"
+  LoadMap.md 매칭: "- [ ] `src/commands/init.ts` — init 명령어 메인 로직"
+  변경 후:         "- [x] `src/commands/init.ts` — init 명령어 메인 로직"
+```
+
 ### Step 3: 작업 로그 등록
 
 ```bash
