@@ -185,3 +185,31 @@ full-setup: "cd 24SevenClaw-infra && ./scripts/setup-dev.sh"
 4. 오늘 할 작업을 Task로 생성
 5. 첫 번째 태스크부터 시작
 ```
+
+---
+
+## 하네스 엔지니어링 스킬 (Harness Engineering)
+
+> AI 코드 작성을 `라우팅 → 컨텍스트 제어 → 자동 교정 루프 → 역할 분리` 4단계로 통제.
+> 전체 가이드: `.claude/agents/harness-guide.md`
+
+### Skill H1: harness-router
+**용도**: 사용자 요청의 의도 분석 + 라우팅 게이트웨이
+**위치**: `.claude/skills/harness-router/SKILL.md`
+**동작**: 모호한 요청 → 되물어보기, 명확한 작업 → 하네스 루프, 일반 대화 → 표준 응답
+
+### Skill H2: harness-context
+**용도**: 현재 작업에 필요한 정보만 선별 제공 (가림막)
+**위치**: `.claude/skills/harness-context/SKILL.md`
+**동작**: 전역 제약 고정 + 모듈별 agent.md 로딩 + 완료된 코드 자동 정리
+
+### Skill H3: harness-loop
+**용도**: 코드 작성 → 자동 테스트 → 에러 피드백 → 수정 반복 루프
+**위치**: `.claude/skills/harness-loop/SKILL.md`
+**동작**: Gate 1~4 (lint/type/test/integration) 통과까지 MAX 5회 반복
+**연동**: ralph-loop (다수 작업 반복), tdd-smart-coding (Red-Green-Refactor)
+
+### Skill H4: harness-worker
+**용도**: 코드 작성자 / 리뷰어 / 보안 검토자 역할 분리
+**위치**: `.claude/skills/harness-worker/SKILL.md`
+**역할**: WRITE_CODE (fullstack), TEST_WRITER (tdd), CODE_REVIEW (ai-critique), SECURITY_REVIEW

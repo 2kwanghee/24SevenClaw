@@ -34,21 +34,21 @@ user-invocable: true
 
 현재 구현 상태를 분석하여 보수/추가 필요 사항을 도출한다:
 
-1. **BACKLOG.md의 미완료 TODO** 확인
-2. **Backend 분석**:
-   - `backend/app/models/` — ERD 대비 미구현 모델
-   - `backend/app/routers/` — 미구현 API 엔드포인트
-   - `backend/tests/` — 테스트 커버리지 부족 영역
+1. **LoadMap.md의 현재 Week 미완료 항목** 확인
+2. **Backend 분석** (`24SevenClaw-api/`):
+   - `app/models/` — ERD 대비 미구현 모델 (없으면 스킵)
+   - `app/api/v1/` — 미구현 API 엔드포인트
+   - `tests/` — 테스트 커버리지 부족 영역
    - 코드 내 TODO/FIXME/HACK 주석
-3. **Frontend 분석**:
-   - `frontend/src/` — 미구현 페이지/컴포넌트
+3. **Frontend 분석** (`24SevenClaw-web/`):
+   - `src/app/` — 미구현 페이지/컴포넌트
    - 하드코딩된 값, 임시 구현체
    - 코드 내 TODO/FIXME 주석
-4. **Infra 분석**:
+4. **Infra 분석** (`24SevenClaw-infra/`):
    - CI/CD 파이프라인 유무
    - 환경설정 누락 사항
 
-### Step 3: Notion에 기록
+### Step 3: Linear에 기록
 
 #### 3-1. 기존 항목 확인 (중복 방지)
 
@@ -99,7 +99,7 @@ python3 ./scripts/linear_tracker.py update \
 ```
 ## 오늘의 작업 로그
 - [작업 내용 bullet points]
-- Notion: [페이지 URL]
+- Linear: [이슈 URL]
 
 ## 등록된 이후 과제
 | 과제 | 상태 | 태그 |
@@ -117,7 +117,7 @@ python3 ./scripts/linear_tracker.py update \
 - 한국어로 작성한다
 - 작업 내용이 없으면 사용자에게 물어본다
 - 이후 과제는 구체적이고 실행 가능한 단위로 쪼갠다 (예: "프론트엔드 개선" X -> "Contacts 목록 페이지 구현" O)
-- 이미 Notion에 등록된 과제와 중복되지 않도록 기존 목록을 먼저 확인한다
-- BACKLOG.md의 TODO 항목과 코드 분석 결과를 종합하여 과제를 도출한다
+- 이미 Linear에 등록된 과제와 중복되지 않도록 기존 목록을 먼저 확인한다
+- LoadMap.md의 현재 Week 항목과 코드 분석 결과를 종합하여 과제를 도출한다
 
 $ARGUMENTS

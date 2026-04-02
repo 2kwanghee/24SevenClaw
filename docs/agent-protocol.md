@@ -1,374 +1,265 @@
-# 24SevenClaw - Agent Communication Protocol
+# 24SevenClaw - CLI ↔ Cloud Communication Protocol
 
 ## 1. 개요
 
-Agent와 Cloud 간의 통신은 **WebSocket(WSS)** 기반이며, Agent가 Cloud로 아웃바운드 연결을 맺는다.
+CLI와 Cloud 간의 통신은 **HTTPS** 기반이며, CLI가 Cloud API에 요청을 보내는 단방향 구조다.
 
 ```
-Agent ──── WSS (outbound, port 443) ────► Cloud WebSocket Hub
+CLI ──── HTTPS (outbound) ────► Cloud API
 ```
 
----
-
-## 2. 연결 라이프사이클
-
-### 2.1 최초 등록
+브라우저 대시보드의 실시간 업데이트는 별도의 **WebSocket** 연결을 사용한다.
 
 ```
-1. 관리자가 Cloud UI에서 "Agent 추가" → agent_id + registration_token 발급
-2. 고객 서버에 Agent 설치: install.sh --token <registration_token>
-3. Agent 시작 → Cloud에 WebSocket 연결
-4. Agent → Cloud: agent.register 메시지 전송
-5. Cloud: 토큰 검증 → agent_secret 발급 → DB에 Agent 등록
-6. Agent: agent_secret을 로컬에 저장 (이후 인증에 사용)
-```
-
-### 2.2 일반 연결 (재시작 시)
-
-```
-1. Agent 시작 → 저장된 agent_secret으로 WebSocket 연결
-2. 연결 URL: wss://api.24sevenclaw.com/ws/agent?agent_id={id}
-3. HTTP 헤더: Authorization: Bearer {agent_secret}
-4. Cloud: 인증 확인 → 연결 수립
-5. Agent: 즉시 heartbeat 전송 (현재 상태 포함)
-```
-
-### 2.3 연결 유지
-
-```
-Agent ──(30초 간격)──► agent.heartbeat
-Cloud ──(응답)──────► heartbeat.ack
-
-60초간 heartbeat 없음 → Cloud가 Agent를 "offline"으로 표시
-```
-
-### 2.4 재연결 전략
-
-```
-연결 끊김 감지 → 즉시 재연결 시도
-실패 시 → 지수 백오프: 1s → 2s → 4s → 8s → ... → max 300s (5분)
-재연결 성공 → 백오프 리셋 + 밀린 상태 보고 전송
+Browser ──── WSS ────► Cloud WebSocket (대시보드 실시간 업데이트)
 ```
 
 ---
 
-## 3. 메시지 포맷
+## 2. 인증 라이프사이클
 
-모든 메시지는 JSON 형식이며 공통 envelope을 사용한다.
+### 2.1 CLI 토큰 발급
 
-### 3.1 공통 Envelope
+```
+1. 사용자가 Cloud 웹 UI에서 프로젝트 생성 완료
+2. "CLI 설치" 페이지에서 CLI 토큰 발급 (cli_token)
+3. 사용자가 로컬에서: npx @24sevenclaw/cli init
+4. CLI가 토큰 입력 요청 → 사용자가 cli_token 입력
+5. CLI → Cloud: POST /api/cli/auth {cli_token}
+6. Cloud: 토큰 검증 → access_token + refresh_token 발급
+7. CLI: 로컬에 토큰 저장 (~/.24sc/credentials.json)
+```
+
+### 2.2 일반 인증 (재실행 시)
+
+```
+1. CLI 실행 → 저장된 access_token으로 API 요청
+2. 만료 시 → refresh_token으로 자동 갱신
+3. refresh_token도 만료 → 사용자에게 재인증 요청
+```
+
+### 2.3 토큰 구조
 
 ```json
 {
-  "id": "msg_uuid_v4",
-  "type": "agent.heartbeat | command.setup_env | ...",
-  "timestamp": "2026-03-23T10:30:00Z",
-  "payload": { ... },
-  "signature": "hmac_sha256_hex"   // agent_secret으로 서명
+  "access_token": "eyJhbGciOi...",   // JWT, 1시간 유효
+  "refresh_token": "rt_xxxxx",       // 30일 유효
+  "project_id": "proj_xxx",
+  "expires_at": "2026-04-02T11:00:00Z"
 }
 ```
 
-### 3.2 서명 검증
-
-```
-signature = HMAC-SHA256(
-  key = agent_secret,
-  message = id + type + timestamp + JSON(payload)
-)
-```
-
-양방향 모두 서명 검증. 검증 실패 → 메시지 무시 + 경고 로그.
-
 ---
 
-## 4. 메시지 타입 정의
+## 3. API 엔드포인트
 
-### 4.1 Agent → Cloud
+### 3.1 인증
 
-#### `agent.register`
-최초 등록 요청.
+#### `POST /api/cli/auth`
+CLI 토큰으로 인증.
 ```json
+// Request
 {
-  "type": "agent.register",
-  "payload": {
-    "registration_token": "reg_xxxxx",
-    "hostname": "customer-server-01",
-    "os": "Ubuntu 24.04",
-    "docker_version": "27.0.3",
-    "agent_version": "1.0.0",
-    "capabilities": ["docker", "git", "claude", "build"]
-  }
+  "cli_token": "ct_xxxxx"
+}
+
+// Response (200)
+{
+  "access_token": "eyJhbGciOi...",
+  "refresh_token": "rt_xxxxx",
+  "project_id": "proj_xxx",
+  "project_name": "my-project",
+  "expires_at": "2026-04-02T11:00:00Z"
 }
 ```
 
-#### `agent.heartbeat`
-주기적 상태 보고 (30초).
+#### `POST /api/cli/refresh`
+토큰 갱신.
 ```json
+// Request
 {
-  "type": "agent.heartbeat",
-  "payload": {
-    "status": "idle | busy | error",
-    "uptime_seconds": 86400,
-    "system": {
-      "cpu_percent": 23.5,
-      "memory_percent": 45.2,
-      "disk_percent": 60.1
-    },
-    "environments": [
-      {
-        "project_id": "proj_xxx",
-        "status": "running | stopped | error",
-        "containers": 4,
-        "uptime_seconds": 3600
+  "refresh_token": "rt_xxxxx"
+}
+
+// Response (200)
+{
+  "access_token": "eyJhbGciOi...",
+  "expires_at": "2026-04-02T12:00:00Z"
+}
+```
+
+---
+
+### 3.2 프로젝트 설정 다운로드
+
+#### `GET /api/projects/{id}/config/download`
+프로젝트 설정 전체 다운로드 (CLI init/setup에서 사용).
+```json
+// Response (200)
+{
+  "project": {
+    "id": "proj_xxx",
+    "name": "my-ai-project",
+    "type": "webapp",
+    "requirements": { ... },
+    "deployment_type": "source_only",
+    "target_os": "linux"
+  },
+  "template": {
+    "name": "webapp",
+    "scaffold": {
+      "directories": ["src/", "tests/", "docs/"],
+      "files": {
+        "package.json": "{ ... }",
+        "tsconfig.json": "{ ... }"
       }
-    ],
-    "active_tasks": ["task_xxx"]
-  }
-}
-```
-
-#### `agent.status`
-환경/작업 상태 변경 이벤트 (즉시 전송).
-```json
-{
-  "type": "agent.status",
-  "payload": {
-    "event": "env.created | env.started | env.stopped | env.error | task.started | task.completed | task.failed",
-    "project_id": "proj_xxx",
-    "task_id": "task_xxx",
-    "detail": {
-      "message": "Docker 환경 생성 완료",
-      "containers_created": ["agent-runtime", "skill-server", "mcp-server", "claude"],
-      "duration_ms": 45000
     }
-  }
-}
-```
-
-#### `agent.log`
-로그 스트리밍 (요약만, 원본은 고객 서버 로컬).
-```json
-{
-  "type": "agent.log",
-  "payload": {
-    "project_id": "proj_xxx",
-    "task_id": "task_xxx",
-    "level": "info | warn | error",
-    "source": "docker | claude | git | build",
-    "message": "빌드 완료: 42개 파일 컴파일, 0 에러",
-    "truncated": true
-  }
-}
-```
-
-#### `agent.result`
-작업 완료 결과.
-```json
-{
-  "type": "agent.result",
-  "payload": {
-    "task_id": "task_xxx",
-    "ticket_id": "ticket_xxx",
-    "status": "completed | failed | partial",
-    "summary": "로그인 기능 구현 완료",
-    "changes": {
-      "files_created": ["src/auth/login.py", "tests/test_login.py"],
-      "files_modified": ["src/main.py"],
-      "files_deleted": [],
-      "git_commit": "abc1234",
-      "git_branch": "feature/login"
-    },
-    "metrics": {
-      "duration_ms": 120000,
-      "tokens_used": 15000
+  },
+  "agents": [
+    {
+      "id": "agent_xxx",
+      "name": "code-writer",
+      "type": "development",
+      "config": {
+        "model": "claude-sonnet-4-6",
+        "instructions": "..."
+      }
     }
-  }
+  ],
+  "skills": [
+    {
+      "id": "skill_xxx",
+      "name": "web-search",
+      "type": "tool",
+      "config": { ... }
+    }
+  ],
+  "hooks": [
+    {
+      "id": "hook_xxx",
+      "event": "post-commit",
+      "action": "report-status"
+    }
+  ],
+  "claude_md_template": "# Project: {{project.name}}\n...",
+  "config_version": 3
+}
+```
+
+#### `GET /api/projects/{id}/config/version`
+설정 버전 확인 (변경 감지용).
+```json
+// Response (200)
+{
+  "config_version": 3,
+  "last_updated": "2026-04-02T10:30:00Z"
 }
 ```
 
 ---
 
-### 4.2 Cloud → Agent
+### 3.3 이벤트 보고
 
-#### `command.setup_env`
-환경 프로비저닝 명령.
+#### `POST /api/projects/{id}/events`
+CLI가 진행 상태를 클라우드에 보고.
 ```json
+// Request
 {
-  "type": "command.setup_env",
-  "payload": {
-    "project_id": "proj_xxx",
-    "project_name": "my-ai-project",
-    "environment": {
-      "template": "python-agent",
-      "agents": [
-        {
-          "id": "agent_xxx",
-          "name": "code-writer",
-          "image": "registry.24sevenclaw.com/agents/code-writer:1.2.0",
-          "config": { "model": "claude-sonnet-4-6", "max_tokens": 8000 }
-        }
-      ],
-      "skills": [
-        {
-          "id": "skill_xxx",
-          "name": "web-search",
-          "image": "registry.24sevenclaw.com/skills/web-search:1.0.0",
-          "config": { "api_key_env": "SEARCH_API_KEY" }
-        }
-      ],
-      "mcps": [
-        {
-          "id": "mcp_xxx",
-          "name": "github-mcp",
-          "image": "registry.24sevenclaw.com/mcps/github:2.0.0",
-          "config": { "transport": "streamable_http", "port": 3100 }
-        }
-      ],
-      "claude": {
-        "version": "latest",
-        "api_key_env": "ANTHROPIC_API_KEY"
-      }
+  "event_type": "setup.completed | dev.started | milestone.progress | error",
+  "data": {
+    "message": "로컬 개발환경 구축 완료",
+    "milestone_id": "ms_xxx",
+    "progress_percent": 45,
+    "files_changed": 12,
+    "git_commit": "abc1234"
+  }
+}
+
+// Response (200)
+{
+  "event_id": "evt_xxx",
+  "received_at": "2026-04-02T10:30:00Z"
+}
+```
+
+### 이벤트 타입
+
+| 타입 | 설명 | 트리거 |
+|------|------|--------|
+| `setup.started` | CLI 환경 구축 시작 | `24sc setup` 실행 |
+| `setup.completed` | CLI 환경 구축 완료 | `24sc setup` 완료 |
+| `setup.failed` | CLI 환경 구축 실패 | `24sc setup` 실패 |
+| `dev.started` | 개발 모드 시작 | `24sc dev` 실행 |
+| `dev.stopped` | 개발 모드 종료 | `24sc dev` 종료 |
+| `milestone.progress` | 마일스톤 진행 업데이트 | Claude Code 작업 완료 시 |
+| `file.changed` | 파일 변경 보고 | Git 커밋 감지 시 |
+| `error` | 에러 발생 | 모든 에러 |
+
+---
+
+### 3.4 설정 동기화
+
+#### `GET /api/projects/{id}/config/diff?since_version={n}`
+특정 버전 이후 변경사항만 다운로드 (sync에서 사용).
+```json
+// Response (200)
+{
+  "current_version": 5,
+  "changes": [
+    {
+      "action": "add",
+      "target": "skill",
+      "item": { "id": "skill_yyy", "name": "database-query", ... }
     },
-    "git": {
-      "init": true,
-      "remote_url": "git@github.com:customer/my-project.git",
-      "branch": "main"
+    {
+      "action": "update",
+      "target": "agent",
+      "item": { "id": "agent_xxx", "config": { ... } }
     }
-  }
+  ]
 }
 ```
 
-#### `command.deploy_ticket`
-개발 티켓 전달.
-```json
-{
-  "type": "command.deploy_ticket",
-  "payload": {
-    "ticket_id": "ticket_xxx",
-    "project_id": "proj_xxx",
-    "title": "사용자 로그인 기능 구현",
-    "description": "이메일/비밀번호 기반 로그인 API와 JWT 토큰 발급 구현",
-    "priority": "high",
-    "acceptance_criteria": [
-      "POST /api/auth/login 엔드포인트 구현",
-      "JWT access/refresh 토큰 발급",
-      "비밀번호 bcrypt 해싱",
-      "단위 테스트 작성"
-    ],
-    "context": {
-      "related_files": ["src/auth/", "src/models/user.py"],
-      "branch": "feature/login"
-    }
-  }
-}
-```
+---
 
-#### `command.build`
-빌드 실행 명령.
-```json
-{
-  "type": "command.build",
-  "payload": {
-    "project_id": "proj_xxx",
-    "build_type": "full | incremental",
-    "command": "npm run build",
-    "env_vars": { "NODE_ENV": "production" },
-    "stream_logs": true
-  }
-}
-```
+## 4. CLI 명령어 → API 매핑
 
-#### `command.run`
-서비스 실행 명령.
-```json
-{
-  "type": "command.run",
-  "payload": {
-    "project_id": "proj_xxx",
-    "command": "npm start",
-    "port": 3000,
-    "env_vars": { "PORT": "3000" }
-  }
-}
-```
-
-#### `command.stop`
-서비스 중지.
-```json
-{
-  "type": "command.stop",
-  "payload": {
-    "project_id": "proj_xxx",
-    "target": "all | build | service",
-    "force": false
-  }
-}
-```
-
-#### `command.destroy_env`
-환경 삭제.
-```json
-{
-  "type": "command.destroy_env",
-  "payload": {
-    "project_id": "proj_xxx",
-    "keep_git": true,
-    "keep_data": false
-  }
-}
-```
-
-#### `config.update`
-설정 변경 (에이전트/스킬/MCP 추가/제거/수정).
-```json
-{
-  "type": "config.update",
-  "payload": {
-    "project_id": "proj_xxx",
-    "changes": [
-      {
-        "action": "add | remove | update",
-        "target": "agent | skill | mcp",
-        "id": "agent_xxx",
-        "config": { ... }
-      }
-    ]
-  }
-}
-```
+| CLI 명령어 | API 호출 | 설명 |
+|-----------|----------|------|
+| `24sc init` | `POST /api/cli/auth` | 토큰 인증 |
+| `24sc setup` | `GET /config/download` → `POST /events` | 설정 다운로드 + 스캐폴딩 + 완료 보고 |
+| `24sc dev` | `POST /events (dev.started)` | 개발 모드 시작 보고 |
+| `24sc status` | `POST /events (milestone.progress)` | 진행 상태 보고 |
+| `24sc sync` | `GET /config/version` → `GET /config/diff` | 설정 변경 감지 + 동기화 |
 
 ---
 
 ## 5. 에러 처리
 
-### 5.1 에러 응답 포맷
+### 5.1 HTTP 에러 응답
+
 ```json
 {
-  "type": "error",
-  "payload": {
-    "code": "ENV_SETUP_FAILED | DOCKER_ERROR | AUTH_FAILED | LICENSE_EXPIRED | ...",
-    "message": "Docker 이미지 pull 실패: registry.24sevenclaw.com/agents/code-writer:1.2.0",
-    "original_message_id": "msg_xxx",
+  "error": {
+    "code": "AUTH_FAILED | LICENSE_EXPIRED | PROJECT_NOT_FOUND | ...",
+    "message": "CLI 토큰이 만료되었습니다. 웹에서 새 토큰을 발급받으세요.",
     "recoverable": true,
-    "suggestion": "네트워크 연결을 확인하거나 이미지 태그를 확인하세요"
+    "suggestion": "24sc init 명령어로 재인증하세요"
   }
 }
 ```
 
 ### 5.2 에러 코드
 
-| 코드 | 설명 | 복구 가능 |
-|------|------|-----------|
-| `AUTH_FAILED` | 인증 실패 | No - 재등록 필요 |
-| `LICENSE_EXPIRED` | 라이센스 만료 | No - 갱신 필요 |
-| `LICENSE_LIMIT` | 라이센스 한도 초과 | No - 업그레이드 필요 |
-| `DOCKER_ERROR` | Docker 작업 실패 | Yes - 재시도 |
-| `ENV_SETUP_FAILED` | 환경 구성 실패 | Yes - 재시도 |
-| `GIT_ERROR` | Git 작업 실패 | Yes - 재시도 |
-| `CLAUDE_ERROR` | Claude 작업 실패 | Yes - 재시도 |
-| `BUILD_FAILED` | 빌드 실패 | Yes - 수정 후 재시도 |
-| `RESOURCE_LIMIT` | 서버 리소스 부족 | No - 리소스 확보 필요 |
-| `TIMEOUT` | 작업 시간 초과 | Yes - 재시도 |
+| 코드 | HTTP | 설명 | CLI 대응 |
+|------|------|------|----------|
+| `AUTH_FAILED` | 401 | 인증 실패/토큰 만료 | 재인증 안내 |
+| `LICENSE_EXPIRED` | 403 | 라이센스 만료 | 웹에서 갱신 안내 |
+| `LICENSE_LIMIT` | 403 | 프로젝트 한도 초과 | 업그레이드 안내 |
+| `PROJECT_NOT_FOUND` | 404 | 프로젝트 없음 | 프로젝트 ID 확인 안내 |
+| `CONFIG_VERSION_CONFLICT` | 409 | 설정 버전 충돌 | 전체 재다운로드 |
+| `RATE_LIMITED` | 429 | 요청 횟수 초과 | 재시도 (Retry-After 헤더) |
+| `SERVER_ERROR` | 500 | 서버 오류 | 재시도 |
 
 ---
 
@@ -376,30 +267,61 @@ signature = HMAC-SHA256(
 
 ### 6.1 인증 흐름
 ```
-[최초 등록]
-Cloud UI → registration_token 발급
-Agent → Cloud: registration_token으로 등록
-Cloud → Agent: agent_id + agent_secret 발급
+[CLI 토큰 발급]
+Cloud 웹 UI → cli_token 발급 (1회용, 10분 유효)
+CLI → Cloud: cli_token으로 인증
+Cloud → CLI: access_token (1시간) + refresh_token (30일)
 
-[이후 연결]
-Agent → Cloud: WebSocket 연결 시 Authorization 헤더에 agent_secret
-Cloud: agent_secret 검증 + 라이센스 유효성 확인
+[이후 API 호출]
+CLI → Cloud: Authorization: Bearer {access_token}
+Cloud: JWT 검증 + 라이센스 유효성 확인
 ```
 
 ### 6.2 보안 원칙
-- 모든 통신 TLS 암호화 (WSS)
-- 메시지별 HMAC-SHA256 서명
-- agent_secret은 고객 서버에만 저장 (클라우드는 해시만 보관)
-- 민감 정보(API 키 등)는 절대 클라우드로 전송하지 않음
-- 환경 변수 참조(`_env` 접미사)로 민감값 처리
+- 모든 통신 TLS 암호화 (HTTPS)
+- CLI 토큰은 1회용, 10분 유효 (재사용 불가)
+- access_token은 로컬 파일에 저장 (권한 600)
+- 사용자의 Anthropic API 키는 절대 클라우드로 전송하지 않음
+- 이벤트 보고 시 코드 내용 미포함 (파일명, 변경 수만 전송)
 
 ### 6.3 라이센스 검증
 ```
-Agent 시작 → Cloud에 라이센스 확인 요청
-Cloud: 라이센스 유효 → 정상 동작
-Cloud: 라이센스 만료 → Agent를 읽기 전용 모드로 전환
-Cloud: 라이센스 없음 → Agent 연결 거부
-
-주기적 검증: 24시간마다 + Cloud에서 push 가능
-오프라인 허용: 마지막 검증 후 72시간까지 (grace period)
+CLI 실행 시 → access_token의 JWT 클레임에서 라이센스 상태 확인
+라이센스 유효 → 정상 동작
+라이센스 만료 → CLI 기능 제한 + 웹에서 갱신 안내
+라이센스 없음 → CLI 인증 거부
 ```
+
+---
+
+## 7. 브라우저 WebSocket (대시보드 실시간)
+
+CLI가 보고한 이벤트를 대시보드에 실시간으로 표시하기 위한 별도 WebSocket.
+
+### 7.1 연결
+```
+Browser → WSS: wss://api.24sevenclaw.com/ws/project/{id}/stream
+Authorization: Bearer {user_jwt}
+```
+
+### 7.2 서버 → 브라우저 메시지
+
+```json
+{
+  "type": "project.event",
+  "data": {
+    "event_id": "evt_xxx",
+    "event_type": "milestone.progress",
+    "message": "로그인 기능 구현 완료 (45%)",
+    "timestamp": "2026-04-02T10:30:00Z"
+  }
+}
+```
+
+### 7.3 흐름
+
+```
+CLI ─(HTTPS POST)─► Cloud API ─(Redis Pub/Sub)─► WebSocket ─► Browser
+```
+
+CLI가 이벤트를 보고하면, Cloud API가 Redis에 발행하고, WebSocket 서버가 구독하여 브라우저에 전달한다.

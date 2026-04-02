@@ -43,7 +43,9 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent
 ### Step 4: 리팩터링 (Refactor)
 - 테스트가 통과하는 상태에서 코드 품질을 개선
 - 중복 제거, 네이밍 개선, 구조 정리
-- 리팩터링 후 테스트를 다시 실행하여 여전히 통과하는지 확인
+- 리팩터링 후 **단위 테스트 + 통합 검증**을 다시 실행하여 여전히 통과하는지 확인:
+  - api/agent 모듈: `uv run pytest` + `uv run mypy`
+  - web 모듈: `npm run test` + `npm run build` (빌드 깨짐 방지)
 - 리팩터링할 것이 없으면 이 단계를 건너뛰어도 됨
 
 ### Step 5: 린트 & 포맷

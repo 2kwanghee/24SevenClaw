@@ -47,6 +47,7 @@ Cloud (web + api) ←── WebSocket ──→ Agent (고객 서버)
 - `.claude/agents/agent-agent.md` — 고객 서버 에이전트 개발 가이드
 - `.claude/agents/infra-agent.md` — 인프라/DevOps 가이드
 - `.claude/agents/contracts-agent.md` — 공유 계약/프로토콜 가이드
+- `.claude/agents/harness-guide.md` — 하네스 엔지니어링 전체 흐름 가이드
 
 ## UI/UX 작업 규칙
 프론트엔드 UI 작업 시 반드시 UI/UX 에이전트(`uiux-agent.md`)를 참조한다.
@@ -54,8 +55,27 @@ Cloud (web + api) ←── WebSocket ──→ Agent (고객 서버)
 - `/uiux` 스킬 + `design-checklist.md`로 품질 검증
 - 접근성(WCAG AA), 반응형, 다크모드 필수
 
+## Harness Engineering (하네스 엔지니어링)
+AI 코드 작성을 4단계로 통제하여 환각/오류를 사전 차단하는 개발 워크플로.
+전체 가이드: `.claude/agents/harness-guide.md`
+
+```
+사용자 요청
+  → [1. Router] 의도 분석: 모호→되물어보기 / 명확→루프 / 대화→표준응답
+  → [2. Context Manager] 필요한 정보만 선별 제공 (가림막)
+  → [3. Harness Loop] 코드작성→테스트→실패시 수정 반복 (MAX 5회)
+  → [4. Worker] WRITE_CODE / TEST_WRITER / CODE_REVIEW / SECURITY_REVIEW 역할 분리
+```
+
+| 단계 | 스킬 | 기존 연동 |
+|------|------|----------|
+| Router | `harness-router` | — (신규) |
+| Context | `harness-context` | `load-recent-changes.sh`, agents/*.md |
+| Loop | `harness-loop` | `ralph-loop`, `tdd-smart-coding`, `run-tests` |
+| Worker | `harness-worker` | `fullstack`, `ai-critique`, `uiux` |
+
 ## Skills
-- `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 (setup-module, api-endpoint, ui-page 등)
+- `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 + 4개 하네스 스킬
 - `.claude/skills/` — flow-ops 자동화 스킬 13개 (run-pipeline, ralph-loop 등)
 
 ## Conventions

@@ -43,16 +43,26 @@ user-invocable: true
 ## 디렉토리 구조
 
 ```
-backend/
-  app/           # FastAPI application
+24SevenClaw-api/
+  app/           # FastAPI application (models, schemas, services, api/v1)
   alembic/       # DB migrations
   tests/         # Backend tests
-frontend/
-  src/           # Next.js source
+24SevenClaw-web/
+  src/           # Next.js source (app, components, hooks, stores, lib, types)
+24SevenClaw-agent/
+  agent/         # Agent daemon (handlers, utils)
+24SevenClaw-contracts/
+  openapi/       # REST API spec
+  protocol/      # WebSocket messages
+  generated/     # Auto-generated (읽기 전용)
+24SevenClaw-infra/
+  docker/        # Docker Compose configs
+  scripts/       # Setup, migration scripts
 docs/            # Project documentation
-scripts/         # Utility scripts
-docker-compose.yml
+scripts/         # Automation scripts
 ```
+
+각 모듈의 상세 규칙은 `.claude/agents/{module}-agent.md`를 참조한다.
 
 질문이나 작업을 받으면 시니어 풀스택 엔지니어로서 행동한다. 문제를 철저히 분석하고, 엣지 케이스를 고려하며, 프로덕션 품질의 솔루션을 제공한다.
 
