@@ -6,12 +6,24 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **## Phase 1: Week 4 — npm 배포 + 문서 + 최종 검증 (04-28 ~ 04-30)**
-  > 요청사항: LoadMap.md를 확인해 해당 목표를 실행해
-  > 완료: package.json 정리, 빌드 검증, npm pack 테스트, README.md, CHANGELOG.md, docs/cli-guide.md, 실사용 테스트, CLAUDE.md 갱신, LoadMap.md 업데이트
-  > 미완료(사용자 필요): npm login, npm publish, Claude Code 실행 테스트, Django+React 스택 테스트, OS 호환성 테스트
+- [x] **[api] Organization 모델 + API 구현**
+  > 요청사항: ## 목표
+
+Organization 모델 생성 및 API 구현
+
+## 작업 내용
+
+* Organization 모델 생성 (company_name, size, industry, tech_stack)
+* POST /api/v1/organizations — 회사 정보 등록/수정
+* GET /api/v1/organizations/me — 내 회사 정보 조회
+* User ↔ Organization 1:1 관계 설정
+* Pydantic 스키마 정의
+
+## 사이즈: M
+
+## 일정: 04-07 \~ 04-08
 
 ---
 
@@ -21,4 +33,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-03 | Phase 1 Week 4 | ✅ | package.json, 빌드, npm pack, 문서 3종, 실사용 테스트, CLAUDE.md/LoadMap.md 갱신 완료. npm login/publish는 사용자 필요 |
