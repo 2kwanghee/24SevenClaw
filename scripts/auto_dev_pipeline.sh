@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# 자동 기능 개발 파이프라인 (v5 — Linear 순차 실행)
+# 자동 기능 개발 파이프라인 (v6 — 멀티 Agent 순차 실행)
 #
 # 워크플로우:
 #   1. Linear Queued 이슈 1개 감지 → fix_plan 생성
-#   2. 브랜치 생성 → Claude 실행 → 완료 대기
-#   3. Linear 결과 보고 + PR 생성
-#   4. 다음 Queued 이슈로 반복
+#   2. [Gemini] 기획 → PLAN.md 생성
+#   3. 브랜치 생성 → [Claude] 구현 → TASK.md 생성
+#   4. [Codex] QA 리뷰 → REVIEW.md 생성
+#   5. Linear 결과 보고 + PR 생성
+#   6. 다음 Queued 이슈로 반복
 #
 # 사용법:
 #   bash scripts/auto_dev_pipeline.sh
@@ -73,7 +75,8 @@ cleanup() {
 trap cleanup EXIT
 
 log "======================================="
-log "  자동 개발 파이프라인 v5 (순차 실행)"
+log "  자동 개발 파이프라인 v6 (멀티 Agent)"
+log "  Gemini(기획) → Claude(구현) → Codex(QA)"
 log "======================================="
 
 # ── Linear Watcher 활성화 확인 ──
@@ -166,11 +169,35 @@ for title, meta in m.items():
   python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "In Progress" 2>/dev/null || true
   log "Linear 상태: In Progress"
 
-  # Claude 실행 (동기 — 완료까지 대기)
+  # ── [STEP A] Gemini 기획 → PLAN.md ──
+  if is_enabled "FLOWOPS_GEMINI_PLAN" 2>/dev/null; then
+    log "── Gemini 기획 시작 ──"
+    TASK_DESC=$(python3 -c "
+import json
+with open('$TASK_MAPPING') as f:
+    m = json.load(f)
+for title, meta in m.items():
+    print(meta.get('description', ''))
+    break
+" 2>/dev/null || echo "")
+
+    bash scripts/generate_plan_with_gemini.sh "$TITLE" "$TASK_DESC" \
+      --fix-plan ".ralph/fix_plan.md" 2>&1 || {
+      log "WARN: Gemini PLAN 생성 실패. fix_plan.md로 대체"
+      cp .ralph/fix_plan.md .ralph/PLAN.md 2>/dev/null || true
+    }
+    log "Gemini PLAN 생성 완료"
+  else
+    log "SKIP: Gemini PLAN 비활성화 (FLOWOPS_GEMINI_PLAN=false)"
+    # PLAN.md가 없으면 fix_plan을 복사
+    cp .ralph/fix_plan.md .ralph/PLAN.md 2>/dev/null || true
+  fi
+
+  # ── [STEP B] Claude 구현 (동기 — 완료까지 대기) ──
   CLAUDE_LOG="$PROJECT_DIR/logs/claude_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
   mkdir -p "$PROJECT_DIR/logs"
 
-  log "Claude 자율 개발 시작..."
+  log "── Claude 구현 시작 ──"
   log "로그: $CLAUDE_LOG"
 
   export RALPH_MAX_ITERATIONS=$MAX_ITERATIONS
@@ -185,7 +212,38 @@ for title, meta in m.items():
     log "WARN: Claude 실행 비정상 종료"
   }
 
-  log "Claude 실행 완료: $TITLE"
+  log "Claude 구현 완료: $TITLE"
+
+  # Claude 실행 후 TASK.md 자동 생성 (없으면)
+  if [ ! -f .ralph/TASK.md ]; then
+    log "TASK.md 자동 생성 (Claude 실행 결과 기반)"
+    {
+      echo "# TASK — ${TITLE}"
+      echo ""
+      echo "## 변경 파일"
+      git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
+      echo ""
+      echo "## 구현 내용"
+      echo "fix_plan.md 기반 자율 구현 완료"
+      echo ""
+      echo "## 테스트 결과"
+      echo "(파이프라인 검증 참조)"
+      echo ""
+      echo "## 남은 이슈"
+      grep -E "^\- \[[ !]\]" .ralph/fix_plan.md 2>/dev/null || echo "없음"
+    } > .ralph/TASK.md
+  fi
+
+  # ── [STEP C] Codex QA 리뷰 → REVIEW.md ──
+  if is_enabled "FLOWOPS_CODEX_REVIEW" 2>/dev/null; then
+    log "── Codex QA 리뷰 시작 ──"
+    bash scripts/run_codex_review.sh 2>&1 || {
+      log "WARN: Codex QA 리뷰 실패"
+    }
+    log "Codex QA 리뷰 완료"
+  else
+    log "SKIP: Codex QA 리뷰 비활성화 (FLOWOPS_CODEX_REVIEW=false)"
+  fi
 
   # Linear 결과 보고
   python3 scripts/linear_reporter.py --task-id "$ISSUE_KEY" 2>&1 || {
@@ -264,6 +322,7 @@ for title, meta in m.items():
   # 임시 파일 정리
   rm -rf ".ralph/tasks"
   rm -f "$TASK_MAPPING"
+  rm -f .ralph/PLAN.md .ralph/TASK.md .ralph/REVIEW.md
 
   log "태스크 완료: $TITLE"
 
