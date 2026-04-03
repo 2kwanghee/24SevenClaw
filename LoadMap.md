@@ -249,37 +249,37 @@ CLI 패키지 초기화 + `24sc init` 명령어의 기본 위저드 + 파일 생
 
 ### add 명령어
 
-- [ ] `src/commands/add.ts` — 기존 프로젝트에 에이전트/스킬 추가
+- [x] `src/commands/add.ts` — 기존 프로젝트에 에이전트/스킬 추가
   - `24sc add agent backend` → api-agent.md 추가
   - `24sc add skill tdd` → tdd-smart-coding 스킬 추가
   - `24sc add hook harness-gate` → Hook 추가
-- [ ] 기존 설정과 충돌 감지 (이미 있으면 덮어쓸지 확인)
-- [ ] settings.json 자동 업데이트 (Hook/권한 추가)
+- [x] 기존 설정과 충돌 감지 (이미 있으면 덮어쓸지 확인)
+- [x] settings.json 자동 업데이트 (Hook/권한 추가)
 
 ### doctor 명령어
 
-- [ ] `src/commands/doctor.ts` — 설정 상태 검증
+- [x] `src/commands/doctor.ts` — 설정 상태 검증
   - .claude/ 디렉토리 존재 여부
   - settings.json 유효성 (JSON 파싱 + 필수 필드)
   - Hook 스크립트 실행 권한 확인
   - 에이전트 파일 참조 무결성 (CLAUDE.md에 나열된 파일 존재 확인)
   - .env 필수 변수 확인 (선택한 옵션에 따라)
-- [ ] 결과를 ✅/❌ 체크리스트로 출력
+- [x] 결과를 ✅/❌ 체크리스트로 출력
 
 ### CLI UX 폴리싱
 
-- [ ] 컬러 출력 (chalk 라이브러리)
-- [ ] 진행 스피너 (ora 라이브러리)
-- [ ] 에러 메시지 한국어 + 해결 가이드
-- [ ] `--yes` 플래그 (기본값으로 모든 질문 스킵)
-- [ ] `--dry-run` 플래그 (생성할 파일 목록만 출력, 실제 생성 안 함)
-- [ ] `24sc --help` + `24sc init --help` 도움말
+- [x] 컬러 출력 (chalk 라이브러리)
+- [x] 진행 스피너 (ora 라이브러리)
+- [x] 에러 메시지 한국어 + 해결 가이드
+- [x] `--yes` 플래그 (기본값으로 모든 질문 스킵)
+- [x] `--dry-run` 플래그 (생성할 파일 목록만 출력, 실제 생성 안 함)
+- [x] `24sc --help` + `24sc init --help` 도움말
 
 ### 테스트
 
-- [ ] `tests/add.test.ts` — add 명령어 테스트
-- [ ] `tests/doctor.test.ts` — doctor 검증 테스트
-- [ ] `tests/e2e.test.ts` — 전체 시나리오 E2E
+- [x] `tests/add.test.ts` — add 명령어 테스트
+- [x] `tests/doctor.test.ts` — doctor 검증 테스트
+- [x] `tests/e2e.test.ts` — 전체 시나리오 E2E
 
 ---
 
