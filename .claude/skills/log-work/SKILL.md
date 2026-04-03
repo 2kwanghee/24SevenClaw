@@ -64,30 +64,47 @@ python3 scripts/linear_tracker.py update \
 
 ### Step 3: 작업 로그 등록
 
+Linear만 보더라도 어떤 작업을 왜 수행했고, 무엇이 변경되었으며, 결과가 어떤지 파악할 수 있도록 상세하게 작성한다.
+현재 완료한 작업 한 건에 대해서만 기록한다 — 후속 과제나 미래 계획은 포함하지 않는다.
+
+**summary 작성 포맷**:
+
+```markdown
+## 배경
+왜 이 작업을 수행했는지 (이슈, 요구사항, 문제 상황 등)
+
+## 변경 내역
+• 파일명 — 구체적으로 무엇을 변경/생성/삭제했는지
+• 파일명 — 변경 내용과 의도
+(주요 파일 위주로 나열, 설정 파일 등 부수적 변경도 포함)
+
+## 주요 결정 사항
+구현 과정에서 내린 기술적 판단이나 설계 선택 (해당 시)
+
+## 결과
+작업 완료 후 상태 (동작 확인 결과, 테스트 통과 여부 등)
+```
+
 ```bash
 python3 scripts/linear_tracker.py log \
   --title "작업 요약 (간결하게)" \
-  --summary "• 변경사항1
-• 변경사항2
-• 영향받은 파일: file1, file2" \
+  --summary "## 배경
+왜 이 작업을 수행했는지
+
+## 변경 내역
+• file1.ts — 변경 내용과 의도
+• file2.ts — 변경 내용과 의도
+
+## 주요 결정 사항
+기술적 판단/설계 선택 (해당 시, 없으면 생략)
+
+## 결과
+동작 확인 결과, 테스트 통과 여부 등" \
   --tags "적절한태그" \
   --date "$(date +%Y-%m-%d)"
 ```
 
-### Step 4: 후속 과제 등록 (해당 시)
-
-작업 중 발견한 추가 작업이 있으면 태스크로 등록한다 (기존 항목과 중복 확인 후):
-
-```bash
-python3 scripts/linear_tracker.py task \
-  --title "과제 제목" \
-  --summary "상세 설명" \
-  --tags "태그" \
-  --status "Todo" \
-  --date "$(date +%Y-%m-%d)"
-```
-
-### Step 5: Telegram 알림 전송
+### Step 4: Telegram 알림 전송
 
 Linear 기록이 완료되면 Telegram으로 결과를 알린다:
 
@@ -96,10 +113,10 @@ python3 scripts/telegram_notify.py \
   --message "📋 *작업 완료*
 제목: 작업 제목
 • 변경사항 요약 (1~3줄)
-🔗 Notion URL"
+🔗 Linear URL"
 ```
 
-### Step 6: 간결한 결과 보고
+### Step 5: 간결한 결과 보고
 
 ```
 > Linear 기록 완료: [작업 제목] | [Linear URL]
