@@ -8,18 +8,18 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 카탈로그 API (agents/skills/platforms/pipelines)**
+- [x] **[engine] 카탈로그 JSON 확장 (외부 스킬, 플랫폼, 파이프라인)**
   > 요청사항: ## 목표
 
-카탈로그 JSON 파일 기반 조회 API 구현
+CLI 카탈로그 JSON을 웹 서비스용으로 확장
 
 ## 작업 내용
 
-* GET /api/v1/catalog/agents — agents.json 반환
-* GET /api/v1/catalog/skills — skills.json 반환 (워크플로우 + 외부 도구)
-* GET /api/v1/catalog/platforms — platforms.json 반환
-* GET /api/v1/catalog/pipelines — pipelines.json 반환
-* JSON 파일 로딩 + 캐싱
+* skills.json — 외부 도구 스킬 추가 (notion, slack, telegram, github, teams, database)
+  * 각 스킬별 API 키 필드, .env 변수명 정의
+* platforms.json 신규 생성 (claude-code, gemini-cli, codex, cursor)
+  * 각 플랫폼별 설정 디렉토리, 에이전트 파일 위치, 설정 파일 경로
+* pipelines.json 신규 생성 (harness, tdd, ai-critique, telegram, lint-gate, ralph-loop)
 
 ## 사이즈: S
 

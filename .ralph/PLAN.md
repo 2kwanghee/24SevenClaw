@@ -8,20 +8,20 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[api] Organization 모델 + API 구현**
+- [x] **[engine] 카탈로그 JSON 확장 (외부 스킬, 플랫폼, 파이프라인)**
   > 요청사항: ## 목표
 
-Organization 모델 생성 및 API 구현
+CLI 카탈로그 JSON을 웹 서비스용으로 확장
 
 ## 작업 내용
 
-* Organization 모델 생성 (company_name, size, industry, tech_stack)
-* POST /api/v1/organizations — 회사 정보 등록/수정
-* GET /api/v1/organizations/me — 내 회사 정보 조회
-* User ↔ Organization 1:1 관계 설정
-* Pydantic 스키마 정의
+* skills.json — 외부 도구 스킬 추가 (notion, slack, telegram, github, teams, database)
+  * 각 스킬별 API 키 필드, .env 변수명 정의
+* platforms.json 신규 생성 (claude-code, gemini-cli, codex, cursor)
+  * 각 플랫폼별 설정 디렉토리, 에이전트 파일 위치, 설정 파일 경로
+* pipelines.json 신규 생성 (harness, tdd, ai-critique, telegram, lint-gate, ralph-loop)
 
-## 사이즈: M
+## 사이즈: S
 
 ## 일정: 04-07 \~ 04-08
 
