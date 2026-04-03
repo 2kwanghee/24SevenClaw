@@ -209,25 +209,25 @@ CLI 패키지 초기화 + `24sc init` 명령어의 기본 위저드 + 파일 생
 
 ### 대화형 위저드 (Step 3)
 
-- [ ] `src/wizard/workflow.ts` — Step 3: 워크플로우 옵션 선택
+- [x] `src/wizard/workflow.ts` — Step 3: 워크플로우 옵션 선택
   - TDD, AI 코드 리뷰, Linear 연동, Ralph 자율 루프, 하네스 Gate
-- [ ] 옵션에 따른 스킬/Hook 매핑 로직
+- [x] 옵션에 따른 스킬/Hook 매핑 로직
 
 ### 스킬 생성 엔진
 
-- [ ] `src/generators/skill.ts` — 스킬 SKILL.md 생성
-- [ ] `src/generators/hook.ts` — Hook .sh 생성 (harness-gate.sh 커스터마이징)
-- [ ] `src/generators/scripts.ts` — scripts/ 자동화 스크립트 생성 (선택한 옵션만)
-- [ ] `src/catalog/skills.json` — 스킬 카탈로그 (id, name, dependencies, template)
-- [ ] `src/templates/skills/` — 스킬 Handlebars 템플릿
-- [ ] `src/templates/hooks/` — Hook 템플릿 (harness-gate.sh.hbs)
+- [x] `src/generators/skill.ts` — 스킬 SKILL.md 생성
+- [x] `src/generators/hook.ts` — Hook .sh 생성 (harness-gate.sh 커스터마이징)
+- [x] `src/generators/scripts.ts` — scripts/ 자동화 스크립트 생성 (선택한 옵션만)
+- [x] `src/catalog/skills.json` — 스킬 카탈로그 (id, name, dependencies, template)
+- [x] `src/templates/skills/` — 스킬 Handlebars 템플릿
+- [x] `src/templates/hooks/` — Hook 템플릿 (harness-gate.sh.hbs)
 
 ### 하네스 엔지니어링 자동 통합
 
-- [ ] harness-guide.md 항상 포함 (선택 불가, 기본 탑재)
-- [ ] harness-gate.sh → 선택한 기술 스택의 lint/test 명령어로 자동 설정
-- [ ] settings.json → UserPromptSubmit/PreToolUse/PostToolUse Hook 자동 등록
-- [ ] 기술 스택별 Gate 명령어 매핑:
+- [x] harness-guide.md 항상 포함 (선택 불가, 기본 탑재)
+- [x] harness-gate.sh → 선택한 기술 스택의 lint/test 명령어로 자동 설정
+- [x] settings.json → UserPromptSubmit/PreToolUse/PostToolUse Hook 자동 등록
+- [x] 기술 스택별 Gate 명령어 매핑:
   ```
   fastapi-nextjs → ruff + mypy + pytest / eslint + tsc + vitest
   django-react   → ruff + mypy + pytest / eslint + tsc + vitest
@@ -236,9 +236,9 @@ CLI 패키지 초기화 + `24sc init` 명령어의 기본 위저드 + 파일 생
 
 ### 테스트
 
-- [ ] `tests/skill-generator.test.ts` — 스킬 생성 유닛 테스트
-- [ ] `tests/hook-generator.test.ts` — Hook 생성 + Gate 명령어 검증
-- [ ] `tests/integration.test.ts` — 전체 init 플로우 E2E (tmp 디렉토리 생성 → 검증 → 삭제)
+- [x] `tests/skill-generator.test.ts` — 스킬 생성 유닛 테스트
+- [x] `tests/hook-generator.test.ts` — Hook 생성 + Gate 명령어 검증
+- [x] `tests/integration.test.ts` — 전체 init 플로우 E2E (tmp 디렉토리 생성 → 검증 → 삭제)
 
 ---
 

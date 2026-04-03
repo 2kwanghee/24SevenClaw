@@ -3,9 +3,13 @@ import chalk from "chalk";
 import ora from "ora";
 import { promptProjectInfo, defaultProjectInfo } from "../wizard/project.js";
 import { promptAgentSelection, defaultAgentSelection } from "../wizard/agents.js";
+import { promptWorkflowSelection, defaultWorkflowSelection } from "../wizard/workflow.js";
 import { generateAgentFiles } from "../generators/agent.js";
 import { generateSettings } from "../generators/settings.js";
 import { generateClaudeMd } from "../generators/claude-md.js";
+import { generateSkillFiles } from "../generators/skill.js";
+import { generateHookFiles } from "../generators/hook.js";
+import { generateScriptFiles } from "../generators/scripts.js";
 import { writeFiles } from "../generators/writer.js";
 import type { InitOptions } from "../types.js";
 
@@ -19,7 +23,7 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     chalk.bold("\n🤖 24SevenClaw — AI 에이전트 워크플로우 설정\n")
   );
 
-  // Step 1 & 2: 위저드 또는 기본값
+  // Step 1 & 2 & 3: 위저드 또는 기본값
   const project = flags.yes
     ? defaultProjectInfo()
     : await promptProjectInfo();
@@ -28,7 +32,11 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     ? defaultAgentSelection()
     : await promptAgentSelection();
 
-  const options: InitOptions = { project, agents };
+  const workflows = flags.yes
+    ? defaultWorkflowSelection()
+    : await promptWorkflowSelection();
+
+  const options: InitOptions = { project, agents, workflows };
   const targetDir = path.resolve(process.cwd(), project.name);
 
   console.log(
@@ -40,10 +48,20 @@ export async function initCommand(flags: InitFlags): Promise<void> {
 
   try {
     const agentFiles = await generateAgentFiles(options);
+    const skillFiles = await generateSkillFiles(options);
+    const hookFiles = await generateHookFiles(options);
+    const scriptFiles = generateScriptFiles(options);
     const settingsFile = generateSettings(options);
     const claudeMdFile = await generateClaudeMd(options);
 
-    const allFiles = [...agentFiles, settingsFile, claudeMdFile];
+    const allFiles = [
+      ...agentFiles,
+      ...skillFiles,
+      ...hookFiles,
+      ...scriptFiles,
+      settingsFile,
+      claudeMdFile,
+    ];
 
     if (flags.dryRun) {
       spinner.stop();
