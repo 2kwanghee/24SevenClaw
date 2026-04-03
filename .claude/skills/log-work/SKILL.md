@@ -106,14 +106,49 @@ python3 scripts/linear_tracker.py log \
 
 ### Step 4: Telegram 알림 전송
 
-Linear 기록이 완료되면 Telegram으로 결과를 알린다:
+Linear 기록이 완료되면 Telegram으로 결과를 알린다.
+메시지는 작업의 출처(프롬프트 or Linear 티켓)와 마크다운 업데이트 내역을 기반으로 구성한다.
+
+**메시지 구성 규칙**:
+1. **출처 표시**: 프롬프트 요청인지, Linear 이슈 처리인지 명시
+2. **작업 요약**: 무엇을 했는지 1~3줄로 핵심만
+3. **마크다운 업데이트**: LoadMap.md 또는 fix_plan.md에서 체크한 항목을 인용
+4. **Linear 링크**: 상세 내역 확인용
 
 ```bash
+# Case 1: 프롬프트 요청으로 작업한 경우
 python3 scripts/telegram_notify.py \
-  --message "📋 *작업 완료*
-제목: 작업 제목
-• 변경사항 요약 (1~3줄)
-🔗 Linear URL"
+  --message "✅ *작업 완료*
+
+📌 *요청*: 사용자가 요청한 내용 요약
+🔨 *처리*:
+• 핵심 변경사항 1
+• 핵심 변경사항 2
+
+📋 *로드맵 업데이트*:
+\`LoadMap.md\` ☑ 체크된 항목 내용
+또는
+\`fix_plan.md\` ☑ 체크된 항목 내용
+(업데이트한 마크다운이 없으면 이 섹션 생략)
+
+🔗 Linear: URL"
+
+# Case 2: Linear 이슈를 처리한 경우
+python3 scripts/telegram_notify.py \
+  --message "✅ *이슈 완료*
+
+🎫 *이슈*: 이슈제목 (이슈ID)
+🔨 *처리*:
+• 핵심 변경사항 1
+• 핵심 변경사항 2
+
+📋 *로드맵 업데이트*:
+\`LoadMap.md\` ☑ 체크된 항목 내용
+또는
+\`fix_plan.md\` ☑ 체크된 항목 내용
+(업데이트한 마크다운이 없으면 이 섹션 생략)
+
+🔗 Linear: URL"
 ```
 
 ### Step 5: 간결한 결과 보고
