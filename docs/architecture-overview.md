@@ -2,17 +2,18 @@
 
 ## 1. 시스템 개요
 
-24SevenClaw는 **웹 SaaS (관리/설정/모니터링) + 로컬 CLI (실행/개발)** 분리 아키텍처를 채택한 AI 소프트웨어 프로젝트 빌딩 플랫폼이다.
+24SevenClaw는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent 플랫폼 (AI 개발)** 분리 아키텍처를 채택한 AI 개발 자동화 솔루션 빌더 플랫폼이다.
 
-- **웹 SaaS (Cloud)**: 프로젝트 설정, 온보딩, 레지스트리, 대시보드, 라이센스 관리
-- **CLI (사용자 로컬 PC)**: 프로젝트 설정 다운로드 → 로컬 개발환경 구축 → Claude Code와 AI 개발
+- **웹 SaaS (Cloud)**: 회원가입 → 7-Step 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
+- **로컬 (사용자 PC)**: ZIP 해제 → Agent 플랫폼(Claude Code/Gemini CLI/Cursor 등) 실행 → AI 개발
+- **CLI (파워유저)**: `npx @24sevenclaw/cli init`으로 동일한 설정 파일 생성 가능
 
-비개발자도 웹에서 프로젝트를 설정하고, CLI 한 줄로 로컬에 개발환경을 구축하여 Claude Code와 함께 개발할 수 있다.
+비개발자도 브라우저에서 솔루션을 설계하고, ZIP 하나로 AI 개발 환경을 즉시 구축할 수 있다.
 
 ### 유사 서비스 비교
-- **Vercel CLI**: 웹에서 프로젝트 설정 → CLI로 로컬 개발/배포
-- **Firebase CLI**: 콘솔에서 프로젝트 구성 → CLI로 로컬 개발/배포
-- **우리**: 웹에서 프로젝트 설정 + AI 구성 → CLI로 로컬 환경 구축 + Claude Code와 AI 개발
+- **Vercel**: 웹에서 프로젝트 설정 → CLI로 배포
+- **Firebase**: 콘솔에서 구성 → CLI로 개발/배포
+- **우리**: 웹에서 솔루션 설계 + AI 에이전트 구성 → ZIP 다운로드 → 로컬 AI 개발
 
 ---
 
@@ -20,18 +21,18 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  24SevenClaw Cloud (SaaS — 관리/설정/모니터링)            │
+│  24SevenClaw Cloud (SaaS — 위저드 + ZIP 생성)            │
 │                                                         │
 │  ┌─────────────┐    ┌──────────────┐                    │
 │  │ Next.js     │◄──►│ FastAPI      │                    │
 │  │ Frontend    │    │ Backend      │                    │
 │  │             │    │              │                    │
-│  │ - 온보딩    │    │ - REST API   │                    │
-│  │ - 대시보드  │    │ - CLI 설정   │                    │
-│  │ - 레지스트리│    │   배포 API   │                    │
-│  │ - 모니터링  │    │ - WebSocket  │                    │
-│  └─────────────┘    │   (브라우저) │                    │
-│                     └──────┬───────┘                    │
+│  │ - 랜딩     │    │ - REST API   │                    │
+│  │ - 인증     │    │ - 카탈로그   │                    │
+│  │ - 위저드   │    │ - 프리뷰     │                    │
+│  │ - 프리뷰   │    │ - ZIP 생성   │                    │
+│  │ - 대시보드 │    │ - 추천 엔진  │                    │
+│  └─────────────┘    └──────┬───────┘                    │
 │                            │                            │
 │               ┌────────────┴────────────┐               │
 │               │                         │               │
@@ -39,18 +40,15 @@
 │        │ PostgreSQL  │          │ Redis        │        │
 │        │             │          │              │        │
 │        │ - 사용자    │          │ - 세션 캐시  │        │
-│        │ - 라이센스  │          │ - Pub/Sub    │        │
-│        │ - 프로젝트  │          │ - 레지스트리 │        │
-│        │   메타데이터│          │   캐시       │        │
-│        │ - 레지스트리│          └──────────────┘        │
-│        │ - 이벤트    │                                  │
+│        │ - 조직 정보 │          │ - 카탈로그   │        │
+│        │ - 프로젝트  │          │   캐시       │        │
+│        │ - 프로젝트  │          └──────────────┘        │
+│        │   설정(JSONB)│                                  │
+│        │ - 라이센스  │                                  │
 │        └─────────────┘                                  │
 └──────────────────────┬──────────────────────────────────┘
                        │
-                       │ HTTPS (CLI → Cloud)
-                       │ - 설정 다운로드
-                       │ - 진행 상태 보고
-                       │ - 설정 동기화
+                       │ ZIP 다운로드 (HTTPS)
                        │
         ┌──────────────┼──────────────┐
         │              │              │
@@ -59,7 +57,8 @@
 │ 사용자 A PC  │ │ 사용자 B PC  │ │ 사용자 C PC  │
 │              │ │              │ │              │
 │ ┌──────────┐ │ │ ┌──────────┐ │ │ ┌──────────┐ │
-│ │ 24sc CLI │ │ │ │ 24sc CLI │ │ │ │ 24sc CLI │ │
+│ │ unzip    │ │ │ │ unzip    │ │ │ │ unzip    │ │
+│ │ project  │ │ │ │ project  │ │ │ │ project  │ │
 │ └────┬─────┘ │ │ └────┬─────┘ │ │ └────┬─────┘ │
 │      │       │ │      │       │ │      │       │
 │      ▼       │ │      ▼       │ │      ▼       │
@@ -67,21 +66,17 @@
 │ │프로젝트  │ │ │ │프로젝트  │ │ │ │프로젝트  │ │
 │ │디렉토리  │ │ │ │디렉토리  │ │ │ │디렉토리  │ │
 │ │          │ │ │ │          │ │ │ │          │ │
-│ │ CLAUDE.md│ │ │ │ CLAUDE.md│ │ │ │ CLAUDE.md│ │
-│ │ .claude/ │ │ │ │ .claude/ │ │ │ │ .claude/ │ │
-│ │ src/     │ │ │ │ src/     │ │ │ │ src/     │ │
-│ │ ...      │ │ │ │ ...      │ │ │ │ ...      │ │
+│ │ CLAUDE.md│ │ │ │ .gemini/ │ │ │ │.cursor/  │ │
+│ │ .claude/ │ │ │ │ agents/  │ │ │ │ rules/   │ │
+│ │ .env     │ │ │ │ .env     │ │ │ │ .env     │ │
 │ └──────────┘ │ │ └──────────┘ │ │ └──────────┘ │
 │      │       │ │      │       │ │      │       │
 │      ▼       │ │      ▼       │ │      ▼       │
 │ ┌──────────┐ │ │ ┌──────────┐ │ │ ┌──────────┐ │
-│ │Claude    │ │ │ │Claude    │ │ │ │Claude    │ │
-│ │Code CLI  │ │ │ │Code CLI  │ │ │ │Code CLI  │ │
+│ │Claude    │ │ │ │Gemini    │ │ │ │Cursor    │ │
+│ │Code      │ │ │ │CLI       │ │ │ │IDE       │ │
 │ │(BYOK)    │ │ │ │(BYOK)    │ │ │ │(BYOK)    │ │
 │ └──────────┘ │ │ └──────────┘ │ │ └──────────┘ │
-│              │ │              │ │              │
-│ [Git Repo]   │ │ [Git Repo]   │ │ [Git Repo]   │
-│ [로컬 코드]  │ │ [로컬 코드]  │ │ [로컬 코드]  │
 └──────────────┘ └──────────────┘ └──────────────┘
 ```
 
@@ -94,33 +89,28 @@
 | 역할 | 설명 |
 |------|------|
 | **사용자 인증** | 계정 관리, 로그인, JWT 토큰 |
-| **온보딩** | 기업 정보 등록, 프로젝트 유형 선택, 요구사항 입력 |
-| **자동 구성** | 요구사항 기반 에이전트/스킬/Hook 자동 매핑 |
-| **라이센스 관리** | 플랜 관리, 프로젝트 한도, 라이센스 키 발급 |
-| **레지스트리** | 에이전트/스킬/MCP 카탈로그 (회사 IP) |
-| **프로젝트 관리** | 프로젝트 메타데이터, 마일스톤, 이벤트 |
-| **CLI 설정 배포** | 프로젝트 설정 JSON을 CLI가 다운로드할 수 있도록 제공 |
-| **모니터링** | CLI가 보고한 진행 상태를 대시보드에 표시 |
+| **7-Step 위저드** | 회사 정보 → 솔루션 정의 → 에이전트 채용 → 스킬 장착 → 파이프라인 → 플랫폼 선택 → 프리뷰 |
+| **카탈로그 관리** | 에이전트/스킬/플랫폼/파이프라인 카탈로그 (JSON 기반) |
+| **추천 엔진** | 솔루션 유형 기반 에이전트/스킬/파이프라인 자동 추천 |
+| **프리뷰 생성** | 위저드 설정 → 파일 트리 + 내용 미리보기 |
+| **ZIP 생성** | 위저드 설정 + API 키(.env) → ZIP 스트리밍 다운로드 |
+| **프로젝트 관리** | 프로젝트 메타데이터 + 위저드 설정(JSONB) 저장 |
+| **라이센스 관리** | 플랜 관리, 프로젝트 한도 (Phase 2) |
 
 ### 3.2 저장하는 데이터
 
 ```yaml
 저장함:
   - 사용자 계정 (email, password_hash)
-  - 기업 정보 (organizations)
+  - 조직 정보 (company_name, size, industry, tech_stack)
+  - 프로젝트 메타데이터 (이름, 유형, 설정)
+  - 위저드 설정 (JSONB: agents, skills, pipelines, platform)
   - 라이센스/플랜 정보
-  - 프로젝트 메타데이터 (이름, 요구사항, 설정)
-  - 에이전트/스킬/MCP 레지스트리 (우리 IP)
-  - 프로젝트별 에이전트/스킬/MCP 설정 매핑
-  - 프로젝트 마일스톤/이벤트 (CLI가 보고한 진행 상태)
-  - CLI 연결 정보 (마지막 보고 시각, 상태)
 
 저장하지 않음:
+  - 사용자의 API 키 (Notion, Linear, Slack 등 — .env로 ZIP에만 포함)
   - 사용자 소스 코드
-  - 빌드 결과물/아티팩트
-  - 실행 로그 원본
-  - Git 저장소 데이터
-  - 사용자의 Claude API 키
+  - 사용자의 Claude/Gemini API 키
   - 사용자의 비즈니스 데이터
 ```
 
@@ -128,118 +118,103 @@
 
 ```
 24SevenClaw-web (Next.js 15)
-├── 랜딩 페이지
-├── 인증 (로그인/회원가입)
-├── 온보딩 위저드
-│   ├── 기업 정보 등록
-│   ├── 프로젝트 유형 선택
-│   ├── 요구사항 입력 (JSON Schema 동적 폼)
-│   └── 배포 방식 결정
+├── 랜딩 페이지                     (완료)
+├── 인증 (로그인/회원가입)            (완료)
 ├── 대시보드
-│   ├── 프로젝트 목록/생성
-│   ├── 프로젝트 대시보드
-│   │   ├── 마일스톤 타임라인
-│   │   ├── 이벤트 피드
-│   │   ├── CLI 연결 상태
-│   │   └── 에이전트/스킬 설정 관리
-│   ├── CLI 설치 가이드 + 토큰 발급
-│   └── 라이센스/플랜 관리
-└── 레지스트리 브라우저
+│   ├── 프로젝트 목록/생성            (완료)
+│   └── 프로젝트 상세/설정            (완료)
+├── 7-Step 위저드 (/projects/new)    (LoadMap_v3)
+│   ├── Step 1: 회사 정보
+│   ├── Step 2: 솔루션 정의
+│   ├── Step 3: 에이전트 채용
+│   ├── Step 4: 스킬 장착 (API 키 입력)
+│   ├── Step 5: 자동화 파이프라인
+│   ├── Step 6: Agent 플랫폼 선택
+│   └── Step 7: 프리뷰 + ZIP 다운로드
+└── 레지스트리 브라우저               (기본 구조)
 
 24SevenClaw-api (FastAPI)
 ├── REST API
-│   ├── 인증 (회원가입/로그인/JWT)
-│   ├── Organizations CRUD
-│   ├── Projects CRUD + 자동 구성
-│   ├── Registry (에이전트/스킬/MCP) CRUD
-│   ├── Milestones/Events API
-│   ├── CLI 설정 배포 API
-│   │   ├── POST /projects/{id}/cli-tokens (토큰 발급)
-│   │   ├── GET /projects/{id}/config/download (설정 다운로드)
-│   │   └── POST /projects/{id}/events (CLI 상태 보고 수신)
-│   └── Licenses/Plans API
-├── WebSocket (브라우저 대시보드 실시간 업데이트)
-├── 라이센스 검증 서비스
-└── 자동 구성 엔진 (요구사항 → 에이전트/스킬 매핑)
+│   ├── 인증 (회원가입/로그인/JWT)     (완료)
+│   ├── Organizations CRUD            (LoadMap_v3)
+│   ├── Projects CRUD                 (완료)
+│   ├── ProjectConfig (위저드 설정)    (LoadMap_v3)
+│   ├── 카탈로그 API (agents/skills/platforms/pipelines) (LoadMap_v3)
+│   ├── 프리뷰 API (파일 트리 + 내용) (LoadMap_v3)
+│   ├── ZIP 생성 API (스트리밍)        (LoadMap_v3)
+│   └── 추천 API (규칙 기반)          (LoadMap_v3)
+└── 생성 엔진 (CLI에서 이식)           (LoadMap_v3)
 ```
 
 ---
 
-## 4. CLI (사용자 로컬 PC) 상세
+## 4. 로컬 (사용자 PC) 상세
 
 ### 4.1 역할과 책임
 
 | 역할 | 설명 |
 |------|------|
-| **클라우드 인증** | CLI 토큰으로 클라우드 API 인증 |
-| **설정 다운로드** | 프로젝트 설정 (에이전트/스킬/Hook 구성) 다운로드 |
-| **환경 스캐폴딩** | 로컬에 프로젝트 디렉토리, Git, 의존성 자동 구축 |
-| **CLAUDE.md 생성** | 프로젝트 설정 기반으로 Claude Code용 설정 파일 자동 생성 |
-| **Claude Code 연동** | Claude Code CLI 실행, BYOK API 키 설정 안내 |
-| **상태 보고** | 진행 상태를 클라우드에 HTTPS로 주기적 보고 |
-| **설정 동기화** | 웹에서 변경된 설정을 로컬에 반영 |
+| **ZIP 해제** | 다운로드된 ZIP을 로컬에 해제 |
+| **Agent 플랫폼 실행** | Claude Code / Gemini CLI / Cursor 등 실행 |
+| **AI 개발** | Agent가 생성된 설정(에이전트/스킬/파이프라인)에 따라 개발 수행 |
+| **BYOK** | 사용자 자신의 AI API 키 사용 |
 
-### 4.2 CLI 구조
+### 4.2 ZIP 구조 (플랫폼별)
 
 ```
-@24sevenclaw/cli (npm 패키지)
-├── src/
-│   ├── index.ts              # CLI 엔트리포인트 (Commander.js)
-│   ├── commands/
-│   │   ├── init.ts           # 클라우드 인증 + 설정 다운로드
-│   │   ├── setup.ts          # 로컬 환경 스캐폴딩
-│   │   ├── dev.ts            # Claude Code 개발 모드 시작
-│   │   ├── status.ts         # 클라우드에 상태 보고
-│   │   ├── sync.ts           # 설정 변경 동기화
-│   │   └── auth.ts           # Anthropic API 키 설정 가이드
-│   ├── services/
-│   │   ├── cloud-api.ts      # 클라우드 API 클라이언트
-│   │   ├── scaffolder.ts     # 프로젝트 스캐폴딩 엔진
-│   │   ├── claude-config.ts  # CLAUDE.md + .claude/ 생성
-│   │   └── reporter.ts       # 진행 상태 보고
-│   └── templates/            # 프로젝트 스캐폴딩 템플릿
-│       ├── webapp/
-│       ├── api/
-│       ├── mobile/
-│       └── custom/
-├── package.json
-└── tsconfig.json
+# Claude Code 선택 시
+my-project/
+├── CLAUDE.md              # 프로젝트 가이드
+├── .claude/
+│   ├── agents/            # 에이전트 .md 파일들
+│   ├── skills/            # 스킬 .md 파일들
+│   └── settings.json      # Claude Code 설정
+├── .env                   # API 키 (유저 입력값)
+├── .env.example           # API 키 템플릿 (값 제외)
+└── scripts/               # 하네스 Gate 등 Hook 스크립트
+
+# Gemini CLI 선택 시
+my-project/
+├── .gemini/
+│   ├── agents/
+│   └── settings.json
+├── .env
+└── .env.example
+
+# Cursor 선택 시
+my-project/
+├── .cursor/
+│   └── rules/             # 에이전트 룰 파일들
+├── .cursorrules            # Cursor 설정
+├── .env
+└── .env.example
 ```
 
 ### 4.3 데이터 흐름
 
 ```
-[웹에서 프로젝트 설정 완료 + CLI 토큰 발급]
+[웹에서 7-Step 위저드 완료]
         │
         ▼
-[사용자: npx @24sevenclaw/cli init]
-        │
-        ├── CLI 토큰 입력
-        ├── 클라우드 API로 프로젝트 설정 다운로드
-        │     (에이전트/스킬/Hook 구성, 템플릿 정보, 요구사항)
-        └── 로컬에 설정 파일 저장 (.24sc/config.json)
+[ZIP 다운로드] → project-name.zip
         │
         ▼
-[24sc setup]
-        │
-        ├── 프로젝트 디렉토리 생성
-        ├── 템플릿 기반 스캐폴딩 (파일 구조, boilerplate)
-        ├── Git 초기화
-        ├── 의존성 설치 (npm install / pip install 등)
-        ├── CLAUDE.md 생성 (프로젝트 설정 → Claude Code 지시서)
-        ├── .claude/ 디렉토리 생성 (에이전트 설정, 스킬 설정)
-        └── 클라우드에 "환경 구축 완료" 보고
+[unzip project-name.zip]
         │
         ▼
-[24sc dev]
-        │
-        ├── Claude Code CLI 실행
-        ├── CLAUDE.md 기반으로 Claude Code가 개발 시작
-        ├── 사용자 Anthropic API 키 사용 (BYOK)
-        └── 주기적으로 클라우드에 진행 상태 보고
+[cd project-name]
         │
         ▼
-[클라우드 대시보드에서 진행 모니터링]
+[Agent 플랫폼 실행]
+  ├── claude          (Claude Code)
+  ├── gemini          (Gemini CLI)
+  └── Open in Cursor  (Cursor IDE)
+        │
+        ▼
+[AI가 설정에 따라 개발 시작]
+  ├── 에이전트 가이드 참조
+  ├── 스킬(도구 연동) 활용
+  └── 파이프라인(TDD/린트/리뷰) 적용
 ```
 
 ---
@@ -249,49 +224,64 @@
 ### 5.1 통신 방식
 
 ```
-CLI ────(HTTPS)────► Cloud API
+Browser ────(HTTPS)────► Cloud API ────(ZIP Stream)────► Browser
 
-왜 HTTPS인가 (WebSocket 상시 연결 대신)?
-- CLI는 항상 실행 중이 아님 (필요할 때만 실행)
-- 주기적 상태 보고에는 HTTP가 적합
-- 방화벽 문제 없음 (아웃바운드 HTTPS)
-- 구현이 단순하고 안정적
+현재 구현:
+- 브라우저 ↔ Cloud API: HTTPS (REST)
+- ZIP 생성: 서버 스트리밍 응답
+
+미래 확장 (Phase 2):
+- Browser ↔ Cloud: WebSocket (대시보드 실시간 업데이트)
+- CLI ↔ Cloud: HTTPS (설정 동기화)
 ```
 
-### 5.2 통신 프로토콜 요약
+### 5.2 API 엔드포인트 요약
 
 ```
-CLI → Cloud (HTTPS):
-  - POST /auth/cli-login         # CLI 인증
-  - GET  /projects/{id}/config   # 설정 다운로드
-  - POST /projects/{id}/events   # 진행 상태 보고
-  - GET  /projects/{id}/config/version  # 설정 변경 감지
+# 인증 (완료)
+POST /api/v1/auth/register
+POST /api/v1/auth/login
 
-Cloud → Browser (WebSocket):
-  - project.event      # CLI가 보고한 이벤트 실시간 전달
-  - project.status     # 프로젝트 상태 변경 알림
+# 프로젝트 (완료)
+GET  /api/v1/projects
+POST /api/v1/projects
+GET  /api/v1/projects/{id}
+
+# 조직 (LoadMap_v3)
+POST /api/v1/organizations
+GET  /api/v1/organizations/me
+
+# 카탈로그 (LoadMap_v3)
+GET  /api/v1/catalog/agents
+GET  /api/v1/catalog/skills
+GET  /api/v1/catalog/platforms
+GET  /api/v1/catalog/pipelines
+
+# 위저드 (LoadMap_v3)
+POST /api/v1/projects/{id}/config
+GET  /api/v1/projects/{id}/config
+POST /api/v1/projects/{id}/preview
+POST /api/v1/projects/{id}/generate
+POST /api/v1/recommend
 ```
-
-상세 프로토콜: `docs/agent-protocol.md` 참조
 
 ---
 
 ## 6. 보안 고려사항
 
 ### 6.1 통신 보안
-- **TLS**: 모든 CLI ↔ Cloud 통신은 HTTPS 사용
-- **CLI 인증**: 프로젝트별 CLI 토큰 발급/검증
-- **토큰 관리**: CLI 토큰은 로컬 설정 파일에 저장, 갱신 메커니즘 제공
+- **TLS**: 모든 통신은 HTTPS
+- **인증**: Auth.js v5 + JWT
 
 ### 6.2 데이터 보안
-- 사용자 코드/데이터는 절대 클라우드에 전송하지 않음
-- 클라우드에는 프로젝트 이벤트 요약만 전달 (마일스톤 진척, 파일 변경 수 등)
-- 사용자의 Anthropic API 키는 로컬에만 저장, 클라우드에 전송하지 않음
+- 사용자의 외부 도구 API 키 (Notion, Linear, Slack 등)는 **서버에 저장하지 않음**
+- API 키는 브라우저 메모리에서만 처리 → .env 파일로 ZIP에만 포함
+- 사용자의 AI API 키 (Claude, Gemini 등)는 로컬에만 저장
+- 사용자 코드/데이터는 클라우드에 전송하지 않음
 
-### 6.3 라이센스 보안
-- 라이센스 키는 CLI 설정에 저장
-- CLI 실행 시 클라우드와 라이센스 유효성 검증
-- 만료/비활성 라이센스 → CLI 기능 제한
+### 6.3 라이센스 보안 (Phase 2)
+- 1계정 1프로젝트 무료, 추가 프로젝트 유료
+- 라이센스 키 기반 프로젝트 한도 관리
 
 ---
 
@@ -299,9 +289,14 @@ Cloud → Browser (WebSocket):
 
 ### 7.1 수평 확장
 - **Cloud**: FastAPI + Redis로 API 수평 확장 가능
-- **CLI**: 사용자 로컬에서 실행, 서버 부하 없음
+- **생성 엔진**: 무상태 — 요청마다 메모리에서 파일 생성, ZIP 스트리밍
 
-### 7.2 고가용성
-- Cloud: 로드밸런서 + 다중 인스턴스
-- Redis Pub/Sub: 다중 API 인스턴스 간 브라우저 WebSocket 메시지 브로커링
-- CLI: 클라우드 연결 실패 시 오프라인 개발 가능 (상태 보고만 지연)
+### 7.2 카탈로그 확장
+- 에이전트/스킬/플랫폼은 **JSON 파일 추가만으로 확장** (DB 불필요)
+- 관리자가 카탈로그 JSON에 항목 추가 → API가 자동 반영
+
+### 7.3 Phase 2 확장
+- 사용자 커스텀 에이전트 업로드/공유
+- 에이전트 마켓플레이스
+- CLI ↔ 웹 설정 동기화
+- 사용 통계 대시보드
