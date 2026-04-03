@@ -8,22 +8,23 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[engine] 카탈로그 JSON 확장 (외부 스킬, 플랫폼, 파이프라인)**
+- [ ] **[web] 위저드 Stepper 프레임 + 상태 관리**
   > 요청사항: ## 목표
 
-CLI 카탈로그 JSON을 웹 서비스용으로 확장
+7-Step 위저드 프레임워크 구현
 
 ## 작업 내용
 
-* skills.json — 외부 도구 스킬 추가 (notion, slack, telegram, github, teams, database)
-  * 각 스킬별 API 키 필드, .env 변수명 정의
-* platforms.json 신규 생성 (claude-code, gemini-cli, codex, cursor)
-  * 각 플랫폼별 설정 디렉토리, 에이전트 파일 위치, 설정 파일 경로
-* pipelines.json 신규 생성 (harness, tdd, ai-critique, telegram, lint-gate, ralph-loop)
+* 7-Step Stepper 컴포넌트 (진행률 표시바)
+* 이전/다음 버튼 네비게이션
+* Zustand 위저드 상태 관리 (WizardState 스토어)
+* WizardState 타입 정의 (organization, solution, agents, skills, pipelines, platform)
+* /projects/new 페이지를 위저드로 전환
+* 모바일 반응형 Stepper
 
-## 사이즈: S
+## 사이즈: M
 
-## 일정: 04-07 \~ 04-08
+## 일정: 04-09 \~ 04-10
 
 ---
 
