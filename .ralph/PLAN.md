@@ -8,20 +8,20 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 카탈로그 API (agents/skills/platforms/pipelines)**
+- [ ] **[api] Organization 모델 + API 구현**
   > 요청사항: ## 목표
 
-카탈로그 JSON 파일 기반 조회 API 구현
+Organization 모델 생성 및 API 구현
 
 ## 작업 내용
 
-* GET /api/v1/catalog/agents — agents.json 반환
-* GET /api/v1/catalog/skills — skills.json 반환 (워크플로우 + 외부 도구)
-* GET /api/v1/catalog/platforms — platforms.json 반환
-* GET /api/v1/catalog/pipelines — pipelines.json 반환
-* JSON 파일 로딩 + 캐싱
+* Organization 모델 생성 (company_name, size, industry, tech_stack)
+* POST /api/v1/organizations — 회사 정보 등록/수정
+* GET /api/v1/organizations/me — 내 회사 정보 조회
+* User ↔ Organization 1:1 관계 설정
+* Pydantic 스키마 정의
 
-## 사이즈: S
+## 사이즈: M
 
 ## 일정: 04-07 \~ 04-08
 

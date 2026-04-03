@@ -1,7 +1,6 @@
 # 자동화 파이프라인 가이드
 
 > 이 문서는 24SevenClaw 자동화 파이프라인의 **전체 아키텍처, 실행 방법, 트리거 방식**을 설명합니다.
-> 초기 셋업은 `docs/setupClaude.md`를 참조하세요.
 
 ---
 
@@ -30,7 +29,7 @@
                           ↓
               ┌───────────────────────┐
               │ auto_dev_pipeline.sh  │
-              │ (v5 — 순차 실행)       │
+              │ (v6 — 멀티 Agent)     │
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
@@ -39,8 +38,19 @@
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
+              │ [Gemini] 기획         │  PLAN.md 생성
+              │ generate_plan_with_   │  (범위/수용기준/리스크)
+              │ gemini.sh             │
+              └───────────┬───────────┘
+                          ↓
+              ┌───────────────────────┐
               │ 브랜치 생성            │  ralph/{24S-XX}
-              │ Claude 자율 개발       │  동기 실행 (완료 대기)
+              │ [Claude] 구현          │  TASK.md 생성
+              └───────────┬───────────┘
+                          ↓
+              ┌───────────────────────┐
+              │ [Codex] QA 리뷰       │  REVIEW.md 생성
+              │ run_codex_review.sh   │  (요구충족/리스크/테스트)
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
@@ -182,27 +192,52 @@ python3 scripts/linear_watcher.py --per-task --use-gpt-plan
 ChatGPT Function Calling으로 코드베이스 맥락을 포함한 구조화된 fix_plan을 생성합니다.
 (수정 대상 파일, 구현 단계, 테스트 케이스 포함)
 
-### Step 2: 순차 실행 — 브랜치 + Claude 동기 실행
+### Step 2: Gemini 기획 — `generate_plan_with_gemini.sh`
+
+`FLOWOPS_GEMINI_PLAN=true` 시 실행:
+- 이슈 제목 + 설명 + fix_plan을 Gemini에 전달
+- `.ralph/PLAN.md` 생성 (요구사항 요약, 범위, 작업 단계, 수용 기준, 리스크, 변경 파일 후보, 테스트 전략)
+- Gemini 실패 시 fix_plan.md를 PLAN.md로 폴백
+
+```bash
+# 수동 실행
+bash scripts/generate_plan_with_gemini.sh "이슈 제목" "이슈 설명" --fix-plan .ralph/fix_plan.md
+```
+
+### Step 3: Claude 구현 — 브랜치 + 동기 실행
 
 각 태스크마다 (1개씩 순차):
 1. `git checkout -b ralph/{24S-XX}` → 작업 브랜치 생성
 2. `.ralph/tasks/{ISSUE_KEY}.md` → `.ralph/fix_plan.md`로 복사
 3. Linear 상태 → **In Progress**
 4. UI/UX 작업 감지 시 `RALPH_UIUX_MODE=true` 자동 활성화
-5. `claude -p "$(cat .ralph/PROMPT.md)"` → Claude 동기 실행 (완료까지 대기)
+5. Claude가 `.ralph/PLAN.md`를 참조하여 구현 (범위/수용 기준 준수)
+6. 완료 후 `.ralph/TASK.md` 생성 (변경 파일, 구현 내용, 테스트 결과, 남은 이슈)
 
 ```bash
 # Claude 실행 로그 확인
 tail -f logs/claude_24S-XX_*.log
 ```
 
-### Step 3: 결과 보고 — `linear_reporter.py`
+### Step 4: Codex QA 리뷰 — `run_codex_review.sh`
+
+`FLOWOPS_CODEX_REVIEW=true` 시 실행:
+- `.ralph/PLAN.md` + `.ralph/TASK.md` + git diff를 Codex에 전달
+- `.ralph/REVIEW.md` 생성 (주요 발견, 요구사항 충족 여부, 리스크, 테스트 부족, PR 코멘트 제안)
+- Codex 실패 시 기본 REVIEW.md 생성 (수동 리뷰 권고)
+
+```bash
+# 수동 실행
+bash scripts/run_codex_review.sh
+```
+
+### Step 5: 결과 보고 — `linear_reporter.py`
 
 각 태스크 완료 후:
 - fix_plan.md 완료 상태 파싱
 - Linear 이슈에 결과 코멘트 추가 (구현 내역 + 커밋 + 테스트)
 
-### Step 4: 머지 — 2가지 경로
+### Step 6: 머지 — 2가지 경로
 
 #### A. AUTO_MERGE ON (직접 머지)
 `FLOWOPS_AUTO_MERGE=true` 설정 시:
@@ -219,7 +254,7 @@ tail -f logs/claude_24S-XX_*.log
 3. `gh pr create` — PR body에 Linear URL + fix_plan 결과 + 테스트 요약 + 변경 파일
 4. `--auto-merge` 시 CI 통과 후 자동 squash-merge 설정
 
-### Step 5: CI/CD — GitHub Actions
+### Step 7: CI/CD — GitHub Actions
 
 PR 생성 시 자동 실행:
 
@@ -229,12 +264,12 @@ PR 생성 시 자동 실행:
 | `ai-review.yml` | ralph/* PR 생성 | ChatGPT FC로 코드 리뷰 → PR 코멘트 |
 | `post-merge.yml` | PR 머지 | Linear Done + Telegram 알림 |
 
-### Step 6: 수동 확인 머지 — `linear_confirmer.py`
+### Step 8: 수동 확인 머지 — `linear_confirmer.py`
 
 사용자가 Linear에서 **Confirm**으로 변경 시:
 - `linear_confirmer.py` 실행 → PR이 있으면 `gh pr merge --squash`, 없으면 로컬 `git merge`
 
-### Step 7: 다음 이슈 반복
+### Step 9: 다음 이슈 반복
 
 - 파이프라인은 다음 Queued 이슈를 자동으로 감지하여 반복
 - `--once` 옵션: 1개만 처리 후 종료
@@ -277,6 +312,95 @@ python3 scripts/linear_tracker.py task \
 
 ---
 
+## 하네스 엔지니어링 (Hook 기반 품질 통제)
+
+파이프라인 내부에서 Claude가 코드를 작성할 때, **4개 Hook 시점**에 걸쳐 하네스 엔지니어링이 자동 적용됩니다.
+전체 가이드: `.claude/agents/harness-guide.md`
+
+### 하네스 4단계 + Hook 매핑
+
+```
+사용자/파이프라인 요청
+    │
+    v
+[Hook: UserPromptSubmit] ─── 하네스 Router 지침 주입
+    │                         "코드 작성 요청이면 harness-guide.md를 따르세요"
+    │                         1.Router → 2.Context → 3.Loop → 4.Worker
+    v
+[1단계: Router] 의도 분석
+    ├─ 모호 → 되물어보기 (소크라테스식 인터뷰)
+    ├─ 명확 → 제약 추출 → 하네스 루프 진입
+    └─ 일반 대화 → 표준 응답
+    v
+[2단계: Context Manager] 필요한 파일만 로딩
+    ├─ CLAUDE.md + 해당 모듈 agent.md
+    ├─ PLAN.md (Gemini 기획서)
+    └─ 관련 소스 파일만 선별
+    v
+[3단계: Harness Loop] 코드 → 검증 → 수정 반복 (MAX 5회)
+    │
+    ├──→ Worker(WRITE_CODE) 코드 작성
+    │
+    ├──→ [Hook: PostToolUse(Edit|Write)] ─── 검증 리마인더
+    │         "코드 수정됨 → 커밋 전 lint/typecheck/test 실행하세요"
+    │
+    ├──→ 자동 검증 (lint → typecheck → test)
+    │
+    ├──→ [Hook: PreToolUse(git commit)] ─── harness-gate.sh 실행
+    │         변경 모듈 자동 감지 → 모듈별 Gate 실행
+    │         ├─ Gate1: Lint   (ruff check / npm run lint)
+    │         ├─ Gate2: Type   (mypy / tsc --noEmit)
+    │         └─ Gate3: Test   (pytest / vitest)
+    │         실패 시 → 🚨 커밋 차단 + 에러 피드백 → 루프 재진입
+    │         통과 시 → ✅ 커밋 허용
+    │
+    └──→ Worker(CODE_REVIEW) 최종 리뷰
+    v
+[4단계: Worker] 역할 분리
+    ├─ WRITE_CODE:      fullstack + 모듈별 agent.md
+    ├─ TEST_WRITER:     tdd-smart-coding
+    ├─ CODE_REVIEW:     ai-critique (GPT + Gemini)
+    └─ SECURITY_REVIEW: OWASP Top 10
+    v
+[Hook: Stop] ─── ralph-stop-hook.sh
+    ├─ fix_plan.md 미완료 항목 확인
+    ├─ 테스트/린트 최종 검증
+    ├─ 미충족 시 → 루프 계속 (block)
+    ├─ 충족 시 → 종료 허용 (allow)
+    └─ max-iterations 도달 시 → 강제 종료 + Telegram 알림
+```
+
+### Hook 설정 상세
+
+| Hook 시점 | 설정 위치 | 역할 |
+|-----------|----------|------|
+| `UserPromptSubmit` | `.claude/settings.json` | 모든 프롬프트에 하네스 Router 지침 주입 + TODO 리마인더 |
+| `PreToolUse(git commit)` | `.claude/settings.json` → `.claude/hooks/harness-gate.sh` | 커밋 전 모듈별 lint/type/test Gate 실행, 실패 시 커밋 차단 |
+| `PostToolUse(Edit\|Write)` | `.claude/settings.json` | 코드 수정 후 검증 리마인더 (Gate 미통과 시 커밋 차단 경고) |
+| `Stop` | `.claude/settings.json` → `scripts/ralph-stop-hook.sh` | fix_plan 완료 여부 + 검증 상태 확인, 미충족 시 루프 block |
+
+### harness-gate.sh 모듈별 Gate
+
+| 모듈 | Gate1: Lint | Gate2: Type | Gate3: Test |
+|------|------------|-------------|-------------|
+| `api` | `uv run ruff check .` | `uv run mypy app/` | `uv run pytest --tb=short -q` |
+| `web` | `npm run lint` | `npx tsc --noEmit` | — |
+| `agent` | `uv run ruff check .` | `uv run mypy agent/` | `uv run pytest --tb=short -q` |
+| `contracts` | — | `npx tsc --noEmit` | — |
+
+> 변경된 모듈만 자동 감지하여 해당 모듈의 Gate만 실행. docs/scripts만 변경 시 Gate 건너뜀.
+
+### 하네스 스킬
+
+| 스킬 | 단계 | 설명 |
+|------|------|------|
+| `/harness-router` | 1단계 | 의도 분석 + 라우팅 (모호→인터뷰, 명확→루프) |
+| `/harness-context` | 2단계 | 컨텍스트 로딩 프로토콜 (가림막 원칙) |
+| `/harness-loop` | 3단계 | 자동 교정 루프 (코드→검증→수정 반복) |
+| `/harness-worker` | 4단계 | 역할 분리 실행 (작성/테스트/리뷰/보안) |
+
+---
+
 ## 모듈 토글 설정
 
 `.env` 파일에서 `FLOWOPS_*` 변수로 파이프라인 모듈을 ON/OFF 할 수 있습니다:
@@ -284,6 +408,8 @@ python3 scripts/linear_tracker.py task \
 ```env
 # 모듈 토글 (미설정 시 기본값: true)
 FLOWOPS_LINEAR_WATCHER=true     # Linear 이슈 감지
+FLOWOPS_GEMINI_PLAN=true        # Gemini 기획 → PLAN.md 생성
+FLOWOPS_CODEX_REVIEW=true       # Codex QA → REVIEW.md 생성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # Telegram 알림
 ```
@@ -351,10 +477,12 @@ Backlog ──(수동)──→ Wait ──(수동)──→ Queued
 
 | 스크립트 | 용도 | 실행 주체 |
 |----------|------|-----------|
-| `auto_dev_pipeline.sh` | 파이프라인 오케스트레이터 (v5 순차) | Webhook / 수동 |
+| `auto_dev_pipeline.sh` | 파이프라인 오케스트레이터 (v6 멀티 Agent) | Webhook / 수동 |
 | `webhook_server.py` | Linear Webhook 수신 서버 | 상시 실행 데몬 |
 | `linear_watcher.py` | Queued 이슈 감지 → fix_plan 생성 | 파이프라인 Step 1 |
 | `fix_plan_generator.py` | ChatGPT FC로 구조화된 fix_plan 생성 | watcher (--use-gpt-plan) |
+| `generate_plan_with_gemini.sh` | Gemini CLI로 PLAN.md 기획서 생성 | 파이프라인 Step 2 |
+| `run_codex_review.sh` | Codex CLI로 REVIEW.md QA 리뷰 생성 | 파이프라인 Step 4 |
 | `linear_reporter.py` | 결과 → Linear 보고 | 파이프라인 Step 3 |
 | `auto_pr_creator.py` | 자동 PR 생성 + auto-merge 설정 | 파이프라인 Step 4 |
 | `linear_confirmer.py` | Confirm → PR merge 또는 로컬 merge | 수동 / Cron |
