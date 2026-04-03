@@ -291,21 +291,21 @@ npm publish + README + 실사용 테스트
 ### npm 배포 준비
 
 - [ ] `npm login` (npmjs.com 계정)
-- [ ] `package.json` 최종 정리 (version, description, keywords, repository)
-- [ ] `tsup` 빌드 검증 (`npm run build`)
-- [ ] `.npmignore` 또는 `files` 필드 (불필요한 파일 제외)
-- [ ] `npm pack` → 로컬 테스트 (`npx ./24sevenclaw-cli-0.1.0.tgz init`)
+- [x] `package.json` 최종 정리 (version, description, keywords, repository)
+- [x] `tsup` 빌드 검증 (`npm run build`)
+- [x] `.npmignore` 또는 `files` 필드 (불필요한 파일 제외)
+- [x] `npm pack` → 로컬 테스트 (`npx ./24sevenclaw-cli-0.1.0.tgz init`)
 - [ ] `npm publish --access public` (첫 배포)
 
 ### 문서
 
-- [ ] `24SevenClaw-cli/README.md` — 설치 가이드 + 사용법 + 스크린샷
-- [ ] `24SevenClaw-cli/CHANGELOG.md` — v0.1.0 릴리즈 노트
-- [ ] `docs/cli-guide.md` — CLI 상세 가이드 (에이전트 카탈로그, 스택 프리셋 목록)
+- [x] `24SevenClaw-cli/README.md` — 설치 가이드 + 사용법 + 스크린샷
+- [x] `24SevenClaw-cli/CHANGELOG.md` — v0.1.0 릴리즈 노트
+- [x] `docs/cli-guide.md` — CLI 상세 가이드 (에이전트 카탈로그, 스택 프리셋 목록)
 
 ### 실사용 테스트
 
-- [ ] 빈 디렉토리에서 `npx @24sevenclaw/cli init` → 전체 플로우 검증
+- [x] 빈 디렉토리에서 `npx @24sevenclaw/cli init` → 전체 플로우 검증
 - [ ] 생성된 .claude/로 Claude Code 실행 → 하네스 작동 확인
 - [ ] harness-gate.sh → 실제 lint/test 실패 시 커밋 차단 확인
 - [ ] 다른 기술 스택 (Django+React)으로 테스트
@@ -313,8 +313,8 @@ npm publish + README + 실사용 테스트
 
 ### 기존 레포 정리
 
-- [ ] CLAUDE.md 갱신: CLI-First 아키텍처 반영
-- [ ] LoadMap.md 상태 업데이트: Phase 1 완료 체크
+- [x] CLAUDE.md 갱신: CLI-First 아키텍처 반영
+- [x] LoadMap.md 상태 업데이트: Phase 1 완료 체크
 
 ---
 
