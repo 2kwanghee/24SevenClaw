@@ -8,8 +8,10 @@
 
 ## P2: 기능 요구사항
 
-- [x] **## Phase 1: Week 3 — add 명령어 + doctor + 폴리싱 (04-21 ~ 04-27)**
+- [x] **## Phase 1: Week 4 — npm 배포 + 문서 + 최종 검증 (04-28 ~ 04-30)**
   > 요청사항: LoadMap.md를 확인해 해당 목표를 실행해
+  > 완료: package.json 정리, 빌드 검증, npm pack 테스트, README.md, CHANGELOG.md, docs/cli-guide.md, 실사용 테스트, CLAUDE.md 갱신, LoadMap.md 업데이트
+  > 미완료(사용자 필요): npm login, npm publish, Claude Code 실행 테스트, Django+React 스택 테스트, OS 호환성 테스트
 
 ---
 
@@ -19,4 +21,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-03 | Phase 1 Week 3: add + doctor + 폴리싱 | ✅ | 66개 테스트 통과 |
+| 2026-04-03 | Phase 1 Week 4 | ✅ | package.json, 빌드, npm pack, 문서 3종, 실사용 테스트, CLAUDE.md/LoadMap.md 갱신 완료. npm login/publish는 사용자 필요 |

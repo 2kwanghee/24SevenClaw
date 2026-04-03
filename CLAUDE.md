@@ -2,12 +2,14 @@
 
 ## Project Overview
 라이센스 기반 AI 에이전트 개발 오케스트레이션 플랫폼.
+- **CLI-First 아키텍처**: `npx @24sevenclaw/cli init`으로 AI 워크플로우 즉시 구축
 - Cloud(컨트롤 플레인) + Customer Server(실행 플레인) 아키텍처
-- 5개 레포: web, api, agent, infra, contracts
+- 6개 레포: web, api, agent, infra, contracts, **cli**
 
 ## Repository Map
 | Repo | Tech | Port | 역할 |
 |------|------|------|------|
+| `24SevenClaw-cli` | TypeScript (Node.js) | - | CLI 도구 (`@24sevenclaw/cli`) |
 | `24SevenClaw-web` | Next.js 15 | 3000 | 클라우드 프론트엔드 |
 | `24SevenClaw-api` | FastAPI | 8000 | 클라우드 백엔드 |
 | `24SevenClaw-agent` | Python | - | 고객 서버 에이전트 데몬 |
@@ -36,6 +38,7 @@ Cloud (web + api) ←── WebSocket ──→ Agent (고객 서버)
 - `TODO.md` — 일별 태스크
 - `docs/architecture-overview.md` — 아키텍처 상세
 - `docs/agent-protocol.md` — 통신 프로토콜
+- `docs/cli-guide.md` — CLI 상세 가이드 (에이전트 카탈로그, 스택 프리셋)
 - `docs/comparison.md` — 유사 플랫폼 비교
 - `docs/license-model.md` — 라이센스 정책
 
