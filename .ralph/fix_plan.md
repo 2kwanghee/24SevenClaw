@@ -8,23 +8,21 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[web] 위저드 Stepper 프레임 + 상태 관리**
+- [x] **[api] ProjectConfig 모델 확장 (JSONB 위저드 결과)**
   > 요청사항: ## 목표
 
-7-Step 위저드 프레임워크 구현
+위저드 전체 결과를 저장하는 ProjectConfig 모델 확장
 
 ## 작업 내용
 
-* 7-Step Stepper 컴포넌트 (진행률 표시바)
-* 이전/다음 버튼 네비게이션
-* Zustand 위저드 상태 관리 (WizardState 스토어)
-* WizardState 타입 정의 (organization, solution, agents, skills, pipelines, platform)
-* /projects/new 페이지를 위저드로 전환
-* 모바일 반응형 Stepper
+* ProjectConfig에 wizard_data JSONB 컬럼 추가
+* POST /api/v1/projects/{id}/config — 위저드 설정 저장
+* GET /api/v1/projects/{id}/config — 위저드 설정 조회
+* wizard_data 스키마: { organization, solution, agents, skills, pipelines, platform }
 
-## 사이즈: M
+## 사이즈: S
 
-## 일정: 04-09 \~ 04-10
+## 일정: 04-07 \~ 04-08
 
 ---
 
