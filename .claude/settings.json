@@ -52,7 +52,8 @@
       "Bash(docker ps*)",
       "Bash(docker compose up -d db*)",
       "Bash(chmod +x *)",
-      "Bash(bash .claude/hooks/*)"
+      "Bash(bash .claude/hooks/*)",
+      "Bash(ps *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
