@@ -8,7 +8,7 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] ProjectConfig 모델 확장 (JSONB 위저드 결과)**
+- [ ] **[api] ProjectConfig 모델 확장 (JSONB 위저드 결과)**
   > 요청사항: ## 목표
 
 위저드 전체 결과를 저장하는 ProjectConfig 모델 확장
