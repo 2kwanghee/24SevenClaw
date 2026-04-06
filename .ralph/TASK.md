@@ -1,37 +1,30 @@
-# Ralph Task Report — 24S-22: 위저드 Stepper 프레임 + 상태 관리
+# Ralph Loop — 구현 결과 리포트
 
-## 구현 결과
+## 완료 항목
 
-### 기존 구현 상태 (이미 완료)
-7-Step 위저드 프레임워크가 이미 구현되어 있었음:
-- `types/wizard.ts` — 7-Step 타입 정의 (WizardStepId, WizardData, 각 Step 타입)
-- `stores/wizard-store.ts` — Zustand 스토어 (nextStep, prevStep, goToStep, 각 Step setter, reset)
-- `wizard/stepper.tsx` — 데스크톱 가로 Stepper + 모바일 반응형 진행률 바
-- `wizard/wizard-layout.tsx` — 이전/다음 버튼 네비게이션 + 제출 핸들러
-- `projects/new/page.tsx` — 위저드 페이지 (7개 Step 컴포넌트 렌더링)
-- Step 1(조직) 폼 구현, Step 2~6 플레이스홀더, Step 7(리뷰) 요약
+### [web] Step 1: 회사 정보 폼 (CompanyForm)
 
-### 수정 사항
+**변경 파일**:
+| 파일 | 변경 내용 |
+|------|----------|
+| `24SevenClaw-web/src/components/projects/wizard/steps/step-organization.tsx` | 회사 규모/업종/기술 스택 필드 추가 (카드형 선택기 + 태그 멀티셀렉트) |
+| `24SevenClaw-web/src/app/(dashboard)/projects/new/page.tsx` | canProceed 로직에 companySize, industry 필수 조건 추가 |
+| `24SevenClaw-web/src/components/projects/wizard/steps/step-review.tsx` | 리뷰 단계에 규모/업종/기술 스택 표시 추가 |
 
-#### 1. 버그 수정 — `page.tsx`
-- `organization?.name` → `data.organization.companyName` (미정의 변수 참조 수정)
-- 프로젝트 생성 시 `data.solution.projectName || data.organization.companyName` 사용
-- import 경로를 barrel export (`steps/index.ts`)로 통합
+**구현 내용**:
+- 회사명 입력 (기존 유지)
+- 회사 규모: 카드형 선택기 (1인/소규모/중소/대기업) — `aria-pressed` 접근성 지원
+- 업종: 카드형 선택기 (IT/금융/커머스/헬스케어/교육/기타) — 아이콘 포함
+- 기술 스택: 태그형 멀티셀렉트 (22개 옵션, 선택/제거 가능, 선택사항)
+- React Hook Form `Controller` + Zod v4 밸리데이션
+- Zustand 스토어 자동 저장 (watch + useEffect 패턴)
+- 반응형: 모바일 2열 → 데스크탑 4열(규모) / 3열(업종)
+- 다크 모드 지원 (기존 테마 일관성 유지)
 
-#### 2. deprecated/중복 파일 정리 (11개 삭제)
-- `wizard-steps/` 디렉토리 전체 (7개 파일) — `wizard/steps/`와 중복
-- `components/wizard/` 디렉토리 (3개 파일) — deprecated redirect 파일
-- `stores/project-wizard.store.ts` — deprecated redirect
-- `components/projects/wizard-stepper.tsx` — deprecated redirect
-- `components/projects/project-wizard.tsx` — deprecated empty export
-- `wizard/steps/organization-step.tsx` — deprecated alias
-- `wizard/steps/step-placeholder.tsx` — 미사용
-- `wizard/steps/step-preview.tsx` — step-review.tsx와 중복
+**테스트 결과**:
+- TypeScript 타입체크: 통과
+- ESLint: 경고 2건 (react-hooks/incompatible-library — 기존 watch 패턴과 동일, 비차단)
+- Next.js 빌드: 성공
 
-## 테스트 결과
-- TypeScript 타입체크: ✅ 통과
-- Next.js 빌드: ✅ 통과 (17.5s 컴파일, 정적 페이지 생성 완료)
-
-## 남은 이슈
-- Step 2~6 실제 폼 UI는 플레이스홀더 상태 (후속 태스크에서 구현 예정)
-- `next lint`가 `--dir` 옵션 미지원으로 직접 실행 불가 (Next.js 16 설정 이슈, 코드 변경과 무관)
+**남은 이슈**:
+- Organization API 연동은 백엔드 API 구현 후 진행 필요 (현재 로컬 Zustand만 사용)

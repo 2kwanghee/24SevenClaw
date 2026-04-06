@@ -6,23 +6,23 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] 위저드 Stepper 프레임 + 상태 관리**
+- [ ] **[web] Step 1: 회사 정보 폼 (CompanyForm)**
   > 요청사항: ## 목표
 
-7-Step 위저드 프레임워크 구현
+위저드 Step 1 — 회사 정보 입력 폼
 
 ## 작업 내용
 
-* 7-Step Stepper 컴포넌트 (진행률 표시바)
-* 이전/다음 버튼 네비게이션
-* Zustand 위저드 상태 관리 (WizardState 스토어)
-* WizardState 타입 정의 (organization, solution, agents, skills, pipelines, platform)
-* /projects/new 페이지를 위저드로 전환
-* 모바일 반응형 Stepper
+* 회사명 입력 필드
+* 규모 선택 (1인/소규모/중소/대기업) — Select 또는 카드
+* 업종 선택 (IT/금융/커머스/헬스케어/교육/기타) — Select
+* 기존 기술 스택 선택 (멀티셀렉트, 선택사항)
+* React Hook Form + Zod 밸리데이션
+* Organization API 연동 (저장/조회)
 
-## 사이즈: M
+## 사이즈: S
 
 ## 일정: 04-09 \~ 04-10
 
