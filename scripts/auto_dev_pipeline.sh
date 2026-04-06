@@ -342,6 +342,7 @@ log "  파이프라인 결과: 완료 ${COMPLETED}건, 실패 ${FAILED}건"
 log "══════════════════════════════════════"
 
 if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
+  ITER_COUNT=$(cat .ralph/.iteration_count 2>/dev/null || echo "N/A")
   python3 scripts/telegram_notify.py \
-    --message "파이프라인 완료: ${COMPLETED}건 처리, ${FAILED}건 실패" 2>/dev/null || true
+    --pipeline-report --iterations "$ITER_COUNT" 2>/dev/null || true
 fi
