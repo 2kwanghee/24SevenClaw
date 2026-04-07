@@ -8,24 +8,21 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] ZIP 생성 API (스트리밍 + .env 포함)**
+- [x] **[web] Step 7: 프리뷰 패널 + 다운로드 (PreviewPanel)**
   > 요청사항: ## 목표
 
-위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드
+위저드 최종 Step — 파일 트리 프리뷰 + ZIP 다운로드
 
 ## 작업 내용
 
-* POST /api/v1/projects/{id}/generate
-* 요청: 위저드 설정 + envVars (API 키 맵)
-* 생성 엔진으로 파일 생성 → Python zipfile로 ZIP 패키징
-* .env 파일: 클라이언트에서 전달된 키만 포함 (서버 미저장)
-* .env.example: 변수명만 포함 (값 제외)
-* Content-Type: application/zip 스트리밍 응답
-* 파일명: {projectName}.zip
+* 프리뷰 API 호출 → 파일 트리 렌더링
+* FileTreePreview: 폴더/파일 트리 컴포넌트 (접기/펼치기)
+* FileContentViewer: 파일 클릭 시 내용 미리보기 (코드 하이라이트)
+* 전체 설정 요약 카드 (회사/솔루션/에이전트/스킬/파이프라인/플랫폼)
+* DownloadButton: /api/generate 호출 → ZIP 다운로드 + 진행률
+* 2-column 레이아웃 (좌: 트리, 우: 내용)
 
-## 보안: API 키는 메모리에서만 처리, DB/로그에 기록하지 않음
-
-## 사이즈: M
+## 사이즈: L
 
 ## 일정: 04-15 \~ 04-16
 
