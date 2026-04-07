@@ -8,27 +8,24 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[engine] CLI 생성 엔진 웹 이식 (generators + templates)**
+- [x] **[engine] 멀티플랫폼 지원 기초 (Claude Code 완전 구현)**
   > 요청사항: ## 목표
 
-CLI의 생성 엔진을 웹 서버용으로 이식 (파일시스템 → 메모리 버퍼)
+멀티플랫폼 지원 아키텍처 설계 + Claude Code 플랫폼 완전 구현
 
 ## 작업 내용
 
-* lib/engine/generators/ 디렉토리 생성
-* CLI generators/\*.ts → 웹용 이식:
-  * agent.ts — 에이전트 .md 생성 (문자열 반환)
-  * skill.ts — 스킬 .md 생성 (문자열 반환)
-  * hook.ts — Hook .sh 생성 (문자열 반환)
-  * settings.ts — settings.json 생성 (객체 반환)
-  * claude-md.ts — [CLAUDE.md](<http://CLAUDE.md>) 생성 (문자열 반환)
-* 파일시스템 출력 → Map<string, string> 반환으로 변환
-* templates/\*.hbs 복사
-* lib/engine/catalog/ — JSON 파일 배치
+* lib/engine/platforms/ 디렉토리 구조 설계
+* 플랫폼 인터페이스 정의 (PlatformAdapter)
+  * getConfigDir(): 설정 디렉토리 경로
+  * getAgentDir(): 에이전트 파일 경로
+  * getSettingsFile(): 설정 파일 경로
+  * generateFiles(): 플랫폼별 파일 생성
+* Claude Code 어댑터 완전 구현 (기존 CLI 로직 재활용)
+  * .claude/ 구조, settings.json, agents/\*.md
+* 플랫폼별 디렉토리 매핑 정의
 
-## 핵심 변경: fs.writeFile() → Map.set(path, content)
-
-## 사이즈: L
+## 사이즈: M
 
 ## 일정: 04-12 \~ 04-13
 
