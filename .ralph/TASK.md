@@ -1,44 +1,27 @@
-# 구현 결과 — [engine] CLI 생성 엔진 웹 이식
+# Ralph Loop — 구현 결과
 
-## 변경 파일 (27개, 24SevenClaw-web)
+## [web] E2E 위저드 플로우 테스트
 
-### 신규 생성
-| 파일 | 역할 |
-|------|------|
-| `src/lib/engine/types.ts` | 공유 타입 (CLI types.ts 이식) |
-| `src/lib/engine/template-loader.ts` | Handlebars 템플릿 로딩 + 캐시 (server-only) |
-| `src/lib/engine/index.ts` | 진입점: `generateAll()` → `Map<string, string>` |
-| `src/lib/engine/generators/agent.ts` | 에이전트 .md 생성기 |
-| `src/lib/engine/generators/skill.ts` | 스킬 .md 생성기 |
-| `src/lib/engine/generators/hook.ts` | Hook .sh 생성기 |
-| `src/lib/engine/generators/settings.ts` | settings.json 생성기 |
-| `src/lib/engine/generators/claude-md.ts` | CLAUDE.md 생성기 |
-| `src/lib/engine/generators/scripts.ts` | 자동화 스크립트 생성기 |
-| `src/lib/engine/catalog/agents.json` | 에이전트 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/catalog/skills.json` | 스킬 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/catalog/stacks.json` | 스택 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/templates/**/*.hbs` | Handlebars 템플릿 13개 (CLI에서 복사) |
+### 변경 파일
+- `24SevenClaw-api/tests/test_e2e_wizard.py` (신규) — 35개 E2E 테스트
 
-### 수정
-| 파일 | 변경 |
-|------|------|
-| `package.json` | handlebars, server-only 의존성 추가 |
+### 구현 내용
+API 레벨에서 위저드 Step 1→7 전체 흐름을 자동화 검증하는 포괄적 E2E 테스트 작성.
 
-## 핵심 변경: fs.writeFile() → Map.set(path, content)
+**검증 범위:**
+1. **전체 플로우**: 회원가입 → 프로젝트 생성 → 추천 → 설정 저장 → 프리뷰 → ZIP 다운로드
+2. **플랫폼별 ZIP 구조**: Claude Code (.claude/), Gemini CLI (.gemini/), Cursor (.cursor/rules/), Codex (.codex/) 각각 디렉토리 구조, settings.json 형식 검증
+3. **에이전트 조합**: 단일/전체 에이전트별 파일 생성 (6개 parametrize)
+4. **스킬 조합**: tdd, ai-critique, ralph-loop, harness-gate, linear, 다중 스킬 (6개 parametrize)
+5. **파이프라인**: harness-gate→hook 스크립트, ralph-loop→fix_plan.md, tdd→run-tests.sh
+6. **.env 파일**: API 키 포함/미포함, .env.example 값 미노출, 스킬 정의 기반 생성
+7. **추천 엔진**: 6개 솔루션 유형별 유효 카탈로그 반환, 추천→생성 연계 흐름
+8. **재다운로드**: 저장된 설정 기반 + 새 env_vars 반영
+9. **엣지 케이스**: 빈 에이전트(필수 harness 포함), 커스텀 스택, 프리뷰↔ZIP 파일 일치
 
-- CLI: `writeFiles(targetDir, files)` → 파일시스템에 직접 기록
-- Web: `generateAll(options)` → `Map<string, string>` 메모리 버퍼 반환
-- 비동기 생성기 4개 `Promise.all()`로 병렬 실행
-- 템플릿 로딩에 캐시 적용 (`templateCache`)
-- `server-only` import로 클라이언트 번들 포함 방지
+### 테스트 결과
+- 전체 113개 테스트 통과 (기존 78 + 신규 35)
+- 린트 통과 (ruff check)
 
-## 테스트 결과
-
-- `tsc --noEmit`: ✅ 통과
-- `eslint src/lib/engine/`: ✅ 통과
-- `npm run build`: ✅ 통과 (16.9s 컴파일, 정적 페이지 7개 생성)
-
-## 남은 이슈
-
-- `next lint` (npm run lint)이 "Invalid project directory" 에러 — Next.js 16 + flat config 호환 이슈 (기존 문제, 이번 작업과 무관)
-- 멀티플랫폼 지원 기초 (platforms/) — 별도 티켓 (LoadMap #12)
+### 남은 이슈
+- 없음
