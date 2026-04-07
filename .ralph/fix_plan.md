@@ -8,21 +8,23 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[api] 프로젝트 설정 저장/조회 연동**
+- [x] **[engine] Gemini CLI 플랫폼 템플릿**
   > 요청사항: ## 목표
 
-위저드 완료 시 전체 설정 저장 + 프로젝트 상세에서 재다운로드
+Gemini CLI 플랫폼용 PlatformAdapter 구현
 
 ## 작업 내용
 
-* 위저드 완료(다운로드) 시 ProjectConfig에 전체 설정 자동 저장
-* 프로젝트 상세 페이지에서 설정 조회
-* 재다운로드 버튼 (설정 변경 없이 동일 ZIP 재생성)
-* 설정 요약 표시 (에이전트/스킬/플랫폼)
+* .gemini/ 디렉토리 구조 정의
+* GeminiAdapter 구현 (PlatformAdapter 인터페이스)
+* 에이전트 .md 템플릿을 Gemini 형식으로 변환
+* .gemini/settings.json 생성기
+* .gemini/agents/ 경로 매핑
+* 기존 Handlebars 템플릿 재활용 + Gemini 전용 변수
 
-## 사이즈: S
+## 사이즈: M
 
-## 일정: 04-17
+## 일정: 04-18
 
 ---
 
