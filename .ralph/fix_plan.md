@@ -6,25 +6,31 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[web] Step 4: 스킬 장착 + API 키 입력 (SkillSelector)**
+- [x] **[engine] CLI 생성 엔진 웹 이식 (generators + templates)**
   > 요청사항: ## 목표
 
-위저드 Step 4 — 스킬 선택 + API 키 입력
+CLI의 생성 엔진을 웹 서버용으로 이식 (파일시스템 → 메모리 버퍼)
 
 ## 작업 내용
 
-* 카탈로그 API에서 스킬 목록 로드
-* 워크플로우 스킬 섹션 + 외부 도구 스킬 섹션 분리 표시
-* API 키 필요 스킬: 선택 시 인라인 입력 폼 확장
-* 입력된 키 값은 Zustand 상태에만 저장 (서버 미전송)
-* 키 마스킹 표시 (보안 UX)
-* 각 스킬별 .env 변수명 안내
+* lib/engine/generators/ 디렉토리 생성
+* CLI generators/\*.ts → 웹용 이식:
+  * agent.ts — 에이전트 .md 생성 (문자열 반환)
+  * skill.ts — 스킬 .md 생성 (문자열 반환)
+  * hook.ts — Hook .sh 생성 (문자열 반환)
+  * settings.ts — settings.json 생성 (객체 반환)
+  * claude-md.ts — [CLAUDE.md](<http://CLAUDE.md>) 생성 (문자열 반환)
+* 파일시스템 출력 → Map<string, string> 반환으로 변환
+* templates/\*.hbs 복사
+* lib/engine/catalog/ — JSON 파일 배치
 
-## 사이즈: M
+## 핵심 변경: fs.writeFile() → Map.set(path, content)
 
-## 일정: 04-11
+## 사이즈: L
+
+## 일정: 04-12 \~ 04-13
 
 ---
 
@@ -34,4 +40,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-06 | [web] Step 4: SkillSelector | 완료 | 워크플로우/외부도구 분리, API키 마스킹, .env 안내 |
+| 2026-04-07 | [engine] CLI 생성 엔진 웹 이식 | ✅ | generators 6개 + templates 13개 + catalog 3개 이식, Map<string,string> 반환 |
