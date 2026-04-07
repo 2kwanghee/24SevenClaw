@@ -1,44 +1,33 @@
-# 구현 결과 — [engine] CLI 생성 엔진 웹 이식
+# Ralph Loop — 구현 결과
 
-## 변경 파일 (27개, 24SevenClaw-web)
+## 완료 항목
 
-### 신규 생성
-| 파일 | 역할 |
-|------|------|
-| `src/lib/engine/types.ts` | 공유 타입 (CLI types.ts 이식) |
-| `src/lib/engine/template-loader.ts` | Handlebars 템플릿 로딩 + 캐시 (server-only) |
-| `src/lib/engine/index.ts` | 진입점: `generateAll()` → `Map<string, string>` |
-| `src/lib/engine/generators/agent.ts` | 에이전트 .md 생성기 |
-| `src/lib/engine/generators/skill.ts` | 스킬 .md 생성기 |
-| `src/lib/engine/generators/hook.ts` | Hook .sh 생성기 |
-| `src/lib/engine/generators/settings.ts` | settings.json 생성기 |
-| `src/lib/engine/generators/claude-md.ts` | CLAUDE.md 생성기 |
-| `src/lib/engine/generators/scripts.ts` | 자동화 스크립트 생성기 |
-| `src/lib/engine/catalog/agents.json` | 에이전트 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/catalog/skills.json` | 스킬 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/catalog/stacks.json` | 스택 카탈로그 (CLI에서 복사) |
-| `src/lib/engine/templates/**/*.hbs` | Handlebars 템플릿 13개 (CLI에서 복사) |
+### [engine] 멀티플랫폼 지원 기초 (Claude Code 완전 구현)
 
-### 수정
+**상태**: 완료
+
+**변경 파일**:
 | 파일 | 변경 |
 |------|------|
-| `package.json` | handlebars, server-only 의존성 추가 |
+| `24SevenClaw-web/src/lib/engine/platforms/types.ts` | 신규 — PlatformAdapter 인터페이스, PlatformId 타입, PLATFORM_DIR_MAP |
+| `24SevenClaw-web/src/lib/engine/platforms/claude-code.ts` | 신규 — ClaudeCodeAdapter 구현 |
+| `24SevenClaw-web/src/lib/engine/platforms/index.ts` | 신규 — 플랫폼 레지스트리, getPlatformAdapter() |
+| `24SevenClaw-web/src/lib/engine/types.ts` | 수정 — InitOptions에 platformId 추가 |
+| `24SevenClaw-web/src/lib/engine/index.ts` | 수정 — generateAll()을 어댑터 기반으로 리팩토링 |
+| `24SevenClaw-web/src/types/wizard.ts` | 수정 — PlatformStep.platformId 타입을 PlatformId로 변경 |
 
-## 핵심 변경: fs.writeFile() → Map.set(path, content)
+**구현 내용**:
+1. `PlatformAdapter` 인터페이스 정의 (getConfigDir, getAgentDir, getSettingsFile, getRootGuideFile, generateFiles)
+2. 4개 플랫폼 디렉토리 매핑 정의 (claude-code, gemini-cli, cursor, codex)
+3. `ClaudeCodeAdapter` 완전 구현 — 기존 생성기(agent, skill, settings, claude-md) 재활용
+4. `generateAll()`을 플랫폼 어댑터 기반으로 리팩토링 (플랫폼별 파일 vs 공통 파일 분리)
+5. 위저드 PlatformStep 타입을 PlatformId 타입으로 연동
 
-- CLI: `writeFiles(targetDir, files)` → 파일시스템에 직접 기록
-- Web: `generateAll(options)` → `Map<string, string>` 메모리 버퍼 반환
-- 비동기 생성기 4개 `Promise.all()`로 병렬 실행
-- 템플릿 로딩에 캐시 적용 (`templateCache`)
-- `server-only` import로 클라이언트 번들 포함 방지
+**테스트 결과**:
+- TypeScript 타입체크: 통과
+- Next.js 빌드: 통과
 
-## 테스트 결과
-
-- `tsc --noEmit`: ✅ 통과
-- `eslint src/lib/engine/`: ✅ 통과
-- `npm run build`: ✅ 통과 (16.9s 컴파일, 정적 페이지 7개 생성)
-
-## 남은 이슈
-
-- `next lint` (npm run lint)이 "Invalid project directory" 에러 — Next.js 16 + flat config 호환 이슈 (기존 문제, 이번 작업과 무관)
-- 멀티플랫폼 지원 기초 (platforms/) — 별도 티켓 (LoadMap #12)
+**남은 이슈**:
+- `next lint` 명령이 프로젝트 설정 문제로 동작하지 않음 (기존 이슈, 이번 변경과 무관)
+- 다른 플랫폼 어댑터 (Gemini CLI, Cursor, Codex)는 아직 미구현 (추후 티켓)
+- Step 6 PlatformSelector UI는 별도 티켓 (24S-29 이후)
