@@ -6,25 +6,27 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] Step 7: 프리뷰 패널 + 다운로드 (PreviewPanel)**
+- [x] **[web] 다운로드 후 가이드 모달**
   > 요청사항: ## 목표
 
-위저드 최종 Step — 파일 트리 프리뷰 + ZIP 다운로드
+ZIP 다운로드 완료 후 실행 가이드 모달 표시
 
 ## 작업 내용
 
-* 프리뷰 API 호출 → 파일 트리 렌더링
-* FileTreePreview: 폴더/파일 트리 컴포넌트 (접기/펼치기)
-* FileContentViewer: 파일 클릭 시 내용 미리보기 (코드 하이라이트)
-* 전체 설정 요약 카드 (회사/솔루션/에이전트/스킬/파이프라인/플랫폼)
-* DownloadButton: /api/generate 호출 → ZIP 다운로드 + 진행률
-* 2-column 레이아웃 (좌: 트리, 우: 내용)
+* ZIP 다운로드 완료 시 가이드 모달 자동 표시
+* 플랫폼별 실행 가이드:
+  * Claude Code: `unzip → cd → claude`
+  * Gemini CLI: `unzip → cd → gemini`
+  * Cursor: "Open Folder in Cursor"
+* 생성된 파일 구조 간단 설명
+* "다음 단계" 체크리스트
+* 닫기 버튼 + "다시 보지 않기" 옵션
 
-## 사이즈: L
+## 사이즈: S
 
-## 일정: 04-15 \~ 04-16
+## 일정: 04-17
 
 ---
 

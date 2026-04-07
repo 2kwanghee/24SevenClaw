@@ -6,28 +6,27 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[api] ZIP 생성 API (스트리밍 + .env 포함)**
+- [x] **[web] 다운로드 후 가이드 모달**
   > 요청사항: ## 목표
 
-위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드
+ZIP 다운로드 완료 후 실행 가이드 모달 표시
 
 ## 작업 내용
 
-* POST /api/v1/projects/{id}/generate
-* 요청: 위저드 설정 + envVars (API 키 맵)
-* 생성 엔진으로 파일 생성 → Python zipfile로 ZIP 패키징
-* .env 파일: 클라이언트에서 전달된 키만 포함 (서버 미저장)
-* .env.example: 변수명만 포함 (값 제외)
-* Content-Type: application/zip 스트리밍 응답
-* 파일명: {projectName}.zip
+* ZIP 다운로드 완료 시 가이드 모달 자동 표시
+* 플랫폼별 실행 가이드:
+  * Claude Code: `unzip → cd → claude`
+  * Gemini CLI: `unzip → cd → gemini`
+  * Cursor: "Open Folder in Cursor"
+* 생성된 파일 구조 간단 설명
+* "다음 단계" 체크리스트
+* 닫기 버튼 + "다시 보지 않기" 옵션
 
-## 보안: API 키는 메모리에서만 처리, DB/로그에 기록하지 않음
+## 사이즈: S
 
-## 사이즈: M
-
-## 일정: 04-15 \~ 04-16
+## 일정: 04-17
 
 ---
 
