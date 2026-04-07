@@ -6,24 +6,27 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[web] 추천 엔진 UI 연동**
+- [x] **[web] E2E 위저드 플로우 테스트**
   > 요청사항: ## 목표
 
-Step 2 입력 변경 시 추천 API 호출 → Step 3/4/5에 반영
+전체 위저드 플로우 E2E 검증
 
 ## 작업 내용
 
-* Step 2 솔루션 유형 변경 시 /api/v1/recommend 호출 (debounce)
-* Step 3 AgentSelector: 추천 에이전트 사전 체크 + "추천" 뱃지
-* Step 4 SkillSelector: 추천 스킬 사전 체크 + "추천" 뱃지
-* Step 5 PipelineToggle: 추천 파이프라인 사전 ON + "추천" 뱃지
-* 유저가 수동으로 변경 가능 (추천은 기본값일 뿐)
+* Step 1→7 전체 플로우 수동 테스트
+* ZIP 다운로드 → 해제 → 파일 구조 검증
+* Claude Code 플랫폼: unzip → claude 실행 확인
+* Gemini CLI 플랫폼: .gemini/ 구조 검증
+* Cursor 플랫폼: .cursor/rules/ 구조 검증
+* 모든 에이전트/스킬 조합 기본 검증
+* .env 파일 포함 여부 + 내용 검증
+* 추천 엔진 동작 검증
 
-## 사이즈: S
+## 사이즈: M
 
-## 일정: 04-18
+## 일정: 04-19 \~ 04-20
 
 ---
 

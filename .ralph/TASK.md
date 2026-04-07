@@ -1,32 +1,27 @@
 # Ralph Loop — 구현 결과
 
-## [engine] Gemini CLI 플랫폼 템플릿
+## [web] E2E 위저드 플로우 테스트
 
 ### 변경 파일
-
-**24SevenClaw-web** (5파일):
-- `src/lib/engine/platforms/gemini-cli.ts` — GeminiCliAdapter 구현 (PlatformAdapter 인터페이스)
-- `src/lib/engine/platforms/index.ts` — GeminiCliAdapter 등록
-- `src/lib/engine/generators/gemini-md.ts` — GEMINI.md 루트 가이드 생성기
-- `src/lib/engine/generators/gemini-settings.ts` — .gemini/settings.json 생성기
-- `src/lib/engine/templates/gemini.md.hbs` — GEMINI.md Handlebars 템플릿
-
-**24SevenClaw-api** (2파일):
-- `app/engine/generator.py` — 플랫폼별 루트 가이드 템플릿 라우팅 + settings.json 분기
-- `app/engine/templates/gemini.md.j2` — GEMINI.md Jinja2 템플릿
+- `24SevenClaw-api/tests/test_e2e_wizard.py` (신규) — 35개 E2E 테스트
 
 ### 구현 내용
+API 레벨에서 위저드 Step 1→7 전체 흐름을 자동화 검증하는 포괄적 E2E 테스트 작성.
 
-1. **GeminiCliAdapter**: `.gemini/` 디렉토리 구조 (agents/, skills/, settings.json, GEMINI.md)
-2. **템플릿 재활용**: 기존 에이전트/스킬 Handlebars 템플릿을 그대로 재활용, 경로만 `.gemini/`로 변경
-3. **Gemini settings.json**: Claude Code의 permissions/hooks 대신 coreTools/safetySettings 구조
-4. **API 분기**: `_get_root_guide_template()` 함수로 플랫폼별 j2 템플릿 선택, `_build_gemini_settings()`로 설정 분기
+**검증 범위:**
+1. **전체 플로우**: 회원가입 → 프로젝트 생성 → 추천 → 설정 저장 → 프리뷰 → ZIP 다운로드
+2. **플랫폼별 ZIP 구조**: Claude Code (.claude/), Gemini CLI (.gemini/), Cursor (.cursor/rules/), Codex (.codex/) 각각 디렉토리 구조, settings.json 형식 검증
+3. **에이전트 조합**: 단일/전체 에이전트별 파일 생성 (6개 parametrize)
+4. **스킬 조합**: tdd, ai-critique, ralph-loop, harness-gate, linear, 다중 스킬 (6개 parametrize)
+5. **파이프라인**: harness-gate→hook 스크립트, ralph-loop→fix_plan.md, tdd→run-tests.sh
+6. **.env 파일**: API 키 포함/미포함, .env.example 값 미노출, 스킬 정의 기반 생성
+7. **추천 엔진**: 6개 솔루션 유형별 유효 카탈로그 반환, 추천→생성 연계 흐름
+8. **재다운로드**: 저장된 설정 기반 + 새 env_vars 반영
+9. **엣지 케이스**: 빈 에이전트(필수 harness 포함), 커스텀 스택, 프리뷰↔ZIP 파일 일치
 
 ### 테스트 결과
-
-- Web: typecheck 통과, build 성공
-- API: ruff check 통과, pytest 78개 전부 통과
+- 전체 113개 테스트 통과 (기존 78 + 신규 35)
+- 린트 통과 (ruff check)
 
 ### 남은 이슈
-
-- 없음 (Cursor/Codex 어댑터는 별도 태스크)
+- 없음
