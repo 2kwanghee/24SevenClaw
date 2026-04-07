@@ -6,24 +6,24 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[web] Step 5: 자동화 파이프라인 토글 (PipelineToggle)**
+- [x] **[api] 프리뷰 API (파일 트리 + 내용 생성)**
   > 요청사항: ## 목표
 
-위저드 Step 5 — 자동화 파이프라인 ON/OFF 토글
+위저드 설정 기반 파일 트리 + 내용 프리뷰 생성 API
 
 ## 작업 내용
 
-* 카탈로그 API에서 파이프라인 목록 로드
-* 토글 리스트: 하네스/TDD/AI 리뷰/텔레그램/린트 Gate/Ralph 루프
-* 각 항목별 설명 텍스트
-* 의존성 안내 (예: 텔레그램 → Step 4에서 API 키 필요)
-* Step 4 선택 스킬과 연동 표시
+* POST /api/v1/projects/{id}/preview
+* 요청: 위저드 설정 전체 (organization, solution, agents, skills, pipelines, platform)
+* 생성 엔진 호출 → 메모리에서 파일 생성
+* 응답: { fileTree: \[...\], files: { "[CLAUDE.md](<http://CLAUDE.md>)": "내용...", ... } }
+* 플랫폼별 구조 반영 (.claude/ vs .cursor/rules/ 등)
 
-## 사이즈: S
+## 사이즈: M
 
-## 일정: 04-14
+## 일정: 04-15 \~ 04-16
 
 ---
 
