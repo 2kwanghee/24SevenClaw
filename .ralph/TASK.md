@@ -1,31 +1,32 @@
 # Ralph Loop — 구현 결과
 
-## [api] 프로젝트 설정 저장/조회 연동
+## [engine] Gemini CLI 플랫폼 템플릿
 
 ### 변경 파일
 
-**24SevenClaw-api:**
-- `app/api/v1/projects.py` — generate 엔드포인트에 wizard_data 자동 저장 + redownload 엔드포인트 추가
-- `app/schemas/generate.py` — RedownloadRequest 스키마 추가
-- `app/schemas/project.py` — ProjectResponse에 wizard_data 필드 추가
+**24SevenClaw-web** (5파일):
+- `src/lib/engine/platforms/gemini-cli.ts` — GeminiCliAdapter 구현 (PlatformAdapter 인터페이스)
+- `src/lib/engine/platforms/index.ts` — GeminiCliAdapter 등록
+- `src/lib/engine/generators/gemini-md.ts` — GEMINI.md 루트 가이드 생성기
+- `src/lib/engine/generators/gemini-settings.ts` — .gemini/settings.json 생성기
+- `src/lib/engine/templates/gemini.md.hbs` — GEMINI.md Handlebars 템플릿
 
-**24SevenClaw-web:**
-- `src/lib/api-client.ts` — WizardConfigData 타입, saveConfig/redownload 메서드 추가
-- `src/app/(dashboard)/projects/[projectId]/page.tsx` — 설정 요약 카드 + 재다운로드 버튼
-- `src/app/(dashboard)/projects/new/page.tsx` — 위저드 완료 시 config 저장 연동
+**24SevenClaw-api** (2파일):
+- `app/engine/generator.py` — 플랫폼별 루트 가이드 템플릿 라우팅 + settings.json 분기
+- `app/engine/templates/gemini.md.j2` — GEMINI.md Jinja2 템플릿
 
 ### 구현 내용
 
-1. **위저드 완료 시 설정 자동 저장**: generate 엔드포인트 호출 시 wizard_data가 프로젝트에 자동 저장 (env_vars 제외)
-2. **프로젝트 상세에서 설정 조회**: ProjectResponse에 wizard_data 포함, 상세 페이지에서 에이전트/스킬/플랫폼 요약 표시
-3. **재다운로드**: POST /projects/{id}/redownload — 저장된 wizard_data로 동일 ZIP 재생성 (env_vars만 새로 전달)
-4. **위저드 완료 플로우**: 프로젝트 생성 → wizard config POST 저장 → 목록으로 이동
+1. **GeminiCliAdapter**: `.gemini/` 디렉토리 구조 (agents/, skills/, settings.json, GEMINI.md)
+2. **템플릿 재활용**: 기존 에이전트/스킬 Handlebars 템플릿을 그대로 재활용, 경로만 `.gemini/`로 변경
+3. **Gemini settings.json**: Claude Code의 permissions/hooks 대신 coreTools/safetySettings 구조
+4. **API 분기**: `_get_root_guide_template()` 함수로 플랫폼별 j2 템플릿 선택, `_build_gemini_settings()`로 설정 분기
 
 ### 테스트 결과
 
-- API: pytest 78건 통과, ruff 통과
-- Web: TypeScript 타입체크 통과, 빌드 성공
+- Web: typecheck 통과, build 성공
+- API: ruff check 통과, pytest 78개 전부 통과
 
 ### 남은 이슈
 
-- mypy에서 organization_service.py의 기존 unused-ignore 경고 3건 (이번 변경과 무관)
+- 없음 (Cursor/Codex 어댑터는 별도 태스크)

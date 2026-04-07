@@ -8,21 +8,20 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[engine] Gemini CLI 플랫폼 템플릿**
+- [x] **[web] 추천 엔진 UI 연동**
   > 요청사항: ## 목표
 
-Gemini CLI 플랫폼용 PlatformAdapter 구현
+Step 2 입력 변경 시 추천 API 호출 → Step 3/4/5에 반영
 
 ## 작업 내용
 
-* .gemini/ 디렉토리 구조 정의
-* GeminiAdapter 구현 (PlatformAdapter 인터페이스)
-* 에이전트 .md 템플릿을 Gemini 형식으로 변환
-* .gemini/settings.json 생성기
-* .gemini/agents/ 경로 매핑
-* 기존 Handlebars 템플릿 재활용 + Gemini 전용 변수
+* Step 2 솔루션 유형 변경 시 /api/v1/recommend 호출 (debounce)
+* Step 3 AgentSelector: 추천 에이전트 사전 체크 + "추천" 뱃지
+* Step 4 SkillSelector: 추천 스킬 사전 체크 + "추천" 뱃지
+* Step 5 PipelineToggle: 추천 파이프라인 사전 ON + "추천" 뱃지
+* 유저가 수동으로 변경 가능 (추천은 기본값일 뿐)
 
-## 사이즈: M
+## 사이즈: S
 
 ## 일정: 04-18
 
