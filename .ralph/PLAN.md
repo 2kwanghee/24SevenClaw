@@ -8,18 +8,22 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 프리뷰 API (파일 트리 + 내용 생성)**
+- [x] **[api] ZIP 생성 API (스트리밍 + .env 포함)**
   > 요청사항: ## 목표
 
-위저드 설정 기반 파일 트리 + 내용 프리뷰 생성 API
+위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드
 
 ## 작업 내용
 
-* POST /api/v1/projects/{id}/preview
-* 요청: 위저드 설정 전체 (organization, solution, agents, skills, pipelines, platform)
-* 생성 엔진 호출 → 메모리에서 파일 생성
-* 응답: { fileTree: \[...\], files: { "[CLAUDE.md](<http://CLAUDE.md>)": "내용...", ... } }
-* 플랫폼별 구조 반영 (.claude/ vs .cursor/rules/ 등)
+* POST /api/v1/projects/{id}/generate
+* 요청: 위저드 설정 + envVars (API 키 맵)
+* 생성 엔진으로 파일 생성 → Python zipfile로 ZIP 패키징
+* .env 파일: 클라이언트에서 전달된 키만 포함 (서버 미저장)
+* .env.example: 변수명만 포함 (값 제외)
+* Content-Type: application/zip 스트리밍 응답
+* 파일명: {projectName}.zip
+
+## 보안: API 키는 메모리에서만 처리, DB/로그에 기록하지 않음
 
 ## 사이즈: M
 
