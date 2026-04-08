@@ -8,23 +8,23 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[infra] CI 파이프라인에 테스트 실행 + 보안 스캔 추가**
+- [x] **[web] 프로젝트 목록 페이지네이션 + 검색 기능**
   > 요청사항: ## 목표
 
-CI에서 테스트 실행과 의존성 보안 스캔을 자동화한다.
+프로젝트가 증가해도 목록을 효율적으로 탐색할 수 있도록 한다.
 
 ## 현황
 
-* ci.yml에 lint/typecheck/build만 있고 pytest/npm test 실행 없음
-* 보안 스캔 (npm audit, pip-audit) 없음
-* PR #15 CI 실패 원인: Detect Changes 토큰 권한 부족 + OPENAI_API_KEY 누락
+* /projects 페이지에 페이지네이션 없음 (전체 로드)
+* 검색/필터 기능 없음
+* API는 offset/limit 파라미터 지원함
 
 ## 작업 내용
 
-* ci.yml API Job에 `uv run pytest --cov=app` 추가
-* ci.yml에 `npm audit --audit-level=high` 스텝 추가
-* ci.yml permissions에 `pull-requests: read` 추가 (Detect Changes 수정)
-* GPT Code Review의 OPENAI_API_KEY 시크릿 등록 또는 옵션 처리
+* 프로젝트 목록에 페이지네이션 UI 추가 (10개씩)
+* 프로젝트명 검색 입력 (debounce)
+* 상태별 필터 (active/archived)
+* URL searchParams 기반 상태 관리
 
 ## 사이즈: S
 
