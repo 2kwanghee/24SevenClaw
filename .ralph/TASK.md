@@ -1,27 +1,40 @@
 # Ralph Loop — 구현 결과
 
-## [web] E2E 위저드 플로우 테스트
+## 완료 항목
+
+### [web+api] 추천 Reasoning — 각 추천 항목에 "왜 추천됨" 설명 추가
+
+**상태**: 완료
 
 ### 변경 파일
-- `24SevenClaw-api/tests/test_e2e_wizard.py` (신규) — 35개 E2E 테스트
 
-### 구현 내용
-API 레벨에서 위저드 Step 1→7 전체 흐름을 자동화 검증하는 포괄적 E2E 테스트 작성.
+#### API (24SevenClaw-api)
+| 파일 | 변경 내용 |
+|------|----------|
+| `app/schemas/recommend.py` | `RecommendResponse`에 `summary: str` 필드 추가 |
+| `app/services/recommend_service.py` | `AGENT_REASONING`, `SKILL_REASONING`, `PIPELINE_REASONING` 딕셔너리 추가. 각 추천 항목에 reasoning 주입 + summary 생성 |
+| `tests/test_recommend.py` | SaaS 테스트에 reasoning/summary 필드 검증 추가 |
 
-**검증 범위:**
-1. **전체 플로우**: 회원가입 → 프로젝트 생성 → 추천 → 설정 저장 → 프리뷰 → ZIP 다운로드
-2. **플랫폼별 ZIP 구조**: Claude Code (.claude/), Gemini CLI (.gemini/), Cursor (.cursor/rules/), Codex (.codex/) 각각 디렉토리 구조, settings.json 형식 검증
-3. **에이전트 조합**: 단일/전체 에이전트별 파일 생성 (6개 parametrize)
-4. **스킬 조합**: tdd, ai-critique, ralph-loop, harness-gate, linear, 다중 스킬 (6개 parametrize)
-5. **파이프라인**: harness-gate→hook 스크립트, ralph-loop→fix_plan.md, tdd→run-tests.sh
-6. **.env 파일**: API 키 포함/미포함, .env.example 값 미노출, 스킬 정의 기반 생성
-7. **추천 엔진**: 6개 솔루션 유형별 유효 카탈로그 반환, 추천→생성 연계 흐름
-8. **재다운로드**: 저장된 설정 기반 + 새 env_vars 반영
-9. **엣지 케이스**: 빈 에이전트(필수 harness 포함), 커스텀 스택, 프리뷰↔ZIP 파일 일치
+#### Web (24SevenClaw-web)
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/types/wizard.ts` | `Recommendations` 타입에 `skillReasonings`, `pipelineReasonings`, `summary` 추가 |
+| `src/lib/api-client.ts` | `RecommendResponse`에 `reasoning?`, `summary` 필드 추가 |
+| `src/hooks/use-recommend.ts` | API 응답에서 reasoning 파싱 + `AGENT_REASONING_MAP` 추가 (클라이언트측 역할 에이전트용) |
+| `src/components/projects/wizard/steps/step-agents.tsx` | 추천 에이전트 카드에 reasoning 표시 (emerald 배경) |
+| `src/components/projects/wizard/steps/step-skills.tsx` | 추천 스킬 카드에 reasoning 표시 |
+| `src/components/projects/wizard/steps/step-pipelines.tsx` | 추천 파이프라인 카드에 reasoning 표시 |
+
+### 설계 결정
+
+- **에이전트 reasoning은 클라이언트 측 별도 관리**: API의 에이전트는 플랫폼(claude-code, cursor 등)이고 Step 3 UI의 에이전트는 역할(backend, frontend 등)이므로, `AGENT_REASONING_MAP`을 `use-recommend.ts`에 별도 정의
+- **스킬/파이프라인 reasoning은 API에서 전달**: ID 매핑(github-mcp→github, ai-critique→ai-review) 시 reasoning도 함께 매핑
 
 ### 테스트 결과
-- 전체 113개 테스트 통과 (기존 78 + 신규 35)
-- 린트 통과 (ruff check)
+- API: 183 tests passed (pytest)
+- API: ruff check 통과
+- Web: TypeScript 타입체크 통과
+- Web: ESLint 0 errors (6 warnings — 기존)
 
 ### 남은 이슈
 - 없음
