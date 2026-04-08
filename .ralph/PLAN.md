@@ -6,27 +6,27 @@
 
 ---
 
-## P1: 기능 요구사항
+## P3: 기능 요구사항
 
-- [x] **[web] E2E 위저드 플로우 테스트**
+- [ ] **[infra] Docker 헬스체크 + 프로덕션 Compose 작성**
   > 요청사항: ## 목표
 
-전체 위저드 플로우 E2E 검증
+Docker 컨테이너의 프로덕션 준비 수준을 높인다.
+
+## 현황
+
+* Dockerfile.api/web/agent에 HEALTHCHECK 미설정
+* docker-compose.prod.yml 부재
+* Dockerfile.web이 pnpm-lock.yaml 기대하지만 실제는 npm 사용
 
 ## 작업 내용
 
-* Step 1→7 전체 플로우 수동 테스트
-* ZIP 다운로드 → 해제 → 파일 구조 검증
-* Claude Code 플랫폼: unzip → claude 실행 확인
-* Gemini CLI 플랫폼: .gemini/ 구조 검증
-* Cursor 플랫폼: .cursor/rules/ 구조 검증
-* 모든 에이전트/스킬 조합 기본 검증
-* .env 파일 포함 여부 + 내용 검증
-* 추천 엔진 동작 검증
+* Dockerfile.api: HEALTHCHECK /api/v1/health
+* [Dockerfile.web](<http://Dockerfile.web>): HEALTHCHECK localhost:3000
+* [Dockerfile.web](<http://Dockerfile.web>): pnpm → npm 정합성 수정
+* docker-compose.prod.yml 작성 (환경변수 외부 주입, 리소스 제한)
 
-## 사이즈: M
-
-## 일정: 04-19 \~ 04-20
+## 사이즈: S
 
 ---
 
