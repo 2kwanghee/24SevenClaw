@@ -19,6 +19,9 @@ jobs:
       contents: read
       pull-requests: write
 
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,10 +37,13 @@ jobs:
           gh pr diff ${{ github.event.pull_request.number }} > /tmp/pr.diff
           echo "DIFF_SIZE=$(wc -c < /tmp/pr.diff)" >> $GITHUB_ENV
 
+      - name: Skip notice (no API key)
+        if: env.OPENAI_API_KEY == ''
+        run: echo "::notice::OPENAI_API_KEY 시크릿이 설정되지 않아 AI 리뷰를 건너뜁니다."
+
       - name: Run AI Review
-        if: env.DIFF_SIZE != '0'
+        if: env.DIFF_SIZE != '0' && env.OPENAI_API_KEY != ''
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/gpt_pr_review.py \

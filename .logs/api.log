@@ -1,0 +1,59 @@
+INFO:     Started server process [2079527]
+INFO:     Waiting for application startup.
+{"event": "Application startup complete."}
+{"event": "Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)"}
+{"method": "GET", "path": "/api/v1/health", "status_code": 200, "duration_ms": 45.03, "event": "request_completed", "request_id": "fd39cd5b-81c1-47ac-b5b6-ade64ea1583f", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:54:56.924132Z"}
+{"event": "127.0.0.1:39078 - \"GET /api/v1/health HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/auth/login", "status_code": 200, "duration_ms": 255.21, "event": "request_completed", "request_id": "ee0cd796-12fd-4ca5-8994-77bd7166b46e", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:56:12.515699Z"}
+{"event": "127.0.0.1:48142 - \"POST /api/v1/auth/login HTTP/1.1\" 200"}
+{"method": "GET", "path": "/api/v1/auth/me", "status_code": 200, "duration_ms": 27.97, "event": "request_completed", "request_id": "468d5c7c-02fc-4afd-8949-6be6b8057ef2", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:56:12.549622Z"}
+{"event": "127.0.0.1:48156 - \"GET /api/v1/auth/me HTTP/1.1\" 200"}
+{"event": "127.0.0.1:48158 - \"OPTIONS /api/v1/projects HTTP/1.1\" 200"}
+{"method": "GET", "path": "/api/v1/projects", "status_code": 307, "duration_ms": 0.23, "event": "request_completed", "request_id": "0791a241-9ac2-4ace-acf8-ce64f66bfe0b", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:56:13.377450Z"}
+{"event": "127.0.0.1:48158 - \"GET /api/v1/projects HTTP/1.1\" 307"}
+{"event": "127.0.0.1:48158 - \"OPTIONS /api/v1/projects/ HTTP/1.1\" 200"}
+{"method": "GET", "path": "/api/v1/projects/", "status_code": 200, "duration_ms": 18.7, "event": "request_completed", "request_id": "fcbeb452-3021-43f6-b720-10a7b8aad7f5", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:56:13.398346Z"}
+{"event": "127.0.0.1:48158 - \"GET /api/v1/projects/ HTTP/1.1\" 200"}
+{"event": "127.0.0.1:48174 - \"OPTIONS /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 24.5, "event": "request_completed", "request_id": "b3e456c5-3d2e-4d9b-b269-efcc50c51f46", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:56:59.529565Z"}
+{"event": "127.0.0.1:48174 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 0.98, "event": "request_completed", "request_id": "cf04a2a2-94eb-4de4-aba2-0787d6302cb1", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:57:01.841262Z"}
+{"event": "127.0.0.1:48174 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 0.46, "event": "request_completed", "request_id": "64d6970c-7c43-47b5-89a6-368281e33c0b", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:57:02.618247Z"}
+{"event": "127.0.0.1:48174 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"event": "127.0.0.1:60994 - \"OPTIONS /api/v1/projects/draft/preview HTTP/1.1\" 200"}
+{"event": "127.0.0.1:60994 - \"OPTIONS /api/v1/projects/draft/preview HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 4.03, "event": "request_completed", "request_id": "06403564-9f06-4603-8701-b5f149e9321a", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:57:51.529779Z"}
+{"event": "127.0.0.1:60994 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 1.92, "event": "request_completed", "request_id": "375ee444-3d73-4f44-9b0c-f2c2de65dc94", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:57:51.533143Z"}
+{"event": "127.0.0.1:60994 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"method": "POST", "path": "/api/v1/auth/login", "status_code": 200, "duration_ms": 158.23, "event": "request_completed", "request_id": "c2905d90-1027-4ff9-b2ef-fa170d20db5e", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:59:58.708275Z"}
+{"event": "127.0.0.1:43662 - \"POST /api/v1/auth/login HTTP/1.1\" 200"}
+{"method": "GET", "path": "/api/v1/auth/me", "status_code": 200, "duration_ms": 1.37, "event": "request_completed", "request_id": "e3d6411f-0c2d-4e00-8929-ebb3e4de6670", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:59:58.714044Z"}
+{"event": "127.0.0.1:43664 - \"GET /api/v1/auth/me HTTP/1.1\" 200"}
+{"method": "GET", "path": "/api/v1/projects", "status_code": 307, "duration_ms": 0.2, "event": "request_completed", "request_id": "cce72f22-e590-4213-8acb-74e8bf8a9547", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:59:59.287885Z"}
+{"event": "127.0.0.1:43678 - \"GET /api/v1/projects HTTP/1.1\" 307"}
+{"method": "GET", "path": "/api/v1/projects/", "status_code": 200, "duration_ms": 3.44, "event": "request_completed", "request_id": "4921e155-2c34-40a9-a3f3-a27a50fc2ab9", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T12:59:59.293807Z"}
+{"event": "127.0.0.1:43678 - \"GET /api/v1/projects/ HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 0.52, "event": "request_completed", "request_id": "10dfb7dd-c662-46c3-8cdc-d619dad9f94e", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:00:08.057764Z"}
+{"event": "127.0.0.1:43684 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 0.42, "event": "request_completed", "request_id": "4038afb3-5e06-48cc-8aca-43621db917bf", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:00:09.004109Z"}
+{"event": "127.0.0.1:43684 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 3.59, "event": "request_completed", "request_id": "33cb6663-3824-48d3-abf0-68b7d18ad101", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:00:29.311962Z"}
+{"event": "127.0.0.1:57880 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 20.74, "event": "request_completed", "request_id": "9e53248d-d30b-488a-b4f0-bdad9e3e3197", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:00:29.329381Z"}
+{"event": "127.0.0.1:57884 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"method": "GET", "path": "/api/v1/projects", "status_code": 307, "duration_ms": 0.19, "event": "request_completed", "request_id": "46eff905-a571-4994-a597-0e4166498c86", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:01:11.995137Z"}
+{"event": "127.0.0.1:57888 - \"GET /api/v1/projects HTTP/1.1\" 307"}
+{"method": "GET", "path": "/api/v1/projects/", "status_code": 200, "duration_ms": 2.67, "event": "request_completed", "request_id": "70de92a8-ec69-4420-a1a7-94b50a069963", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:01:11.999947Z"}
+{"event": "127.0.0.1:57888 - \"GET /api/v1/projects/ HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/recommend", "status_code": 200, "duration_ms": 0.49, "event": "request_completed", "request_id": "185bf924-718f-453c-90ab-e68d1422cc74", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:01:24.405013Z"}
+{"event": "127.0.0.1:33482 - \"POST /api/v1/recommend HTTP/1.1\" 200"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 2.68, "event": "request_completed", "request_id": "35e881c7-05a8-4bfe-a733-712587947b82", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:02:45.803575Z"}
+{"event": "127.0.0.1:49222 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"method": "POST", "path": "/api/v1/projects/draft/preview", "status_code": 422, "duration_ms": 3.53, "event": "request_completed", "request_id": "075412f8-5fe4-4ba7-b106-e00c1021692b", "level": "info", "logger": "app.core.middleware", "timestamp": "2026-04-07T13:02:45.804703Z"}
+{"event": "127.0.0.1:49236 - \"POST /api/v1/projects/draft/preview HTTP/1.1\" 422"}
+{"event": "Shutting down"}
+{"event": "Waiting for application shutdown."}
+{"event": "Application shutdown complete."}
+{"event": "Finished server process [2079527]"}

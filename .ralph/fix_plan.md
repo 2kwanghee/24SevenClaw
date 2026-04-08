@@ -6,24 +6,25 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] JWT 토큰 자동 갱신 (Refresh Token) 구현**
+- [x] **[infra] CI 파이프라인에 테스트 실행 + 보안 스캔 추가**
   > 요청사항: ## 목표
 
-Access Token 만료 시 자동으로 Refresh Token으로 갱신하여 사용자 세션이 끊기지 않도록 한다.
+CI에서 테스트 실행과 의존성 보안 스캔을 자동화한다.
 
 ## 현황
 
-* `lib/auth.ts` JWT 콜백에서 토큰 만료 시간 체크 없음
-* Refresh Token을 받지만 갱신 로직 부재
-* 30분 후 자동 로그아웃됨
+* ci.yml에 lint/typecheck/build만 있고 pytest/npm test 실행 없음
+* 보안 스캔 (npm audit, pip-audit) 없음
+* PR #15 CI 실패 원인: Detect Changes 토큰 권한 부족 + OPENAI_API_KEY 누락
 
 ## 작업 내용
 
-* Auth.js JWT 콜백에서 `exp` 체크 → 만료 임박 시 백엔드 `/auth/refresh` 호출
-* 갱신 실패 시 로그인 페이지로 리다이렉트
-* api-client.ts에서 401 응답 시 자동 갱신 재시도
+* ci.yml API Job에 `uv run pytest --cov=app` 추가
+* ci.yml에 `npm audit --audit-level=high` 스텝 추가
+* ci.yml permissions에 `pull-requests: read` 추가 (Detect Changes 수정)
+* GPT Code Review의 OPENAI_API_KEY 시크릿 등록 또는 옵션 처리
 
 ## 사이즈: S
 

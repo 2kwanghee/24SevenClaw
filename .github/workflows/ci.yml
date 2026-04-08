@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -69,6 +73,10 @@ jobs:
         env:
           AUTH_SECRET: ci-test-secret
 
+      - name: Security scan (npm audit)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   # ── API: lint + typecheck ──
   api:
     name: API (lint / typecheck)
@@ -99,6 +107,15 @@ jobs:
 
       - name: Mypy type check
         run: uv run mypy app/ --ignore-missing-imports
+
+      - name: Run tests
+        run: uv run pytest --cov=app --cov-fail-under=70 --tb=short -q
+
+      - name: Security scan (pip-audit)
+        run: |
+          uv export --no-hashes --no-dev -o /tmp/requirements.txt
+          pipx run pip-audit -r /tmp/requirements.txt
+        continue-on-error: true
 
   # ── OpenAPI Contract 파이프라인 ──
   openapi-sync:
