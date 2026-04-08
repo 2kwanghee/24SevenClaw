@@ -19,5 +19,6 @@ node_modules/
 .ralph/.task_list.tmp
 .worktrees/
 logs/
+.logs/
 .env
 .mcp.json
