@@ -8,25 +8,24 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] E2E 위저드 플로우 테스트**
+- [x] **[web] JWT 토큰 자동 갱신 (Refresh Token) 구현**
   > 요청사항: ## 목표
 
-전체 위저드 플로우 E2E 검증
+Access Token 만료 시 자동으로 Refresh Token으로 갱신하여 사용자 세션이 끊기지 않도록 한다.
+
+## 현황
+
+* `lib/auth.ts` JWT 콜백에서 토큰 만료 시간 체크 없음
+* Refresh Token을 받지만 갱신 로직 부재
+* 30분 후 자동 로그아웃됨
 
 ## 작업 내용
 
-* Step 1→7 전체 플로우 수동 테스트
-* ZIP 다운로드 → 해제 → 파일 구조 검증
-* Claude Code 플랫폼: unzip → claude 실행 확인
-* Gemini CLI 플랫폼: .gemini/ 구조 검증
-* Cursor 플랫폼: .cursor/rules/ 구조 검증
-* 모든 에이전트/스킬 조합 기본 검증
-* .env 파일 포함 여부 + 내용 검증
-* 추천 엔진 동작 검증
+* Auth.js JWT 콜백에서 `exp` 체크 → 만료 임박 시 백엔드 `/auth/refresh` 호출
+* 갱신 실패 시 로그인 페이지로 리다이렉트
+* api-client.ts에서 401 응답 시 자동 갱신 재시도
 
-## 사이즈: M
-
-## 일정: 04-19 \~ 04-20
+## 사이즈: S
 
 ---
 
