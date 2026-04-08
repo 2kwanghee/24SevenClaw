@@ -8,23 +8,23 @@
 
 ## P2: 기능 요구사항
 
-- [ ] **[infra] CI 파이프라인에 테스트 실행 + 보안 스캔 추가**
+- [x] **[api] Rate Limiting 개선 + CORS 화이트리스트 + 입력값 검증 강화**
   > 요청사항: ## 목표
 
-CI에서 테스트 실행과 의존성 보안 스캔을 자동화한다.
+프로덕션 준비를 위한 보안 강화.
 
 ## 현황
 
-* ci.yml에 lint/typecheck/build만 있고 pytest/npm test 실행 없음
-* 보안 스캔 (npm audit, pip-audit) 없음
-* PR #15 CI 실패 원인: Detect Changes 토큰 권한 부족 + OPENAI_API_KEY 누락
+* Rate Limit: IP 기반 100/60초 하드코딩, X-Forwarded-For 미지원
+* CORS: allow_methods/headers가 와일드카드("\*")
+* 입력값: agent/skill/pipeline ID 형식 검증 없음, PreviewRequest의 dict\[str, Any\] 미검증
 
 ## 작업 내용
 
-* ci.yml API Job에 `uv run pytest --cov=app` 추가
-* ci.yml에 `npm audit --audit-level=high` 스텝 추가
-* ci.yml permissions에 `pull-requests: read` 추가 (Detect Changes 수정)
-* GPT Code Review의 OPENAI_API_KEY 시크릿 등록 또는 옵션 처리
+* Rate Limit 설정을 config.py로 이동, 엔드포인트별 차등 (로그인 10/60초)
+* X-Forwarded-For 헤더 검증 추가
+* CORS allow_methods/headers 명시적 화이트리스트
+* PreviewRequest/GenerateRequest에 agent_ids 형식 검증 추가
 
 ## 사이즈: S
 
