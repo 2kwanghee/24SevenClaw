@@ -8,6 +8,7 @@ from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.recommend import router as recommend_router
+from app.api.v1.review_pipeline import router as review_pipeline_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(health_router, tags=["health"])
@@ -18,3 +19,4 @@ api_v1_router.include_router(artifacts_router)
 api_v1_router.include_router(orchestrator_router)
 api_v1_router.include_router(organizations_router)
 api_v1_router.include_router(recommend_router)
+api_v1_router.include_router(review_pipeline_router)

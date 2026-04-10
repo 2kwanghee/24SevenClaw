@@ -8,6 +8,7 @@ from app.models.organization import Organization  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
+from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
 
@@ -23,6 +24,8 @@ __all__ = [
     "PhaseEvent",
     "Project",
     "ProjectConfig",
+    "ReviewEvent",
+    "ReviewRound",
     "Skill",
     "SubTask",
     "Ticket",
