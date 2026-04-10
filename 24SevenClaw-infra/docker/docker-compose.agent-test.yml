@@ -1,0 +1,21 @@
+# 24SevenClaw - Agent 테스트 환경
+# 사용법: docker compose -f docker-compose.agent-test.yml up -d
+
+services:
+  agent:
+    build:
+      context: ../../24SevenClaw-agent
+      dockerfile: Dockerfile
+    container_name: sevenclaw-agent-test
+    environment:
+      CLOUD_WS_URL: ws://host.docker.internal:8000
+      AGENT_ID: test-agent-001
+      LICENSE_KEY: 24SC-FREE-test000000-0000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - agent-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  agent-data:

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "description": "Anthropic Claude 기반 코드 에이전트",
+    "provider": "anthropic",
+    "config_dir": ".claude",
+    "agent_file": ".claude/agents/{agent_name}.md",
+    "config_files": [
+      ".claude/settings.json",
+      ".claude/commands/{command_name}.md",
+      "CLAUDE.md"
+    ],
+    "supported_languages": ["python", "typescript", "javascript", "go", "rust"],
+    "env_vars": ["ANTHROPIC_API_KEY"],
+    "tags": ["ai", "code", "anthropic"]
+  },
+  {
+    "id": "gemini-cli",
+    "name": "Gemini CLI",
+    "description": "Google Gemini 기반 CLI 에이전트",
+    "provider": "google",
+    "config_dir": ".gemini",
+    "agent_file": ".gemini/agents/{agent_name}.md",
+    "config_files": [
+      ".gemini/settings.json",
+      "GEMINI.md"
+    ],
+    "supported_languages": ["python", "typescript", "javascript", "java", "kotlin"],
+    "env_vars": ["GEMINI_API_KEY"],
+    "tags": ["ai", "code", "google"]
+  },
+  {
+    "id": "codex",
+    "name": "Codex CLI",
+    "description": "OpenAI Codex 기반 CLI 에이전트",
+    "provider": "openai",
+    "config_dir": ".codex",
+    "agent_file": ".codex/agents/{agent_name}.md",
+    "config_files": [
+      ".codex/config.json",
+      "AGENTS.md"
+    ],
+    "supported_languages": ["python", "typescript", "javascript"],
+    "env_vars": ["OPENAI_API_KEY"],
+    "tags": ["ai", "code", "openai"]
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "description": "Cursor IDE 내장 AI 에이전트",
+    "provider": "cursor",
+    "config_dir": ".cursor",
+    "agent_file": ".cursor/agents/{agent_name}.md",
+    "config_files": [
+      ".cursor/settings.json",
+      ".cursor/rules/{rule_name}.mdc",
+      ".cursorrules"
+    ],
+    "supported_languages": ["python", "typescript", "javascript", "go", "rust"],
+    "env_vars": [],
+    "tags": ["ai", "ide", "cursor"]
+  }
+]

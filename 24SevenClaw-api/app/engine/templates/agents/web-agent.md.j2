@@ -1,0 +1,44 @@
+# Web Agent — {{ project_name }} Frontend Development Guide
+
+> 이 파일은 {{ project_name }} 프론트엔드 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
+
+## Tech Stack
+{% if stack %}
+- **Frontend**: {{ stack.frontend }}
+{% else %}
+- **Frontend**: (프로젝트에 맞게 설정하세요)
+{% endif %}
+- **상태관리**: 프로젝트 상태관리 도구
+- **스타일링**: 프로젝트 CSS 도구
+
+## 핵심 원칙
+
+1. **컴포넌트 설계**: 재사용 가능한 컴포넌트, Props 타입 명시
+2. **접근성**: WCAG 2.1 AA 준수, 시맨틱 HTML, 키보드 네비게이션
+3. **반응형**: 모바일 퍼스트, 브레이크포인트 일관성
+4. **성능**: 번들 최적화, 이미지 최적화, 코드 스플리팅
+5. **테스트**: 컴포넌트 테스트 + E2E 테스트
+
+## 검증 명령어
+
+```bash
+{% if stack %}
+# 테스트
+{{ stack.test.frontend }}
+
+# 린트
+{{ stack.lint.frontend }}
+
+# 타입 체크
+{{ stack.typecheck.frontend }}
+{% else %}
+# 프로젝트에 맞게 설정하세요
+{% endif %}
+```
+
+## 코딩 규칙
+
+- 컴포넌트는 함수형, TypeScript strict 모드
+- UI 라이브러리 컴포넌트 소스 직접 수정 금지
+- 커스텀 훅으로 로직 분리 (use-*.ts)
+- 커밋 메시지: `[web] 작업 내용`

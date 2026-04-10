@@ -1,0 +1,219 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+
+import { ProjectList } from "@/components/projects/project-list";
+import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
+import { useProjects } from "@/hooks/use-projects";
+
+const PAGE_SIZE = 10;
+
+type StatusFilter = "" | "active" | "archived";
+
+function ProjectsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // URL searchParams에서 상태 추출
+  const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const searchQuery = searchParams.get("search") ?? "";
+  const statusFilter = (searchParams.get("status") ?? "") as StatusFilter;
+
+  // 검색 입력용 로컬 상태 (debounce)
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // URL 업데이트 헬퍼
+  const updateParams = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      }
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, router, pathname],
+  );
+
+  // 검색 debounce (300ms)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (searchInput !== searchQuery) {
+        updateParams({ search: searchInput, page: "" });
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput, searchQuery, updateParams]);
+
+  // URL search가 변경되면 input 동기화
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  const offset = (currentPage - 1) * PAGE_SIZE;
+
+  const { data, isLoading, error } = useProjects({
+    offset,
+    limit: PAGE_SIZE,
+    search: searchQuery || undefined,
+    status: statusFilter || undefined,
+  });
+
+  useEffect(() => {
+    if (error) {
+      toast.error("프로젝트 목록을 불러오지 못했습니다");
+    }
+  }, [error]);
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+  return (
+    <div>
+      {/* 헤더 */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">프로젝트</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            AI 에이전트가 작업할 프로젝트를 관리하세요
+          </p>
+        </div>
+        <Link
+          href="/projects/new"
+          className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30"
+        >
+          <Plus className="h-4 w-4" />
+          새 프로젝트
+        </Link>
+      </div>
+
+      {/* 검색 + 필터 */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* 검색 */}
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder="프로젝트 검색..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="프로젝트 검색"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-violet-500/50 focus:bg-white/[0.05]"
+          />
+        </div>
+
+        {/* 상태 필터 */}
+        <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          {([
+            { value: "", label: "전체" },
+            { value: "active", label: "활성" },
+            { value: "archived", label: "보관됨" },
+          ] as const).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() =>
+                updateParams({ status: option.value, page: "" })
+              }
+              aria-pressed={statusFilter === option.value}
+              className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                statusFilter === option.value
+                  ? "bg-violet-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 로딩 (스켈레톤) */}
+      {isLoading && <ProjectListSkeleton />}
+
+      {/* 에러 */}
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+          프로젝트 목록을 불러오지 못했습니다.
+        </div>
+      )}
+
+      {/* 목록 */}
+      {data && <ProjectList projects={data.items} />}
+
+      {/* 페이지네이션 */}
+      {data && data.total > PAGE_SIZE && (
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() =>
+              updateParams({ page: String(currentPage - 1) })
+            }
+            aria-label="이전 페이지"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-slate-400"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+            (page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => updateParams({ page: String(page) })}
+                aria-label={`${page}페이지`}
+                aria-current={page === currentPage ? "page" : undefined}
+                className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors ${
+                  page === currentPage
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "border border-white/10 text-slate-400 hover:border-violet-500/30 hover:text-white"
+                }`}
+              >
+                {page}
+              </button>
+            ),
+          )}
+
+          <button
+            type="button"
+            disabled={currentPage >= totalPages}
+            onClick={() =>
+              updateParams({ page: String(currentPage + 1) })
+            }
+            aria-label="다음 페이지"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-slate-400"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* 결과 카운트 */}
+      {data && (
+        <p className="mt-4 text-center text-xs text-slate-600">
+          총 {data.total}개 프로젝트
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<ProjectListSkeleton />}>
+      <ProjectsContent />
+    </Suspense>
+  );
+}
