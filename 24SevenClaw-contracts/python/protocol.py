@@ -99,3 +99,40 @@ class ErrorPayload(BaseModel):
     original_message_id: str | None = None
     recoverable: bool
     suggestion: str | None = None
+
+
+# === 산출물 상태 ===
+
+ArtifactStatus = Literal[
+    "draft",
+    "reviewed",
+    "revised",
+    "approved",
+    "in_development",
+    "validated",
+    "released",
+]
+
+ARTIFACT_TRANSITIONS: dict[str, list[str]] = {
+    "draft": ["reviewed"],
+    "reviewed": ["revised", "approved"],
+    "revised": ["reviewed"],
+    "approved": ["in_development"],
+    "in_development": ["validated"],
+    "validated": ["released", "in_development"],
+    "released": [],
+}
+
+
+class ArtifactTransitionRequest(BaseModel):
+    target_status: ArtifactStatus
+    actor_type: Literal["user", "agent", "system"]
+    actor_id: str | None = None
+    message: str | None = None
+
+
+class ArtifactMeta(BaseModel):
+    created_by_ai: str | None = None
+    reviewed_by_ai: str | None = None
+    last_transition_at: datetime | None = None
+    revision_count: int = 0
