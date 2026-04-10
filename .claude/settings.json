@@ -1,0 +1,140 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m pytest *)",
+      "Bash(python3 *)",
+      "Bash(cd 24SevenClaw-api && uv run *)",
+      "Bash(cd 24SevenClaw-api && alembic *)",
+      "Bash(cd 24SevenClaw-web && npm *)",
+      "Bash(cd 24SevenClaw-web && npx *)",
+      "Bash(cd 24SevenClaw-agent && uv run *)",
+      "Bash(cd 24SevenClaw-contracts && npx *)",
+      "Bash(uv run *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(cd backend && python -m pytest*)",
+      "Bash(cd backend && alembic *)",
+      "Bash(cd backend && ruff *)",
+      "Bash(cd frontend && pnpm *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git checkout -b *)",
+      "Bash(git branch*)",
+      "Bash(git push -u origin ralph/*)",
+      "Bash(git push origin ralph/*)",
+      "Bash(gh pr *)",
+      "Bash(gh auth *)",
+      "Bash(docker ps*)",
+      "Bash(docker compose up -d db*)",
+      "Bash(chmod +x *)",
+      "Bash(bash .claude/hooks/*)",
+      "Bash(ps *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin master*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker compose down*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -q 'LINEAR_TEAM_ID_DOCS=.' \"$CLAUDE_PROJECT_DIR/.env\" 2>/dev/null && python3 \"$CLAUDE_PROJECT_DIR/scripts/sync_linear_docs.py\" 2>&1 | tail -5 || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/ralph-stop-hook.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/commit-session.sh",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "source \"$CLAUDE_PROJECT_DIR/scripts/pipeline_config.sh\" 2>/dev/null && is_enabled FLOWOPS_TODO_REMINDER 2>/dev/null && echo '[TODO] 작업 시작 전 TODO.md를 확인/생성하세요. 새 작업이면 기존 TODO.md를 초기화 후 새로 작성하세요.' >&2 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[하네스] 코드 작성 요청이면 harness-guide.md 워크플로를 따르세요: 1.Router(의도분석→모호하면 되물어보기) → 2.Context(모듈 agent.md+관련파일만 로딩) → 3.Loop(코드→lint→type→test 통과까지 반복) → 4.Worker(작성/리뷰 분리). 설명/질문/상담은 하네스 없이 바로 응답.' >&2"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/harness-gate.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[하네스 리마인더] 코드 수정됨 → 커밋 전 반드시 해당 모듈의 lint/typecheck/test를 실행하세요. Gate 미통과 시 커밋이 차단됩니다.' >&2"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "@24sevenclaw/cli",
+  "version": "0.1.0",
+  "description": "CLI-First AI 개발 자동화 플랫폼 — 하네스 엔지니어링이 탑재된 Claude Code 워크플로우를 한 줄 명령으로 구축",
+  "type": "module",
+  "bin": {
+    "24sc": "./bin/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude-code",
+    "ai-agent",
+    "harness-engineering",
+    "developer-tools",
+    "cli",
+    "scaffolding"
+  ],
+  "author": "24SevenClaw",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/24SevenClaw/24SevenClaw-cli"
+  },
+  "homepage": "https://github.com/24SevenClaw/24SevenClaw-cli#readme",
+  "bugs": {
+    "url": "https://github.com/24SevenClaw/24SevenClaw-cli/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "inquirer": "^9.3.0",
+    "handlebars": "^4.7.8",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.14.0",
+    "@types/inquirer": "^9.0.7"
+  }
+}
