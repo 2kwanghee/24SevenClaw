@@ -11,11 +11,11 @@
 - **프로젝트**: 24SevenClaw — 라이센스 기반 AI 에이전트 개발 오케스트레이션 플랫폼
 - **아키텍처**: 클라우드(컨트롤 플레인) + 고객 서버(실행 플레인)
 - **멀티레포 구조**:
-  - `24SevenClaw-web/` — Next.js 16 + Tailwind + shadcn/ui
-  - `24SevenClaw-api/` — FastAPI + SQLAlchemy 2.0 async + Alembic
-  - `24SevenClaw-agent/` — Python asyncio 데몬 (WebSocket + Docker)
-  - `24SevenClaw-infra/` — Docker Compose + Dockerfile + 스크립트
-  - `24SevenClaw-contracts/` — OpenAPI 스펙 + WebSocket 프로토콜 타입 (TS + Python)
+    - `24SevenClaw-web/` — Next.js 16 + Tailwind + shadcn/ui
+    - `24SevenClaw-api/` — FastAPI + SQLAlchemy 2.0 async + Alembic
+    - `24SevenClaw-agent/` — Python asyncio 데몬 (WebSocket + Docker)
+    - `24SevenClaw-infra/` — Docker Compose + Dockerfile + 스크립트
+    - `24SevenClaw-contracts/` — OpenAPI 스펙 + WebSocket 프로토콜 타입 (TS + Python)
 
 ### 테스트 명령
 ```bash
@@ -59,9 +59,9 @@ cd 24SevenClaw-web && npm run lint
 5. 코드 구현 (PLAN.md의 범위/수용 기준을 준수)
 6. 검증 (해당 모듈 테스트 + 린트)
 7. 성공 시: fix_plan.md에 [x] 표시 + LoadMap_v3.md 해당 항목 [x] 동기화 + git commit (커밋 메시지: `[module] 작업 내용`)
-   - LoadMap_v3.md에서 현재 Week 섹션의 매칭되는 `- [ ]` 항목을 `- [x]`로 변경
-   - 매칭 기준: 파일명, 기능명, 또는 태스크 설명 일치
-   - LoadMap_v3.md가 없으면 건너뜀
+    - LoadMap_v3.md에서 현재 Week 섹션의 매칭되는 `- [ ]` 항목을 `- [x]`로 변경
+    - 매칭 기준: 파일명, 기능명, 또는 태스크 설명 일치
+    - LoadMap_v3.md가 없으면 건너뜀
 8. 실패 시: 에러 분석 → 수정 → 재검증 (3회 실패 시 [!] 표시 후 건너뜀)
 9. contracts 변경 포함 시: TS ↔ Python 타입 동기화 확인
 10. 다음 미완료 항목으로 이동

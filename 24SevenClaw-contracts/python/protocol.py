@@ -136,3 +136,66 @@ class ArtifactMeta(BaseModel):
     reviewed_by_ai: str | None = None
     last_transition_at: datetime | None = None
     revision_count: int = 0
+
+
+# === 오케스트레이터 (마스터 PM AI) ===
+
+OrchestratorPhase = Literal[
+    "requested",
+    "decomposed",
+    "assigned",
+    "drafting",
+    "reviewing",
+    "integrating",
+    "validating",
+    "approved",
+    "transitioning",
+    "completed",
+]
+
+ORCHESTRATOR_TRANSITIONS: dict[str, list[str]] = {
+    "requested": ["decomposed"],
+    "decomposed": ["assigned"],
+    "assigned": ["drafting"],
+    "drafting": ["reviewing"],
+    "reviewing": ["integrating", "drafting"],
+    "integrating": ["validating"],
+    "validating": ["approved", "integrating"],
+    "approved": ["transitioning"],
+    "transitioning": ["completed"],
+    "completed": [],
+}
+
+AgentRole = Literal[
+    "architect",
+    "frontend",
+    "backend",
+    "qa",
+    "security",
+    "devops",
+    "reviewer",
+]
+
+SubTaskStatus = Literal[
+    "pending",
+    "in_progress",
+    "completed",
+    "failed",
+    "blocked",
+]
+
+
+class SubTaskPayload(BaseModel):
+    title: str
+    description: str | None = None
+    assigned_role: AgentRole
+    order_index: int
+    depends_on: list[str] | None = None
+    artifact_id: str | None = None
+
+
+class PhaseTransitionPayload(BaseModel):
+    target_phase: OrchestratorPhase
+    actor_type: Literal["user", "agent", "system"]
+    actor_id: str | None = None
+    message: str | None = None
