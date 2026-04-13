@@ -19,7 +19,8 @@ export type CommandMessageType =
   | 'command.run'
   | 'command.stop'
   | 'command.destroy_env'
-  | 'config.update';
+  | 'config.update'
+  | 'command.contract_sync';
 
 export type MessageType = AgentMessageType | CommandMessageType | 'error';
 
