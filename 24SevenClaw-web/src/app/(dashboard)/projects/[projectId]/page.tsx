@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
+  BarChart3,
   Settings,
   Trash2,
   Pencil,
@@ -208,6 +209,13 @@ export default function ProjectDetailPage() {
                 <Pencil className="h-3.5 w-3.5" />
                 수정
               </button>
+              <Link
+                href={`/projects/${projectId}/dashboard`}
+                className="flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-2 text-sm font-medium text-violet-300 transition-all hover:bg-violet-500/10"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                대시보드
+              </Link>
               <Link
                 href={`/projects/${projectId}/settings`}
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"

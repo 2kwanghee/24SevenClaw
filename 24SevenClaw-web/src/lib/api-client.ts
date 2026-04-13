@@ -302,6 +302,13 @@ export const apiClient = {
         },
       ),
 
+    /** 프로젝트 리포트 조회 */
+    report: (token: string, projectId: string) =>
+      authRequest<ProjectReportResponse>(
+        `/api/v1/reports/project/${projectId}`,
+        token,
+      ),
+
     redownload: async (
       token: string,
       projectId: string,
@@ -326,6 +333,53 @@ export const apiClient = {
     },
   },
 };
+
+// --- Reports ---
+
+export interface ArtifactStatusCount {
+  status: string;
+  count: number;
+}
+
+export interface PhaseTimelineEntry {
+  phase: string;
+  entered_at: string;
+  exited_at: string | null;
+  duration_seconds: number | null;
+  actor_type: string | null;
+  message: string | null;
+}
+
+export interface QualityMetrics {
+  total_artifacts: number;
+  released_artifacts: number;
+  avg_review_score: number | null;
+  avg_revision_count: number;
+  review_rounds_total: number;
+  review_completion_rate: number;
+}
+
+export interface AITeamActivity {
+  role: string;
+  title: string;
+  status: string;
+  event_type: string;
+  timestamp: string;
+  message: string | null;
+}
+
+export interface ProjectReportResponse {
+  project_id: string;
+  project_name: string;
+  project_status: string;
+  artifact_status_counts: ArtifactStatusCount[];
+  phase_timeline: PhaseTimelineEntry[];
+  quality_metrics: QualityMetrics;
+  ai_team_activities: AITeamActivity[];
+  sessions_total: number;
+  subtasks_total: number;
+  generated_at: string;
+}
 
 // --- Recommend ---
 

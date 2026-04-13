@@ -199,3 +199,176 @@ class PhaseTransitionPayload(BaseModel):
     actor_type: Literal["user", "agent", "system"]
     actor_id: str | None = None
     message: str | None = None
+
+
+# === 프리셋 & 성숙도 ===
+
+MaturityLevel = Literal["starter", "intermediate", "advanced"]
+
+
+class PresetProfile(BaseModel):
+    id: str
+    name: str
+    slug: str
+    maturity_level: MaturityLevel
+    solution_types: list[str]
+    default_agents: list[str]
+    default_skills: list[str]
+    default_pipelines: list[str]
+    description: str
+    is_system: bool | None = None
+
+
+class MaturityAssessmentRequest(BaseModel):
+    answers: dict[str, int]
+
+
+class MaturityQuestion(BaseModel):
+    id: str
+    text: str
+    category: Literal["team", "process", "tooling", "ci", "ai"]
+    weight: float
+    options: list["MaturityOption"]
+
+
+class MaturityOption(BaseModel):
+    label: str
+    score: int
+
+
+class MaturityAssessmentResponse(BaseModel):
+    level: MaturityLevel
+    score: int
+    recommended_preset_id: str | None = None
+    reasoning: str
+
+
+class NaturalLanguageConfigRequest(BaseModel):
+    text: str
+    project_id: str | None = None
+
+
+class NaturalLanguageConfigResponse(BaseModel):
+    suggested_agents: list[str]
+    suggested_skills: list[str]
+    suggested_pipelines: list[str]
+    confidence: float
+    reasoning: str
+
+
+# === RBAC (역할 기반 접근 제어) ===
+
+SystemRole = Literal["superadmin", "admin", "member", "viewer"]
+
+OrgRole = Literal["org_admin", "org_member", "org_viewer"]
+
+Permission = Literal[
+    "project:create",
+    "project:read",
+    "project:update",
+    "project:delete",
+    "preset:manage",
+    "contract:manage",
+    "user:manage",
+    "org:manage",
+    "report:view",
+    "rbac:manage",
+]
+
+ROLE_PERMISSIONS: dict[str, list[str]] = {
+    "superadmin": [
+        "project:create", "project:read", "project:update", "project:delete",
+        "preset:manage", "contract:manage", "user:manage", "org:manage",
+        "report:view", "rbac:manage",
+    ],
+    "admin": [
+        "project:create", "project:read", "project:update", "project:delete",
+        "preset:manage", "contract:manage", "user:manage", "org:manage",
+        "report:view",
+    ],
+    "member": [
+        "project:create", "project:read", "project:update", "project:delete",
+        "report:view",
+    ],
+    "viewer": [
+        "project:read",
+        "report:view",
+    ],
+}
+
+
+class OrganizationMembershipPayload(BaseModel):
+    id: str | None = None
+    user_id: str
+    organization_id: str
+    org_role: OrgRole
+    invited_by: str | None = None
+    joined_at: str | None = None
+    is_active: bool | None = None
+
+
+class RoleAuditEntry(BaseModel):
+    id: str | None = None
+    actor_id: str
+    target_user_id: str | None = None
+    action: str
+    old_value: str | None = None
+    new_value: str
+    resource: str | None = None
+    created_at: str | None = None
+
+
+# === 중앙 실행 계약 관리 ===
+
+ContractSource = Literal["central", "custom"]
+
+ContractType = Literal["settings", "skill", "agent", "pipeline"]
+
+ContractChangeType = Literal["create", "update", "delete", "apply", "override", "sync"]
+
+
+class CentralContractPayload(BaseModel):
+    id: str | None = None
+    slug: str
+    contract_type: ContractType
+    source: ContractSource
+    version: str
+    content: dict[str, Any]
+    is_locked: bool = True
+    allowed_overrides: list[str] = []
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class CustomerContractOverridePayload(BaseModel):
+    id: str | None = None
+    project_id: str
+    central_contract_id: str
+    override_content: dict[str, Any]
+    approved_by: str | None = None
+    is_active: bool = True
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class ContractAuditEntryPayload(BaseModel):
+    id: str | None = None
+    contract_id: str | None = None
+    override_id: str | None = None
+    actor_id: str
+    change_type: ContractChangeType
+    diff_snapshot: dict[str, Any] | None = None
+    created_at: str | None = None
+
+
+class ContractSyncItem(BaseModel):
+    slug: str
+    contract_type: ContractType
+    version: str
+    content: dict[str, Any]
+    overrides: dict[str, Any]
+
+
+class ContractSyncPayload(BaseModel):
+    project_id: str
+    contracts: list[ContractSyncItem]
