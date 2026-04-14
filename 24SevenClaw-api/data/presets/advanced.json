@@ -1,0 +1,11 @@
+{
+  "name": "Advanced",
+  "slug": "advanced",
+  "maturity_level": "advanced",
+  "solution_types": ["web-app", "api-server", "fullstack", "microservice", "monorepo", "data-pipeline"],
+  "default_agents": ["claude-code", "gemini-cli", "cursor", "codex"],
+  "default_skills": ["code-generation", "testing-advanced", "code-review", "refactoring", "security-audit", "performance-optimization", "architecture-review"],
+  "default_pipelines": ["ci-cd-advanced", "review-pipeline", "security-pipeline", "performance-pipeline"],
+  "description": "대규모 조직의 엔터프라이즈 개발 환경을 위한 프리셋. 전체 SDLC에 걸친 AI 자동화와 보안/성능 파이프라인을 포함합니다.",
+  "is_system": true
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Starter",
+  "slug": "starter",
+  "maturity_level": "starter",
+  "solution_types": ["web-app", "api-server"],
+  "default_agents": ["claude-code"],
+  "default_skills": ["code-generation", "testing-basic"],
+  "default_pipelines": ["simple-build"],
+  "description": "AI 개발 자동화를 처음 도입하는 팀을 위한 기본 프리셋. 단일 에이전트로 코드 생성과 기본 테스트를 수행합니다.",
+  "is_system": true
+}
