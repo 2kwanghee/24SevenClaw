@@ -1,0 +1,11 @@
+{
+  "name": "Intermediate",
+  "slug": "intermediate",
+  "maturity_level": "intermediate",
+  "solution_types": ["web-app", "api-server", "fullstack", "microservice"],
+  "default_agents": ["claude-code", "gemini-cli"],
+  "default_skills": ["code-generation", "testing-advanced", "code-review", "refactoring"],
+  "default_pipelines": ["ci-cd-standard", "review-pipeline"],
+  "description": "CI/CD와 코드 리뷰 프로세스가 갖춰진 팀을 위한 프리셋. 멀티 에이전트 협업과 자동화된 품질 게이트를 포함합니다.",
+  "is_system": true
+}

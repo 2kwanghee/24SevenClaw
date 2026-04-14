@@ -157,7 +157,9 @@ def generate_single_task_fix_plan(task: dict) -> str:
         f"- [ ] **{task['title']}**",
     ]
     if task["description"]:
-        lines.append(f"  > 요청사항: {task['description']}")
+        # description 내 체크박스를 일반 리스트로 변환 (stop hook 오판 방지)
+        sanitized = task["description"].replace("- [ ] ", "- ").replace("- [x] ", "- ")
+        lines.append(f"  > 요청사항: {sanitized}")
     lines.extend([
         "",
         "---",
