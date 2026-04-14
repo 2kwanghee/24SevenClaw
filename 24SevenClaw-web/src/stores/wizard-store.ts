@@ -12,6 +12,7 @@ import {
   type PlatformStep,
   type Recommendations,
 } from "@/types/wizard";
+import type { PresetResponse } from "@/lib/api-client";
 
 export { WIZARD_STEPS, type WizardStepId } from "@/types/wizard";
 
@@ -32,6 +33,7 @@ interface WizardActions {
   setPipelines: (data: PipelinesStep) => void;
   setPlatform: (data: PlatformStep) => void;
   setRecommendations: (rec: Recommendations) => void;
+  applyPreset: (preset: PresetResponse) => void;
   reset: () => void;
 }
 
@@ -86,6 +88,25 @@ export const useWizardStore = create<WizardState & WizardActions>((set) => ({
     set((state) => ({ data: { ...state.data, platform } })),
 
   setRecommendations: (rec) => set({ recommendations: rec }),
+
+  applyPreset: (preset) =>
+    set((state) => ({
+      currentStep: 2, // Step 3 (에이전트)로 이동 — Step 1,2는 사용자 입력 필요
+      data: {
+        ...state.data,
+        agents: {
+          selectedAgents: Array.from(
+            new Set(["harness", ...preset.default_agents]),
+          ),
+        },
+        skills: {
+          selectedSkills: preset.default_skills.map((id) => ({ id })),
+        },
+        pipelines: {
+          selectedPipelines: [...preset.default_pipelines],
+        },
+      },
+    })),
 
   reset: () => set(initialState),
 }));
