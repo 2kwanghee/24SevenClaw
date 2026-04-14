@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_permission
 from app.models.user import User
 from app.schemas.report import ProjectReportResponse
 from app.services.report_service import ReportService
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 )
 async def get_project_report(
     project_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("report:view")),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectReportResponse:
     """프로젝트 리포트를 집계하여 반환한다."""

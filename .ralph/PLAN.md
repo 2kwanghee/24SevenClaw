@@ -8,7 +8,7 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[api] RBAC 모델 + 서비스 + 권한 미들웨어**
+- [x] **[api] RBAC 모델 + 서비스 + 권한 미들웨어**
   > 요청사항: ## 개요
 
 역할 기반 접근 제어(RBAC) 시스템을 API에 구현한다. 시스템 역할(superadmin/admin/member/viewer) + 조직 역할 + 권한 검증 미들웨어.
@@ -53,11 +53,11 @@
 
 ## 완료 조건
 
-- [ ] DB 모델 + 마이그레이션 완료
-- [ ] RBAC 서비스 + 권한 체크 로직
-- [ ] require_permission 의존성 주입 동작
-- [ ] 모든 엔드포인트 pytest 테스트 (성공/인증실패/권한부족)
-- [ ] 기존 엔드포인트에 require_permission 적용
+- [x] DB 모델 + 마이그레이션 완료
+- [x] RBAC 서비스 + 권한 체크 로직
+- [x] require_permission 의존성 주입 동작
+- [x] 모든 엔드포인트 pytest 테스트 (성공/인증실패/권한부족)
+- [x] 기존 엔드포인트에 require_permission 적용
 
 ## 크기: L
 
@@ -69,3 +69,9 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-04-14 | DB 모델 + 마이그레이션 | 완료 | models/rbac.py, user.py system_role, 005 migration |
+| 2026-04-14 | RBAC 서비스 + 스키마 | 완료 | services/rbac_service.py, schemas/rbac.py |
+| 2026-04-14 | 의존성 주입 | 완료 | require_permission() in dependencies.py |
+| 2026-04-14 | 엔드포인트 | 완료 | api/v1/rbac.py (7개 엔드포인트) |
+| 2026-04-14 | 기존 엔드포인트 적용 | 완료 | projects, reports에 적용 |
+| 2026-04-14 | 테스트 | 완료 | 14개 RBAC 테스트 + 전체 275개 통과 |

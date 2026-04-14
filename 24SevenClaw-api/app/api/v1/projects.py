@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_permission
 from app.models.user import User
 from app.schemas.generate import GenerateRequest, RedownloadRequest
 from app.schemas.preview import PreviewRequest, PreviewResponse
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(
     data: ProjectCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("project:create")),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     service = ProjectService(db)
@@ -40,7 +40,7 @@ async def list_projects(
     limit: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, max_length=200),
     status_filter: str | None = Query(None, alias="status"),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("project:read")),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectListResponse:
     service = ProjectService(db)
@@ -60,7 +60,7 @@ async def list_projects(
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     project_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("project:read")),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     service = ProjectService(db)
@@ -72,7 +72,7 @@ async def get_project(
 async def update_project(
     project_id: UUID,
     data: ProjectUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("project:update")),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     service = ProjectService(db)
@@ -85,7 +85,7 @@ async def update_project(
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_permission("project:delete")),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     service = ProjectService(db)
