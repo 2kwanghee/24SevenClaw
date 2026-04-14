@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, Loader2, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { WIZARD_STEPS, useWizardStore } from "@/stores/wizard-store";
@@ -38,11 +39,20 @@ export function WizardLayout({
   return (
     <div className="mx-auto max-w-3xl">
       {/* 헤더 */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">새 프로젝트</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          7단계 위저드로 AI 솔루션을 설계합니다
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">새 프로젝트</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            7단계 위저드로 AI 솔루션을 설계합니다
+          </p>
+        </div>
+        <Link
+          href="/onboarding/preset"
+          className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          빠른 시작
+        </Link>
       </div>
 
       {/* Stepper */}

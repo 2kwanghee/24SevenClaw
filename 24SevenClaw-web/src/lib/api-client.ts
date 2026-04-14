@@ -334,6 +334,66 @@ export const apiClient = {
   },
 };
 
+// --- Presets ---
+
+export type MaturityLevel = "starter" | "intermediate" | "advanced";
+
+export interface PresetResponse {
+  id: string;
+  name: string;
+  slug: string;
+  maturity_level: MaturityLevel;
+  solution_types: string[];
+  default_agents: string[];
+  default_skills: string[];
+  default_pipelines: string[];
+  description: string | null;
+  is_system: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PresetListResponse {
+  items: PresetResponse[];
+  total: number;
+}
+
+export interface PresetListParams {
+  offset?: number;
+  limit?: number;
+  maturity_level?: MaturityLevel;
+  solution_type?: string;
+}
+
+export interface MaturityOption {
+  label: string;
+  score: number;
+}
+
+export interface MaturityQuestion {
+  id: string;
+  text: string;
+  category: "team" | "process" | "tooling" | "ci" | "ai";
+  weight: number;
+  options: MaturityOption[];
+}
+
+export interface MaturityAssessmentResponse {
+  level: MaturityLevel;
+  score: number;
+  recommended_preset_id: string | null;
+  reasoning: string;
+}
+
+export interface NaturalLanguageConfigResponse {
+  suggested_agents: string[];
+  suggested_skills: string[];
+  suggested_pipelines: string[];
+  confidence: number;
+  reasoning: string;
+}
+
 // --- Reports ---
 
 export interface ArtifactStatusCount {
@@ -394,6 +454,33 @@ export interface RecommendResponse {
   pipelines: Array<{ id: string; reasoning?: string; [key: string]: unknown }>;
   summary: string;
 }
+
+export const presets = {
+  list: (token: string, params?: PresetListParams) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.maturity_level) query.set("maturity_level", params.maturity_level);
+    if (params?.solution_type) query.set("solution_type", params.solution_type);
+    const qs = query.toString();
+    return authRequest<PresetListResponse>(
+      `/api/v1/presets${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, presetId: string) =>
+    authRequest<PresetResponse>(`/api/v1/presets/${presetId}`, token),
+
+  getQuestions: (token: string) =>
+    authRequest<MaturityQuestion[]>("/api/v1/presets/questions", token),
+
+  assess: (token: string, answers: Record<string, number>) =>
+    authRequest<MaturityAssessmentResponse>("/api/v1/presets/assess", token, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
+};
 
 export const recommend = {
   get: (data: RecommendRequest) =>
