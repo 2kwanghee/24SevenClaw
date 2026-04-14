@@ -23,6 +23,7 @@ from app.schemas.review_pipeline import (
     ReviewRoundCreate,
     ReviewSubmit,
 )
+from app.services.artifact_service import ArtifactService
 
 # 리뷰 라운드 상태 전이 맵
 REVIEW_TRANSITIONS: dict[str, list[str]] = {
@@ -226,6 +227,22 @@ class ReviewPipelineService:
             metadata_json={"merge_strategy": data.merge_strategy},
         )
         self.db.add(event)
+
+        # 병합 후 SubTask → completed, Artifact → reviewed 자동 전이
+        if review_round.subtask_id:
+            subtask = await self.db.get(SubTask, review_round.subtask_id)
+            if subtask is not None:
+                subtask.status = "completed"
+                subtask.updated_at = datetime.now(UTC)
+
+                if subtask.artifact_id is not None:
+                    artifact_svc = ArtifactService(self.db)
+                    await artifact_svc.bulk_transition(
+                        artifact_ids=[subtask.artifact_id],
+                        target_status="reviewed",
+                        actor_type="system",
+                        message=f"리뷰 라운드 병합({data.merge_strategy})에 의한 자동 전이",
+                    )
 
         await self.db.commit()
         await self.db.refresh(review_round)

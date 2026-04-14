@@ -114,6 +114,49 @@ class ArtifactService:
         await self.db.refresh(event)
         return artifact, event
 
+    async def bulk_transition(
+        self,
+        artifact_ids: list[UUID],
+        target_status: str,
+        actor_type: str,
+        message: str | None = None,
+    ) -> list[tuple[Artifact, ArtifactEvent]]:
+        """여러 산출물의 상태를 일괄 전이한다.
+
+        커밋은 호출자가 담당한다. 전이 불가한 산출물은 건너뛴다.
+        """
+        results: list[tuple[Artifact, ArtifactEvent]] = []
+        for artifact_id in artifact_ids:
+            artifact = await self.db.get(Artifact, artifact_id)
+            if artifact is None:
+                continue
+
+            old_status = artifact.status
+            allowed = ARTIFACT_TRANSITIONS.get(old_status, [])
+            if target_status not in allowed:
+                continue
+
+            artifact.status = target_status
+            artifact.updated_at = datetime.now(UTC)
+
+            if target_status == "reviewed" and actor_type == "agent":
+                artifact.reviewed_by_ai = "system"
+            if target_status == "revised":
+                artifact.revision_count += 1
+
+            event = ArtifactEvent(
+                artifact_id=artifact.id,
+                event_type="status_transition",
+                old_status=old_status,
+                new_status=target_status,
+                actor_type=actor_type,
+                message=message,
+            )
+            self.db.add(event)
+            results.append((artifact, event))
+
+        return results
+
     async def get_history(self, artifact_id: UUID) -> list[ArtifactEvent]:
         # 산출물 존재 확인
         await self.get(artifact_id)

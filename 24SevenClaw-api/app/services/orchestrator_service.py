@@ -29,6 +29,7 @@ from app.schemas.orchestrator import (
     SubTaskCreate,
     SubTaskUpdate,
 )
+from app.services.artifact_service import ArtifactService
 
 # 단계 전이 맵 (contracts와 동기화)
 ORCHESTRATOR_TRANSITIONS: dict[str, list[str]] = {
@@ -348,6 +349,22 @@ class OrchestratorService:
             message=message,
         )
         self.db.add(event)
+
+        # approved 전이 시 연결된 Artifact도 자동 approved 전이
+        if target_phase == "approved":
+            subtasks = await self._get_subtasks(session.id)
+            artifact_ids = [
+                st.artifact_id for st in subtasks if st.artifact_id is not None
+            ]
+            if artifact_ids:
+                artifact_svc = ArtifactService(self.db)
+                await artifact_svc.bulk_transition(
+                    artifact_ids=artifact_ids,
+                    target_status="approved",
+                    actor_type="system",
+                    message=f"오케스트레이터 세션 '{session.title}' approved 전이에 의한 자동 갱신",
+                )
+
         return event
 
     def _generate_subtasks(

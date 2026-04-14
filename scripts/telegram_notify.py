@@ -316,7 +316,7 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
             for detail in details[:3]:
                 task_lines.append(f"      └ {detail}")
     else:
-        # fallback: fix_plan.md 기반
+        # fallback: fix_plan.md 기반 (task_mapping에서 이슈 번호 보완)
         detailed = parse_fix_plan_detailed()
         for item in detailed["items"]:
             if item["status"] == "done":
@@ -327,7 +327,10 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
             else:
                 emoji = "❌"
                 fail_count += 1
-            task_lines.append(f"  {emoji} *[{item['priority']}] {item['title']}*")
+            meta = task_mapping.get(item["title"], {})
+            identifier = meta.get("identifier", "")
+            id_prefix = f"`{identifier}` " if identifier else ""
+            task_lines.append(f"  {emoji} {id_prefix}{item['title']}")
 
     total = done_count + fail_count
 
@@ -345,9 +348,14 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
         result_emoji = "🔴"
         result_text = "실패"
 
+    # 이슈 번호 목록 수집
+    issue_ids = [meta.get("identifier", "") for meta in task_mapping.values() if meta.get("identifier")]
+
     lines = []
     lines.append(f"{result_emoji} *자동 개발 파이프라인 — {result_text}*")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
+    if issue_ids:
+        lines.append(f"🎫 {', '.join(issue_ids)}")
     lines.append(f"🕐 {now.strftime('%Y-%m-%d %H:%M')}")
     lines.append("")
 
@@ -387,7 +395,10 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
     lines.append("")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     if fail_count > 0:
-        lines.append(f"⏳ 실패 {fail_count}건 → Backlog 이동")
+        failed_ids = [meta.get("identifier", "") for title, meta in task_mapping.items()
+                      if meta.get("identifier")]
+        backlog_ref = f" ({', '.join(failed_ids)})" if failed_ids else ""
+        lines.append(f"⏳ 실패 {fail_count}건 → Backlog 이동{backlog_ref}")
     elif total > 0:
         lines.append("🎉 *모든 요구사항 처리 완료!*")
 
