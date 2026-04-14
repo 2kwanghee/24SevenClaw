@@ -6,6 +6,7 @@ from app.models.license import License  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
 from app.models.project import Project  # noqa: F401
+from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
 from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateRun  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401

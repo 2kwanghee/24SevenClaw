@@ -18,6 +18,7 @@ if ! is_enabled "FLOWOPS_RALPH_STOP_HOOK" 2>/dev/null; then
 fi
 
 FIX_PLAN="$PROJECT_DIR/.ralph/fix_plan.md"
+TEST_RESULT="${TEST_RESULT:-unknown}"
 STATE_FILE="$PROJECT_DIR/.ralph/.iteration_count"
 
 # ── iteration 카운터 ──

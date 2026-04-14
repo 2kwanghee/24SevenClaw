@@ -15,6 +15,7 @@ class User(Base):
     display_name = Column(String(100), nullable=False)
     avatar_url = Column(String(500), nullable=True)
     plan = Column(String(20), default="free")
+    system_role = Column(String(20), server_default="member", nullable=False)
     is_active = Column(Boolean, default=True)
     oauth_provider = Column(String(20), nullable=True)  # "github" | "google" | null
     oauth_id = Column(String(255), nullable=True)  # 외부 서비스 사용자 ID
