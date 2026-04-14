@@ -8,6 +8,7 @@ from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.quality_gate import router as quality_gate_router
+from app.api.v1.rbac import router as rbac_router
 from app.api.v1.recommend import router as recommend_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
@@ -20,6 +21,7 @@ api_v1_router.include_router(projects_router)
 api_v1_router.include_router(artifacts_router)
 api_v1_router.include_router(orchestrator_router)
 api_v1_router.include_router(organizations_router)
+api_v1_router.include_router(rbac_router)
 api_v1_router.include_router(quality_gate_router)
 api_v1_router.include_router(recommend_router)
 api_v1_router.include_router(reports_router)

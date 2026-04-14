@@ -8,6 +8,7 @@ from app.models.organization import Organization  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
 from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateRun  # noqa: F401
+from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
 from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
@@ -22,6 +23,7 @@ __all__ = [
     "MCPServer",
     "OrchestratorSession",
     "Organization",
+    "OrganizationMembership",
     "PhaseEvent",
     "Project",
     "QualityCheck",
@@ -30,6 +32,7 @@ __all__ = [
     "ProjectConfig",
     "ReviewEvent",
     "ReviewRound",
+    "RoleAuditLog",
     "Skill",
     "SubTask",
     "Ticket",
