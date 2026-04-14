@@ -74,6 +74,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# ── stale git lock 정리 ──
+if [ -f "$PROJECT_DIR/.git/index.lock" ]; then
+  LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$PROJECT_DIR/.git/index.lock" 2>/dev/null || echo "0") ))
+  if [ "$LOCK_AGE" -gt 60 ]; then
+    rm -f "$PROJECT_DIR/.git/index.lock"
+    log "WARN: stale git index.lock 제거 (${LOCK_AGE}초 경과)"
+  fi
+fi
+
 log "======================================="
 log "  자동 개발 파이프라인 v6 (멀티 Agent)"
 log "  Gemini(기획) → Claude(구현) → Codex(QA)"
@@ -92,9 +101,13 @@ if ! docker ps 2>/dev/null | grep -q sevenclaw-db; then
   sleep 10
 fi
 
+# ── 이전 실행 결과 정리 ──
+rm -f ".ralph/.pipeline_result.json"
+
 # ── 순차 실행 루프 ──
 COMPLETED=0
 FAILED=0
+COMPLETED_ISSUES=""  # NightQueued 일괄 알림용
 
 while true; do
   log ""
@@ -126,11 +139,12 @@ import json
 with open('$TASK_MAPPING') as f:
     m = json.load(f)
 for title, meta in m.items():
-    print(f\"{meta['identifier']}|{meta['issue_id']}|{meta['branch']}|{title}\")
+    mode = meta.get('mode', 'day')
+    print(f\"{meta['identifier']}|{meta['issue_id']}|{meta['branch']}|{mode}|{title}\")
     break
 ")
 
-  IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TITLE <<< "$TASK_INFO"
+  IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TASK_MODE TITLE <<< "$TASK_INFO"
 
   COMPLETED=$((COMPLETED + 1))
   log ""
@@ -141,8 +155,16 @@ for title, meta in m.items():
 
   # 브랜치 생성/전환
   git checkout main 2>/dev/null || true
+  git pull origin main 2>/dev/null || true
+  # 이미 머지된 동명 브랜치가 있으면 삭제 후 재생성
+  if git branch --merged main | grep -q "$BRANCH"; then
+    log "WARN: 머지 완료된 브랜치 $BRANCH 삭제 후 재생성"
+    git branch -d "$BRANCH" 2>/dev/null || true
+  fi
   git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH" 2>/dev/null || {
     log "ERROR: 브랜치 생성 실패: $BRANCH"
+    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+    log "Linear 상태: Backlog (브랜치 생성 실패)"
     FAILED=$((FAILED + 1))
     continue
   }
@@ -152,6 +174,8 @@ for title, meta in m.items():
   cp ".ralph/tasks/${ISSUE_KEY}.md" ".ralph/fix_plan.md" 2>/dev/null || {
     log "ERROR: fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"
     git checkout main 2>/dev/null || true
+    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+    log "Linear 상태: Backlog (fix_plan 없음)"
     FAILED=$((FAILED + 1))
     continue
   }
@@ -326,6 +350,21 @@ for title, meta in m.items():
 
   log "태스크 완료: $TITLE"
 
+  # 완료 이슈 기록
+  if [ -n "$COMPLETED_ISSUES" ]; then
+    COMPLETED_ISSUES="${COMPLETED_ISSUES}, ${ISSUE_KEY}"
+  else
+    COMPLETED_ISSUES="${ISSUE_KEY}"
+  fi
+
+  # DayQueued 모드: 태스크별 즉시 PR 알림
+  if [ "$TASK_MODE" = "day" ] && is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
+    python3 scripts/telegram_notify.py --message \
+      "✅ 작업완료 ${ISSUE_KEY} — ${TITLE}
+PR을 머지해주세요.
+🔗 브랜치: ${BRANCH}" 2>/dev/null || true
+  fi
+
   # --once 모드면 1개만 처리 후 종료
   if [ "$ONCE_MODE" = true ]; then
     log "--once 모드: 1개 태스크 완료 후 종료."
@@ -334,6 +373,23 @@ for title, meta in m.items():
 
   log "다음 DayQueued/NightQueued 이슈로 진행..."
 done
+
+# ── 실패 이슈 Backlog 이동 ──
+if [ "$FAILED" -gt 0 ] && [ -f "$TASK_MAPPING" ]; then
+  log "실패 ${FAILED}건 → Linear Backlog 이동"
+  python3 -c "
+import json, subprocess, sys
+sys.path.insert(0, 'scripts')
+with open('$TASK_MAPPING') as f:
+    m = json.load(f)
+for title, meta in m.items():
+    issue_id = meta.get('issue_id', '')
+    identifier = meta.get('identifier', '')
+    if issue_id:
+        subprocess.run(['python3', 'scripts/linear_tracker.py', 'update', '--issue-id', issue_id, '--status', 'Backlog'], capture_output=True)
+        print(f'  {identifier} → Backlog')
+" 2>/dev/null || log "WARN: Backlog 이동 실패"
+fi
 
 # ── Telegram 완료 보고 ──
 log ""
@@ -345,4 +401,12 @@ if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
   ITER_COUNT=$(cat .ralph/.iteration_count 2>/dev/null || echo "N/A")
   python3 scripts/telegram_notify.py \
     --pipeline-report --iterations "$ITER_COUNT" 2>/dev/null || true
+
+  # NightQueued 모드: 모든 태스크 완료 후 일괄 PR 알림
+  if [ "$TASK_MODE" = "night" ] && [ -n "$COMPLETED_ISSUES" ] && [ "$COMPLETED" -gt 0 ]; then
+    python3 scripts/telegram_notify.py --message \
+      "🌙 야간 자동화 완료
+${COMPLETED_ISSUES} — 모든 작업이 완료되었습니다.
+순차적으로 PR을 머지해주세요." 2>/dev/null || true
+  fi
 fi

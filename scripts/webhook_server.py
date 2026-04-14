@@ -41,7 +41,7 @@ WEBHOOK_SECRET = None
 # 중복 실행 방지
 _pipeline_lock = threading.Lock()
 _last_trigger_time = 0
-MIN_TRIGGER_INTERVAL = 30  # 최소 30초 간격
+MIN_TRIGGER_INTERVAL = 5  # 최소 5초 간격 (메모리 lock이 파이프라인 수명과 동기화됨)
 
 
 def log(msg: str):
@@ -55,14 +55,37 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
+def _check_and_retrigger():
+    """파이프라인 완료 후 잔여 DayQueued/NightQueued 이슈 확인 → 재트리거."""
+    try:
+        result = subprocess.run(
+            ["python3", "scripts/linear_watcher.py", "--dry-run", "--limit", "1"],
+            capture_output=True, text=True, cwd=PROJECT_DIR,
+        )
+        if result.returncode == 0:  # DayQueued/NightQueued 이슈 존재
+            log("RE-TRIGGER: 잔여 DayQueued/NightQueued 이슈 감지 → 재트리거")
+            time.sleep(5)
+            trigger_pipeline()
+        else:
+            log("IDLE: 잔여 DayQueued/NightQueued 이슈 없음")
+    except Exception as e:
+        log(f"WARN: 재트리거 확인 실패: {e}")
+
+
 def trigger_pipeline():
-    """auto_dev_pipeline.sh를 백그라운드로 실행."""
+    """auto_dev_pipeline.sh를 백그라운드로 실행.
+
+    메모리 lock(_pipeline_lock)을 파이프라인 수명과 동기화:
+    - acquire: 트리거 시점
+    - release: 파이프라인 프로세스 종료 시 (_reap 스레드에서)
+    """
     global _last_trigger_time
 
     if not _pipeline_lock.acquire(blocking=False):
         log("SKIP: 파이프라인 이미 실행 중")
         return
 
+    started = False
     try:
         now = time.time()
         if now - _last_trigger_time < MIN_TRIGGER_INTERVAL:
@@ -91,17 +114,21 @@ def trigger_pipeline():
         )
 
         log(f"STARTED: PID {proc.pid}, 로그: {log_file}")
+        started = True
 
-        # 좀비 프로세스 방지: 별도 스레드에서 wait + 파일 핸들 정리
+        # 파이프라인 종료 대기 → lock 해제 → 잔여 이슈 재트리거
         def _reap(p, f):
             p.wait()
             f.close()
             log(f"REAPED: PID {p.pid}, exit={p.returncode}")
+            _pipeline_lock.release()
+            _check_and_retrigger()
 
         threading.Thread(target=_reap, args=(proc, lf), daemon=True).start()
 
     finally:
-        _pipeline_lock.release()
+        if not started:
+            _pipeline_lock.release()
 
 
 def trigger_confirmer():
