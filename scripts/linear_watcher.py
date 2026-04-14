@@ -32,13 +32,13 @@ TASKS_DIR = os.path.join(PROJECT_DIR, ".ralph", "tasks")
 
 
 def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
-    """Fetch all issues with state 'Queued', sorted by priority."""
+    """Fetch all issues with state 'DayQueued' or 'NightQueued', sorted by priority."""
     query = """
     query($teamId: ID!) {
         issues(
             filter: {
                 team: { id: { eq: $teamId } }
-                state: { name: { eq: "Queued" } }
+                state: { name: { in: ["DayQueued", "NightQueued"] } }
             }
             orderBy: createdAt
         ) {
@@ -77,6 +77,8 @@ def extract_task_info(issue: dict) -> dict:
     identifier = issue["identifier"]  # e.g. "OPS-123"
     priority = from_linear_priority(issue.get("priority", 0))
     labels = [l["name"] for l in issue.get("labels", {}).get("nodes", [])]
+    state_name = issue.get("state", {}).get("name", "")
+    mode = "night" if state_name == "NightQueued" else "day"
 
     return {
         "issue_id": issue["id"],
@@ -87,6 +89,7 @@ def extract_task_info(issue: dict) -> dict:
         "labels": labels,
         "branch": f"ralph/{identifier}",
         "url": issue.get("url", ""),
+        "mode": mode,
     }
 
 
@@ -220,17 +223,17 @@ def main():
 
     api_key, team_id = get_env()
 
-    # 1. Queued 이슈 조회
+    # 1. DayQueued/NightQueued 이슈 조회
     issues = fetch_queued_issues(api_key, team_id)
     if not issues:
-        print("EMPTY: Queued 이슈 없음.")
+        print("EMPTY: DayQueued/NightQueued 이슈 없음.")
         sys.exit(2)
 
     # 2. 태스크 정보 추출 (--limit 적용)
     if args.limit > 0:
         issues = issues[:args.limit]
     tasks = [extract_task_info(issue) for issue in issues]
-    print(f"FOUND: {len(tasks)}개 Queued 이슈{'(제한: ' + str(args.limit) + '개)' if args.limit > 0 else ''}")
+    print(f"FOUND: {len(tasks)}개 DayQueued/NightQueued 이슈{'(제한: ' + str(args.limit) + '개)' if args.limit > 0 else ''}")
     for t in tasks:
         print(f"  [{t['priority']}] {t['identifier']} {t['title']} → {t['branch']}")
 

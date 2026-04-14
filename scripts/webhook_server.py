@@ -197,8 +197,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
         log(f"EVENT: {action} {identifier} '{title}' → {state_name}")
 
         # 상태별 트리거
-        if state_name == "Queued" and action in ("update", "create"):
-            log(f"QUEUED: {identifier} — 파이프라인 트리거")
+        if state_name in ("DayQueued", "NightQueued") and action in ("update", "create"):
+            log(f"{state_name.upper()}: {identifier} — 파이프라인 트리거")
             thread = threading.Thread(target=trigger_pipeline, daemon=True)
             thread.start()
         elif state_name == "Confirm" and action == "update":

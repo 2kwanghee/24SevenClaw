@@ -98,7 +98,7 @@ FAILED=0
 
 while true; do
   log ""
-  log "── Queued 이슈 감지 중... ──"
+  log "── DayQueued/NightQueued 이슈 감지 중... ──"
 
   # 1개만 가져오기
   WATCHER_OUTPUT=$(python3 scripts/linear_watcher.py --per-task --limit 1 2>&1) || WATCHER_EXIT=$?
@@ -107,7 +107,7 @@ while true; do
   echo "$WATCHER_OUTPUT"
 
   if [ "$WATCHER_EXIT" -eq 2 ]; then
-    log "DONE: Queued 이슈 없음. 순차 실행 종료."
+    log "DONE: DayQueued/NightQueued 이슈 없음. 순차 실행 종료."
     break
   elif [ "$WATCHER_EXIT" -ne 0 ]; then
     log "ERROR: linear_watcher.py 실행 실패 (exit: $WATCHER_EXIT)"
@@ -332,7 +332,7 @@ for title, meta in m.items():
     break
   fi
 
-  log "다음 Queued 이슈로 진행..."
+  log "다음 DayQueued/NightQueued 이슈로 진행..."
 done
 
 # ── Telegram 완료 보고 ──
