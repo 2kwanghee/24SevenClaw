@@ -3,6 +3,9 @@ from fastapi import APIRouter
 from app.api.v1.artifacts import router as artifacts_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.catalog import router as catalog_router
+from app.api.v1.contracts import project_contracts_router
+from app.api.v1.contracts import router as contracts_router
+from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.health import router as health_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
@@ -28,3 +31,6 @@ api_v1_router.include_router(quality_gate_router)
 api_v1_router.include_router(recommend_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(review_pipeline_router)
+api_v1_router.include_router(contracts_router)
+api_v1_router.include_router(project_contracts_router)
+api_v1_router.include_router(contracts_sync_router)

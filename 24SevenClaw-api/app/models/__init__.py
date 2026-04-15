@@ -2,6 +2,11 @@
 
 from app.models.agent_connection import AgentConnection  # noqa: F401
 from app.models.artifact import Artifact, ArtifactEvent  # noqa: F401
+from app.models.central_contract import (  # noqa: F401
+    CentralContract,
+    ContractAuditLog,
+    CustomerContractOverride,
+)
 from app.models.license import License  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
@@ -21,6 +26,9 @@ __all__ = [
     "AgentConnection",
     "Artifact",
     "ArtifactEvent",
+    "CentralContract",
+    "ContractAuditLog",
+    "CustomerContractOverride",
     "License",
     "MaturityAssessment",
     "MCPServer",
