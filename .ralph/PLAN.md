@@ -8,30 +8,32 @@
 
 ## P2: 기능 요구사항
 
-- [ ] **[web] 성숙도 온보딩 흐름 UI**
+- [ ] **[api] KPI 메트릭 집계 엔드포인트 확장**
   > 요청사항: ## 개요
 
-회원가입 후 성숙도 평가 온보딩 흐름을 웹에 구현한다.
-
-## 선행 조건
-
-* \[api\] 성숙도 스코어링 엔진 + \[web\] 프리셋 UI 완료 필수
+기존 ReportService를 확장하여 KPI 메트릭 집계 엔드포인트를 추가한다. 24Seven 사용의 가치를 정량적으로 보여주기 위한 데이터 기반.
 
 ## 범위
 
-* 회원가입 후 maturity_required 플래그 -> /onboarding/maturity 리다이렉트
-* (dashboard)/onboarding/maturity/page.tsx: 5개 카테고리 x 7개 질문, Progress 애니메이션
-* 완료 시 점수 공개 애니메이션 -> 성숙도 배지 -> 추천 프리셋 CTA
-* "설정 직접 선택하기" 스킵 링크 -> 7-Step 위저드
+### report_service.py 확장
+
+* avg_phase_duration_seconds: PhaseEvent 기반 단계별 평균 소요시간
+* throughput_per_week: 주간 완료 태스크 수
+* automation_rate: AI 자동처리 비율 (SubTask.actor_type)
+* review_acceptance_rate: 초안 수용률
+
+### 새 엔드포인트
+
+* GET /api/v1/reports/projects/{id}/kpi: 프로젝트 KPI
+* GET /api/v1/reports/platform/summary: 플랫폼 전체 요약 (superadmin)
 
 ## 완료 조건
 
-- 질문지 UI 렌더링 + 진행률 표시
-- 점수 계산 + 애니메이션 표시
-- 추천 프리셋 연동
-- 스킵 링크 동작
+- 4개 KPI 메트릭 집계 로직
+- 엔드포인트 동작 + 테스트
+- platform/summary superadmin 권한 체크
 
-## 크기: M
+## 크기: M | 독립적 — 병렬 작업 가능
 
 ---
 

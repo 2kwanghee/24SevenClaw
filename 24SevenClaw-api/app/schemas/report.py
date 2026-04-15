@@ -61,3 +61,38 @@ class ProjectReportResponse(BaseModel):
     sessions_total: int
     subtasks_total: int
     generated_at: datetime
+
+
+# === KPI 메트릭 ===
+
+
+class PhaseDurationAvg(BaseModel):
+    phase: str
+    avg_duration_seconds: float
+    sample_count: int
+
+
+class WeeklyThroughput(BaseModel):
+    week_start: str  # ISO 8601 날짜 (해당 주 월요일)
+    completed_count: int
+
+
+class ProjectKPIResponse(BaseModel):
+    project_id: UUID
+    project_name: str
+    avg_phase_duration: list[PhaseDurationAvg]
+    throughput_per_week: list[WeeklyThroughput]
+    automation_rate: float
+    review_acceptance_rate: float
+    generated_at: datetime
+
+
+class PlatformSummaryResponse(BaseModel):
+    total_projects: int
+    total_sessions: int
+    total_subtasks: int
+    avg_phase_duration: list[PhaseDurationAvg]
+    throughput_per_week: list[WeeklyThroughput]
+    automation_rate: float
+    review_acceptance_rate: float
+    generated_at: datetime

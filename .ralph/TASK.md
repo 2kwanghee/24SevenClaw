@@ -1,32 +1,29 @@
-# Ralph Task — 구현 결과
+# Ralph Loop — 구현 결과 정리
 
-## [web] 성숙도 온보딩 흐름 UI
+## 완료 항목
 
-### 변경 파일
+### [api] KPI 메트릭 집계 엔드포인트 확장
 
-**신규 생성:**
-- `24SevenClaw-web/src/hooks/use-maturity-assessment.ts` — TanStack Query 기반 API 훅 (질문 조회 + 평가 제출)
-- `24SevenClaw-web/src/components/onboarding/maturity-questionnaire.tsx` — 5카테고리 질문지 UI (진행률 바, 카테고리 인디케이터, 라디오 선택)
-- `24SevenClaw-web/src/components/onboarding/maturity-result.tsx` — 결과 화면 (점수 카운트업 애니메이션, 성숙도 배지, 추천 프리셋 CTA)
-- `24SevenClaw-web/src/app/(dashboard)/onboarding/maturity/page.tsx` — 온보딩 성숙도 평가 페이지
+**변경 파일:**
+| 파일 | 변경 내용 |
+|------|----------|
+| `app/schemas/report.py` | KPI 스키마 4개 추가 (PhaseDurationAvg, WeeklyThroughput, ProjectKPIResponse, PlatformSummaryResponse) |
+| `app/services/report_service.py` | KPI 집계 메서드 6개 추가 (generate_project_kpi, generate_platform_summary + 4개 내부 헬퍼) |
+| `app/api/v1/reports.py` | 엔드포인트 2개 추가 (GET projects/{id}/kpi, GET platform/summary) |
+| `app/services/rbac_service.py` | superadmin에 `platform:view` 권한 추가 |
+| `tests/test_reports.py` | KPI + 플랫폼 요약 테스트 7개 추가 |
 
-**수정:**
-- `24SevenClaw-web/src/app/(auth)/register/page.tsx` — 회원가입 후 리다이렉트를 `/onboarding/maturity`로 변경 (이메일 + 소셜 로그인)
+**구현 내용:**
+- **avg_phase_duration_seconds**: PhaseEvent 기반 세션별 연속 이벤트 간 duration 계산 → 단계별 평균
+- **throughput_per_week**: 완료 SubTask를 ISO 주 단위 그룹핑 (SQLite 호환 Python 레벨 집계)
+- **automation_rate**: 완료 SubTask / 전체 SubTask × 100
+- **review_acceptance_rate**: 리뷰 후 수정 없이 수용된 Artifact (revision_count=0) 비율
+- **platform/summary**: superadmin 전용 (`platform:view` 권한), 플랫폼 전체 집계
 
-### 구현 내용
+**테스트 결과:**
+- 전체 315개 테스트 통과 (기존 308 + 신규 7)
+- ruff check: 통과
+- mypy: 통과
 
-1. **질문지 UI**: API에서 질문 로드 → 5개 카테고리(팀/프로세스/도구/CI·CD/AI)별 스텝 진행 → 진행률 바 + 카테고리 아이콘 인디케이터
-2. **결과 화면**: 점수 0→N 카운트업 애니메이션 (ease-out cubic) → 성숙도 배지 표시 → 분석 결과(reasoning) → "추천 프리셋 보기" / "설정 직접 선택하기" CTA
-3. **리다이렉트 흐름**: 회원가입(이메일) → 로그인 → `/onboarding/maturity` | 회원가입(소셜) → `/onboarding/maturity`
-4. **스킵 링크**: 헤더에 "건너뛰고 직접 설정하기" → `/projects/new` 위저드
-
-### 테스트 결과
-
-- TypeScript 타입체크: ✅ 통과 (기존 .next/types 캐시 에러 제외)
-- Next.js 빌드: ✅ 통과 (`/onboarding/maturity` 라우트 정상 생성)
-- ESLint: next lint 명령 이슈 (Next.js 16 호환성, 기존 이슈)
-
-### 남은 이슈
-
-- `next lint` 명령이 Next.js 16에서 인자 파싱 문제 (기존 이슈, 본 작업과 무관)
-- 기존 사용자의 재접근 시 이미 평가 완료 여부 확인 로직 미구현 (향후 API에 maturity_required 플래그 추가 시 대응)
+**남은 이슈:**
+- 없음
