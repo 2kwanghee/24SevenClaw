@@ -6,34 +6,45 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[api] KPI 메트릭 집계 엔드포인트 확장**
+- [x] **[web] AI Team 3계층 운영 대시보드 UI**
   > 요청사항: ## 개요
 
-기존 ReportService를 확장하여 KPI 메트릭 집계 엔드포인트를 추가한다. 24Seven 사용의 가치를 정량적으로 보여주기 위한 데이터 기반.
+AI Team 운영 모델의 3계층(사람/PM AI/AI Team) 시각화 대시보드를 구현한다. 기존 오케스트레이터+리뷰 파이프라인 API를 활용.
+
+## 선행 조건
+
+* \[web\] 가치 대시보드 KPI 시각화 완료 필수 (공유 컴포넌트)
 
 ## 범위
 
-### report_service.py 확장
+### 새 페이지
 
-* avg_phase_duration_seconds: PhaseEvent 기반 단계별 평균 소요시간
-* throughput_per_week: 주간 완료 태스크 수
-* automation_rate: AI 자동처리 비율 (SubTask.actor_type)
-* review_acceptance_rate: 초안 수용률
+* (dashboard)/projects/\[projectId\]/ai-team/page.tsx
 
-### 새 엔드포인트
+### 3계층 시각화
 
-* GET /api/v1/reports/projects/{id}/kpi: 프로젝트 KPI
-* GET /api/v1/reports/platform/summary: 플랫폼 전체 요약 (superadmin)
+* 상단 (사람): 프로젝트 단계 배지, 리스크 플래그, "승인" 버튼
+* 중단 (PM AI): 10단계 파이프라인 스테퍼, prompt_template 뷰어, 리스크 칩
+* 하단 (AI Team): SubTask 카드 (역할배지 + 상태 + 미리보기), 30초 폴링
+
+### 세션 생성 플로우
+
+* "새 작업 요청" -> 모달 -> decompose -> SubTask 배정 확정
+
+### 리뷰 통합
+
+* reviewing 단계 시 ReviewRound diff 뷰어 + 병합/거절 버튼
 
 ## 완료 조건
 
-- 4개 KPI 메트릭 집계 로직
-- 엔드포인트 동작 + 테스트
-- platform/summary superadmin 권한 체크
+- 3계층 레이아웃 렌더링
+- 세션 생성 + decompose 플로우
+- 리뷰 diff 뷰어 + 병합/거절
+- 30초 폴링 자동 갱신
 
-## 크기: M | 독립적 — 병렬 작업 가능
+## 크기: L
 
 ---
 
@@ -43,4 +54,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] KPI 메트릭 집계 엔드포인트 확장 | ✅ | 4개 KPI 메트릭 + 2개 엔드포인트 + 7개 테스트 |
