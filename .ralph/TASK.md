@@ -1,35 +1,29 @@
-# 구현 결과 — [web] RBAC 관리 UI (사용자/조직/감사로그)
-
-## 상태: ✅ 완료
+# 24S-80: [api] 중앙 계약 관리 모델 + 서비스 + API — 구현 결과
 
 ## 변경 파일
 
-### 새 페이지
-- `24SevenClaw-web/src/app/(dashboard)/admin/users/page.tsx` — 사용자 목록 + 역할 변경 UI
-- `24SevenClaw-web/src/app/(dashboard)/admin/audit/page.tsx` — 감사 로그 테이블 (필터링/페이지네이션)
-- `24SevenClaw-web/src/app/(dashboard)/settings/members/page.tsx` — 조직 멤버 초대/제거 UI
-
-### 새 컴포넌트
-- `24SevenClaw-web/src/components/common/role-guard.tsx` — 역할 기반 UI 가드
-
-### 새 스토어/훅
-- `24SevenClaw-web/src/stores/rbac-store.ts` — 현재 사용자 권한 캐시
-- `24SevenClaw-web/src/hooks/use-rbac.ts` — RBAC 관련 TanStack Query 훅
+| 파일 | 변경 내용 |
+|------|----------|
+| `24SevenClaw-api/app/models/central_contract.py` | CentralContract, CustomerContractOverride, ContractAuditLog 모델 |
+| `24SevenClaw-api/app/models/__init__.py` | 모델 등록 |
+| `24SevenClaw-api/app/schemas/contract.py` | Pydantic 스키마 (CRUD + override + audit) |
+| `24SevenClaw-api/app/services/contract_service.py` | CRUD, apply_contract_to_project, update_customer_override, sync_contracts_to_agent, 감사 로그 |
+| `24SevenClaw-api/app/api/v1/contracts.py` | 엔드포인트 (contracts CRUD, overrides, sync, audit) |
+| `24SevenClaw-api/app/api/v1/router.py` | 라우터 등록 |
+| `24SevenClaw-api/alembic/versions/008_add_central_contracts_tables.py` | 마이그레이션 |
+| `24SevenClaw-api/tests/test_contracts.py` | 16개 테스트 |
 
 ## 구현 내용
 
-1. **사용자 관리 (admin/users)**: 전체 사용자 목록 테이블 + RoleSelect 드롭다운으로 역할 즉시 변경
-2. **감사 로그 (admin/audit)**: 감사 로그 테이블 + 액션 타입 필터 + 페이지네이션 (20건/페이지)
-3. **조직 멤버 (settings/members)**: 멤버 초대 폼 (UUID + 역할 선택) + 삭제 확인 다이얼로그
-4. **RoleGuard**: roles/permissions 기반 조건부 렌더링 (admin 페이지는 superadmin/admin만)
-5. **접근 제어**: RoleGuard 컴포넌트로 admin 경로 보호
+- **DB 모델**: CentralContract (slug unique, contract_type, source, version, content JSONB, is_locked, allowed_overrides), CustomerContractOverride (project FK, contract FK, override_content JSONB, approved_by, is_active), ContractAuditLog (contract FK, override FK, actor FK, change_type, diff_snapshot JSONB)
+- **서비스**: superadmin 전용 CRUD + 감사 로그 자동 기록, allowed_overrides 검증 (허용 필드 외 수정 시 422), WebSocket contract.sync 전송
+- **엔드포인트**: GET/POST/PUT/DELETE /api/v1/contracts, GET/POST/PATCH /api/v1/projects/{id}/contract-overrides, POST /api/v1/projects/{id}/contracts/sync, GET /api/v1/contracts/audit
 
-## 검증 결과
+## 테스트 결과
 
-- TypeScript typecheck: ✅ 통과 (에러 0)
-- ESLint: ⚠️ next lint 설정 이슈 (기존 문제, RBAC 관련 아님)
+- 16 passed in 6.00s
+- ruff check: All checks passed
 
 ## 남은 이슈
 
-- `settings/members/page.tsx`에서 DEFAULT_ORG_ID 하드코딩 → 세션/URL에서 실제 org_id 가져오는 로직 필요
-- next lint 설정 문제는 별도 수정 필요
+- 없음
