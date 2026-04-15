@@ -7,6 +7,7 @@ from app.api.v1.contracts import project_contracts_router
 from app.api.v1.contracts import router as contracts_router
 from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.health import router as health_router
+from app.api.v1.maturity import router as maturity_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.presets import router as presets_router
@@ -25,6 +26,7 @@ api_v1_router.include_router(projects_router)
 api_v1_router.include_router(artifacts_router)
 api_v1_router.include_router(orchestrator_router)
 api_v1_router.include_router(organizations_router)
+api_v1_router.include_router(maturity_router)
 api_v1_router.include_router(presets_router)
 api_v1_router.include_router(rbac_router)
 api_v1_router.include_router(quality_gate_router)

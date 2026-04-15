@@ -67,6 +67,17 @@ class MaturityAssessmentResponse(BaseModel):
     reasoning: str
 
 
+class MaturityAssessmentDetailResponse(BaseModel):
+    id: UUID
+    score: int
+    level: MaturityLevel
+    recommended_preset_id: UUID | None = None
+    answers: dict[str, int]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class NaturalLanguageConfigRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=2000)
 

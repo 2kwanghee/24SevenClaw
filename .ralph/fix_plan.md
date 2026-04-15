@@ -6,49 +6,33 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[api] 중앙 계약 관리 모델 + 서비스 + API**
+- [x] **[api] 성숙도 질문지 + 스코어링 엔진**
   > 요청사항: ## 개요
 
-중앙 실행 계약 관리 시스템을 API에 구현한다. 중앙 레포에서 관리하는 계약을 고객 프로젝트에 배포하고, 허용된 필드만 오버라이드 가능하도록 제어한다.
+성숙도 평가 질문지와 스코어링 엔진을 확장 구현한다. 7개 질문(팀규모, CI/CD, 테스트, 배포빈도, AI도구 등) 카테고리별 가중치 적용.
 
 ## 선행 조건
 
-* [24S-72](https://linear.app/flow-ops/issue/24S-72/contracts-중앙-계약-타입-스키마-정의) (중앙 계약 타입) + [24S-73](https://linear.app/flow-ops/issue/24S-73/api-rbac-모델-서비스-권한-미들웨어) (RBAC) 완료 필수
+* [24S-76](https://linear.app/flow-ops/issue/24S-76/api-프리셋-카탈로그-db-서비스-api) (프리셋 카탈로그 API) 완료 필수
 
 ## 범위
 
-### DB 모델 (models/central_contract.py)
-
-* CentralContract: slug unique, contract_type, source, version, content JSONB, is_locked default=True, allowed_overrides JSON=\[\]
-* CustomerContractOverride: project_id FK, central_contract_id FK, override_content JSONB, approved_by FK nullable, is_active
-* ContractAuditLog: contract_id FK, override_id FK, actor_id FK, change_type, diff_snapshot JSONB
-
-### 서비스 (services/contract_service.py)
-
-* CRUD (superadmin 전용, 감사로그 자동 기록)
-* apply_contract_to_project() -> CustomerContractOverride 생성
-* update_customer_override() -> allowed_overrides 필드만 수정 허용, 그 외 422
-* sync_contracts_to_agent() -> WebSocket contract.sync 전송
-
-### 엔드포인트
-
-* GET/POST/PUT/DELETE /api/v1/contracts (admin+)
-* GET/POST/PATCH /api/v1/projects/{id}/contract-overrides
-* POST /api/v1/projects/{id}/contracts/sync
-* GET /api/v1/contracts/audit
-
-### 마이그레이션: 007_add_central_contracts_tables.py
+* services/maturity_service.py 확장: 질문지 데이터, 가중평균 스코어링 (0-100 -> starter/intermediate/advanced)
+* GET /api/v1/maturity/questions (인증 불요)
+* POST /api/v1/maturity/assess (응답 제출 -> 스코어 + 프리셋 추천)
+* GET /api/v1/maturity/me (최근 평가 조회)
+* auth_service.py: 회원가입 시 maturity_required 플래그 반환
 
 ## 완료 조건
 
-- DB 모델 + 마이그레이션
-- allowed_overrides 외 필드 수정 시 422 반환 테스트
-- WebSocket sync 동작 확인
-- 감사 로그 기록 확인
+- 질문지 반환 엔드포인트
+- 스코어링 알고리즘 정확성 테스트
+- 프리셋 추천 연동
+- 회원가입 플래그 동작
 
-## 크기: L
+## 크기: M
 
 ---
 
@@ -58,4 +42,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-15 | [api] 중앙 계약 관리 모델 + 서비스 + API | ✅ 완료 | 커밋 1e0a570에서 구현 완료, 16개 테스트 통과, ruff lint 통과 |

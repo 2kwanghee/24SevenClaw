@@ -12,14 +12,14 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
-from app.schemas.user import OAuthLoginRequest, TokenResponse, UserCreate
+from app.schemas.user import OAuthLoginRequest, RegisterResponse, TokenResponse, UserCreate
 
 
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def register(self, data: UserCreate) -> User:
+    async def register(self, data: UserCreate) -> RegisterResponse:
         # 이메일 중복 확인
         stmt = select(User).where(User.email == data.email)
         result = await self.db.execute(stmt)
@@ -34,7 +34,11 @@ class AuthService:
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)
-        return user
+
+        # 신규 가입 사용자는 항상 성숙도 평가 필요
+        resp = RegisterResponse.model_validate(user)
+        resp.maturity_required = True
+        return resp
 
     async def authenticate(self, email: str, password: str) -> TokenResponse:
         stmt = select(User).where(User.email == email)

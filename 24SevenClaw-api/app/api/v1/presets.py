@@ -7,15 +7,11 @@ from app.database import get_db
 from app.dependencies import require_permission
 from app.models.user import User
 from app.schemas.preset import (
-    MaturityAssessmentRequest,
-    MaturityAssessmentResponse,
-    MaturityQuestion,
     NaturalLanguageConfigRequest,
     PresetApplyResponse,
     PresetListResponse,
     PresetResponse,
 )
-from app.services.maturity_service import MaturityService
 from app.services.preset_service import PresetService
 
 router = APIRouter(prefix="/presets", tags=["presets"])
@@ -42,36 +38,6 @@ async def list_presets(
         items=[PresetResponse.model_validate(p) for p in presets],
         total=total,
     )
-
-
-@router.get("/questions", response_model=list[MaturityQuestion])
-async def get_maturity_questions(
-    user: User = Depends(require_permission("project:read")),
-    db: AsyncSession = Depends(get_db),
-) -> list[MaturityQuestion]:
-    """성숙도 평가 질문지 조회."""
-    service = MaturityService(db)
-    return service.get_questions()
-
-
-@router.post(
-    "/assess",
-    response_model=MaturityAssessmentResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def assess_maturity(
-    data: MaturityAssessmentRequest,
-    user: User = Depends(require_permission("project:read")),
-    db: AsyncSession = Depends(get_db),
-) -> MaturityAssessmentResponse:
-    """성숙도 평가 수행 → 점수 + 추천 프리셋 반환."""
-    service = MaturityService(db)
-    result = await service.assess(
-        user_id=user.id,  # type: ignore[arg-type]
-        answers=data.answers,
-        organization_id=data.organization_id,
-    )
-    return MaturityAssessmentResponse(**result)
 
 
 @router.get("/{preset_id}", response_model=PresetResponse)
