@@ -8,6 +8,7 @@ import structlog
 from agent.config import agent_settings
 from agent.connection import CloudConnection
 from agent.dispatcher import Dispatcher
+from agent.handlers.contract_handler import ContractHandler
 from agent.handlers.docker_handler import DockerHandler
 from agent.handlers.env_handler import EnvHandler
 from agent.reporter import Reporter
@@ -36,8 +37,12 @@ async def main() -> None:
     env_handler = EnvHandler(
         config=agent_settings, reporter=reporter, local_store=None
     )
+    contract_handler = ContractHandler(
+        config=agent_settings, reporter=reporter, local_store=None
+    )
 
     dispatcher.register("command.setup_env", env_handler)
+    dispatcher.register("contract.sync", contract_handler)
     dispatcher.register("command.build", docker_handler)
     dispatcher.register("command.run", docker_handler)
     dispatcher.register("command.stop", docker_handler)
