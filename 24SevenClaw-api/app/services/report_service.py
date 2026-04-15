@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import case, func, select
@@ -12,9 +13,13 @@ from app.models.review_pipeline import ReviewRound
 from app.schemas.report import (
     AITeamActivity,
     ArtifactStatusCount,
+    PhaseDurationAvg,
     PhaseTimelineEntry,
+    PlatformSummaryResponse,
+    ProjectKPIResponse,
     ProjectReportResponse,
     QualityMetrics,
+    WeeklyThroughput,
 )
 
 # 산출물 상태 전체 목록 (고정 순서)
@@ -257,3 +262,172 @@ class ReportService:
         subtasks = (await self.db.execute(subtask_stmt)).scalar_one()
 
         return sessions, subtasks
+
+    # ==================================================================
+    # KPI 메트릭 집계
+    # ==================================================================
+
+    async def generate_project_kpi(
+        self, project_id: UUID, owner_id: UUID
+    ) -> ProjectKPIResponse:
+        """프로젝트 KPI 메트릭 집계."""
+        project = await self._get_project(project_id, owner_id)
+
+        return ProjectKPIResponse(
+            project_id=project.id,
+            project_name=project.name,
+            avg_phase_duration=await self._calc_avg_phase_duration(project_id),
+            throughput_per_week=await self._calc_throughput_per_week(project_id),
+            automation_rate=await self._calc_automation_rate(project_id),
+            review_acceptance_rate=await self._calc_review_acceptance_rate(
+                project_id
+            ),
+            generated_at=datetime.now(UTC),
+        )
+
+    async def generate_platform_summary(self) -> PlatformSummaryResponse:
+        """플랫폼 전체 KPI 요약 (superadmin 전용)."""
+        projects_total = (
+            await self.db.execute(select(func.count()).select_from(Project))
+        ).scalar_one()
+        sessions_total = (
+            await self.db.execute(
+                select(func.count()).select_from(OrchestratorSession)
+            )
+        ).scalar_one()
+        subtasks_total = (
+            await self.db.execute(select(func.count()).select_from(SubTask))
+        ).scalar_one()
+
+        return PlatformSummaryResponse(
+            total_projects=projects_total,
+            total_sessions=sessions_total,
+            total_subtasks=subtasks_total,
+            avg_phase_duration=await self._calc_avg_phase_duration(),
+            throughput_per_week=await self._calc_throughput_per_week(),
+            automation_rate=await self._calc_automation_rate(),
+            review_acceptance_rate=await self._calc_review_acceptance_rate(),
+            generated_at=datetime.now(UTC),
+        )
+
+    # ------------------------------------------------------------------
+    # KPI 내부 계산 헬퍼
+    # ------------------------------------------------------------------
+
+    async def _calc_avg_phase_duration(
+        self, project_id: UUID | None = None
+    ) -> list[PhaseDurationAvg]:
+        """PhaseEvent 기반 단계별 평균 소요시간."""
+        stmt = select(PhaseEvent).join(
+            OrchestratorSession,
+            PhaseEvent.session_id == OrchestratorSession.id,
+        )
+        if project_id is not None:
+            stmt = stmt.where(OrchestratorSession.project_id == project_id)
+        stmt = stmt.order_by(PhaseEvent.session_id, PhaseEvent.created_at.asc())
+
+        result = await self.db.execute(stmt)
+        events = list(result.scalars().all())
+
+        # 세션별 그룹핑 → 연속 이벤트 간 duration 계산
+        session_events: dict[UUID, list[PhaseEvent]] = defaultdict(list)
+        for ev in events:
+            session_events[ev.session_id].append(ev)  # type: ignore[index]
+
+        phase_durations: dict[str, list[float]] = defaultdict(list)
+        for session_evts in session_events.values():
+            for i, ev in enumerate(session_evts):
+                if i + 1 < len(session_evts):
+                    delta = (
+                        session_evts[i + 1].created_at - ev.created_at
+                    ).total_seconds()
+                    phase_durations[ev.new_phase].append(delta)  # type: ignore[index]
+
+        return [
+            PhaseDurationAvg(
+                phase=phase,
+                avg_duration_seconds=round(
+                    sum(durations) / len(durations), 1
+                ),
+                sample_count=len(durations),
+            )
+            for phase, durations in sorted(phase_durations.items())
+        ]
+
+    async def _calc_throughput_per_week(
+        self, project_id: UUID | None = None
+    ) -> list[WeeklyThroughput]:
+        """주간 완료 태스크 수."""
+        stmt = (
+            select(SubTask.updated_at)
+            .join(
+                OrchestratorSession,
+                SubTask.session_id == OrchestratorSession.id,
+            )
+            .where(SubTask.status == "completed")
+        )
+        if project_id is not None:
+            stmt = stmt.where(OrchestratorSession.project_id == project_id)
+
+        result = await self.db.execute(stmt)
+        timestamps = list(result.scalars().all())
+
+        # Python 레벨 주간 그룹핑 (SQLite 호환)
+        week_counts: dict[str, int] = defaultdict(int)
+        for ts in timestamps:
+            monday = (ts - timedelta(days=ts.weekday())).date()
+            week_counts[monday.isoformat()] += 1
+
+        return [
+            WeeklyThroughput(week_start=week, completed_count=count)
+            for week, count in sorted(week_counts.items())
+        ]
+
+    async def _calc_automation_rate(
+        self, project_id: UUID | None = None
+    ) -> float:
+        """AI 자동처리 비율 — 완료 SubTask / 전체 SubTask × 100."""
+        stmt = select(
+            func.count().label("total"),
+            func.count(
+                case((SubTask.status == "completed", SubTask.id), else_=None)
+            ).label("completed"),
+        ).join(
+            OrchestratorSession,
+            SubTask.session_id == OrchestratorSession.id,
+        )
+        if project_id is not None:
+            stmt = stmt.where(OrchestratorSession.project_id == project_id)
+
+        row = (await self.db.execute(stmt)).one()
+        total: int = row.total or 0
+        completed: int = row.completed or 0
+        return round(completed / total * 100, 1) if total > 0 else 0.0
+
+    async def _calc_review_acceptance_rate(
+        self, project_id: UUID | None = None
+    ) -> float:
+        """초안 수용률 — 리뷰 후 수정 없이 수용된 Artifact 비율."""
+        reviewed_statuses = (
+            "reviewed",
+            "approved",
+            "in_development",
+            "validated",
+            "released",
+        )
+        stmt = select(
+            func.count().label("total_reviewed"),
+            func.count(
+                case(
+                    (Artifact.revision_count == 0, Artifact.id), else_=None
+                )
+            ).label("accepted"),
+        ).where(Artifact.status.in_(reviewed_statuses))
+
+        if project_id is not None:
+            stmt = stmt.where(Artifact.project_id == project_id)
+
+        row = (await self.db.execute(stmt)).one()
+        total: int = row.total_reviewed or 0
+        accepted: int = row.accepted or 0
+        return round(accepted / total * 100, 1) if total > 0 else 0.0

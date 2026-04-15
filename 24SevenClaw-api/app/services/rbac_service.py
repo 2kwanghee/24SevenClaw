@@ -11,7 +11,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     "superadmin": [
         "project:create", "project:read", "project:update", "project:delete",
         "preset:manage", "contract:manage", "user:manage", "org:manage",
-        "report:view", "rbac:manage",
+        "report:view", "rbac:manage", "platform:view",
     ],
     "admin": [
         "project:create", "project:read", "project:update", "project:delete",
