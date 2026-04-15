@@ -8,44 +8,47 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] RBAC 관리 UI (사용자/조직/감사로그)**
+- [x] **[api] 중앙 계약 관리 모델 + 서비스 + API**
   > 요청사항: ## 개요
 
-RBAC 관리를 위한 어드민/조직 페이지를 웹에 구현한다.
+중앙 실행 계약 관리 시스템을 API에 구현한다. 중앙 레포에서 관리하는 계약을 고객 프로젝트에 배포하고, 허용된 필드만 오버라이드 가능하도록 제어한다.
 
 ## 선행 조건
 
-* [24S-73](https://linear.app/flow-ops/issue/24S-73/api-rbac-모델-서비스-권한-미들웨어) (RBAC API) 완료 필수
+* [24S-72](https://linear.app/flow-ops/issue/24S-72/contracts-중앙-계약-타입-스키마-정의) (중앙 계약 타입) + [24S-73](https://linear.app/flow-ops/issue/24S-73/api-rbac-모델-서비스-권한-미들웨어) (RBAC) 완료 필수
 
 ## 범위
 
-### 새 페이지
+### DB 모델 (models/central_contract.py)
 
-* (dashboard)/admin/users/page.tsx: 사용자 목록 + 역할 관리
-* (dashboard)/admin/audit/page.tsx: 감사 로그 테이블
-* (dashboard)/settings/members/page.tsx: 조직 멤버 관리
+* CentralContract: slug unique, contract_type, source, version, content JSONB, is_locked default=True, allowed_overrides JSON=\[\]
+* CustomerContractOverride: project_id FK, central_contract_id FK, override_content JSONB, approved_by FK nullable, is_active
+* ContractAuditLog: contract_id FK, override_id FK, actor_id FK, change_type, diff_snapshot JSONB
 
-### 새 컴포넌트
+### 서비스 (services/contract_service.py)
 
-* components/common/role-guard.tsx: 역할 기반 UI 가드
+* CRUD (superadmin 전용, 감사로그 자동 기록)
+* apply_contract_to_project() -> CustomerContractOverride 생성
+* update_customer_override() -> allowed_overrides 필드만 수정 허용, 그 외 422
+* sync_contracts_to_agent() -> WebSocket contract.sync 전송
 
-### 미들웨어
+### 엔드포인트
 
-* /admin/\* 경로 보호 (session.system_role 체크)
+* GET/POST/PUT/DELETE /api/v1/contracts (admin+)
+* GET/POST/PATCH /api/v1/projects/{id}/contract-overrides
+* POST /api/v1/projects/{id}/contracts/sync
+* GET /api/v1/contracts/audit
 
-### 새 스토어
-
-* stores/rbac-store.ts: 현재 사용자 권한 캐시
+### 마이그레이션: 007_add_central_contracts_tables.py
 
 ## 완료 조건
 
-- 사용자 목록 + 역할 변경 UI
-- 감사 로그 테이블 (필터링/페이지네이션)
-- 조직 멤버 초대/제거 UI
-- admin 경로 접근 제어 동작
-- RoleGuard 컴포넌트 동작
+- DB 모델 + 마이그레이션
+- allowed_overrides 외 필드 수정 시 422 반환 테스트
+- WebSocket sync 동작 확인
+- 감사 로그 기록 확인
 
-## 크기: M
+## 크기: L
 
 ---
 
@@ -55,4 +58,4 @@ RBAC 관리를 위한 어드민/조직 페이지를 웹에 구현한다.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-15 | [web] RBAC 관리 UI | ✅ 완료 | 커밋 0ee4be6에서 구현 완료, typecheck 통과 확인 |
+| 2026-04-15 | [api] 중앙 계약 관리 모델 + 서비스 + API | ✅ 완료 | 커밋 1e0a570에서 구현 완료, 16개 테스트 통과, ruff lint 통과 |
