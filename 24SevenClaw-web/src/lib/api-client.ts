@@ -490,4 +490,109 @@ export const recommend = {
     }),
 };
 
+// --- RBAC ---
+
+export type SystemRole = "superadmin" | "admin" | "member" | "viewer";
+export type OrgRole = "org_admin" | "org_member" | "org_viewer";
+
+export interface PermissionsResponse {
+  permissions: string[];
+  system_role: SystemRole;
+}
+
+export interface UserAdminResponse {
+  id: string;
+  email: string;
+  display_name: string;
+  system_role: SystemRole;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RoleUpdateRequest {
+  system_role: SystemRole;
+}
+
+export interface OrgMemberResponse {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  org_role: OrgRole;
+  invited_by: string | null;
+  joined_at: string;
+  is_active: boolean;
+}
+
+export interface OrgMemberAddRequest {
+  user_id: string;
+  org_role: OrgRole;
+}
+
+export interface AuditLogResponse {
+  id: string;
+  actor_id: string;
+  target_user_id: string | null;
+  action: string;
+  old_value: string | null;
+  new_value: string;
+  resource: string | null;
+  created_at: string;
+}
+
+export interface AuditLogParams {
+  actor_id?: string;
+  target_user_id?: string;
+  action?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const rbac = {
+  getPermissions: (token: string) =>
+    authRequest<PermissionsResponse>("/api/v1/rbac/permissions", token),
+
+  listUsers: (token: string) =>
+    authRequest<UserAdminResponse[]>("/api/v1/admin/users", token),
+
+  updateUserRole: (token: string, userId: string, data: RoleUpdateRequest) =>
+    authRequest<UserAdminResponse>(`/api/v1/admin/users/${userId}/role`, token, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  getOrgMembers: (token: string, orgId: string) =>
+    authRequest<OrgMemberResponse[]>(
+      `/api/v1/organizations/${orgId}/members`,
+      token,
+    ),
+
+  addOrgMember: (token: string, orgId: string, data: OrgMemberAddRequest) =>
+    authRequest<OrgMemberResponse>(
+      `/api/v1/organizations/${orgId}/members`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  removeOrgMember: (token: string, orgId: string, userId: string) =>
+    authRequest<void>(
+      `/api/v1/organizations/${orgId}/members/${userId}`,
+      token,
+      { method: "DELETE" },
+    ),
+
+  getAuditLog: (token: string, params?: AuditLogParams) => {
+    const query = new URLSearchParams();
+    if (params?.actor_id) query.set("actor_id", params.actor_id);
+    if (params?.target_user_id) query.set("target_user_id", params.target_user_id);
+    if (params?.action) query.set("action", params.action);
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return authRequest<AuditLogResponse[]>(
+      `/api/v1/admin/audit-log${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+};
+
 export { ApiClientError };

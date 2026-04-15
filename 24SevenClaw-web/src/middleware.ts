@@ -5,5 +5,6 @@ export const config = {
     "/projects/:path*",
     "/registry/:path*",
     "/settings/:path*",
+    "/admin/:path*",
   ],
 };
