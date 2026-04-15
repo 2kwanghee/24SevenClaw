@@ -14,6 +14,7 @@ import {
   Shield,
   ScrollText,
   Users2,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -29,6 +30,7 @@ const navItems = [
 
 const adminItems = [
   { href: "/admin/users", label: "사용자 관리", icon: Shield },
+  { href: "/admin/contracts", label: "계약 관리", icon: FileText },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText },
 ];
 

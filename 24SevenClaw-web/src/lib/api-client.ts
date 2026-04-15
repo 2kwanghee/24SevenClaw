@@ -595,4 +595,188 @@ export const rbac = {
   },
 };
 
+// --- Contracts ---
+
+export type ContractType = "settings" | "skill" | "agent" | "pipeline";
+export type ContractSource = "central" | "custom";
+export type ContractChangeType = "create" | "update" | "delete" | "apply" | "override" | "sync";
+
+export interface CentralContractResponse {
+  id: string;
+  slug: string;
+  contract_type: string;
+  source: string;
+  version: string;
+  content: Record<string, unknown>;
+  description: string | null;
+  is_locked: boolean;
+  allowed_overrides: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CentralContractListResponse {
+  items: CentralContractResponse[];
+  total: number;
+}
+
+export interface CentralContractCreateRequest {
+  slug: string;
+  contract_type: string;
+  source: string;
+  version?: string;
+  content?: Record<string, unknown>;
+  description?: string;
+  is_locked?: boolean;
+  allowed_overrides?: string[];
+}
+
+export interface CentralContractUpdateRequest {
+  contract_type?: string;
+  source?: string;
+  version?: string;
+  content?: Record<string, unknown>;
+  description?: string;
+  is_locked?: boolean;
+  allowed_overrides?: string[];
+}
+
+export interface ContractListParams {
+  offset?: number;
+  limit?: number;
+  contract_type?: string;
+}
+
+export interface CustomerContractOverrideResponse {
+  id: string;
+  project_id: string;
+  central_contract_id: string;
+  override_content: Record<string, unknown>;
+  approved_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerContractOverrideListResponse {
+  items: CustomerContractOverrideResponse[];
+  total: number;
+}
+
+export interface CustomerContractOverrideCreateRequest {
+  central_contract_id: string;
+  override_content?: Record<string, unknown>;
+}
+
+export interface CustomerContractOverrideUpdateRequest {
+  override_content: Record<string, unknown>;
+}
+
+export interface ContractAuditLogResponse {
+  id: string;
+  contract_id: string | null;
+  override_id: string | null;
+  actor_id: string;
+  change_type: string;
+  diff_snapshot: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ContractAuditLogListResponse {
+  items: ContractAuditLogResponse[];
+  total: number;
+}
+
+export interface ContractAuditLogParams {
+  contract_id?: string;
+  change_type?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface ContractSyncResponse {
+  synced_count: number;
+  agent_ids: string[];
+}
+
+export const contracts = {
+  list: (token: string, params?: ContractListParams) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.contract_type) query.set("contract_type", params.contract_type);
+    const qs = query.toString();
+    return authRequest<CentralContractListResponse>(
+      `/api/v1/contracts${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, contractId: string) =>
+    authRequest<CentralContractResponse>(`/api/v1/contracts/${contractId}`, token),
+
+  create: (token: string, data: CentralContractCreateRequest) =>
+    authRequest<CentralContractResponse>("/api/v1/contracts/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (token: string, contractId: string, data: CentralContractUpdateRequest) =>
+    authRequest<CentralContractResponse>(`/api/v1/contracts/${contractId}`, token, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (token: string, contractId: string) =>
+    authRequest<void>(`/api/v1/contracts/${contractId}`, token, {
+      method: "DELETE",
+    }),
+
+  getAuditLog: (token: string, params?: ContractAuditLogParams) => {
+    const query = new URLSearchParams();
+    if (params?.contract_id) query.set("contract_id", params.contract_id);
+    if (params?.change_type) query.set("change_type", params.change_type);
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<ContractAuditLogListResponse>(
+      `/api/v1/contracts/audit${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  // Project overrides
+  getProjectOverrides: (token: string, projectId: string, params?: { offset?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<CustomerContractOverrideListResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  applyToProject: (token: string, projectId: string, data: CustomerContractOverrideCreateRequest) =>
+    authRequest<CustomerContractOverrideResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides/`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  updateOverride: (token: string, projectId: string, overrideId: string, data: CustomerContractOverrideUpdateRequest) =>
+    authRequest<CustomerContractOverrideResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides/${overrideId}`,
+      token,
+      { method: "PATCH", body: JSON.stringify(data) },
+    ),
+
+  syncToAgent: (token: string, projectId: string) =>
+    authRequest<ContractSyncResponse>(
+      `/api/v1/projects/${projectId}/contracts/sync`,
+      token,
+      { method: "POST" },
+    ),
+};
+
 export { ApiClientError };
