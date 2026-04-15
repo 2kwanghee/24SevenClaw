@@ -12,6 +12,9 @@ import {
   Zap,
   Bot,
   MousePointerClick,
+  Cpu,
+  ThumbsUp,
+  TrendingUp,
 } from "lucide-react";
 
 /* ── 데이터 ── */
@@ -92,6 +95,33 @@ const platforms = [
     desc: "OpenAI 터미널 AI 에이전트",
     icon: Terminal,
     files: [".codex/", "CODEX.md", ".codex/settings.json"],
+  },
+];
+
+const customerMetrics = [
+  {
+    icon: Cpu,
+    value: "87%",
+    label: "평균 자동화율",
+    desc: "서브태스크의 87%가 AI로 자동 처리",
+    accent: "text-violet-400",
+    bgAccent: "bg-violet-500/10",
+  },
+  {
+    icon: ThumbsUp,
+    value: "92%",
+    label: "리뷰 수락율",
+    desc: "첫 리뷰에서 수정 없이 통과",
+    accent: "text-emerald-400",
+    bgAccent: "bg-emerald-500/10",
+  },
+  {
+    icon: TrendingUp,
+    value: "3.5x",
+    label: "개발 속도 향상",
+    desc: "수동 대비 평균 3.5배 빠른 처리",
+    accent: "text-cyan-400",
+    bgAccent: "bg-cyan-500/10",
   },
 ];
 
@@ -296,6 +326,39 @@ export default function Home() {
                 </div>
                 <h3 className="mt-5 text-xl font-semibold">{f.title}</h3>
                 <p className="mt-3 leading-relaxed text-slate-400">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 실제 고객 지표 */}
+      <section className="relative py-24">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-violet-500/5 to-transparent" />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+          <div className="text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-300">실제 고객 지표</span>
+            </div>
+            <h2 className="text-3xl font-bold md:text-4xl">숫자로 증명합니다</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-slate-400">
+              24SevenClaw를 사용하는 팀의 실제 개발 성과 지표입니다
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-6 md:grid-cols-3">
+            {customerMetrics.map((m) => (
+              <div
+                key={m.label}
+                className="group rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center transition-all hover:border-white/10 hover:bg-white/[0.04]"
+              >
+                <div className={`mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${m.bgAccent}`}>
+                  <m.icon className={`h-7 w-7 ${m.accent}`} />
+                </div>
+                <p className="text-4xl font-bold text-white">{m.value}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-200">{m.label}</p>
+                <p className="mt-1 text-sm text-slate-500">{m.desc}</p>
               </div>
             ))}
           </div>

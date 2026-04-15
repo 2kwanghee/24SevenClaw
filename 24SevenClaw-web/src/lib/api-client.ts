@@ -309,6 +309,13 @@ export const apiClient = {
         token,
       ),
 
+    /** 프로젝트 KPI 메트릭 조회 */
+    kpi: (token: string, projectId: string) =>
+      authRequest<ProjectKPIResponse>(
+        `/api/v1/reports/projects/${projectId}/kpi`,
+        token,
+      ),
+
     redownload: async (
       token: string,
       projectId: string,
@@ -392,6 +399,29 @@ export interface NaturalLanguageConfigResponse {
   suggested_pipelines: string[];
   confidence: number;
   reasoning: string;
+}
+
+// --- KPI ---
+
+export interface PhaseDuration {
+  phase: string;
+  avg_duration_seconds: number;
+  sample_count: number;
+}
+
+export interface WeeklyThroughput {
+  week_start: string;
+  completed_count: number;
+}
+
+export interface ProjectKPIResponse {
+  project_id: string;
+  project_name: string;
+  avg_phase_duration: PhaseDuration[];
+  throughput_per_week: WeeklyThroughput[];
+  automation_rate: number;
+  review_acceptance_rate: number;
+  generated_at: string;
 }
 
 // --- Reports ---
