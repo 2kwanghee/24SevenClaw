@@ -217,6 +217,13 @@ export default function ProjectDetailPage() {
                 대시보드
               </Link>
               <Link
+                href={`/projects/${projectId}/ai-team`}
+                className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-2 text-sm font-medium text-cyan-300 transition-all hover:bg-cyan-500/10"
+              >
+                <Bot className="h-3.5 w-3.5" />
+                AI Team
+              </Link>
+              <Link
                 href={`/projects/${projectId}/settings`}
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
               >
