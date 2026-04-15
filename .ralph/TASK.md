@@ -1,29 +1,32 @@
-# 24S-80: [api] 중앙 계약 관리 모델 + 서비스 + API — 구현 결과
+# Ralph Task — 구현 결과
 
-## 변경 파일
+## [web] 성숙도 온보딩 흐름 UI
 
-| 파일 | 변경 내용 |
-|------|----------|
-| `24SevenClaw-api/app/models/central_contract.py` | CentralContract, CustomerContractOverride, ContractAuditLog 모델 |
-| `24SevenClaw-api/app/models/__init__.py` | 모델 등록 |
-| `24SevenClaw-api/app/schemas/contract.py` | Pydantic 스키마 (CRUD + override + audit) |
-| `24SevenClaw-api/app/services/contract_service.py` | CRUD, apply_contract_to_project, update_customer_override, sync_contracts_to_agent, 감사 로그 |
-| `24SevenClaw-api/app/api/v1/contracts.py` | 엔드포인트 (contracts CRUD, overrides, sync, audit) |
-| `24SevenClaw-api/app/api/v1/router.py` | 라우터 등록 |
-| `24SevenClaw-api/alembic/versions/008_add_central_contracts_tables.py` | 마이그레이션 |
-| `24SevenClaw-api/tests/test_contracts.py` | 16개 테스트 |
+### 변경 파일
 
-## 구현 내용
+**신규 생성:**
+- `24SevenClaw-web/src/hooks/use-maturity-assessment.ts` — TanStack Query 기반 API 훅 (질문 조회 + 평가 제출)
+- `24SevenClaw-web/src/components/onboarding/maturity-questionnaire.tsx` — 5카테고리 질문지 UI (진행률 바, 카테고리 인디케이터, 라디오 선택)
+- `24SevenClaw-web/src/components/onboarding/maturity-result.tsx` — 결과 화면 (점수 카운트업 애니메이션, 성숙도 배지, 추천 프리셋 CTA)
+- `24SevenClaw-web/src/app/(dashboard)/onboarding/maturity/page.tsx` — 온보딩 성숙도 평가 페이지
 
-- **DB 모델**: CentralContract (slug unique, contract_type, source, version, content JSONB, is_locked, allowed_overrides), CustomerContractOverride (project FK, contract FK, override_content JSONB, approved_by, is_active), ContractAuditLog (contract FK, override FK, actor FK, change_type, diff_snapshot JSONB)
-- **서비스**: superadmin 전용 CRUD + 감사 로그 자동 기록, allowed_overrides 검증 (허용 필드 외 수정 시 422), WebSocket contract.sync 전송
-- **엔드포인트**: GET/POST/PUT/DELETE /api/v1/contracts, GET/POST/PATCH /api/v1/projects/{id}/contract-overrides, POST /api/v1/projects/{id}/contracts/sync, GET /api/v1/contracts/audit
+**수정:**
+- `24SevenClaw-web/src/app/(auth)/register/page.tsx` — 회원가입 후 리다이렉트를 `/onboarding/maturity`로 변경 (이메일 + 소셜 로그인)
 
-## 테스트 결과
+### 구현 내용
 
-- 16 passed in 6.00s
-- ruff check: All checks passed
+1. **질문지 UI**: API에서 질문 로드 → 5개 카테고리(팀/프로세스/도구/CI·CD/AI)별 스텝 진행 → 진행률 바 + 카테고리 아이콘 인디케이터
+2. **결과 화면**: 점수 0→N 카운트업 애니메이션 (ease-out cubic) → 성숙도 배지 표시 → 분석 결과(reasoning) → "추천 프리셋 보기" / "설정 직접 선택하기" CTA
+3. **리다이렉트 흐름**: 회원가입(이메일) → 로그인 → `/onboarding/maturity` | 회원가입(소셜) → `/onboarding/maturity`
+4. **스킵 링크**: 헤더에 "건너뛰고 직접 설정하기" → `/projects/new` 위저드
 
-## 남은 이슈
+### 테스트 결과
 
-- 없음
+- TypeScript 타입체크: ✅ 통과 (기존 .next/types 캐시 에러 제외)
+- Next.js 빌드: ✅ 통과 (`/onboarding/maturity` 라우트 정상 생성)
+- ESLint: next lint 명령 이슈 (Next.js 16 호환성, 기존 이슈)
+
+### 남은 이슈
+
+- `next lint` 명령이 Next.js 16에서 인자 파싱 문제 (기존 이슈, 본 작업과 무관)
+- 기존 사용자의 재접근 시 이미 평가 완료 여부 확인 로직 미구현 (향후 API에 maturity_required 플래그 추가 시 대응)

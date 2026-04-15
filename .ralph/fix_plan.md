@@ -6,49 +6,32 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[api] 중앙 계약 관리 모델 + 서비스 + API**
+- [x] **[web] 성숙도 온보딩 흐름 UI**
   > 요청사항: ## 개요
 
-중앙 실행 계약 관리 시스템을 API에 구현한다. 중앙 레포에서 관리하는 계약을 고객 프로젝트에 배포하고, 허용된 필드만 오버라이드 가능하도록 제어한다.
+회원가입 후 성숙도 평가 온보딩 흐름을 웹에 구현한다.
 
 ## 선행 조건
 
-* [24S-72](https://linear.app/flow-ops/issue/24S-72/contracts-중앙-계약-타입-스키마-정의) (중앙 계약 타입) + [24S-73](https://linear.app/flow-ops/issue/24S-73/api-rbac-모델-서비스-권한-미들웨어) (RBAC) 완료 필수
+* \[api\] 성숙도 스코어링 엔진 + \[web\] 프리셋 UI 완료 필수
 
 ## 범위
 
-### DB 모델 (models/central_contract.py)
-
-* CentralContract: slug unique, contract_type, source, version, content JSONB, is_locked default=True, allowed_overrides JSON=\[\]
-* CustomerContractOverride: project_id FK, central_contract_id FK, override_content JSONB, approved_by FK nullable, is_active
-* ContractAuditLog: contract_id FK, override_id FK, actor_id FK, change_type, diff_snapshot JSONB
-
-### 서비스 (services/contract_service.py)
-
-* CRUD (superadmin 전용, 감사로그 자동 기록)
-* apply_contract_to_project() -> CustomerContractOverride 생성
-* update_customer_override() -> allowed_overrides 필드만 수정 허용, 그 외 422
-* sync_contracts_to_agent() -> WebSocket contract.sync 전송
-
-### 엔드포인트
-
-* GET/POST/PUT/DELETE /api/v1/contracts (admin+)
-* GET/POST/PATCH /api/v1/projects/{id}/contract-overrides
-* POST /api/v1/projects/{id}/contracts/sync
-* GET /api/v1/contracts/audit
-
-### 마이그레이션: 007_add_central_contracts_tables.py
+* 회원가입 후 maturity_required 플래그 -> /onboarding/maturity 리다이렉트
+* (dashboard)/onboarding/maturity/page.tsx: 5개 카테고리 x 7개 질문, Progress 애니메이션
+* 완료 시 점수 공개 애니메이션 -> 성숙도 배지 -> 추천 프리셋 CTA
+* "설정 직접 선택하기" 스킵 링크 -> 7-Step 위저드
 
 ## 완료 조건
 
-- DB 모델 + 마이그레이션
-- allowed_overrides 외 필드 수정 시 422 반환 테스트
-- WebSocket sync 동작 확인
-- 감사 로그 기록 확인
+- 질문지 UI 렌더링 + 진행률 표시
+- 점수 계산 + 애니메이션 표시
+- 추천 프리셋 연동
+- 스킵 링크 동작
 
-## 크기: L
+## 크기: M
 
 ---
 
@@ -58,4 +41,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-15 | [api] 중앙 계약 관리 모델 + 서비스 + API | ✅ 완료 | 커밋 1e0a570에서 구현 완료, 16개 테스트 통과, ruff lint 통과 |
+| 2026-04-16 | [web] 성숙도 온보딩 흐름 UI | ✅ 완료 | 질문지 UI + 결과 애니메이션 + 프리셋 CTA + 스킵 링크 + 회원가입 리다이렉트 |
