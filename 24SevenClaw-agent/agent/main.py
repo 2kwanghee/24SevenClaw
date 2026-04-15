@@ -8,8 +8,10 @@ import structlog
 from agent.config import agent_settings
 from agent.connection import CloudConnection
 from agent.dispatcher import Dispatcher
+from agent.handlers.config_handler import ConfigHandler
 from agent.handlers.docker_handler import DockerHandler
 from agent.handlers.env_handler import EnvHandler
+from agent.local_store import LocalStore
 from agent.reporter import Reporter
 
 logger = structlog.get_logger()
@@ -22,6 +24,10 @@ async def main() -> None:
         cloud_url=agent_settings.cloud_ws_url,
     )
 
+    # 로컬 저장소 초기화
+    local_store = LocalStore(db_path=agent_settings.local_db_path)
+    await local_store.init()
+
     # 디스패처 초기화
     dispatcher = Dispatcher()
 
@@ -31,10 +37,13 @@ async def main() -> None:
 
     # 핸들러 등록
     docker_handler = DockerHandler(
-        config=agent_settings, reporter=reporter, local_store=None
+        config=agent_settings, reporter=reporter, local_store=local_store
     )
     env_handler = EnvHandler(
-        config=agent_settings, reporter=reporter, local_store=None
+        config=agent_settings, reporter=reporter, local_store=local_store
+    )
+    config_handler = ConfigHandler(
+        config=agent_settings, reporter=reporter, local_store=local_store
     )
 
     dispatcher.register("command.setup_env", env_handler)
@@ -42,6 +51,7 @@ async def main() -> None:
     dispatcher.register("command.run", docker_handler)
     dispatcher.register("command.stop", docker_handler)
     dispatcher.register("command.destroy_env", docker_handler)
+    dispatcher.register("config.update", config_handler)
 
     # 종료 시그널 처리
     stop_event = asyncio.Event()
@@ -63,6 +73,7 @@ async def main() -> None:
     except Exception:
         logger.exception("Agent 오류 발생")
     finally:
+        await local_store.close()
         logger.info("24SevenClaw Agent 종료")
 
 
