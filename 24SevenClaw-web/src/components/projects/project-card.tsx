@@ -1,13 +1,21 @@
 import Link from "next/link";
-import { FolderKanban, Calendar, ArrowUpRight } from "lucide-react";
+import { FolderKanban, Calendar, ArrowUpRight, Cpu, ThumbsUp, FileCheck } from "lucide-react";
 
 import type { ProjectResponse } from "@/lib/api-client";
 
-interface ProjectCardProps {
-  project: ProjectResponse;
+export interface ProjectKpiSummary {
+  automationRate: number;
+  reviewAcceptanceRate: number;
+  totalArtifacts: number;
+  releasedArtifacts: number;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+interface ProjectCardProps {
+  project: ProjectResponse;
+  kpi?: ProjectKpiSummary;
+}
+
+export function ProjectCard({ project, kpi }: ProjectCardProps) {
   const isActive = project.status === "active";
 
   const formattedDate = new Date(project.created_at).toLocaleDateString("ko-KR", {
@@ -51,6 +59,32 @@ export function ProjectCard({ project }: ProjectCardProps) {
         <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-slate-400">
           {project.description}
         </p>
+      )}
+
+      {/* KPI 미니 스트립 */}
+      {kpi && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+          <div className="flex items-center gap-1" title="자동화율">
+            <Cpu className="h-3 w-3 text-violet-400" />
+            <span className="text-xs font-medium text-slate-300">
+              {Math.round(kpi.automationRate)}%
+            </span>
+          </div>
+          <div className="h-3 w-px bg-white/10" />
+          <div className="flex items-center gap-1" title="리뷰 수락율">
+            <ThumbsUp className="h-3 w-3 text-emerald-400" />
+            <span className="text-xs font-medium text-slate-300">
+              {Math.round(kpi.reviewAcceptanceRate)}%
+            </span>
+          </div>
+          <div className="h-3 w-px bg-white/10" />
+          <div className="flex items-center gap-1" title="배포된 산출물">
+            <FileCheck className="h-3 w-3 text-cyan-400" />
+            <span className="text-xs font-medium text-slate-300">
+              {kpi.releasedArtifacts}/{kpi.totalArtifacts}
+            </span>
+          </div>
+        </div>
       )}
 
       <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-600">

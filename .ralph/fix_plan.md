@@ -6,34 +6,46 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[api] KPI 메트릭 집계 엔드포인트 확장**
+- [x] **[web] 가치 대시보드 KPI 시각화**
   > 요청사항: ## 개요
 
-기존 ReportService를 확장하여 KPI 메트릭 집계 엔드포인트를 추가한다. 24Seven 사용의 가치를 정량적으로 보여주기 위한 데이터 기반.
+24Seven 사용의 가치를 고객이 체감할 수 있는 KPI 대시보드를 구현한다.
+
+## 선행 조건
+
+* \[api\] KPI 메트릭 엔드포인트 완료 필수
 
 ## 범위
 
-### report_service.py 확장
+### 새 페이지
 
-* avg_phase_duration_seconds: PhaseEvent 기반 단계별 평균 소요시간
-* throughput_per_week: 주간 완료 태스크 수
-* automation_rate: AI 자동처리 비율 (SubTask.actor_type)
-* review_acceptance_rate: 초안 수용률
+* (dashboard)/projects/\[projectId\]/insights/page.tsx: KPI 인사이트
 
-### 새 엔드포인트
+### 새 컴포넌트
 
-* GET /api/v1/reports/projects/{id}/kpi: 프로젝트 KPI
-* GET /api/v1/reports/platform/summary: 플랫폼 전체 요약 (superadmin)
+* components/dashboard/kpi-hero.tsx: 자동화율, 리뷰점수, 산출물수 카운터 카드
+* components/dashboard/value-comparison.tsx: 기존 vs 24Seven 시간 비교
+* components/dashboard/phase-velocity-chart.tsx: 단계별 평균 소요시간 바 차트
+* components/dashboard/automation-breakdown.tsx: AI vs 사람 파이 차트
+* components/dashboard/weekly-throughput.tsx: 주간 처리량 스파크라인
+
+### 기존 페이지 강화
+
+* app/page.tsx 랜딩: "실제 고객 지표" 섹션 추가
+* project-card.tsx: 미니 KPI 스트립 추가
+
+### 새 훅: hooks/use-project-kpi.ts
 
 ## 완료 조건
 
-- 4개 KPI 메트릭 집계 로직
-- 엔드포인트 동작 + 테스트
-- platform/summary superadmin 권한 체크
+- 5개 차트 컴포넌트 렌더링
+- 랜딩 페이지 지표 섹션 표시
+- 프로젝트 카드 KPI 스트립
+- 반응형 + 다크모드 대응
 
-## 크기: M | 독립적 — 병렬 작업 가능
+## 크기: L
 
 ---
 
@@ -43,4 +55,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] KPI 메트릭 집계 엔드포인트 확장 | ✅ | 4개 KPI 메트릭 + 2개 엔드포인트 + 7개 테스트 |
