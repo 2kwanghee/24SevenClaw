@@ -71,24 +71,42 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 - `/uiux` 스킬 + `design-checklist.md`로 품질 검증
 - 접근성(WCAG AA), 반응형, 다크모드 필수
 
+## PM Agent Pipeline (모델 라우팅 파이프라인)
+Opus는 계획/설계에만, Sonnet은 구현에만 투입하여 토큰 비용을 최적화한다.
+전체 가이드: `.claude/agents/pm-agent.md`, `.claude/agents/deep-thinker.md`
+
+```
+사용자 요청
+  → [0. PM Agent / Opus] 세션 시작 & 복잡도 ≥ 0.7 시 호출 → 구현 스펙 생성
+      → [deep-thinker / Opus] 복잡한 설계/트레이드오프 분석 (pm-agent가 위임)
+  → 이후 Sonnet + Haiku로 구현 실행
+```
+
+| 에이전트 | 모델 | 호출 시점 |
+|----------|------|----------|
+| `pm-agent` | opus | 세션 시작, `--think` 플래그, 블로킹 이슈 |
+| `deep-thinker` | opus | pm-agent가 복잡도 ≥ 0.7 감지 시 |
+
 ## Harness Engineering (하네스 엔지니어링)
-AI 코드 작성을 4단계로 통제하여 환각/오류를 사전 차단하는 개발 워크플로.
+AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는 개발 워크플로.
 전체 가이드: `.claude/agents/harness-guide.md`
 
 ```
 사용자 요청
-  → [1. Router] 의도 분석: 모호→되물어보기 / 명확→루프 / 대화→표준응답
-  → [2. Context Manager] 필요한 정보만 선별 제공 (가림막)
-  → [3. Harness Loop] 코드작성→테스트→실패시 수정 반복 (MAX 5회)
+  → [0. PM Agent / Opus] 복잡도 판단 + 구현 스펙 (deep-thinker 서브에이전트 위임)
+  → [1. Router / Sonnet] 의도 분석: 모호→되물어보기 / 명확→루프 / 대화→표준응답
+  → [2. Context Manager / Haiku] 필요한 정보만 선별 제공 (가림막)
+  → [3. Harness Loop / Sonnet] 코드작성→테스트→실패시 수정 반복 (MAX 5회)
   → [4. Worker] WRITE_CODE / TEST_WRITER / CODE_REVIEW / SECURITY_REVIEW 역할 분리
 ```
 
-| 단계 | 스킬 | 기존 연동 |
-|------|------|----------|
-| Router | `harness-router` | — (신규) |
-| Context | `harness-context` | `load-recent-changes.sh`, agents/*.md |
-| Loop | `harness-loop` | `ralph-loop`, `tdd-smart-coding`, `run-tests` |
-| Worker | `harness-worker` | `fullstack`, `ai-critique`, `uiux` |
+| 단계 | 스킬/에이전트 | 모델 | 기존 연동 |
+|------|-------------|------|----------|
+| PM | `pm-agent` + `deep-thinker` | **opus** | — (신규) |
+| Router | `harness-router` | sonnet | — |
+| Context | `harness-context` | haiku | `load-recent-changes.sh`, agents/*.md |
+| Loop | `harness-loop` | sonnet | `ralph-loop`, `tdd-smart-coding`, `run-tests` |
+| Worker | `harness-worker` | 역할별 | `fullstack`, `ai-critique`, `uiux` |
 
 ## Model Routing
 에이전트/스킬별 최적 모델(opus/sonnet/haiku)을 지정하여 토큰 비용을 최적화한다.

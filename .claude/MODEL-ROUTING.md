@@ -142,10 +142,45 @@
 
 ---
 
+## PM + Deep Thinker 파이프라인
+
+> **핵심 원칙**: Opus는 계획/설계에만 — 구현은 Sonnet이 담당
+
+```
+개발 요청
+  → [pm-agent / Opus]   : 복잡도 판단 + 구현 스펙 생성
+      → [deep-thinker / Opus] : 복잡도 ≥ 0.7 시에만 호출 (트레이드오프 분석)
+  → [harness-router / Sonnet] : 구현 스펙 기반 라우팅
+  → [harness-loop / Sonnet]   : 실제 코드 작성
+  → [lint / Haiku]            : 자동 검증
+```
+
+| 에이전트 | 모델 | 호출 시점 | 출력 |
+|----------|------|----------|------|
+| `pm-agent` | **T1** opus | 세션 시작, `--think` 플래그, 블로킹 이슈 | 구현 스펙 |
+| `deep-thinker` | **T1** opus | pm-agent에서 복잡도 ≥ 0.7 감지 시 | 트레이드오프 분석 + 결정 |
+
+### 비용 절감 메커니즘
+
+```
+Before (opus로 전체 처리):
+  설계(opus) + 구현(opus) + 테스트(opus) + 린트(opus)
+  → opus 4회
+
+After (PM 파이프라인):
+  pm-agent(opus 1회) → harness-loop(sonnet) → lint(haiku)
+  → opus 1회 / sonnet N회 / haiku M회
+  예상 비용 절감: ~50-70%
+```
+
+---
+
 ## 서브에이전트(Agent tool) 모델 배정
 
 | subagent_type | 기본 모델 | 근거 |
 |---------------|-----------|------|
+| `pm-agent` | **T1** opus | 개발 세션 기획 + 복잡도 판단 |
+| `deep-thinker` | **T1** opus | 아키텍처/트레이드오프 심층 분석 |
 | `Explore` | **T3** haiku | 파일 탐색 + 코드 검색 |
 | `Plan` | **T2** sonnet | 구현 계획 수립 |
 | `code-reviewer` | **T2** sonnet | 코드 품질 판단 |
