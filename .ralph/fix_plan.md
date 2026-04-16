@@ -8,14 +8,16 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] 솔루션 위저드 레이아웃 + stepper**
-  > 요청사항: 위저드 기본 프레임 구현.
+- [x] **[web] Step 1 회사정보 + 자연어 솔루션 입력**
+  > 요청사항: src/components/solutions/wizard/steps/step-company-solution.tsx
 
-* src/components/solutions/wizard/solution-wizard-layout.tsx: 레이아웃 + 네비게이션(이전/다음)
-* src/components/solutions/wizard/solution-stepper.tsx: 7단계 인디케이터 (기존 stepper.tsx 참고)
-* src/app/(dashboard)/solutions/new/page.tsx: 위저드 진입점
-* src/app/(dashboard)/solutions/new/layout.tsx: 위저드 레이아웃
-* src/app/(dashboard)/solutions/\[sessionId\]/page.tsx: 세션 재진입
+기존 step-organization.tsx 참고 + 자연어 입력 영역 추가.
+
+* 회사명, 규모, 업종, 기술스택 (기존 필드)
+* 주력상품, 기업유형, 회사 설명 (신규 필드)
+* 자연어 솔루션 입력 (textarea, 최소 50자)
+* React Hook Form + Zod 유효성 검증
+* watch() → Zustand 스토어 자동 저장
 
 ---
 
@@ -25,4 +27,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] 솔루션 위저드 레이아웃 + stepper | 완료 | layout.tsx 생성 (solution-wizard-layout, stepper, new/page, [sessionId]/page 이미 구현됨) |
+| 2026-04-16 | [web] Step 1 회사정보 + 자연어 솔루션 입력 | ✅ 완료 | step-company-solution.tsx 신규 생성, 타입 확장(companySize/industry/techStack), solutionRequest 50자 최소 |

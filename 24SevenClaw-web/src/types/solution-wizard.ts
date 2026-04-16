@@ -18,10 +18,37 @@ export type SolutionWizardStepId = (typeof SOLUTION_WIZARD_STEPS)[number]["id"];
 
 export type BusinessType = "b2b" | "b2c" | "b2b2c" | "internal";
 
+/** 회사 규모 */
+export type CompanySize =
+  | "startup"
+  | "small"
+  | "medium"
+  | "mid-large"
+  | "enterprise";
+
+/** 업종 */
+export type IndustryType =
+  | "it"
+  | "fintech"
+  | "ecommerce"
+  | "healthcare"
+  | "education"
+  | "manufacturing"
+  | "logistics"
+  | "marketing"
+  | "game"
+  | "other";
+
 /** 회사 기본 정보 */
 export interface CompanyInfo {
   /** 회사명 */
   companyName: string;
+  /** 회사 규모 */
+  companySize: CompanySize | null;
+  /** 업종 */
+  industry: IndustryType | null;
+  /** 기술 스택 (복수 선택) */
+  techStack: string[];
   /** 주력 제품/서비스 */
   mainProduct: string;
   /** 비즈니스 유형 */
@@ -195,6 +222,9 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   organizationId: null,
   company: {
     companyName: "",
+    companySize: null,
+    industry: null,
+    techStack: [],
     mainProduct: "",
     businessType: null,
     companyDescription: "",
