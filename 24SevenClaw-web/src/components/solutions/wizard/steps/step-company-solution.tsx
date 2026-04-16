@@ -203,7 +203,7 @@ export function StepCompanySolution() {
           name="companySize"
           control={control}
           render={({ field }) => (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {COMPANY_SIZE_OPTIONS.map((opt) => {
                 const selected = field.value === opt.value;
                 return (
@@ -352,7 +352,7 @@ export function StepCompanySolution() {
           name="businessType"
           control={control}
           render={({ field }) => (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {BUSINESS_TYPE_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
                 const selected = field.value === opt.value;

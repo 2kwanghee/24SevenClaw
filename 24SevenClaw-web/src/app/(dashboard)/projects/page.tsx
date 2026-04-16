@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProjectList } from "@/components/projects/project-list";
@@ -81,6 +81,29 @@ function ProjectsContent() {
 
   return (
     <div>
+      {/* 새 솔루션 위저드 CTA 배너 */}
+      <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+            <Sparkles className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">새 솔루션 위저드</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              7단계로 AI 솔루션을 설계하고 ZIP으로 바로 시작하세요
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/solutions/new"
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-500"
+          aria-label="새 솔루션 위저드 시작"
+        >
+          솔루션 설계 시작
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -91,10 +114,11 @@ function ProjectsContent() {
         </div>
         <Link
           href="/projects/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/[0.06] hover:text-white"
+          aria-label="빠른 시작 (레거시) 프로젝트 생성"
         >
-          <Plus className="h-4 w-4" />
-          새 프로젝트
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          빠른 시작 (레거시)
         </Link>
       </div>
 

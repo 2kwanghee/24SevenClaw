@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -34,6 +35,13 @@ export function SolutionWizardLayout({
 }: SolutionWizardLayoutProps) {
   const { currentStep, nextStep, prevStep, isGenerating } =
     useSolutionWizardStore();
+
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // 스텝 전환 시 스텝 제목으로 포커스 이동
+  useEffect(() => {
+    stepHeadingRef.current?.focus();
+  }, [currentStep]);
 
   const isFirst = currentStep === 0;
   const isLast = currentStep === SOLUTION_WIZARD_STEPS.length - 1;
@@ -83,7 +91,9 @@ export function SolutionWizardLayout({
       >
         <h2
           id="wizard-step-heading"
-          className="mb-1 text-lg font-semibold text-white"
+          ref={stepHeadingRef}
+          tabIndex={-1}
+          className="mb-1 text-lg font-semibold text-white outline-none"
         >
           {SOLUTION_WIZARD_STEPS[currentStep].label}
         </h2>
