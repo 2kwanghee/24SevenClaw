@@ -6,22 +6,18 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[Phase 2] Solution Wizard v2 — 백엔드 서비스 + API**
-  > 요청사항: ## 백엔드 서비스 레이어 + API 라우터 구현
+- [x] **[Phase 3] Solution Wizard v2 — 프론트엔드 기반**
+  > 요청사항: ## 프론트엔드 기반 구조 구현
 
-### 신규 서비스
-
-* ClaudeService (자연어 분석, UI 구조 생성, PM 추천)
-* PrototypeService (세션 생성, 프로토타입 생성, 선택)
-* PMService (추천, 구성 조회, 평가)
-
-### 신규 API 라우터
-
-* prototype_sessions.py (8개 엔드포인트)
-* pm_profiles.py (5개 엔드포인트)
-* [router.py](<http://router.py>) 등록
+* 타입 정의 (solution-wizard.ts)
+* Zustand 스토어 (solution-wizard-store.ts)
+* api-client.ts 확장
+* 위저드 레이아웃 + stepper
+* Step 1 (회사정보 + 자연어 입력)
+* Step 7 (최종 확인)
+* 라우트 셋업 (/solutions/new, /solutions/\[sessionId\])
 
 ---
 
@@ -31,4 +27,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | Phase 2: 백엔드 서비스 + API | ✅ | 3 서비스 + 2 라우터(13 엔드포인트) + 22 테스트 |
+| 2026-04-16 | [Phase 3] Solution Wizard v2 프론트엔드 기반 | ✅ 완료 | 타입·스토어·api-client·위저드 레이아웃·Step1·Step7·라우트 |
