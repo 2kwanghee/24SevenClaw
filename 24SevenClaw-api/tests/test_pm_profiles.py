@@ -99,7 +99,7 @@ async def _create_org_and_prototype(
     session_id = session_resp.json()["id"]
 
     gen_resp = await client.post(
-        f"/api/v1/prototype-sessions/{session_id}/generate",
+        f"/api/v1/prototype-sessions/{session_id}/prototypes/generate",
         headers=headers,
     )
     assert gen_resp.status_code == 202

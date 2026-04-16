@@ -8,14 +8,19 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] PMService 구현 (추천/구성/평가)**
-  > 요청사항: app/services/pm_service.py 신규 작성.
+- [x] **[api] prototype_sessions 라우터 구현**
+  > 요청사항: app/api/v1/prototype_sessions.py 신규 작성. 8개 엔드포인트.
 
-* recommend(session_id, prototype_id) → 도메인 필터 → 전문분야 유사도 → Claude 시맨틱 매칭 → 평가지표 가중정렬 → 상위 3\~5명
-* get_profile(pm_id) → PM 상세 + metrics
-* get_composition(pm_id) → agent/skill/hook/mcp_server/plugin 구성
-* rate_pm(pm_id, user_id, session_id, rating, comment) → 평가 등록 + pm_metrics 자동 갱신
-* list_profiles(domain, specialty, limit) → PM 목록 필터링
+* POST /prototype-sessions (세션 생성)
+* GET /prototype-sessions/{id} (세션 조회)
+* PATCH /prototype-sessions/{id} (선택/스텝 업데이트)
+* GET /prototype-sessions/{id}/status (생성 진행률)
+* GET /prototype-sessions/{id}/prototypes (프로토타입 목록)
+* POST /prototype-sessions/{id}/prototypes/generate (생성 트리거)
+* POST /prototype-sessions/{id}/recommend-pms (PM 추천)
+* POST /prototype-sessions/{id}/finalize (최종 프로젝트 생성)
+
+router.py에 등록.
 
 ---
 
@@ -25,4 +30,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] PMService 구현 | ✅ 완료 | list_profiles specialty 필터, get_profile+metrics, recommend top3~5 가중정렬, get_composition 타입별 그룹화, /composition 엔드포인트 추가 |
+| 2026-04-16 | [api] prototype_sessions 라우터 구현 | ✅ 완료 | 8개 엔드포인트 구현, 356 tests pass |

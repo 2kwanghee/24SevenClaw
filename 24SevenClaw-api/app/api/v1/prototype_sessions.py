@@ -11,13 +11,17 @@ from app.database import async_session, get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.prototype import (
+    FinalizeRequest,
+    FinalizeResponse,
     GenerateStartResponse,
+    PMRecommendItemResponse,
     PrototypeListResponse,
     PrototypeResponse,
-    PrototypeSelectRequest,
     PrototypeSessionCreate,
     PrototypeSessionResponse,
     PrototypeSessionStatusResponse,
+    PrototypeSessionUpdate,
+    RecommendPMsResponse,
 )
 from app.services.prototype_service import PrototypeService
 
@@ -51,21 +55,6 @@ async def create_session(
     return PrototypeSessionResponse.model_validate(session)
 
 
-@router.get("/", response_model=list[PrototypeSessionResponse])
-async def list_sessions(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> list[PrototypeSessionResponse]:
-    """사용자의 프로토타입 세션 목록을 반환한다."""
-    service = PrototypeService(db)
-    sessions, _total = await service.list_sessions(
-        user_id=user.id, offset=offset, limit=limit  # type: ignore[arg-type]
-    )
-    return [PrototypeSessionResponse.model_validate(s) for s in sessions]
-
-
 @router.get("/{session_id}", response_model=PrototypeSessionResponse)
 async def get_session(
     session_id: UUID,
@@ -75,6 +64,21 @@ async def get_session(
     """프로토타입 세션을 조회한다."""
     service = PrototypeService(db)
     session = await service.get_session(session_id=session_id, user_id=user.id)  # type: ignore[arg-type]
+    return PrototypeSessionResponse.model_validate(session)
+
+
+@router.patch("/{session_id}", response_model=PrototypeSessionResponse)
+async def update_session(
+    session_id: UUID,
+    data: PrototypeSessionUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PrototypeSessionResponse:
+    """세션의 선택 정보(프로토타입/PM/스텝)를 업데이트한다."""
+    service = PrototypeService(db)
+    session = await service.update_session(
+        session_id=session_id, user_id=user.id, data=data  # type: ignore[arg-type]
+    )
     return PrototypeSessionResponse.model_validate(session)
 
 
@@ -94,8 +98,27 @@ async def get_session_status(
     return PrototypeSessionStatusResponse.model_validate(session)
 
 
+@router.get(
+    "/{session_id}/prototypes", response_model=PrototypeListResponse
+)
+async def list_prototypes(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PrototypeListResponse:
+    """세션의 프로토타입 목록을 반환한다."""
+    service = PrototypeService(db)
+    prototypes = await service.list_prototypes(
+        session_id=session_id, user_id=user.id  # type: ignore[arg-type]
+    )
+    return PrototypeListResponse(
+        items=[PrototypeResponse.model_validate(p) for p in prototypes],
+        total=len(prototypes),
+    )
+
+
 @router.post(
-    "/{session_id}/generate",
+    "/{session_id}/prototypes/generate",
     response_model=GenerateStartResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -123,40 +146,85 @@ async def generate_prototypes(
     )
 
 
-@router.get(
-    "/{session_id}/prototypes", response_model=PrototypeListResponse
+@router.post(
+    "/{session_id}/recommend-pms",
+    response_model=RecommendPMsResponse,
 )
-async def list_prototypes(
+async def recommend_pms(
     session_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> PrototypeListResponse:
-    """세션의 프로토타입 목록을 반환한다."""
+) -> RecommendPMsResponse:
+    """세션의 선택된 프로토타입 기반으로 PM을 추천한다.
+
+    선택된 프로토타입이 없으면 409를 반환한다.
+    """
     service = PrototypeService(db)
-    prototypes = await service.list_prototypes(
+    recommendations = await service.recommend_pms_for_session(
         session_id=session_id, user_id=user.id  # type: ignore[arg-type]
     )
-    return PrototypeListResponse(
-        items=[PrototypeResponse.model_validate(p) for p in prototypes],
-        total=len(prototypes),
-    )
+
+    items = []
+    for rec in recommendations:
+        profile = rec["pm_profile"]
+        items.append(
+            PMRecommendItemResponse(
+                pm_id=profile.id,
+                name=str(profile.name),
+                slug=str(profile.slug),
+                avatar_url=profile.avatar_url,
+                title=profile.title,
+                domain=profile.domain,
+                match_score=int(rec["match_score"]),
+                reasoning=str(rec["reasoning"]),
+            )
+        )
+
+    return RecommendPMsResponse(items=items)
 
 
 @router.post(
-    "/{session_id}/select", response_model=PrototypeSessionResponse
+    "/{session_id}/finalize",
+    response_model=FinalizeResponse,
+    status_code=status.HTTP_201_CREATED,
 )
-async def select_prototype(
+async def finalize_session(
     session_id: UUID,
-    data: PrototypeSelectRequest,
+    data: FinalizeRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> PrototypeSessionResponse:
-    """프로토타입을 선택한다 — 업데이트된 세션을 반환한다."""
+) -> FinalizeResponse:
+    """세션을 확정하고 최종 프로젝트를 생성한다.
+
+    선택된 프로토타입과 PM이 없으면 409를 반환한다.
+    """
     service = PrototypeService(db)
-    session = await service.select_prototype(
+    project = await service.finalize_session(
         session_id=session_id, user_id=user.id, data=data  # type: ignore[arg-type]
     )
-    return PrototypeSessionResponse.model_validate(session)
+    return FinalizeResponse(
+        project_id=project.id,
+        project_name=str(project.name),
+        session_id=session_id,
+        message="프로젝트가 생성되었습니다",
+    )
+
+
+# ── 목록 및 삭제 (보조 엔드포인트) ──
+
+@router.get("/", response_model=list[PrototypeSessionResponse])
+async def list_sessions(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[PrototypeSessionResponse]:
+    """사용자의 프로토타입 세션 목록을 반환한다."""
+    service = PrototypeService(db)
+    sessions, _total = await service.list_sessions(
+        user_id=user.id, offset=offset, limit=limit  # type: ignore[arg-type]
+    )
+    return [PrototypeSessionResponse.model_validate(s) for s in sessions]
 
 
 @router.delete(

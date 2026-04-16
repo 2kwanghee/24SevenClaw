@@ -98,3 +98,46 @@ class GenerateStartResponse(BaseModel):
 
     message: str
     session_id: UUID
+
+
+class PrototypeSessionUpdate(BaseModel):
+    """PATCH /prototype-sessions/{id} 요청 스키마."""
+
+    selected_prototype_id: UUID | None = None
+    selected_pm_id: UUID | None = None
+    current_step: int | None = Field(None, ge=1)
+
+
+class PMRecommendItemResponse(BaseModel):
+    """PM 추천 단일 항목."""
+
+    pm_id: UUID
+    name: str
+    slug: str
+    avatar_url: str | None
+    title: str | None
+    domain: str | None
+    match_score: int
+    reasoning: str
+
+
+class RecommendPMsResponse(BaseModel):
+    """POST /prototype-sessions/{id}/recommend-pms 응답."""
+
+    items: list[PMRecommendItemResponse]
+
+
+class FinalizeRequest(BaseModel):
+    """POST /prototype-sessions/{id}/finalize 요청 스키마."""
+
+    project_name: str = Field(..., min_length=1, max_length=200)
+    description: str | None = None
+
+
+class FinalizeResponse(BaseModel):
+    """POST /prototype-sessions/{id}/finalize 응답."""
+
+    project_id: UUID
+    project_name: str
+    session_id: UUID
+    message: str
