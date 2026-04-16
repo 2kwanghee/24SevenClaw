@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text, Uuid, text
 
 from app.database import Base
 
@@ -31,6 +31,8 @@ class Project(Base):
         nullable=True,
         index=True,
     )
-    project_type = Column(String(50), nullable=True)
+    project_type = Column(
+        String(30), nullable=True, default="legacy", server_default=text("'legacy'")
+    )
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

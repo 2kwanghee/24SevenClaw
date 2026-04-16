@@ -8,15 +8,22 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] PM 프로필/구성/평가 모델 구현**
-  > 요청사항: SQLAlchemy 모델 신규 작성.
+- [x] **[api] Organization/Project 모델 확장**
+  > 요청사항: 기존 모델에 필드 추가.
 
-* app/models/pm_profile.py: id, name, slug(UNIQUE), avatar_url, title, description, domain, specialties(JSON), personality(JSON), is_active
-* app/models/pm_composition.py: id, pm_id(FK CASCADE), component_type, component_slug, component_name, config(JSON), display_order, is_required
-* app/models/pm_metrics.py: id, pm_id(FK CASCADE UNIQUE), usage_count, completed_projects, avg_rating, total_ratings, success_rate, avg_completion_days
-* app/models/pm_rating.py: id, pm_id(FK), user_id(FK), session_id(FK), rating(1\~5), comment
+Organization:
 
-models/**init**.py에 등록.
+* main_product VARCHAR(500)
+* business_type VARCHAR(100)
+* company_description TEXT
+
+Project:
+
+* prototype_session_id UUID FK(prototype_sessions, SET NULL)
+* pm_profile_id UUID FK(pm_profiles, SET NULL)
+* project_type VARCHAR(30) DEFAULT 'legacy'
+
+기존 스키마(schemas/organization.py)도 함께 확장.
 
 ---
 
@@ -26,4 +33,4 @@ models/**init**.py에 등록.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] PM 프로필/구성/평가 모델 구현 | ✅ | pm_profile.py 재설계, pm_composition/metrics/rating.py 신규, 마이그레이션 010, 테스트 337개 전부 통과 |
+| 2026-04-16 | [api] Organization/Project 모델 확장 | ✅ | business_type VARCHAR(100), project_type VARCHAR(30) DEFAULT 'legacy', 마이그레이션 011 |
