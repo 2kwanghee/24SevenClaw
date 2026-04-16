@@ -151,3 +151,8 @@ class PMRatingResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PMRatingListResponse(BaseModel):
+    items: list[PMRatingResponse]
+    total: int

@@ -325,6 +325,29 @@ class PMService:
 
         return rating
 
+    async def list_ratings(
+        self, pm_profile_id: UUID, offset: int = 0, limit: int = 20
+    ) -> tuple[list[PMRating], int]:
+        """PM 평가 목록을 반환한다."""
+        count_stmt = (
+            select(func.count())
+            .select_from(PMRating)
+            .where(PMRating.pm_id == pm_profile_id)
+        )
+        total_result = await self.db.execute(count_stmt)
+        total = int(total_result.scalar_one())
+
+        stmt = (
+            select(PMRating)
+            .where(PMRating.pm_id == pm_profile_id)
+            .order_by(PMRating.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        ratings = list(result.scalars().all())
+        return ratings, total
+
     async def get_metrics(self, pm_profile_id: UUID) -> PMMetrics:
         """PM 메트릭을 조회한다."""
         stmt = select(PMMetrics).where(

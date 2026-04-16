@@ -15,6 +15,7 @@ from app.schemas.pm_profile import (
     PMProfileResponse,
     PMProfileWithMetrics,
     PMRatingCreate,
+    PMRatingListResponse,
     PMRatingResponse,
     PMRecommendListResponse,
     PMRecommendRequest,
@@ -99,7 +100,7 @@ async def get_composition(
 
 
 @router.post(
-    "/{profile_id}/rate", response_model=PMRatingResponse
+    "/{profile_id}/ratings", response_model=PMRatingResponse, status_code=201
 )
 async def rate_pm(
     profile_id: UUID,
@@ -113,6 +114,27 @@ async def rate_pm(
         pm_profile_id=profile_id, user_id=user.id, data=data  # type: ignore[arg-type]
     )
     return PMRatingResponse.model_validate(rating)
+
+
+@router.get(
+    "/{profile_id}/ratings", response_model=PMRatingListResponse
+)
+async def list_ratings(
+    profile_id: UUID,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PMRatingListResponse:
+    """PM 평가 목록을 반환한다."""
+    service = PMService(db)
+    ratings, total = await service.list_ratings(
+        pm_profile_id=profile_id, offset=offset, limit=limit
+    )
+    return PMRatingListResponse(
+        items=[PMRatingResponse.model_validate(r) for r in ratings],
+        total=total,
+    )
 
 
 @router.get(

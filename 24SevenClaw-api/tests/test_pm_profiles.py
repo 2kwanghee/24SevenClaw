@@ -225,11 +225,11 @@ async def test_rate_pm(
     session_id = await _create_session_id(client, auth_headers)
 
     resp = await client.post(
-        f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
+        f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
         json={"session_id": session_id, "rating": 4, "comment": "좋은 PM입니다"},
         headers=auth_headers,
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 201
     body = resp.json()
     assert body["rating"] == 4
     assert body["comment"] == "좋은 PM입니다"
@@ -244,7 +244,7 @@ async def test_rate_pm_invalid_score(
     pm_ids = await _seed_pm_profiles(db_session)
 
     resp = await client.post(
-        f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
+        f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
         json={
             "session_id": "00000000-0000-0000-0000-000000000001",
             "rating": 6,
@@ -252,6 +252,33 @@ async def test_rate_pm_invalid_score(
         headers=auth_headers,
     )
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_ratings(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    db_session: AsyncSession,
+) -> None:
+    pm_ids = await _seed_pm_profiles(db_session)
+    session_id = await _create_session_id(client, auth_headers)
+
+    # 평가 2개 등록
+    for rating_val in (3, 5):
+        await client.post(
+            f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
+            json={"session_id": session_id, "rating": rating_val},
+            headers=auth_headers,
+        )
+
+    resp = await client.get(
+        f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
 
 
 @pytest.mark.asyncio
@@ -266,7 +293,7 @@ async def test_get_metrics(
     session_id = await _create_session_id(client, auth_headers)
 
     await client.post(
-        f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
+        f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
         json={"session_id": session_id, "rating": 5},
         headers=auth_headers,
     )
