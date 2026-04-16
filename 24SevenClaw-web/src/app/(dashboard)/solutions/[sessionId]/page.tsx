@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
@@ -21,6 +21,7 @@ import {
   prototypeSessions,
   ApiClientError,
 } from "@/lib/api-client";
+import type { BusinessType } from "@/types/solution-wizard";
 
 const STEP_COMPONENTS = [
   StepCompany,
@@ -45,16 +46,23 @@ export default function SolutionSessionPage() {
     data,
     setSessionId,
     setOrganizationId,
-    reset,
+    setCompany,
+    goToStep,
   } = useSolutionWizardStore();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const restoredRef = useRef(false);
 
   // 기존 세션 복원
   useEffect(() => {
     if (!token || !sessionId) return;
+    // 이미 복원했으면 재실행 방지
+    if (restoredRef.current) {
+      setIsLoading(false);
+      return;
+    }
 
     const restore = async () => {
       setIsLoading(true);
@@ -62,6 +70,30 @@ export default function SolutionSessionPage() {
         const ps = await prototypeSessions.get(token, sessionId);
         setSessionId(ps.id);
         setOrganizationId(ps.organization_id);
+
+        // user_input 에서 회사 정보 복원
+        const ui = ps.user_input as Record<string, string | undefined>;
+        if (ui) {
+          setCompany({
+            companyName: ui.company_name ?? "",
+            mainProduct: ui.main_product ?? "",
+            businessType: (ui.business_type as BusinessType) ?? null,
+            companyDescription: ui.company_description ?? "",
+            solutionRequest: ui.solution_request ?? "",
+          });
+        }
+
+        // 세션 상태에 따라 적절한 스텝으로 이동 (step 0에 있으면 step 1로)
+        if (
+          (ps.status === "completed" ||
+            ps.status === "generating" ||
+            ps.status === "pending") &&
+          currentStep === 0
+        ) {
+          goToStep(1);
+        }
+
+        restoredRef.current = true;
       } catch {
         // 세션 없으면 새 세션 생성 페이지로
         router.replace("/solutions/new");
@@ -71,7 +103,16 @@ export default function SolutionSessionPage() {
     };
 
     void restore();
-  }, [token, sessionId, setSessionId, setOrganizationId, router]);
+  }, [
+    token,
+    sessionId,
+    currentStep,
+    setSessionId,
+    setOrganizationId,
+    setCompany,
+    goToStep,
+    router,
+  ]);
 
   const StepComponent = STEP_COMPONENTS[currentStep];
 
@@ -96,16 +137,17 @@ export default function SolutionSessionPage() {
   })();
 
   const handleSubmit = async () => {
-    if (!token || !data.company.companyName) return;
+    if (!token) return;
     setError(null);
     setIsSubmitting(true);
     try {
+      const projectName =
+        data.company.companyName || `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`;
       const project = await apiClient.projects.create(token, {
-        name: data.company.companyName,
+        name: projectName,
         description: data.company.solutionRequest || undefined,
       });
 
-      reset();
       router.push(`/projects/${project.id}/dashboard`);
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -120,8 +162,13 @@ export default function SolutionSessionPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div
+        className="flex h-64 items-center justify-center"
+        role="status"
+        aria-label="세션 불러오는 중"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+        <span className="sr-only">세션을 복원하고 있습니다...</span>
       </div>
     );
   }
@@ -133,8 +180,11 @@ export default function SolutionSessionPage() {
       canProceed={canProceed}
     >
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+        <div
+          role="alert"
+          className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
           <p className="flex-1 text-sm text-red-300">{error}</p>
           <button
             type="button"
@@ -144,7 +194,7 @@ export default function SolutionSessionPage() {
             }}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-300 transition-colors hover:bg-red-500/10"
           >
-            <RefreshCw className="h-3 w-3" />
+            <RefreshCw className="h-3 w-3" aria-hidden="true" />
             재시도
           </button>
         </div>
