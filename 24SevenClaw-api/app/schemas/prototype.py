@@ -9,18 +9,21 @@ from pydantic import BaseModel, Field
 
 class PrototypeSessionCreate(BaseModel):
     organization_id: UUID
-    user_input: dict[str, Any] = Field(
-        ..., description="사용자 입력 (회사 정보 + 자연어 설명)"
-    )
+    solution_prompt: str = Field(..., description="솔루션을 설명하는 자연어 프롬프트")
 
 
 class PrototypeSessionResponse(BaseModel):
     id: UUID
     organization_id: UUID
     user_id: UUID
-    user_input: dict[str, Any]
+    solution_prompt: str | None
+    parsed_requirements: dict[str, Any] | None
     status: str
+    selected_prototype_id: UUID | None
+    selected_pm_id: UUID | None
+    current_step: int
     created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -39,12 +42,19 @@ class PrototypeSessionStatusResponse(BaseModel):
 class PrototypeResponse(BaseModel):
     id: UUID
     session_id: UUID
-    name: str
-    solution_type: str
-    config: dict[str, Any]
-    reasoning: str | None
-    is_selected: bool
+    variant_index: int
+    title: str
+    description: str | None
+    design_pattern: str | None
+    menu_structure: dict[str, Any] | None
+    ui_structure: dict[str, Any] | None
+    color_palette: dict[str, Any] | None
+    thumbnail_url: str | None
+    figma_file_key: str | None
+    figma_embed_url: str | None
+    status: str
     created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

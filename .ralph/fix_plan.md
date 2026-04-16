@@ -6,16 +6,15 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[Phase 4] Solution Wizard v2 — 프로토타입 UI**
-  > 요청사항: ## 프로토타입 생성/선택 UI 구현
+- [x] **[api] 프로토타입 세션/프로토타입 모델 구현**
+  > 요청사항: SQLAlchemy 모델 신규 작성.
 
-* Step 2 (생성 로딩 UI + 폴링)
-* Step 3 (프로토타입 카드 + 자체 프리뷰 렌더링)
-* prototype-card.tsx, prototype-preview.tsx
-* 백엔드 비동기 생성 구조 (BackgroundTasks)
-* Claude API → UI 구조 JSON → 자체 렌더링
+* app/models/prototype_session.py: id, user_id(FK), organization_id(FK), solution_prompt, parsed_requirements(JSON), status, selected_prototype_id, selected_pm_id, current_step, metadata, created_at, updated_at
+* app/models/prototype.py: id, session_id(FK CASCADE), variant_index, title, description, design_pattern, menu_structure(JSON), ui_structure(JSON), color_palette(JSON), thumbnail_url, figma_file_key, figma_embed_url, status, created_at, updated_at
+
+models/**init**.py에 등록.
 
 ---
 
@@ -25,4 +24,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [Phase 4] Solution Wizard v2 — 프로토타입 UI | ✅ 완료 | step-prototypes.tsx, prototype-card.tsx, prototype-preview.tsx, 백엔드 비동기 생성(BackgroundTasks), 폴링 구현 완료. API 337개 통과, 타입체크 통과. |
+| 2026-04-16 | [api] 프로토타입 세션/프로토타입 모델 구현 | ✅ 완료 | 모델·스키마·서비스·테스트 일괄 업데이트, 337 passed |

@@ -1,6 +1,5 @@
 """프로토타입 세션 서비스 — 세션 생성, 프로토타입 생성/조회/선택."""
 
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select, update
@@ -24,7 +23,7 @@ class PrototypeService:
         session = PrototypeSession(
             organization_id=data.organization_id,
             user_id=user_id,
-            user_input=data.user_input,
+            solution_prompt=data.solution_prompt,
             status="pending",
         )
         self.db.add(session)
@@ -116,21 +115,22 @@ class PrototypeService:
             return
 
         try:
-            raw_input = session.user_input
-            user_input: dict[str, Any] = dict(raw_input) if raw_input else {}
-            solution_type = self._claude.analyze_input(user_input)
+            prompt = str(session.solution_prompt or "")
+            solution_type = self._claude.analyze_input(prompt)
 
-            templates = self._claude.generate_prototypes(
-                solution_type, user_input
-            )
+            templates = self._claude.generate_prototypes(solution_type, prompt)
 
-            for tmpl in templates:
+            for idx, tmpl in enumerate(templates):
                 proto = Prototype(
                     session_id=session.id,
-                    name=tmpl["name"],
-                    solution_type=tmpl["solution_type"],
-                    config=tmpl["config"],
-                    reasoning=tmpl.get("reasoning"),
+                    variant_index=idx,
+                    title=tmpl["title"],
+                    description=tmpl.get("description"),
+                    design_pattern=tmpl.get("design_pattern"),
+                    menu_structure=tmpl.get("menu_structure"),
+                    ui_structure=tmpl.get("ui_structure"),
+                    color_palette=tmpl.get("color_palette"),
+                    status="draft",
                 )
                 self.db.add(proto)
 
@@ -152,19 +152,18 @@ class PrototypeService:
         stmt = (
             select(Prototype)
             .where(Prototype.session_id == session_id)
-            .order_by(Prototype.created_at.asc())
+            .order_by(Prototype.variant_index.asc())
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def select_prototype(
         self, session_id: UUID, user_id: UUID, data: PrototypeSelectRequest
-    ) -> Prototype:
-        """프로토타입을 선택한다 (기존 선택 해제 후 새로 선택)."""
-        # 소유자 검증
-        await self.get_session(session_id, user_id)
+    ) -> PrototypeSession:
+        """프로토타입을 선택한다 — session.selected_prototype_id를 업데이트한다."""
+        session = await self.get_session(session_id, user_id)
 
-        # 대상 프로토타입 존재 확인
+        # 대상 프로토타입 존재 및 소유 확인
         stmt = select(Prototype).where(
             Prototype.id == data.prototype_id,
             Prototype.session_id == session_id,
@@ -176,18 +175,15 @@ class PrototypeService:
                 "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
             )
 
-        # 기존 선택 해제
+        # 세션의 selected_prototype_id 업데이트
         await self.db.execute(
-            update(Prototype)
-            .where(Prototype.session_id == session_id)
-            .values(is_selected=False)
+            update(PrototypeSession)
+            .where(PrototypeSession.id == session_id)
+            .values(selected_prototype_id=data.prototype_id)
         )
-
-        # 새로 선택
-        prototype.is_selected = True  # type: ignore[assignment]
         await self.db.commit()
-        await self.db.refresh(prototype)
-        return prototype
+        await self.db.refresh(session)
+        return session
 
     async def delete_session(
         self, session_id: UUID, user_id: UUID

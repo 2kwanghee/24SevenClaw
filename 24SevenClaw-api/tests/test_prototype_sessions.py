@@ -20,11 +20,7 @@ async def _create_session(
         "/api/v1/prototype-sessions/",
         json={
             "organization_id": org_id,
-            "user_input": {
-                "company_name": "테스트 회사",
-                "description": "SaaS 구독 관리 서비스를 만들고 싶습니다",
-                "business_type": "saas",
-            },
+            "solution_prompt": "SaaS 구독 관리 서비스를 만들고 싶습니다",
         },
         headers=headers,
     )
@@ -40,7 +36,8 @@ async def test_create_session(
     body = await _create_session(client, auth_headers, org_id)
     assert body["status"] == "pending"
     assert body["organization_id"] == org_id
-    assert body["user_input"]["company_name"] == "테스트 회사"
+    assert body["solution_prompt"] == "SaaS 구독 관리 서비스를 만들고 싶습니다"
+    assert body["current_step"] == 1
 
 
 @pytest.mark.asyncio
@@ -49,7 +46,7 @@ async def test_create_session_unauthenticated(client: AsyncClient) -> None:
         "/api/v1/prototype-sessions/",
         json={
             "organization_id": "00000000-0000-0000-0000-000000000000",
-            "user_input": {"description": "테스트"},
+            "solution_prompt": "테스트",
         },
     )
     assert resp.status_code in (401, 403)
@@ -142,7 +139,10 @@ async def test_generate_prototypes(
     assert proto_resp.status_code == 200
     prototypes = proto_resp.json()
     assert prototypes["total"] >= 1
-    assert prototypes["items"][0]["solution_type"] == "saas"
+    first = prototypes["items"][0]
+    assert first["title"] is not None
+    assert first["status"] == "draft"
+    assert first["variant_index"] == 0
 
 
 @pytest.mark.asyncio
@@ -217,7 +217,8 @@ async def test_select_prototype(
         headers=auth_headers,
     )
     assert resp.status_code == 200
-    assert resp.json()["is_selected"] is True
+    # 선택된 세션 응답 확인
+    assert resp.json()["selected_prototype_id"] == prototype_id
 
 
 @pytest.mark.asyncio

@@ -72,11 +72,7 @@ async def _create_org_and_prototype(
         "/api/v1/prototype-sessions/",
         json={
             "organization_id": org_id,
-            "user_input": {
-                "company_name": "PM 테스트 회사",
-                "description": "SaaS 구독 서비스",
-                "business_type": "saas",
-            },
+            "solution_prompt": "SaaS 구독 서비스를 만들고 싶습니다",
         },
         headers=headers,
     )
