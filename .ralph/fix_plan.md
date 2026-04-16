@@ -8,15 +8,14 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] PrototypeService 구현 (세션/프로토타입 관리)**
-  > 요청사항: app/services/prototype_service.py 신규 작성.
+- [x] **[api] PMService 구현 (추천/구성/평가)**
+  > 요청사항: app/services/pm_service.py 신규 작성.
 
-* create_session(user_id, org_id, prompt) → 세션 생성 + status=pending
-* analyze_requirements(session_id) → ClaudeService.analyze_solution 호출 → parsed_requirements 저장
-* generate_prototypes(session_id) → 3\~4개 비동기 생성 (BackgroundTasks)
-* get_session(session_id) → 세션 + 프로토타입 목록 조회
-* select_prototype(session_id, prototype_id) → 선택 저장
-* get_generation_status(session_id) → 생성 진행률 반환
+* recommend(session_id, prototype_id) → 도메인 필터 → 전문분야 유사도 → Claude 시맨틱 매칭 → 평가지표 가중정렬 → 상위 3\~5명
+* get_profile(pm_id) → PM 상세 + metrics
+* get_composition(pm_id) → agent/skill/hook/mcp_server/plugin 구성
+* rate_pm(pm_id, user_id, session_id, rating, comment) → 평가 등록 + pm_metrics 자동 갱신
+* list_profiles(domain, specialty, limit) → PM 목록 필터링
 
 ---
 
@@ -26,4 +25,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] PrototypeService 구현 | ✅ 완료 | 기존 구현 검증 + 테스트 11개 통과 |
+| 2026-04-16 | [api] PMService 구현 | ✅ 완료 | list_profiles specialty 필터, get_profile+metrics, recommend top3~5 가중정렬, get_composition 타입별 그룹화, /composition 엔드포인트 추가 |

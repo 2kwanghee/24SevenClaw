@@ -1,4 +1,4 @@
-"""PM 프로필 API 라우터 — 5개 엔드포인트."""
+"""PM 프로필 API 라우터."""
 
 from uuid import UUID
 
@@ -9,9 +9,11 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.pm_profile import (
+    PMCompositionGroupedResponse,
     PMMetricsResponse,
     PMProfileListResponse,
     PMProfileResponse,
+    PMProfileWithMetrics,
     PMRatingCreate,
     PMRatingResponse,
     PMRecommendListResponse,
@@ -26,6 +28,7 @@ router = APIRouter(prefix="/pm-profiles", tags=["pm-profiles"])
 @router.get("/", response_model=PMProfileListResponse)
 async def list_profiles(
     domain: str | None = Query(None, max_length=100),
+    specialty: str | None = Query(None, max_length=100),
     is_active: bool | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -35,7 +38,11 @@ async def list_profiles(
     """PM 프로필 목록을 반환한다."""
     service = PMService(db)
     profiles, total = await service.list_profiles(
-        domain=domain, is_active=is_active, offset=offset, limit=limit
+        domain=domain,
+        specialty=specialty,
+        is_active=is_active,
+        offset=offset,
+        limit=limit,
     )
     return PMProfileListResponse(
         items=[PMProfileResponse.model_validate(p) for p in profiles],
@@ -43,16 +50,15 @@ async def list_profiles(
     )
 
 
-@router.get("/{profile_id}", response_model=PMProfileResponse)
+@router.get("/{profile_id}", response_model=PMProfileWithMetrics)
 async def get_profile(
     profile_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> PMProfileResponse:
-    """PM 프로필을 조회한다."""
+) -> PMProfileWithMetrics:
+    """PM 프로필과 메트릭을 함께 조회한다."""
     service = PMService(db)
-    profile = await service.get_profile(profile_id)
-    return PMProfileResponse.model_validate(profile)
+    return await service.get_profile(profile_id)
 
 
 @router.post("/recommend", response_model=PMRecommendListResponse)
@@ -61,9 +67,12 @@ async def recommend_pms(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PMRecommendListResponse:
-    """프로토타입에 적합한 PM을 추천한다."""
+    """프로토타입에 적합한 PM을 추천한다 (상위 3~5개)."""
     service = PMService(db)
-    recommendations = await service.recommend_pms(data.prototype_id)
+    recommendations = await service.recommend_pms(
+        prototype_id=data.prototype_id,
+        session_id=data.session_id,
+    )
     return PMRecommendListResponse(
         items=[
             PMRecommendResponse(
@@ -74,6 +83,19 @@ async def recommend_pms(
             for r in recommendations
         ]
     )
+
+
+@router.get(
+    "/{profile_id}/composition", response_model=PMCompositionGroupedResponse
+)
+async def get_composition(
+    profile_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PMCompositionGroupedResponse:
+    """PM 구성 컴포넌트를 타입별로 그룹화하여 반환한다."""
+    service = PMService(db)
+    return await service.get_composition(profile_id)
 
 
 @router.post(
