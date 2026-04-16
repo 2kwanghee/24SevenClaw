@@ -12,6 +12,7 @@ import {
   StepPrototypeSelection,
   StepPMRecommendation,
   StepPMSelection,
+  StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -20,13 +21,14 @@ import {
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { organizations, prototypeSessions, ApiClientError } from "@/lib/api-client";
 
-// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
+// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
 const STEP_COMPONENTS = [
   StepCompanySolution,
   StepPrototypeGeneration,
   StepPrototypeSelection,
   StepPMRecommendation,
   StepPMSelection,
+  StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -58,7 +60,7 @@ export default function NewSolutionPage() {
   const StepComponent = STEP_COMPONENTS[currentStep];
 
   // 각 스텝별 진행 가능 여부
-  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
+  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
@@ -81,8 +83,11 @@ export default function NewSolutionPage() {
       case 4:
         return !!data.pm.selectedPmProfileId;
       case 5:
-        return data.agents.selectedAgents.length > 0;
+        // PM 구성 확인 단계: 항상 진행 가능 (검토 후 이대로 진행)
+        return true;
       case 6:
+        return data.agents.selectedAgents.length > 0;
+      case 7:
         return !!data.platform.platformId;
       default:
         return true;
@@ -165,6 +170,7 @@ export default function NewSolutionPage() {
       onNextStep={currentStep === 0 ? handleStep1Next : undefined}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
+      nextLabel={currentStep === 5 ? "이대로 진행" : undefined}
     >
       {error && (
         <div
