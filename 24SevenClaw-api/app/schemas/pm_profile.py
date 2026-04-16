@@ -11,12 +11,12 @@ class PMProfileResponse(BaseModel):
     id: UUID
     name: str
     slug: str
-    specialty: str
-    description: str | None
     avatar_url: str | None
-    skills: list[str]
-    experience_areas: list[str]
-    personality_traits: dict[str, Any]
+    title: str | None
+    description: str | None
+    domain: str | None
+    specialties: list[str]
+    personality: dict[str, Any]
     is_active: bool
     created_at: datetime
 
@@ -32,29 +32,32 @@ class PMProfileListResponse(BaseModel):
 
 
 class PMCompositionCreate(BaseModel):
-    pm_profile_id: UUID
-    role: str = Field(..., min_length=1, max_length=100)
-    assigned_agents: list[str] = Field(default_factory=list)
-    assigned_skills: list[str] = Field(default_factory=list)
+    component_type: str = Field(..., min_length=1, max_length=100)
+    component_slug: str = Field(..., min_length=1, max_length=100)
+    component_name: str = Field(..., min_length=1, max_length=200)
+    config: dict[str, Any] = Field(default_factory=dict)
+    display_order: int = Field(default=0, ge=0)
+    is_required: bool = False
 
 
 class PMCompositionResponse(BaseModel):
     id: UUID
-    prototype_id: UUID
-    pm_profile_id: UUID
-    role: str
-    assigned_agents: list[str]
-    assigned_skills: list[str]
-    match_score: int
-    reasoning: str | None
+    pm_id: UUID
+    component_type: str
+    component_slug: str
+    component_name: str
+    config: dict[str, Any]
+    display_order: int
+    is_required: bool
 
     model_config = {"from_attributes": True}
 
 
 class PMCompositionUpdate(BaseModel):
-    role: str | None = Field(None, min_length=1, max_length=100)
-    assigned_agents: list[str] | None = None
-    assigned_skills: list[str] | None = None
+    component_name: str | None = Field(None, min_length=1, max_length=200)
+    config: dict[str, Any] | None = None
+    display_order: int | None = Field(None, ge=0)
+    is_required: bool | None = None
 
 
 # --- PMRecommend ---
@@ -74,16 +77,18 @@ class PMRecommendListResponse(BaseModel):
     items: list[PMRecommendResponse]
 
 
-# --- PMMetric ---
+# --- PMMetrics ---
 
 
-class PMMetricResponse(BaseModel):
+class PMMetricsResponse(BaseModel):
     id: UUID
-    pm_profile_id: UUID
-    total_projects: int
-    success_rate: float
+    pm_id: UUID
+    usage_count: int
+    completed_projects: int
     avg_rating: float
-    updated_at: datetime
+    total_ratings: int
+    success_rate: float
+    avg_completion_days: float
 
     model_config = {"from_attributes": True}
 
@@ -92,17 +97,17 @@ class PMMetricResponse(BaseModel):
 
 
 class PMRatingCreate(BaseModel):
-    project_id: UUID
-    score: int = Field(..., ge=1, le=5)
+    session_id: UUID
+    rating: int = Field(..., ge=1, le=5)
     comment: str | None = None
 
 
 class PMRatingResponse(BaseModel):
     id: UUID
-    pm_profile_id: UUID
-    project_id: UUID
+    pm_id: UUID
     user_id: UUID
-    score: int
+    session_id: UUID
+    rating: int
     comment: str | None
     created_at: datetime
 
