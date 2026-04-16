@@ -12,10 +12,14 @@ export const SOLUTION_WIZARD_STEPS = [
 
 export type SolutionWizardStepId = (typeof SOLUTION_WIZARD_STEPS)[number]["id"];
 
-/** Step 1: 회사 정보 + 자연어 입력 */
+// ---------------------------------------------------------------------------
+// Step 1: 회사 정보
+// ---------------------------------------------------------------------------
+
 export type BusinessType = "b2b" | "b2c" | "b2b2c" | "internal";
 
-export interface CompanyStep {
+/** 회사 기본 정보 */
+export interface CompanyInfo {
   /** 회사명 */
   companyName: string;
   /** 주력 제품/서비스 */
@@ -24,18 +28,64 @@ export interface CompanyStep {
   businessType: BusinessType | null;
   /** 회사 설명 (자연어) */
   companyDescription: string;
+}
+
+/** 솔루션 요청 프롬프트 (자연어 입력) */
+export interface SolutionPrompt {
+  /** 필요한 솔루션 설명 텍스트 */
+  text: string;
+}
+
+/** Step 1 위저드 상태 (회사 정보 + 솔루션 프롬프트 통합) */
+export interface CompanyStep extends CompanyInfo {
   /** 필요한 솔루션 설명 (자연어) */
   solutionRequest: string;
 }
 
-/** Step 2: 프로토타입 선택 */
-export interface PrototypesStep {
-  /** 선택된 프로토타입 ID */
-  selectedPrototypeId: string | null;
-  /** 생성된 프로토타입 목록 */
-  generatedPrototypes: PrototypeOption[];
+// ---------------------------------------------------------------------------
+// Step 2: 프로토타입
+// ---------------------------------------------------------------------------
+
+/** 프로토타입 UI 메뉴 항목 */
+export interface PrototypeUIMenuItem {
+  label: string;
+  icon?: string;
+  path?: string;
 }
 
+/** 프로토타입 UI 페이지 정의 */
+export interface PrototypeUIPage {
+  name: string;
+  description?: string;
+  components?: string[];
+}
+
+/** 프로토타입 UI 컬러 팔레트 */
+export interface PrototypeUIColors {
+  primary: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+}
+
+/** 프로토타입 UI 구조 (메뉴/페이지/컬러) */
+export interface PrototypeUIStructure {
+  menus: PrototypeUIMenuItem[];
+  pages: PrototypeUIPage[];
+  colors: PrototypeUIColors;
+}
+
+/** 프로토타입 후보 */
+export interface Prototype {
+  id: string;
+  name: string;
+  solutionType: string;
+  reasoning: string | null;
+  uiStructure?: PrototypeUIStructure;
+  config: Record<string, unknown>;
+}
+
+/** @deprecated Use Prototype instead */
 export interface PrototypeOption {
   id: string;
   name: string;
@@ -44,10 +94,67 @@ export interface PrototypeOption {
   config: Record<string, unknown>;
 }
 
-/** Step 3: PM 선택 */
+/** Step 2 위저드 상태 */
+export interface PrototypesStep {
+  /** 선택된 프로토타입 ID */
+  selectedPrototypeId: string | null;
+  /** 생성된 프로토타입 목록 */
+  generatedPrototypes: Prototype[];
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: PM 선택
+// ---------------------------------------------------------------------------
+
+/** PM 프로필 (프론트엔드 표현 타입) */
+export interface PMProfile {
+  id: string;
+  name: string;
+  slug: string;
+  title?: string;
+  description: string | null;
+  avatarUrl: string | null;
+  domain?: string;
+  specialties: string[];
+  skills: string[];
+  experienceAreas: string[];
+  personalityTraits: Record<string, unknown>;
+  isActive: boolean;
+}
+
+/** PM 성과 지표 */
+export interface PMMetrics {
+  pmProfileId: string;
+  totalProjects: number;
+  successRate: number;
+  avgRating: number;
+}
+
+/** PM 구성 항목 단위 */
+export interface PMCompositionItem {
+  id: string;
+  componentType: "agent" | "skill" | "tool";
+  componentSlug: string;
+  componentName: string;
+  config: Record<string, unknown>;
+  displayOrder: number;
+  isRequired: boolean;
+}
+
+/** PM 구성 전체 (에이전트/스킬/도구 조합) */
+export interface PMComposition {
+  pmProfileId: string;
+  items: PMCompositionItem[];
+}
+
+/** Step 3 위저드 상태 */
 export interface PMStep {
   selectedPmProfileId: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Step 4~6: 에이전트, 플랫폼, 환경변수
+// ---------------------------------------------------------------------------
 
 /** Step 4: 에이전트 구성 */
 export interface AgentsStep {
@@ -65,7 +172,11 @@ export interface EnvStep {
   envVars: Record<string, string>;
 }
 
-/** 위저드 전체 데이터 */
+// ---------------------------------------------------------------------------
+// 위저드 전체 상태
+// ---------------------------------------------------------------------------
+
+/** 솔루션 위저드 전체 데이터 */
 export interface SolutionWizardData {
   /** 현재 세션 ID (Step 1 완료 후 생성) */
   sessionId: string | null;

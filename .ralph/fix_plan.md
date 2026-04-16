@@ -6,16 +6,18 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[api] Phase 2 API 테스트 작성**
-  > 요청사항: Phase 2 API 엔드포인트 pytest 테스트.
+- [x] **[web] 솔루션 위저드 타입 정의**
+  > 요청사항: src/types/solution-wizard.ts 신규 작성.
 
-* tests/test_prototype_sessions.py: 세션 생성/조회/업데이트/프로토타입 목록 (최소 3개씩)
-* tests/test_pm_profiles.py: PM 목록/상세/구성/평가 (최소 3개씩)
-* ClaudeService mock 처리 (실제 API 호출 방지)
+기존 wizard.ts 패턴 참고하여 새 위저드용 타입 정의.
 
-conftest.py에 PM 시드 데이터 fixture 추가.
+* SOLUTION_WIZARD_STEPS 상수 (7단계)
+* CompanyInfo, SolutionPrompt
+* Prototype, PrototypeUIStructure (메뉴/페이지/컬러)
+* PMProfile, PMMetrics, PMComposition, PMCompositionItem
+* SolutionWizardData (전체 상태 타입)
 
 ---
 
@@ -25,4 +27,4 @@ conftest.py에 PM 시드 데이터 fixture 추가.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] Phase 2 API 테스트 작성 | ✅ | test_prototype_sessions.py 11개, test_pm_profiles.py 12개 (총 23개 통과), conftest.py seeded_pm_profiles fixture 추가 |
+| 2026-04-16 | [web] 솔루션 위저드 타입 정의 | ✅ 완료 | CompanyInfo, SolutionPrompt, PrototypeUIStructure, PMProfile, PMMetrics, PMComposition, PMCompositionItem 추가. tsc 타입체크 통과 |
