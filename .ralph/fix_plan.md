@@ -8,16 +8,15 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] ClaudeService 구현 (Claude API 연동)**
-  > 요청사항: app/services/claude_service.py 신규 작성.
+- [x] **[api] PrototypeService 구현 (세션/프로토타입 관리)**
+  > 요청사항: app/services/prototype_service.py 신규 작성.
 
-Anthropic Python SDK (anthropic.AsyncAnthropic) 사용.
-
-* analyze_solution(prompt, org_context) → 자연어 → 구조화 요구사항 JSON
-* generate_ui_structure(requirements, variant_index) → UI 구조 JSON (메뉴, 페이지, 컬러)
-* recommend_pm(requirements, prototype_style, pm_catalog) → PM 추천 + reasoning
-
-프롬프트 엔지니어링 포함. 각 메서드별 시스템 프롬프트 정의.
+* create_session(user_id, org_id, prompt) → 세션 생성 + status=pending
+* analyze_requirements(session_id) → ClaudeService.analyze_solution 호출 → parsed_requirements 저장
+* generate_prototypes(session_id) → 3\~4개 비동기 생성 (BackgroundTasks)
+* get_session(session_id) → 세션 + 프로토타입 목록 조회
+* select_prototype(session_id, prototype_id) → 선택 저장
+* get_generation_status(session_id) → 생성 진행률 반환
 
 ---
 
@@ -27,4 +26,4 @@ Anthropic Python SDK (anthropic.AsyncAnthropic) 사용.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] ClaudeService 구현 | ✅ 완료 | anthropic SDK async 메서드 3개 + 테스트 19개 |
+| 2026-04-16 | [api] PrototypeService 구현 | ✅ 완료 | 기존 구현 검증 + 테스트 11개 통과 |
