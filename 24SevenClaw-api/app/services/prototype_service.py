@@ -79,35 +79,51 @@ class PrototypeService:
         """세션 상태를 조회한다."""
         return await self.get_session(session_id, user_id)
 
-    async def generate_prototypes(
+    async def start_generation(
         self, session_id: UUID, user_id: UUID
-    ) -> list[Prototype]:
-        """프로토타입을 생성한다 (ClaudeService 연동)."""
+    ) -> PrototypeSession:
+        """생성 시작: status를 generating으로 변경하고 세션을 반환한다.
+
+        이미 generating/completed 상태이면 AppError(409)를 발생시킨다.
+        """
         session = await self.get_session(session_id, user_id)
 
-        if session.status == "completed":
+        if session.status in ("generating", "completed"):
             raise AppError(
                 "ALREADY_GENERATED",
                 "이미 프로토타입이 생성된 세션입니다",
                 409,
             )
 
-        # 상태 → generating
         session.status = "generating"  # type: ignore[assignment]
         await self.db.commit()
+        await self.db.refresh(session)
+        return session
+
+    async def run_generation(self, session_id: UUID, user_id: UUID) -> None:
+        """백그라운드에서 실제 프로토타입 생성 작업을 수행한다.
+
+        이 메서드는 BackgroundTasks에 의해 독립 DB 세션으로 호출된다.
+        성공 시 status=completed, 실패 시 status=failed.
+        """
+        stmt = select(PrototypeSession).where(
+            PrototypeSession.id == session_id,
+            PrototypeSession.user_id == user_id,
+        )
+        result = await self.db.execute(stmt)
+        session = result.scalar_one_or_none()
+        if session is None:
+            return
 
         try:
-            # 사용자 입력 분석 → 솔루션 유형 결정
             raw_input = session.user_input
             user_input: dict[str, Any] = dict(raw_input) if raw_input else {}
             solution_type = self._claude.analyze_input(user_input)
 
-            # 프로토타입 템플릿 생성
             templates = self._claude.generate_prototypes(
                 solution_type, user_input
             )
 
-            prototypes: list[Prototype] = []
             for tmpl in templates:
                 proto = Prototype(
                     session_id=session.id,
@@ -117,16 +133,9 @@ class PrototypeService:
                     reasoning=tmpl.get("reasoning"),
                 )
                 self.db.add(proto)
-                prototypes.append(proto)
 
-            # 상태 → completed
             session.status = "completed"  # type: ignore[assignment]
             await self.db.commit()
-
-            for proto in prototypes:
-                await self.db.refresh(proto)
-
-            return prototypes
 
         except Exception:
             session.status = "failed"  # type: ignore[assignment]

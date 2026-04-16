@@ -82,12 +82,19 @@ async def _create_org_and_prototype(
     )
     session_id = session_resp.json()["id"]
 
-    # 프로토타입 생성
+    # 프로토타입 생성 시작 (202 Accepted)
     gen_resp = await client.post(
         f"/api/v1/prototype-sessions/{session_id}/generate",
         headers=headers,
     )
-    return gen_resp.json()[0]
+    assert gen_resp.status_code == 202
+
+    # 백그라운드 완료 후 첫 번째 프로토타입 반환
+    proto_resp = await client.get(
+        f"/api/v1/prototype-sessions/{session_id}/prototypes",
+        headers=headers,
+    )
+    return proto_resp.json()["items"][0]
 
 
 @pytest.mark.asyncio

@@ -1,14 +1,17 @@
 """프로토타입 세션 API 라우터 — 8개 엔드포인트."""
 
+import contextlib
+from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import async_session, get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.prototype import (
+    GenerateStartResponse,
     PrototypeListResponse,
     PrototypeResponse,
     PrototypeSelectRequest,
@@ -17,6 +20,17 @@ from app.schemas.prototype import (
     PrototypeSessionStatusResponse,
 )
 from app.services.prototype_service import PrototypeService
+
+# 테스트에서 이 변수를 TestSession으로 교체할 수 있다.
+_bg_session_factory: Any = async_session
+
+
+async def _run_generation_bg(session_id: UUID, user_id: UUID) -> None:
+    """독립 DB 세션으로 백그라운드 프로토타입 생성을 실행한다."""
+    async with _bg_session_factory() as db:
+        service = PrototypeService(db)
+        with contextlib.suppress(Exception):
+            await service.run_generation(session_id=session_id, user_id=user_id)
 
 router = APIRouter(prefix="/prototype-sessions", tags=["prototype-sessions"])
 
@@ -81,19 +95,32 @@ async def get_session_status(
 
 
 @router.post(
-    "/{session_id}/generate", response_model=list[PrototypeResponse]
+    "/{session_id}/generate",
+    response_model=GenerateStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def generate_prototypes(
     session_id: UUID,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> list[PrototypeResponse]:
-    """프로토타입을 생성한다."""
+) -> GenerateStartResponse:
+    """프로토타입 생성을 시작한다 (비동기 백그라운드 처리).
+
+    즉시 202 Accepted를 반환하고 백그라운드에서 생성을 진행한다.
+    클라이언트는 GET /{session_id}/status 를 폴링하여 완료 여부를 확인한다.
+    """
     service = PrototypeService(db)
-    prototypes = await service.generate_prototypes(
+    await service.start_generation(
         session_id=session_id, user_id=user.id  # type: ignore[arg-type]
     )
-    return [PrototypeResponse.model_validate(p) for p in prototypes]
+    background_tasks.add_task(
+        _run_generation_bg, session_id, user.id  # type: ignore[arg-type]
+    )
+    return GenerateStartResponse(
+        message="프로토타입 생성이 시작되었습니다",
+        session_id=session_id,
+    )
 
 
 @router.get(

@@ -1036,6 +1036,11 @@ export interface PMRatingResponse {
   created_at: string;
 }
 
+export interface GenerateStartResponse {
+  message: string;
+  session_id: string;
+}
+
 export const prototypeSessions = {
   create: (token: string, data: PrototypeSessionCreateRequest) =>
     authRequest<PrototypeSessionResponse>("/api/v1/prototype-sessions/", token, {
@@ -1066,8 +1071,9 @@ export const prototypeSessions = {
       token,
     ),
 
+  /** 프로토타입 생성 시작 (202 Accepted). 클라이언트는 getStatus로 폴링해야 한다. */
   generate: (token: string, sessionId: string) =>
-    authRequest<PrototypeResponse[]>(
+    authRequest<GenerateStartResponse>(
       `/api/v1/prototype-sessions/${sessionId}/generate`,
       token,
       { method: "POST" },

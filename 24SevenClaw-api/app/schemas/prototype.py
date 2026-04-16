@@ -56,3 +56,10 @@ class PrototypeSelectRequest(BaseModel):
 class PrototypeListResponse(BaseModel):
     items: list[PrototypeResponse]
     total: int
+
+
+class GenerateStartResponse(BaseModel):
+    """프로토타입 생성 시작 응답 (202 Accepted)."""
+
+    message: str
+    session_id: UUID
