@@ -4,7 +4,8 @@ export const SOLUTION_WIZARD_STEPS = [
   { id: "company", label: "회사 정보", description: "회사 정보와 솔루션 요구사항 입력" },
   { id: "generation", label: "솔루션 생성", description: "AI가 솔루션 프로토타입을 생성합니다" },
   { id: "prototypes", label: "프로토타입", description: "AI가 생성한 솔루션 후보 선택" },
-  { id: "pm", label: "PM 선택", description: "프로젝트 매니저 AI 선택" },
+  { id: "pm-recommendation", label: "PM 추천", description: "AI가 최적의 PM을 분석합니다" },
+  { id: "pm-selection", label: "PM 선택", description: "프로젝트 매니저 AI 선택" },
   { id: "agents", label: "에이전트", description: "AI 에이전트 구성 확인" },
   { id: "platform", label: "플랫폼", description: "Agent 플랫폼 선택" },
   { id: "env", label: "환경변수", description: "API 키 및 환경변수 입력" },
@@ -131,8 +132,20 @@ export interface PrototypesStep {
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: PM 선택
+// Step 3-4: PM 추천 / PM 선택
 // ---------------------------------------------------------------------------
+
+/** PM 추천 항목 (POST /prototype-sessions/{id}/recommend-pms 응답 항목) */
+export interface PMRecommendedItem {
+  pmId: string;
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+  title: string | null;
+  domain: string | null;
+  matchScore: number;
+  reasoning: string;
+}
 
 /** PM 프로필 (프론트엔드 표현 타입) */
 export interface PMProfile {
@@ -175,9 +188,11 @@ export interface PMComposition {
   items: PMCompositionItem[];
 }
 
-/** Step 3 위저드 상태 */
+/** Step 3-4 위저드 상태 */
 export interface PMStep {
   selectedPmProfileId: string | null;
+  /** Step 3 (PM 추천) 결과 캐시 — Step 4에서 소비 */
+  recommendedItems: PMRecommendedItem[];
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +252,7 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   },
   pm: {
     selectedPmProfileId: null,
+    recommendedItems: [],
   },
   agents: {
     selectedAgents: [],

@@ -8,21 +8,22 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 비동기 프로토타입 생성 구조 (BackgroundTasks)**
-  > 요청사항: FastAPI BackgroundTasks로 프로토타입 비동기 생성 구현.
+- [x] **[web] Step 4-5 PM 추천 + 선택 UI**
+  > 요청사항: Step 4: src/components/solutions/wizard/steps/step-pm-recommendation.tsx
 
-POST /prototype-sessions/{id}/prototypes/generate 호출 시:
+* 프로토타입 선택 후 POST /prototype-sessions/{id}/recommend-pms 호출
+* 로딩 중 스켈레톤 카드 표시
+* 완료 시 자동으로 Step 5로 전환
 
-1. session.status = "generating" 저장
-2. BackgroundTasks에 generate_prototypes 등록
-3. 즉시 { task_id, status: "generating" } 응답
+Step 5: src/components/solutions/wizard/steps/step-pm-selection.tsx
 
-백그라운드 태스크:
-
-1. ClaudeService.generate_ui_structure(requirements, variant_index) × 3\~4회
-2. 각 결과를 Prototype 레코드로 저장 (status: ready)
-3. 모두 완료 시 session.status = "completed"
-4. 실패 시 해당 prototype.status = "failed"
+* PM 카드형 UI (pm-profile-card.tsx):
+  * 아바타 + 이름 + 직함
+  * 별점 (pm-rating-stars.tsx) + 평점
+  * 프로젝트 완료건수, 사용빈도, 성공률, 평균 완료일
+  * 전문 분야 태그
+* 카드 클릭 → 선택 하이라이트
+* PATCH /prototype-sessions/{id} (selected_pm_id)
 
 ---
 
@@ -32,4 +33,4 @@ POST /prototype-sessions/{id}/prototypes/generate 호출 시:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] 비동기 프로토타입 생성 구조 | ✅ 완료 | run_generation: analyze_solution→generate_ui_structure×3, fallback→stub, status=ready |
+| 2026-04-16 | [web] Step 4-5 PM 추천 + 선택 UI | ✅ 완료 | step-pm-recommendation.tsx + step-pm-selection.tsx 생성, SOLUTION_WIZARD_STEPS 9단계로 분리, PMProfileCard 4메트릭 추가 |

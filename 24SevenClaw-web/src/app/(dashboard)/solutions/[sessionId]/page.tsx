@@ -10,7 +10,8 @@ import {
   StepCompany,
   StepPrototypeGeneration,
   StepPrototypeSelection,
-  StepPMSelect,
+  StepPMRecommendation,
+  StepPMSelection,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -19,12 +20,13 @@ import {
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 
-// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM, 4=에이전트, 5=플랫폼, 6=환경변수, 7=최종확인
+// 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
 const STEP_COMPONENTS = [
   StepCompany,
   StepPrototypeGeneration,
   StepPrototypeSelection,
-  StepPMSelect,
+  StepPMRecommendation,
+  StepPMSelection,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -135,7 +137,7 @@ export default function SolutionSessionPage() {
 
   const StepComponent = STEP_COMPONENTS[currentStep];
 
-  // 인덱스: 0=회사정보, 1=솔루션생성(자동이동), 2=프로토타입선택, 3=PM, 4=에이전트, 5=플랫폼, 6=환경변수, 7=최종확인
+  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
@@ -150,9 +152,14 @@ export default function SolutionSessionPage() {
         return false;
       case 2:
         return !!data.prototypes.selectedPrototypeId;
+      case 3:
+        // PM 추천 단계: 자동 이동, 수동 진행 불가
+        return false;
       case 4:
-        return data.agents.selectedAgents.length > 0;
+        return !!data.pm.selectedPmProfileId;
       case 5:
+        return data.agents.selectedAgents.length > 0;
+      case 6:
         return !!data.platform.platformId;
       default:
         return true;

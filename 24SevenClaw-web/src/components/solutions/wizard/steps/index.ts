@@ -4,6 +4,8 @@ export { StepPrototypeGeneration } from "./step-prototype-generation";
 export { StepPrototypes } from "./step-prototypes";
 export { StepPrototypeSelection } from "./step-prototype-selection";
 export { StepPMSelect } from "./step-pm-select";
+export { StepPMRecommendation } from "./step-pm-recommendation";
+export { StepPMSelection } from "./step-pm-selection";
 export { StepSolutionAgents } from "./step-solution-agents";
 export { StepSolutionPlatform } from "./step-solution-platform";
 export { StepSolutionEnv } from "./step-solution-env";

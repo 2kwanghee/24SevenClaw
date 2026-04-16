@@ -7,6 +7,7 @@ import {
   type CompanyStep,
   type PrototypesStep,
   type PMStep,
+  type PMRecommendedItem,
   type AgentsStep,
   type PlatformStep,
   type EnvStep,
@@ -31,7 +32,8 @@ interface SolutionWizardActions {
   setPrototypes: (data: Partial<PrototypesStep>) => void;
   selectPrototype: (prototypeId: string) => void;
   setGeneratedPrototypes: (prototypes: PrototypeOption[]) => void;
-  setPM: (data: PMStep) => void;
+  setPM: (data: Partial<PMStep>) => void;
+  setRecommendedPMItems: (items: PMRecommendedItem[]) => void;
   setAgents: (data: AgentsStep) => void;
   setPlatform: (data: PlatformStep) => void;
   setEnv: (data: Partial<EnvStep>) => void;
@@ -116,7 +118,17 @@ export const useSolutionWizardStore = create<
     })),
 
   setPM: (pm) =>
-    set((state) => ({ data: { ...state.data, pm } })),
+    set((state) => ({
+      data: { ...state.data, pm: { ...state.data.pm, ...pm } },
+    })),
+
+  setRecommendedPMItems: (items) =>
+    set((state) => ({
+      data: {
+        ...state.data,
+        pm: { ...state.data.pm, recommendedItems: items },
+      },
+    })),
 
   setAgents: (agents) =>
     set((state) => ({ data: { ...state.data, agents } })),
