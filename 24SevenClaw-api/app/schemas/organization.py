@@ -10,7 +10,7 @@ class OrganizationCreate(BaseModel):
     industry: str | None = Field(None, max_length=100)
     tech_stack: list[str] | None = None
     main_product: str | None = Field(None, max_length=500)
-    business_type: str | None = Field(None, pattern=r"^(b2b|b2c|internal)$")
+    business_type: str | None = Field(None, max_length=100)
     company_description: str | None = None
 
 
@@ -20,7 +20,7 @@ class OrganizationUpdate(BaseModel):
     industry: str | None = Field(None, max_length=100)
     tech_stack: list[str] | None = None
     main_product: str | None = Field(None, max_length=500)
-    business_type: str | None = Field(None, pattern=r"^(b2b|b2c|internal)$")
+    business_type: str | None = Field(None, max_length=100)
     company_description: str | None = None
 
 

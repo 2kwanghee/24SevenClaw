@@ -15,7 +15,7 @@ class Organization(Base):
     industry = Column(String(100), nullable=True)
     tech_stack = Column(JSON, nullable=True)  # e.g. ["Python", "React", "PostgreSQL"]
     main_product = Column(String(500), nullable=True)
-    business_type = Column(String(20), nullable=True)  # b2b | b2c | internal
+    business_type = Column(String(100), nullable=True)
     company_description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

@@ -8,12 +8,14 @@ from pydantic import BaseModel, Field
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
+    project_type: str | None = Field(None, max_length=30)
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = None
     status: str | None = Field(None, pattern=r"^(active|archived)$")
+    project_type: str | None = Field(None, max_length=30)
 
 
 class ProjectResponse(BaseModel):
