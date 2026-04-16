@@ -9,8 +9,7 @@ Step 07 품질 검증을 자동화하기 위한 모델:
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Uuid
-from sqlalchemy.dialects.sqlite import JSON
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, Uuid
 
 from app.database import Base
 
