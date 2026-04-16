@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     rate_limit_auth_requests: int = 10
     rate_limit_auth_window: int = 60
 
+    # Anthropic (Solution Wizard v2)
+    anthropic_api_key: str = ""
+    anthropic_model_default: str = "claude-sonnet-4-20250514"
+    anthropic_model_advanced: str = "claude-opus-4-20250514"
+    prototype_generation_timeout: int = 60
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
