@@ -8,14 +8,13 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[Phase 4] Solution Wizard v2 — 프로토타입 UI**
-  > 요청사항: ## 프로토타입 생성/선택 UI 구현
+- [x] **[Phase 5] Solution Wizard v2 — PM 시스템 UI**
+  > 요청사항: ## PM 추천/선택/구성 확인 UI 구현
 
-* Step 2 (생성 로딩 UI + 폴링)
-* Step 3 (프로토타입 카드 + 자체 프리뷰 렌더링)
-* prototype-card.tsx, prototype-preview.tsx
-* 백엔드 비동기 생성 구조 (BackgroundTasks)
-* Claude API → UI 구조 JSON → 자체 렌더링
+* Step 4 (PM 추천 로딩)
+* Step 5 (PM 카드 UI — 별점, 사용빈도, 완료건수, 성공률)
+* Step 6 (PM 구성 시각화 — agent/skill/hook/mcp_server/plugin)
+* pm-profile-card.tsx, pm-composition-view.tsx, pm-rating-stars.tsx
 
 ---
 
@@ -25,4 +24,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [Phase 4] 프로토타입 UI | ✅ 완료 | BackgroundTasks + 폴링 + 카드/프리뷰 컴포넌트 |
+| 2026-04-16 | Phase 5 PM 시스템 UI | ✅ | pm-rating-stars, pm-profile-card, pm-composition-view, step-pm-select 업데이트 |
