@@ -32,3 +32,4 @@ POST /prototype-sessions/{id}/prototypes/generate 호출 시:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-04-16 | [api] 비동기 프로토타입 생성 구조 | ✅ 완료 | run_generation: analyze_solution→generate_ui_structure×3, fallback→stub, status=ready |
