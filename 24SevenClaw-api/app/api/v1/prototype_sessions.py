@@ -143,20 +143,20 @@ async def list_prototypes(
 
 
 @router.post(
-    "/{session_id}/select", response_model=PrototypeResponse
+    "/{session_id}/select", response_model=PrototypeSessionResponse
 )
 async def select_prototype(
     session_id: UUID,
     data: PrototypeSelectRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> PrototypeResponse:
-    """프로토타입을 선택한다."""
+) -> PrototypeSessionResponse:
+    """프로토타입을 선택한다 — 업데이트된 세션을 반환한다."""
     service = PrototypeService(db)
-    prototype = await service.select_prototype(
+    session = await service.select_prototype(
         session_id=session_id, user_id=user.id, data=data  # type: ignore[arg-type]
     )
-    return PrototypeResponse.model_validate(prototype)
+    return PrototypeSessionResponse.model_validate(session)
 
 
 @router.delete(

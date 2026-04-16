@@ -90,17 +90,16 @@ class PMService:
             return []
 
         # ClaudeService로 매칭 점수 계산
+        design_pattern = str(prototype.design_pattern or "")
         specialties = [str(p.specialty) for p in profiles]
-        scores = self._claude.recommend_pm_scores(
-            str(prototype.solution_type), specialties
-        )
+        scores = self._claude.recommend_pm_scores(design_pattern, specialties)
 
         recommendations: list[dict[str, Any]] = []
         for profile in profiles:
             score = scores.get(str(profile.specialty), 40)
             reasoning = (
                 f"{profile.name}({profile.specialty})은 "
-                f"{prototype.solution_type} 프로젝트에 "
+                f"{design_pattern} 프로젝트에 "
                 f"매칭 점수 {score}점으로 추천됩니다."
             )
             recommendations.append(
@@ -148,14 +147,15 @@ class PMService:
             )
 
         # 매칭 점수 계산
+        design_pattern = str(prototype.design_pattern or "")
         scores = self._claude.recommend_pm_scores(
-            str(prototype.solution_type), [str(pm_profile.specialty)]
+            design_pattern, [str(pm_profile.specialty)]
         )
         match_score = scores.get(str(pm_profile.specialty), 40)
 
         reasoning = (
             f"{pm_profile.name}이(가) {data.role} 역할로 "
-            f"{prototype.solution_type} 프로젝트에 배정되었습니다."
+            f"{design_pattern} 프로젝트에 배정되었습니다."
         )
 
         composition = PMComposition(

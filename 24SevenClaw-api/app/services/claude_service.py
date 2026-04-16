@@ -6,82 +6,106 @@ Phase 3에서 실제 Claude API 연동으로 교체 예정.
 
 from typing import Any
 
-# 솔루션 유형별 프로토타입 템플릿
+# 솔루션 유형별 프로토타입 템플릿 (새 Prototype 모델 필드 기준)
 PROTOTYPE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
     "saas": [
         {
-            "name": "SaaS 풀스택 (Next.js + FastAPI)",
-            "solution_type": "saas",
-            "config": {
+            "title": "SaaS 풀스택 (Next.js + FastAPI)",
+            "description": (
+                "SaaS 서비스에 최적화된 풀스택 구성입니다. "
+                "Next.js의 SSR/SSG와 FastAPI의 고성능 비동기 처리를 결합합니다."
+            ),
+            "design_pattern": "saas-fullstack",
+            "ui_structure": {
                 "frontend": "next.js",
                 "backend": "fastapi",
                 "database": "postgresql",
                 "auth": "jwt",
                 "deployment": "docker",
             },
-            "reasoning": "SaaS 서비스에 최적화된 풀스택 구성입니다. "
-            "Next.js의 SSR/SSG와 FastAPI의 고성능 비동기 처리를 결합합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
         {
-            "name": "SaaS 경량 (React + Express)",
-            "solution_type": "saas",
-            "config": {
+            "title": "SaaS 경량 (React + Express)",
+            "description": (
+                "빠른 프로토타이핑에 적합한 경량 SaaS 구성입니다. "
+                "React SPA와 Express의 간결한 API 서버를 활용합니다."
+            ),
+            "design_pattern": "saas-lightweight",
+            "ui_structure": {
                 "frontend": "react",
                 "backend": "express",
                 "database": "postgresql",
                 "auth": "session",
                 "deployment": "docker",
             },
-            "reasoning": "빠른 프로토타이핑에 적합한 경량 SaaS 구성입니다. "
-            "React SPA와 Express의 간결한 API 서버를 활용합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
     ],
     "rest-api": [
         {
-            "name": "REST API (FastAPI + PostgreSQL)",
-            "solution_type": "rest-api",
-            "config": {
+            "title": "REST API (FastAPI + PostgreSQL)",
+            "description": (
+                "고성능 REST API에 최적화된 구성입니다. "
+                "FastAPI의 자동 문서 생성과 비동기 처리를 활용합니다."
+            ),
+            "design_pattern": "api-first",
+            "ui_structure": {
                 "framework": "fastapi",
                 "database": "postgresql",
                 "auth": "jwt",
                 "docs": "openapi",
                 "deployment": "docker",
             },
-            "reasoning": "고성능 REST API에 최적화된 구성입니다. "
-            "FastAPI의 자동 문서 생성과 비동기 처리를 활용합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
         {
-            "name": "REST API (Express + MongoDB)",
-            "solution_type": "rest-api",
-            "config": {
+            "title": "REST API (Express + MongoDB)",
+            "description": (
+                "유연한 스키마가 필요한 API에 적합한 구성입니다. "
+                "MongoDB의 문서 기반 저장소와 Express의 미들웨어 생태계를 활용합니다."
+            ),
+            "design_pattern": "api-first",
+            "ui_structure": {
                 "framework": "express",
                 "database": "mongodb",
                 "auth": "jwt",
                 "docs": "swagger",
                 "deployment": "docker",
             },
-            "reasoning": "유연한 스키마가 필요한 API에 적합한 구성입니다. "
-            "MongoDB의 문서 기반 저장소와 Express의 미들웨어 생태계를 활용합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
     ],
     "fullstack": [
         {
-            "name": "풀스택 (Next.js + FastAPI)",
-            "solution_type": "fullstack",
-            "config": {
+            "title": "풀스택 (Next.js + FastAPI)",
+            "description": (
+                "풀스택 애플리케이션의 표준 구성입니다. "
+                "Next.js의 풀스택 기능과 FastAPI의 고성능 API를 결합합니다."
+            ),
+            "design_pattern": "fullstack-separated",
+            "ui_structure": {
                 "frontend": "next.js",
                 "backend": "fastapi",
                 "database": "postgresql",
                 "auth": "jwt",
                 "deployment": "docker-compose",
             },
-            "reasoning": "풀스택 애플리케이션의 표준 구성입니다. "
-            "Next.js의 풀스택 기능과 FastAPI의 고성능 API를 결합합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
         {
-            "name": "풀스택 (Next.js + Prisma)",
-            "solution_type": "fullstack",
-            "config": {
+            "title": "풀스택 (Next.js + Prisma)",
+            "description": (
+                "Next.js 단일 프레임워크로 프론트/백을 통합하는 구성입니다. "
+                "Prisma ORM과 NextAuth로 빠르게 풀스택을 구축합니다."
+            ),
+            "design_pattern": "fullstack-monolith",
+            "ui_structure": {
                 "frontend": "next.js",
                 "backend": "next.js-api-routes",
                 "database": "postgresql",
@@ -89,51 +113,63 @@ PROTOTYPE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
                 "auth": "next-auth",
                 "deployment": "vercel",
             },
-            "reasoning": "Next.js 단일 프레임워크로 프론트/백을 통합하는 구성입니다. "
-            "Prisma ORM과 NextAuth로 빠르게 풀스택을 구축합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
     ],
     "internal-tool": [
         {
-            "name": "내부 도구 (React Admin + FastAPI)",
-            "solution_type": "internal-tool",
-            "config": {
+            "title": "내부 도구 (React Admin + FastAPI)",
+            "description": (
+                "내부 관리 도구에 최적화된 구성입니다. "
+                "React Admin의 CRUD UI와 FastAPI의 빠른 API 개발을 결합합니다."
+            ),
+            "design_pattern": "admin-dashboard",
+            "ui_structure": {
                 "frontend": "react-admin",
                 "backend": "fastapi",
                 "database": "postgresql",
                 "auth": "ldap",
                 "deployment": "docker",
             },
-            "reasoning": "내부 관리 도구에 최적화된 구성입니다. "
-            "React Admin의 CRUD UI와 FastAPI의 빠른 API 개발을 결합합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
     ],
     "mvp": [
         {
-            "name": "MVP (Next.js 풀스택)",
-            "solution_type": "mvp",
-            "config": {
+            "title": "MVP (Next.js 풀스택)",
+            "description": (
+                "최소 기능 제품을 빠르게 출시하기 위한 구성입니다. "
+                "Next.js 하나로 프론트/백을 구현하고 Vercel로 즉시 배포합니다."
+            ),
+            "design_pattern": "mvp-monolith",
+            "ui_structure": {
                 "frontend": "next.js",
                 "backend": "next.js-api-routes",
                 "database": "sqlite",
                 "auth": "next-auth",
                 "deployment": "vercel",
             },
-            "reasoning": "최소 기능 제품을 빠르게 출시하기 위한 구성입니다. "
-            "Next.js 하나로 프론트/백을 구현하고 Vercel로 즉시 배포합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
         {
-            "name": "MVP (Flask + HTMX)",
-            "solution_type": "mvp",
-            "config": {
+            "title": "MVP (Flask + HTMX)",
+            "description": (
+                "최소 복잡도로 동작하는 MVP 구성입니다. "
+                "Flask + HTMX로 SPA 없이 인터랙티브한 웹 앱을 구현합니다."
+            ),
+            "design_pattern": "mvp-server-rendered",
+            "ui_structure": {
                 "frontend": "htmx",
                 "backend": "flask",
                 "database": "sqlite",
                 "auth": "session",
                 "deployment": "railway",
             },
-            "reasoning": "최소 복잡도로 동작하는 MVP 구성입니다. "
-            "Flask + HTMX로 SPA 없이 인터랙티브한 웹 앱을 구현합니다.",
+            "menu_structure": {},
+            "color_palette": {},
         },
     ],
 }
@@ -141,17 +177,21 @@ PROTOTYPE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
 # 기본 템플릿 (매칭 안 될 때)
 DEFAULT_TEMPLATES: list[dict[str, Any]] = [
     {
-        "name": "범용 웹 애플리케이션 (Next.js + FastAPI)",
-        "solution_type": "custom",
-        "config": {
+        "title": "범용 웹 애플리케이션 (Next.js + FastAPI)",
+        "description": (
+            "범용적인 웹 애플리케이션 구성입니다. "
+            "Next.js와 FastAPI의 검증된 조합을 활용합니다."
+        ),
+        "design_pattern": "fullstack-separated",
+        "ui_structure": {
             "frontend": "next.js",
             "backend": "fastapi",
             "database": "postgresql",
             "auth": "jwt",
             "deployment": "docker",
         },
-        "reasoning": "범용적인 웹 애플리케이션 구성입니다. "
-        "Next.js와 FastAPI의 검증된 조합을 활용합니다.",
+        "menu_structure": {},
+        "color_palette": {},
     },
 ]
 
@@ -184,18 +224,9 @@ class ClaudeService:
     Phase 3에서 실제 Claude API로 교체 예정.
     """
 
-    def analyze_input(self, user_input: dict[str, Any]) -> str:
-        """사용자 입력에서 솔루션 유형을 추출한다.
-
-        user_input 구조:
-            - company_name: str
-            - description: str (자연어 설명)
-            - business_type: str (optional)
-        """
-        description = str(user_input.get("description", "")).lower()
-        business_type = str(user_input.get("business_type", "")).lower()
-
-        text = f"{description} {business_type}"
+    def analyze_input(self, solution_prompt: str) -> str:
+        """솔루션 프롬프트에서 솔루션 유형을 추출한다."""
+        text = solution_prompt.lower()
 
         # 키워드 매칭으로 솔루션 유형 결정
         for keyword, solution_type in KEYWORD_TYPE_MAP.items():
@@ -205,7 +236,7 @@ class ClaudeService:
         return "fullstack"  # 기본값
 
     def generate_prototypes(
-        self, solution_type: str, user_input: dict[str, Any]
+        self, solution_type: str, solution_prompt: str
     ) -> list[dict[str, Any]]:
         """솔루션 유형에 맞는 프로토타입 템플릿을 반환한다."""
         templates = PROTOTYPE_TEMPLATES.get(solution_type, DEFAULT_TEMPLATES)
