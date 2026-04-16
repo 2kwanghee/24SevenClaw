@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import {
@@ -19,7 +20,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { organizations, prototypeSessions, ApiClientError } from "@/lib/api-client";
+import { organizations, prototypeSessions, ApiClientError, NetworkError } from "@/lib/api-client";
 
 // 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
 const STEP_COMPONENTS = [
@@ -124,7 +125,10 @@ export default function NewSolutionPage() {
       nextStep();
       router.replace(`/solutions/${ps.id}`);
     } catch (err) {
-      if (err instanceof ApiClientError) {
+      if (err instanceof NetworkError) {
+        toast.error(err.message);
+        setError(err.message);
+      } else if (err instanceof ApiClientError) {
         setError(err.detail);
       } else {
         setError("세션 생성에 실패했습니다.");
@@ -154,7 +158,10 @@ export default function NewSolutionPage() {
       reset();
       router.push(`/projects/${result.project_id}`);
     } catch (err) {
-      if (err instanceof ApiClientError) {
+      if (err instanceof NetworkError) {
+        toast.error(err.message);
+        setError(err.message);
+      } else if (err instanceof ApiClientError) {
         setError(err.detail);
       } else {
         setError("프로젝트 생성에 실패했습니다.");

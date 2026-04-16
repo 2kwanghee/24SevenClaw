@@ -6,23 +6,24 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] Step 6 PM 구성 확인 UI**
-  > 요청사항: src/components/solutions/wizard/steps/step-pm-composition.tsx
+- [x] **[web] E2E 플로우 테스트 + 에러 핸들링**
+  > 요청사항: 전체 7단계 위저드 관통 테스트 + 에러 처리.
 
-GET /pm-profiles/{id}/composition 호출하여 PM 구성 표시.
+E2E:
 
-pm-composition-view.tsx:
+* Step 1\~7 순차 진행 정상 동작
+* 뒤로가기/앞으로가기 네비게이션
+* 세션 재진입 (/solutions/\[sessionId\])
+* 최종 확인 → 프로젝트 생성
 
-* 5개 카테고리별 섹션: Agent, Skill, Hook, MCP Server, Plugin
-* 각 항목: 아이콘 + 이름 + 슬러그 + 필수/선택 배지 + 간단 설명
-* 카테고리별 접기/펴기
+에러 핸들링:
 
-액션:
-
-* "이대로 진행" → Step 7로 이동
-* "PM 재선택" → Step 5로 돌아가기
+* Claude API 타임아웃/실패 시 재시도 UI
+* 네트워크 에러 토스트
+* 유효성 검증 실패 시 필드 하이라이트
+* 각 스텝별 로딩 스켈레톤
 
 ---
 
@@ -32,4 +33,4 @@ pm-composition-view.tsx:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 6 PM 구성 확인 UI | ✅ | step-pm-composition.tsx 생성, SOLUTION_WIZARD_STEPS 업데이트 |
+| 2026-04-16 | [web] E2E 플로우 테스트 + 에러 핸들링 | ✅ 완료 | NetworkError 클래스, toast 통합, PM선택 스켈레톤, Vitest 테스트 35개 |

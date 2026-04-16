@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Info, Loader2, Sparkles, UserCircle2 } from "lucide-react";
+import { Info, Sparkles, UserCircle2 } from "lucide-react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import {
@@ -163,20 +163,43 @@ export function StepPMSelection() {
     }
   };
 
-  /* ── 로딩 상태 ─────────────────────────────────────────────────────── */
+  /* ── 로딩 상태: 스켈레톤 카드 그리드 ─────────────────────────────── */
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="relative mb-6">
-          <div className="h-16 w-16 animate-pulse rounded-full border border-emerald-500/20 bg-emerald-500/5" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="h-7 w-7 animate-spin text-emerald-400" />
-          </div>
+      <div className="space-y-5">
+        {recommendedItems.length > 0 && (
+          <div className="h-10 animate-pulse rounded-xl bg-white/[0.03]" aria-hidden="true" />
+        )}
+        <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="PM 프로필 불러오는 중">
+          {Array.from({ length: recommendedItems.length > 0 ? recommendedItems.length : 3 }, (_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-4"
+              style={{ animationDelay: `${i * 100}ms` }}
+              aria-hidden="true"
+            >
+              <div className="mb-3 flex items-start gap-3">
+                <div className="h-12 w-12 shrink-0 rounded-full bg-white/[0.07]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 rounded-md bg-white/[0.07]" />
+                  <div className="h-3 w-20 rounded-full bg-white/[0.05]" />
+                </div>
+              </div>
+              <div className="mb-3 space-y-1.5">
+                <div className="h-3 w-full rounded-md bg-white/[0.05]" />
+                <div className="h-3 w-4/5 rounded-md bg-white/[0.05]" />
+              </div>
+              <div className="grid grid-cols-4 gap-2 rounded-lg bg-white/[0.03] p-2">
+                {Array.from({ length: 4 }, (_, j) => (
+                  <div key={j} className="space-y-1 text-center">
+                    <div className="mx-auto h-4 w-8 rounded-md bg-white/[0.07]" />
+                    <div className="mx-auto h-2.5 w-10 rounded-md bg-white/[0.05]" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-        <p className="text-sm font-semibold text-white">PM 프로필 불러오는 중...</p>
-        <p className="mt-1 text-xs text-slate-500">
-          추천 PM의 상세 정보를 조회하고 있습니다
-        </p>
       </div>
     );
   }

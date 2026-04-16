@@ -18,7 +18,8 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { prototypeSessions, ApiClientError } from "@/lib/api-client";
+import { prototypeSessions, ApiClientError, NetworkError } from "@/lib/api-client";
+import { toast } from "sonner";
 
 // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
 const STEP_COMPONENTS = [
@@ -184,7 +185,10 @@ export default function SolutionSessionPage() {
 
       router.push(`/projects/${result.project_id}`);
     } catch (err) {
-      if (err instanceof ApiClientError) {
+      if (err instanceof NetworkError) {
+        toast.error(err.message);
+        setError(err.message);
+      } else if (err instanceof ApiClientError) {
         setError(err.detail);
       } else {
         setError("프로젝트 생성에 실패했습니다.");

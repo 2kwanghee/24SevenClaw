@@ -22,18 +22,31 @@ class ApiClientError extends Error {
   }
 }
 
+/** fetch 자체가 실패할 때(네트워크 연결 없음, DNS 실패 등) 던지는 에러 */
+class NetworkError extends Error {
+  constructor(message = "네트워크 연결을 확인해 주세요") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_URL}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new NetworkError();
+  }
 
   if (!res.ok) {
     const body = (await res.json().catch(() => ({
@@ -1280,4 +1293,4 @@ export const pmProfiles = {
     authRequest<PMMetricResponse>(`/api/v1/pm-profiles/${profileId}/metrics`, token),
 };
 
-export { ApiClientError };
+export { ApiClientError, NetworkError };
