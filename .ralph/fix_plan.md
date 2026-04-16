@@ -8,17 +8,14 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] api-client.ts 확장 (솔루션 위저드 API)**
-  > 요청사항: src/lib/api-client.ts에 신규 API 메서드 추가.
+- [x] **[web] 솔루션 위저드 레이아웃 + stepper**
+  > 요청사항: 위저드 기본 프레임 구현.
 
-* prototypeSession: create, get, update, getStatus, getPrototypes, generatePrototypes, recommendPMs, finalize
-* pmProfiles: list, get, getComposition, createRating, listRatings
-
-TanStack Query 훅도 함께 작성:
-
-* src/hooks/use-solution-wizard.ts
-* src/hooks/use-prototypes.ts
-* src/hooks/use-pm-profiles.ts
+* src/components/solutions/wizard/solution-wizard-layout.tsx: 레이아웃 + 네비게이션(이전/다음)
+* src/components/solutions/wizard/solution-stepper.tsx: 7단계 인디케이터 (기존 stepper.tsx 참고)
+* src/app/(dashboard)/solutions/new/page.tsx: 위저드 진입점
+* src/app/(dashboard)/solutions/new/layout.tsx: 위저드 레이아웃
+* src/app/(dashboard)/solutions/\[sessionId\]/page.tsx: 세션 재진입
 
 ---
 
@@ -28,4 +25,4 @@ TanStack Query 훅도 함께 작성:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] api-client.ts 확장 (솔루션 위저드 API) | ✅ | 타입 업데이트 + 신규 메서드 + TanStack Query 훅 3개 생성 |
+| 2026-04-16 | [web] 솔루션 위저드 레이아웃 + stepper | 완료 | layout.tsx 생성 (solution-wizard-layout, stepper, new/page, [sessionId]/page 이미 구현됨) |
