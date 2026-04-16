@@ -11,9 +11,11 @@ from app.models.license import License  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
+from app.models.pm_profile import PMComposition, PMMetric, PMProfile, PMRating  # noqa: F401
 from app.models.preset import Preset  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
+from app.models.prototype_session import Prototype, PrototypeSession  # noqa: F401
 from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateRun  # noqa: F401
 from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
@@ -35,13 +37,19 @@ __all__ = [
     "OrchestratorSession",
     "Organization",
     "OrganizationMembership",
+    "PMComposition",
+    "PMMetric",
+    "PMProfile",
+    "PMRating",
     "PhaseEvent",
     "Preset",
     "Project",
+    "ProjectConfig",
+    "Prototype",
+    "PrototypeSession",
     "QualityCheck",
     "QualityGateEvent",
     "QualityGateRun",
-    "ProjectConfig",
     "ReviewEvent",
     "ReviewRound",
     "RoleAuditLog",

@@ -25,6 +25,9 @@ class ProjectResponse(BaseModel):
     status: str
     settings: dict  # type: ignore[type-arg]
     wizard_data: dict[str, Any] | None = None
+    prototype_session_id: UUID | None = None
+    pm_profile_id: UUID | None = None
+    project_type: str | None = None
     created_at: datetime
     updated_at: datetime
 
