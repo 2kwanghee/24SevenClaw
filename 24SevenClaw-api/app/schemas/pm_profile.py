@@ -85,11 +85,25 @@ class PMCompositionUpdate(BaseModel):
     is_required: bool | None = None
 
 
+# --- PMComposition Grouped ---
+
+
+class PMCompositionGroupedResponse(BaseModel):
+    """PM 구성 컴포넌트를 타입별로 그룹화한 응답."""
+
+    agents: list[PMCompositionResponse] = []
+    skills: list[PMCompositionResponse] = []
+    hooks: list[PMCompositionResponse] = []
+    mcp_servers: list[PMCompositionResponse] = []
+    plugins: list[PMCompositionResponse] = []
+
+
 # --- PMRecommend ---
 
 
 class PMRecommendRequest(BaseModel):
     prototype_id: UUID
+    session_id: UUID | None = None
 
 
 class PMRecommendResponse(BaseModel):
