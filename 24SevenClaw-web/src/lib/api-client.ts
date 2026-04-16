@@ -898,4 +898,235 @@ export const reviews = {
     ),
 };
 
+// --- Organizations ---
+
+export interface OrganizationCreateRequest {
+  company_name: string;
+  size?: string;
+  industry?: string;
+  tech_stack?: string[];
+  main_product?: string;
+  business_type?: string;
+  company_description?: string;
+}
+
+export interface OrganizationResponse {
+  id: string;
+  company_name: string;
+  size: string | null;
+  industry: string | null;
+  tech_stack: string[] | null;
+  main_product: string | null;
+  business_type: string | null;
+  company_description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const organizations = {
+  upsert: (token: string, data: OrganizationCreateRequest) =>
+    authRequest<OrganizationResponse>("/api/v1/organizations/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  me: (token: string) =>
+    authRequest<OrganizationResponse>("/api/v1/organizations/me", token),
+};
+
+// --- Solution Wizard v2: Prototype Sessions ---
+
+export interface PrototypeSessionCreateRequest {
+  organization_id: string;
+  user_input: Record<string, unknown>;
+}
+
+export interface PrototypeSessionResponse {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  user_input: Record<string, unknown>;
+  status: "pending" | "generating" | "completed" | "failed";
+  created_at: string;
+}
+
+export interface PrototypeSessionStatusResponse {
+  id: string;
+  status: string;
+  created_at: string;
+}
+
+export interface PrototypeResponse {
+  id: string;
+  session_id: string;
+  name: string;
+  solution_type: string;
+  config: Record<string, unknown>;
+  reasoning: string | null;
+  is_selected: boolean;
+  created_at: string;
+}
+
+export interface PrototypeListResponse {
+  items: PrototypeResponse[];
+  total: number;
+}
+
+export interface PrototypeSelectRequest {
+  prototype_id: string;
+}
+
+// --- Solution Wizard v2: PM Profiles ---
+
+export interface PMProfileResponse {
+  id: string;
+  name: string;
+  slug: string;
+  specialty: string;
+  description: string | null;
+  avatar_url: string | null;
+  skills: string[];
+  experience_areas: string[];
+  personality_traits: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface PMProfileListResponse {
+  items: PMProfileResponse[];
+  total: number;
+}
+
+export interface PMRecommendRequest {
+  prototype_id: string;
+}
+
+export interface PMRecommendResponse {
+  pm_profile: PMProfileResponse;
+  match_score: number;
+  reasoning: string | null;
+}
+
+export interface PMRecommendListResponse {
+  items: PMRecommendResponse[];
+}
+
+export interface PMMetricResponse {
+  id: string;
+  pm_profile_id: string;
+  total_projects: number;
+  success_rate: number;
+  avg_rating: number;
+  updated_at: string;
+}
+
+export interface PMRatingCreateRequest {
+  project_id: string;
+  score: number;
+  comment?: string;
+}
+
+export interface PMRatingResponse {
+  id: string;
+  pm_profile_id: string;
+  project_id: string;
+  user_id: string;
+  score: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export const prototypeSessions = {
+  create: (token: string, data: PrototypeSessionCreateRequest) =>
+    authRequest<PrototypeSessionResponse>("/api/v1/prototype-sessions/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  list: (token: string, params?: { offset?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PrototypeSessionResponse[]>(
+      `/api/v1/prototype-sessions${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, sessionId: string) =>
+    authRequest<PrototypeSessionResponse>(
+      `/api/v1/prototype-sessions/${sessionId}`,
+      token,
+    ),
+
+  getStatus: (token: string, sessionId: string) =>
+    authRequest<PrototypeSessionStatusResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/status`,
+      token,
+    ),
+
+  generate: (token: string, sessionId: string) =>
+    authRequest<PrototypeResponse[]>(
+      `/api/v1/prototype-sessions/${sessionId}/generate`,
+      token,
+      { method: "POST" },
+    ),
+
+  listPrototypes: (token: string, sessionId: string) =>
+    authRequest<PrototypeListResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes`,
+      token,
+    ),
+
+  selectPrototype: (token: string, sessionId: string, data: PrototypeSelectRequest) =>
+    authRequest<PrototypeResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/select`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  delete: (token: string, sessionId: string) =>
+    authRequest<void>(`/api/v1/prototype-sessions/${sessionId}`, token, {
+      method: "DELETE",
+    }),
+};
+
+export const pmProfiles = {
+  list: (
+    token: string,
+    params?: { specialty?: string; is_active?: boolean; offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.specialty) query.set("specialty", params.specialty);
+    if (params?.is_active !== undefined)
+      query.set("is_active", String(params.is_active));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PMProfileListResponse>(
+      `/api/v1/pm-profiles${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, profileId: string) =>
+    authRequest<PMProfileResponse>(`/api/v1/pm-profiles/${profileId}`, token),
+
+  recommend: (token: string, data: PMRecommendRequest) =>
+    authRequest<PMRecommendListResponse>("/api/v1/pm-profiles/recommend", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  rate: (token: string, profileId: string, data: PMRatingCreateRequest) =>
+    authRequest<PMRatingResponse>(`/api/v1/pm-profiles/${profileId}/rate`, token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getMetrics: (token: string, profileId: string) =>
+    authRequest<PMMetricResponse>(`/api/v1/pm-profiles/${profileId}/metrics`, token),
+};
+
 export { ApiClientError };
