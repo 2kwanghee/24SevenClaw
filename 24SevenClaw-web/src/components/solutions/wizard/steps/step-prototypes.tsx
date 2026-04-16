@@ -134,10 +134,10 @@ export function StepPrototypes() {
               setGeneratedPrototypes(
                 protoList.items.map((p) => ({
                   id: p.id,
-                  name: p.name,
-                  solutionType: p.solution_type,
-                  reasoning: p.reasoning,
-                  config: p.config,
+                  name: p.title,
+                  solutionType: p.design_pattern ?? "custom",
+                  reasoning: p.description,
+                  config: (p.ui_structure ?? {}) as Record<string, unknown>,
                 })),
               );
               setIsGenerating(false);

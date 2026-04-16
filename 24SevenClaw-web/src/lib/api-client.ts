@@ -938,16 +938,21 @@ export const organizations = {
 
 export interface PrototypeSessionCreateRequest {
   organization_id: string;
-  user_input: Record<string, unknown>;
+  solution_prompt: string;
 }
 
 export interface PrototypeSessionResponse {
   id: string;
   organization_id: string;
   user_id: string;
-  user_input: Record<string, unknown>;
+  solution_prompt: string | null;
+  parsed_requirements: Record<string, unknown> | null;
   status: "pending" | "generating" | "completed" | "failed";
+  selected_prototype_id: string | null;
+  selected_pm_id: string | null;
+  current_step: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface PrototypeSessionStatusResponse {
@@ -956,15 +961,28 @@ export interface PrototypeSessionStatusResponse {
   created_at: string;
 }
 
+export interface PrototypeSessionUpdateRequest {
+  selected_prototype_id?: string | null;
+  selected_pm_id?: string | null;
+  current_step?: number | null;
+}
+
 export interface PrototypeResponse {
   id: string;
   session_id: string;
-  name: string;
-  solution_type: string;
-  config: Record<string, unknown>;
-  reasoning: string | null;
-  is_selected: boolean;
+  variant_index: number;
+  title: string;
+  description: string | null;
+  design_pattern: string | null;
+  menu_structure: Record<string, unknown> | null;
+  ui_structure: Record<string, unknown> | null;
+  color_palette: Record<string, unknown> | null;
+  thumbnail_url: string | null;
+  figma_file_key: string | null;
+  figma_embed_url: string | null;
+  status: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface PrototypeListResponse {
@@ -972,8 +990,38 @@ export interface PrototypeListResponse {
   total: number;
 }
 
-export interface PrototypeSelectRequest {
-  prototype_id: string;
+/** 세션 기반 PM 추천 응답 단일 항목 (POST /prototype-sessions/{id}/recommend-pms) */
+export interface PMRecommendItemResponse {
+  pm_id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+  title: string | null;
+  domain: string | null;
+  match_score: number;
+  reasoning: string;
+}
+
+/** POST /prototype-sessions/{id}/recommend-pms 응답 */
+export interface SessionRecommendPMsResponse {
+  items: PMRecommendItemResponse[];
+}
+
+export interface FinalizeRequest {
+  project_name: string;
+  description?: string | null;
+}
+
+export interface FinalizeResponse {
+  project_id: string;
+  project_name: string;
+  session_id: string;
+  message: string;
+}
+
+export interface GenerateStartResponse {
+  message: string;
+  session_id: string;
 }
 
 // --- Solution Wizard v2: PM Profiles ---
@@ -982,14 +1030,23 @@ export interface PMProfileResponse {
   id: string;
   name: string;
   slug: string;
-  specialty: string;
-  description: string | null;
   avatar_url: string | null;
-  skills: string[];
-  experience_areas: string[];
-  personality_traits: Record<string, unknown>;
+  title: string | null;
+  description: string | null;
+  domain: string | null;
+  specialties: string[];
+  personality: Record<string, unknown>;
   is_active: boolean;
   created_at: string;
+}
+
+export interface PMProfileWithMetrics extends PMProfileResponse {
+  usage_count: number;
+  completed_projects: number;
+  avg_rating: number;
+  total_ratings: number;
+  success_rate: number;
+  avg_completion_days: number;
 }
 
 export interface PMProfileListResponse {
@@ -999,6 +1056,7 @@ export interface PMProfileListResponse {
 
 export interface PMRecommendRequest {
   prototype_id: string;
+  session_id?: string | null;
 }
 
 export interface PMRecommendResponse {
@@ -1013,32 +1071,53 @@ export interface PMRecommendListResponse {
 
 export interface PMMetricResponse {
   id: string;
-  pm_profile_id: string;
-  total_projects: number;
-  success_rate: number;
+  pm_id: string;
+  usage_count: number;
+  completed_projects: number;
   avg_rating: number;
-  updated_at: string;
+  total_ratings: number;
+  success_rate: number;
+  avg_completion_days: number;
+}
+
+export interface PMCompositionResponse {
+  id: string;
+  pm_id: string;
+  component_type: string;
+  component_slug: string;
+  component_name: string;
+  config: Record<string, unknown>;
+  display_order: number;
+  is_required: boolean;
+}
+
+export interface PMCompositionGroupedResponse {
+  agents: PMCompositionResponse[];
+  skills: PMCompositionResponse[];
+  hooks: PMCompositionResponse[];
+  mcp_servers: PMCompositionResponse[];
+  plugins: PMCompositionResponse[];
 }
 
 export interface PMRatingCreateRequest {
-  project_id: string;
-  score: number;
+  session_id: string;
+  rating: number;
   comment?: string;
 }
 
 export interface PMRatingResponse {
   id: string;
-  pm_profile_id: string;
-  project_id: string;
+  pm_id: string;
   user_id: string;
-  score: number;
+  session_id: string;
+  rating: number;
   comment: string | null;
   created_at: string;
 }
 
-export interface GenerateStartResponse {
-  message: string;
-  session_id: string;
+export interface PMRatingListResponse {
+  items: PMRatingResponse[];
+  total: number;
 }
 
 export const prototypeSessions = {
@@ -1065,31 +1144,68 @@ export const prototypeSessions = {
       token,
     ),
 
+  update: (token: string, sessionId: string, data: PrototypeSessionUpdateRequest) =>
+    authRequest<PrototypeSessionResponse>(
+      `/api/v1/prototype-sessions/${sessionId}`,
+      token,
+      { method: "PATCH", body: JSON.stringify(data) },
+    ),
+
   getStatus: (token: string, sessionId: string) =>
     authRequest<PrototypeSessionStatusResponse>(
       `/api/v1/prototype-sessions/${sessionId}/status`,
       token,
     ),
 
-  /** 프로토타입 생성 시작 (202 Accepted). 클라이언트는 getStatus로 폴링해야 한다. */
-  generate: (token: string, sessionId: string) =>
-    authRequest<GenerateStartResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/generate`,
+  getPrototypes: (token: string, sessionId: string) =>
+    authRequest<PrototypeListResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes`,
       token,
-      { method: "POST" },
     ),
 
+  /** @deprecated Use getPrototypes instead */
   listPrototypes: (token: string, sessionId: string) =>
     authRequest<PrototypeListResponse>(
       `/api/v1/prototype-sessions/${sessionId}/prototypes`,
       token,
     ),
 
-  selectPrototype: (token: string, sessionId: string, data: PrototypeSelectRequest) =>
-    authRequest<PrototypeResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/select`,
+  /** 프로토타입 생성 시작 (202 Accepted). 클라이언트는 getStatus로 폴링해야 한다. */
+  generatePrototypes: (token: string, sessionId: string) =>
+    authRequest<GenerateStartResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes/generate`,
+      token,
+      { method: "POST" },
+    ),
+
+  /** @deprecated Use generatePrototypes instead — 경로 수정됨 */
+  generate: (token: string, sessionId: string) =>
+    authRequest<GenerateStartResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes/generate`,
+      token,
+      { method: "POST" },
+    ),
+
+  recommendPMs: (token: string, sessionId: string) =>
+    authRequest<SessionRecommendPMsResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/recommend-pms`,
+      token,
+      { method: "POST" },
+    ),
+
+  finalize: (token: string, sessionId: string, data: FinalizeRequest) =>
+    authRequest<FinalizeResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/finalize`,
       token,
       { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  /** @deprecated — update({ selected_prototype_id }) 를 사용하세요 */
+  selectPrototype: (token: string, sessionId: string, data: { prototype_id: string }) =>
+    authRequest<PrototypeSessionResponse>(
+      `/api/v1/prototype-sessions/${sessionId}`,
+      token,
+      { method: "PATCH", body: JSON.stringify({ selected_prototype_id: data.prototype_id }) },
     ),
 
   delete: (token: string, sessionId: string) =>
@@ -1101,10 +1217,11 @@ export const prototypeSessions = {
 export const pmProfiles = {
   list: (
     token: string,
-    params?: { specialty?: string; is_active?: boolean; offset?: number; limit?: number },
+    params?: { specialty?: string; domain?: string; is_active?: boolean; offset?: number; limit?: number },
   ) => {
     const query = new URLSearchParams();
     if (params?.specialty) query.set("specialty", params.specialty);
+    if (params?.domain) query.set("domain", params.domain);
     if (params?.is_active !== undefined)
       query.set("is_active", String(params.is_active));
     if (params?.offset !== undefined) query.set("offset", String(params.offset));
@@ -1117,7 +1234,7 @@ export const pmProfiles = {
   },
 
   get: (token: string, profileId: string) =>
-    authRequest<PMProfileResponse>(`/api/v1/pm-profiles/${profileId}`, token),
+    authRequest<PMProfileWithMetrics>(`/api/v1/pm-profiles/${profileId}`, token),
 
   recommend: (token: string, data: PMRecommendRequest) =>
     authRequest<PMRecommendListResponse>("/api/v1/pm-profiles/recommend", token, {
@@ -1125,8 +1242,36 @@ export const pmProfiles = {
       body: JSON.stringify(data),
     }),
 
+  getComposition: (token: string, profileId: string) =>
+    authRequest<PMCompositionGroupedResponse>(
+      `/api/v1/pm-profiles/${profileId}/composition`,
+      token,
+    ),
+
+  createRating: (token: string, profileId: string, data: PMRatingCreateRequest) =>
+    authRequest<PMRatingResponse>(`/api/v1/pm-profiles/${profileId}/ratings`, token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listRatings: (
+    token: string,
+    profileId: string,
+    params?: { offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PMRatingListResponse>(
+      `/api/v1/pm-profiles/${profileId}/ratings${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  /** @deprecated Use createRating instead */
   rate: (token: string, profileId: string, data: PMRatingCreateRequest) =>
-    authRequest<PMRatingResponse>(`/api/v1/pm-profiles/${profileId}/rate`, token, {
+    authRequest<PMRatingResponse>(`/api/v1/pm-profiles/${profileId}/ratings`, token, {
       method: "POST",
       body: JSON.stringify(data),
     }),

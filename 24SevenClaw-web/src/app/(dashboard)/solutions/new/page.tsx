@@ -95,13 +95,7 @@ export default function NewSolutionPage() {
       // 2. 프로토타입 세션 생성
       const ps = await prototypeSessions.create(token, {
         organization_id: org.id,
-        user_input: {
-          company_name: data.company.companyName,
-          main_product: data.company.mainProduct,
-          business_type: data.company.businessType,
-          company_description: data.company.companyDescription,
-          solution_request: data.company.solutionRequest,
-        },
+        solution_prompt: data.company.solutionRequest,
       });
       setSessionId(ps.id);
 
