@@ -143,24 +143,25 @@ export default function NewSolutionPage() {
     }
   };
 
-  // Step 1에서 "다음"을 누르면 API 호출 후 이동
-  const handleNext = currentStep === 0 ? handleStep1Next : handleSubmit;
-
   return (
     <SolutionWizardLayout
-      onSubmit={handleNext}
+      onSubmit={handleSubmit}
+      onNextStep={handleStep1Next}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
     >
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+        <div
+          role="alert"
+          className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
           <p className="flex-1 text-sm text-red-300">{error}</p>
           <button
             type="button"
             onClick={() => {
               setError(null);
-              handleNext();
+              void handleStep1Next();
             }}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-300 transition-colors hover:bg-red-500/10"
           >

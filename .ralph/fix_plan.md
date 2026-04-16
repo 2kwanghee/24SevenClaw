@@ -8,13 +8,13 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[Phase 5] Solution Wizard v2 — PM 시스템 UI**
-  > 요청사항: ## PM 추천/선택/구성 확인 UI 구현
+- [x] **[Phase 6] Solution Wizard v2 — 통합 + 마무리**
+  > 요청사항: ## E2E 통합 테스트 + 마무리
 
-* Step 4 (PM 추천 로딩)
-* Step 5 (PM 카드 UI — 별점, 사용빈도, 완료건수, 성공률)
-* Step 6 (PM 구성 시각화 — agent/skill/hook/mcp_server/plugin)
-* pm-profile-card.tsx, pm-composition-view.tsx, pm-rating-stars.tsx
+* E2E 플로우 테스트 (전체 7단계 관통)
+* 에러 핸들링 + 로딩 상태
+* 반응형 + 접근성
+* 대시보드 네비게이션 업데이트 (새 위저드 메인, 기존 위저드 레거시 병행)
 
 ---
 
@@ -24,4 +24,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | Phase 5 PM 시스템 UI | ✅ | pm-rating-stars, pm-profile-card, pm-composition-view, step-pm-select 업데이트 |
+| 2026-04-16 | Phase 6 Solution Wizard v2 통합+마무리 | ✅ 완료 | 네비게이션 버그 수정, 세션 복원, /solutions 페이지, Vitest 15개 통과, 접근성 개선 |

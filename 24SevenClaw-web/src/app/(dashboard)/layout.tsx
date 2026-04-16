@@ -21,6 +21,8 @@ import { useRBACStore } from "@/stores/rbac-store";
 import { usePermissions } from "@/hooks/use-rbac";
 
 const navItems = [
+  // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
+  { href: "/solutions/new", label: "솔루션 위저드", icon: Sparkles, activePrefix: "/solutions" },
   { href: "/projects", label: "프로젝트", icon: FolderKanban },
   { href: "/registry/agents", label: "에이전트", icon: Bot },
   { href: "/registry/skills", label: "스킬", icon: Puzzle },
@@ -48,6 +50,7 @@ function NavLink({
   icon: React.ComponentType<{ className?: string }>;
   collapsed: boolean;
   isActive: boolean;
+  activePrefix?: string;
 }) {
   return (
     <Link
@@ -113,7 +116,7 @@ export default function DashboardLayout({
                 key={item.href}
                 {...item}
                 collapsed={collapsed}
-                isActive={pathname.startsWith(item.href)}
+                isActive={pathname.startsWith(item.activePrefix ?? item.href)}
               />
             ))}
           </div>

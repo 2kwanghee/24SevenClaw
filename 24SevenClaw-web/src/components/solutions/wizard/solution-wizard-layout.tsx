@@ -15,6 +15,8 @@ interface SolutionWizardLayoutProps {
   children: React.ReactNode;
   /** 마지막 스텝에서 호출되는 제출 핸들러 */
   onSubmit: () => void;
+  /** 중간 스텝에서 "다음" 클릭 시 호출 (미제공 시 내부 nextStep 호출) */
+  onNextStep?: () => Promise<void>;
   isSubmitting?: boolean;
   /** 현재 스텝 진행 가능 여부 */
   canProceed?: boolean;
@@ -25,6 +27,7 @@ interface SolutionWizardLayoutProps {
 export function SolutionWizardLayout({
   children,
   onSubmit,
+  onNextStep,
   isSubmitting = false,
   canProceed = true,
   nextLabel,
@@ -39,6 +42,8 @@ export function SolutionWizardLayout({
   const handleNext = () => {
     if (isLast) {
       onSubmit();
+    } else if (onNextStep) {
+      void onNextStep();
     } else {
       nextStep();
     }
@@ -59,8 +64,9 @@ export function SolutionWizardLayout({
         <Link
           href="/solutions"
           className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
+          aria-label="솔루션 목록으로 이동"
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           솔루션 목록
         </Link>
       </div>
@@ -71,8 +77,14 @@ export function SolutionWizardLayout({
       </div>
 
       {/* 스텝 콘텐츠 */}
-      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8">
-        <h2 className="mb-1 text-lg font-semibold text-white">
+      <section
+        aria-labelledby="wizard-step-heading"
+        className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8"
+      >
+        <h2
+          id="wizard-step-heading"
+          className="mb-1 text-lg font-semibold text-white"
+        >
           {SOLUTION_WIZARD_STEPS[currentStep].label}
         </h2>
         <p className="mb-6 text-sm text-slate-400">
@@ -82,14 +94,15 @@ export function SolutionWizardLayout({
         <div key={currentStep} className="animate-fade-in-up">
           {children}
         </div>
-      </div>
+      </section>
 
       {/* 네비게이션 버튼 */}
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-6 flex items-center justify-between" role="group" aria-label="위저드 네비게이션">
         <button
           type="button"
           onClick={prevStep}
           disabled={isFirst || isBlocked}
+          aria-label="이전 단계로 이동"
           className={cn(
             "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
             isFirst || isBlocked
@@ -97,7 +110,7 @@ export function SolutionWizardLayout({
               : "text-slate-300 hover:bg-white/5 hover:text-white",
           )}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           이전
         </button>
 
@@ -105,6 +118,12 @@ export function SolutionWizardLayout({
           type="button"
           onClick={handleNext}
           disabled={!canProceed || isBlocked}
+          aria-label={
+            isLast
+              ? "프로젝트 생성하기"
+              : `다음 단계로 이동 (${SOLUTION_WIZARD_STEPS[currentStep + 1]?.label ?? ""})`
+          }
+          aria-busy={isSubmitting || isGenerating}
           className={cn(
             "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
             !canProceed || isBlocked
@@ -114,12 +133,12 @@ export function SolutionWizardLayout({
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               생성 중...
             </>
           ) : isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               분석 중...
             </>
           ) : isLast ? (
@@ -127,7 +146,7 @@ export function SolutionWizardLayout({
           ) : (
             <>
               {nextLabel ?? defaultNextLabel}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </>
           )}
         </button>
