@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+import app.api.v1.prototype_sessions as _proto_router
 from app.database import Base, get_db
 from app.main import app
 from app.models import User  # noqa: F401 — 테이블 등록용
@@ -28,12 +29,22 @@ def _register_sqlite_functions(dbapi_connection, connection_record):  # type: ig
 
 @pytest.fixture(autouse=True)
 async def _setup_db() -> AsyncIterator[None]:
-    """각 테스트 전에 테이블 생성, 후에 삭제."""
+    """각 테스트 전에 테이블 생성, 후에 삭제.
+
+    백그라운드 태스크가 테스트 DB를 사용하도록 세션 팩토리도 교체한다.
+    """
+    # 백그라운드 태스크용 세션 팩토리를 테스트 DB로 교체
+    original_factory = _proto_router._bg_session_factory
+    _proto_router._bg_session_factory = TestSession
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+    # 세션 팩토리 복원
+    _proto_router._bg_session_factory = original_factory
 
 
 @pytest.fixture

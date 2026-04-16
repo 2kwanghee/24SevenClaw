@@ -117,21 +117,32 @@ async def test_generate_prototypes(
     org_id = await _create_org(client, auth_headers)
     session = await _create_session(client, auth_headers, org_id)
 
+    # 생성 시작 → 202 Accepted
     resp = await client.post(
         f"/api/v1/prototype-sessions/{session['id']}/generate",
         headers=auth_headers,
     )
-    assert resp.status_code == 200
-    prototypes = resp.json()
-    assert len(prototypes) >= 1
-    assert prototypes[0]["solution_type"] == "saas"
+    assert resp.status_code == 202
+    body = resp.json()
+    assert body["message"] == "프로토타입 생성이 시작되었습니다"
+    assert body["session_id"] == session["id"]
 
-    # 상태가 completed로 변경
+    # BackgroundTask가 완료된 후 상태 확인 (테스트 환경에서 동기 실행)
     status_resp = await client.get(
         f"/api/v1/prototype-sessions/{session['id']}/status",
         headers=auth_headers,
     )
     assert status_resp.json()["status"] == "completed"
+
+    # 프로토타입 목록 확인
+    proto_resp = await client.get(
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes",
+        headers=auth_headers,
+    )
+    assert proto_resp.status_code == 200
+    prototypes = proto_resp.json()
+    assert prototypes["total"] >= 1
+    assert prototypes["items"][0]["solution_type"] == "saas"
 
 
 @pytest.mark.asyncio
@@ -141,13 +152,13 @@ async def test_generate_prototypes_duplicate(
     org_id = await _create_org(client, auth_headers)
     session = await _create_session(client, auth_headers, org_id)
 
-    # 첫 번째 생성
+    # 첫 번째 생성 시작
     await client.post(
         f"/api/v1/prototype-sessions/{session['id']}/generate",
         headers=auth_headers,
     )
 
-    # 중복 생성 시도
+    # 중복 생성 시도 (이미 generating 또는 completed 상태)
     resp = await client.post(
         f"/api/v1/prototype-sessions/{session['id']}/generate",
         headers=auth_headers,
@@ -162,11 +173,12 @@ async def test_list_prototypes(
     org_id = await _create_org(client, auth_headers)
     session = await _create_session(client, auth_headers, org_id)
 
-    # 프로토타입 생성
-    await client.post(
+    # 생성 시작 (백그라운드 완료 대기)
+    gen_resp = await client.post(
         f"/api/v1/prototype-sessions/{session['id']}/generate",
         headers=auth_headers,
     )
+    assert gen_resp.status_code == 202
 
     resp = await client.get(
         f"/api/v1/prototype-sessions/{session['id']}/prototypes",
@@ -185,12 +197,18 @@ async def test_select_prototype(
     org_id = await _create_org(client, auth_headers)
     session = await _create_session(client, auth_headers, org_id)
 
-    # 프로토타입 생성
-    gen_resp = await client.post(
+    # 생성 시작 (백그라운드 완료 대기)
+    await client.post(
         f"/api/v1/prototype-sessions/{session['id']}/generate",
         headers=auth_headers,
     )
-    prototype_id = gen_resp.json()[0]["id"]
+
+    # 프로토타입 목록 조회
+    proto_resp = await client.get(
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes",
+        headers=auth_headers,
+    )
+    prototype_id = proto_resp.json()["items"][0]["id"]
 
     # 선택
     resp = await client.post(
