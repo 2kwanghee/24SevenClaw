@@ -21,7 +21,6 @@ import {
   prototypeSessions,
   ApiClientError,
 } from "@/lib/api-client";
-import type { BusinessType } from "@/types/solution-wizard";
 
 const STEP_COMPONENTS = [
   StepCompany,
@@ -71,17 +70,14 @@ export default function SolutionSessionPage() {
         setSessionId(ps.id);
         setOrganizationId(ps.organization_id);
 
-        // user_input 에서 회사 정보 복원
-        const ui = ps.user_input as Record<string, string | undefined>;
-        if (ui) {
-          setCompany({
-            companyName: ui.company_name ?? "",
-            mainProduct: ui.main_product ?? "",
-            businessType: (ui.business_type as BusinessType) ?? null,
-            companyDescription: ui.company_description ?? "",
-            solutionRequest: ui.solution_request ?? "",
-          });
-        }
+        // solution_prompt에서 솔루션 요청 복원 (개별 필드는 복원 불가)
+        setCompany({
+          companyName: "",
+          mainProduct: "",
+          businessType: null,
+          companyDescription: "",
+          solutionRequest: ps.solution_prompt ?? "",
+        });
 
         // 세션 상태에 따라 적절한 스텝으로 이동 (step 0에 있으면 step 1로)
         if (

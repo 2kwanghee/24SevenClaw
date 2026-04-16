@@ -25,22 +25,23 @@ const MCP_SKILL_NAMES = new Set([
 
 /** PMProfileResponse에서 구성 요소를 파생한다 */
 function deriveComposition(profile: PMProfileResponse): CompositionData {
-  const traits = profile.personality_traits as Record<string, unknown>;
+  const traits = profile.personality as Record<string, unknown>;
 
   const agents =
     (traits.agents as string[] | undefined) ??
-    profile.experience_areas
+    profile.specialties
       .slice(0, 3)
       .map((a) => a.toLowerCase().replace(/\s+/g, "-"));
 
-  const skills = profile.skills;
+  const skills =
+    (traits.skills as string[] | undefined) ?? profile.specialties;
 
   const hooks =
     (traits.hooks as string[] | undefined) ?? ["pre-commit", "test-runner"];
 
   const mcp_servers =
     (traits.mcp_servers as string[] | undefined) ??
-    profile.skills.filter((s) => MCP_SKILL_NAMES.has(s.toLowerCase()));
+    profile.specialties.filter((s) => MCP_SKILL_NAMES.has(s.toLowerCase()));
 
   const plugins =
     (traits.plugins as string[] | undefined) ?? ["code-review"];

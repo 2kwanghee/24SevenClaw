@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { PMProfileResponse, PMMetricResponse } from "@/lib/api-client";
 import { PMRatingStars } from "./pm-rating-stars";
 
+// PMMetricResponse 후방 호환 — pm_id 필드를 사용한다
 interface PMProfileCardProps {
   profile: PMProfileResponse;
   metrics?: PMMetricResponse | null;
@@ -24,7 +25,7 @@ export function PMProfileCard({
   onSelect,
 }: PMProfileCardProps) {
   const avgRating = metrics?.avg_rating ?? 0;
-  const totalProjects = metrics?.total_projects ?? 0;
+  const totalProjects = metrics?.completed_projects ?? 0;
   const successRate = metrics?.success_rate ?? 0;
 
   return (
@@ -73,7 +74,7 @@ export function PMProfileCard({
             {profile.name}
           </p>
           <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-400">
-            {profile.specialty}
+            {profile.specialties?.[0] ?? profile.domain ?? profile.title ?? ""}
           </span>
         </div>
       </div>
@@ -121,20 +122,20 @@ export function PMProfileCard({
         </div>
       )}
 
-      {/* 스킬 태그 */}
-      {profile.skills.length > 0 && (
+      {/* 전문 분야 태그 */}
+      {profile.specialties.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {profile.skills.slice(0, 4).map((skill) => (
+          {profile.specialties.slice(0, 4).map((specialty) => (
             <span
-              key={skill}
+              key={specialty}
               className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-500"
             >
-              {skill}
+              {specialty}
             </span>
           ))}
-          {profile.skills.length > 4 && (
+          {profile.specialties.length > 4 && (
             <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-600">
-              +{profile.skills.length - 4}
+              +{profile.specialties.length - 4}
             </span>
           )}
         </div>

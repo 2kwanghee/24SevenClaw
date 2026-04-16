@@ -170,10 +170,10 @@ export default function SolutionsPage() {
             {sessions.map((s) => {
               const cfg = STATUS_CONFIG[s.status];
               const Icon = cfg.icon;
-              const companyName =
-                (s.user_input as Record<string, string>)?.company_name ?? "—";
-              const solutionRequest =
-                (s.user_input as Record<string, string>)?.solution_request ?? "";
+              const companyName = s.solution_prompt
+                ? s.solution_prompt.slice(0, 40) + (s.solution_prompt.length > 40 ? "..." : "")
+                : "—";
+              const solutionRequest = s.solution_prompt ?? "";
               const createdAt = new Date(s.created_at).toLocaleDateString(
                 "ko-KR",
                 { year: "numeric", month: "short", day: "numeric" },

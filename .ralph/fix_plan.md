@@ -8,14 +8,17 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] 솔루션 위저드 Zustand 스토어**
-  > 요청사항: src/stores/solution-wizard-store.ts 신규 작성.
+- [x] **[web] api-client.ts 확장 (솔루션 위저드 API)**
+  > 요청사항: src/lib/api-client.ts에 신규 API 메서드 추가.
 
-기존 wizard-store.ts 패턴(create, set, get) 따름.
+* prototypeSession: create, get, update, getStatus, getPrototypes, generatePrototypes, recommendPMs, finalize
+* pmProfiles: list, get, getComposition, createRating, listRatings
 
-상태: currentStep, sessionId, company, solutionPrompt, prototypes, selectedPrototypeId, generationStatus, recommendedPMs, selectedPMId, pmComposition
+TanStack Query 훅도 함께 작성:
 
-액션: nextStep, prevStep, goToStep, setCompany, setSolutionPrompt, setPrototypes, selectPrototype, setRecommendedPMs, selectPM, setPMComposition, reset
+* src/hooks/use-solution-wizard.ts
+* src/hooks/use-prototypes.ts
+* src/hooks/use-pm-profiles.ts
 
 ---
 
@@ -25,4 +28,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 17:45 | [web] 솔루션 위저드 Zustand 스토어 | ✅ 완료 | solution-wizard-store.ts 구현 확인, 15/15 테스트 통과 |
+| 2026-04-16 | [web] api-client.ts 확장 (솔루션 위저드 API) | ✅ | 타입 업데이트 + 신규 메서드 + TanStack Query 훅 3개 생성 |
