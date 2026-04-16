@@ -6,18 +6,16 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[api] pm_profiles 라우터 구현**
-  > 요청사항: app/api/v1/pm_profiles.py 신규 작성. 5개 엔드포인트.
+- [x] **[api] Phase 2 API 테스트 작성**
+  > 요청사항: Phase 2 API 엔드포인트 pytest 테스트.
 
-* GET /pm-profiles (목록, domain/specialty 필터)
-* GET /pm-profiles/{id} (상세 + metrics)
-* GET /pm-profiles/{id}/composition (도구 구성)
-* POST /pm-profiles/{id}/ratings (평가 등록)
-* GET /pm-profiles/{id}/ratings (평가 목록)
+* tests/test_prototype_sessions.py: 세션 생성/조회/업데이트/프로토타입 목록 (최소 3개씩)
+* tests/test_pm_profiles.py: PM 목록/상세/구성/평가 (최소 3개씩)
+* ClaudeService mock 처리 (실제 API 호출 방지)
 
-router.py에 등록.
+conftest.py에 PM 시드 데이터 fixture 추가.
 
 ---
 
@@ -27,4 +25,4 @@ router.py에 등록.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] pm_profiles 라우터 구현 | ✅ 완료 | 5개 엔드포인트 구현, router.py 등록 완료 |
+| 2026-04-16 | [api] Phase 2 API 테스트 작성 | ✅ | test_prototype_sessions.py 11개, test_pm_profiles.py 12개 (총 23개 통과), conftest.py seeded_pm_profiles fixture 추가 |
