@@ -49,7 +49,7 @@ export function SolutionWizardLayout({
     }
   };
 
-  const defaultNextLabel = isLast ? "프로젝트 생성" : "다음";
+  const defaultNextLabel = isLast ? "이대로 진행" : "다음";
 
   return (
     <div className="mx-auto max-w-3xl">
