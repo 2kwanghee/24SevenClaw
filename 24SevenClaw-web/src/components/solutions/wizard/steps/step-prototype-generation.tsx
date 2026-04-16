@@ -1,0 +1,409 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+
+import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
+import { prototypeSessions, ApiClientError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+
+/* ── 상수 ────────────────────────────────────────────────────────────── */
+
+const EXPECTED_COUNT = 4;
+const POLL_INTERVAL_MS = 3000;
+const MAX_POLL_ATTEMPTS = 40; // 최대 2분
+const REVEAL_STAGGER_MS = 350;
+
+/* ── 타입 ────────────────────────────────────────────────────────────── */
+
+type CardStatus = "skeleton" | "generating" | "ready";
+
+interface PrototypeCardItem {
+  id: string;
+  name: string;
+  description: string | null;
+  solutionType: string;
+  status: CardStatus;
+}
+
+/* ── 하위 컴포넌트 ───────────────────────────────────────────────────── */
+
+function SkeletonCard({ index }: { index: number }) {
+  return (
+    <div
+      className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-4"
+      style={{ animationDelay: `${index * 120}ms` }}
+      aria-hidden="true"
+    >
+      <div className="mb-3 flex items-center gap-3">
+        <div className="h-8 w-8 rounded-full bg-white/[0.07]" />
+        <div className="h-4 w-36 rounded-md bg-white/[0.07]" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 w-full rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-4/5 rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-3/5 rounded-md bg-white/[0.05]" />
+      </div>
+      <div className="mt-3 flex gap-2">
+        <div className="h-5 w-16 rounded-full bg-white/[0.05]" />
+        <div className="h-5 w-20 rounded-full bg-white/[0.05]" />
+      </div>
+    </div>
+  );
+}
+
+function GeneratingCard({ index }: { index: number }) {
+  return (
+    <div
+      className="rounded-xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4"
+      style={{ animationDelay: `${index * 120}ms` }}
+      aria-label="프로토타입 생성 중"
+    >
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-400" aria-hidden="true" />
+        </div>
+        <div className="h-4 w-36 animate-pulse rounded-md bg-white/[0.07]" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 w-full animate-pulse rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-4/5 animate-pulse rounded-md bg-white/[0.05]" />
+      </div>
+    </div>
+  );
+}
+
+interface ReadyCardProps {
+  card: PrototypeCardItem;
+  index: number;
+}
+
+function ReadyCard({ card, index }: ReadyCardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4",
+        "transition-all duration-500",
+        "animate-in fade-in slide-in-from-bottom-2",
+      )}
+      style={{ animationDelay: `${index * 80}ms`, animationDuration: "400ms" }}
+      role="status"
+      aria-label={`프로토타입 "${card.name}" 생성 완료`}
+    >
+      <div className="mb-2 flex items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+        </div>
+        <h3 className="text-sm font-semibold text-white">{card.name}</h3>
+      </div>
+      {card.description && (
+        <p className="mb-2.5 line-clamp-2 text-xs leading-relaxed text-slate-400">
+          {card.description}
+        </p>
+      )}
+      <span className="inline-block rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+        {card.solutionType}
+      </span>
+    </div>
+  );
+}
+
+/* ── 메인 컴포넌트 ───────────────────────────────────────────────────── */
+
+export function StepPrototypeGeneration() {
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
+
+  const sessionId = useSolutionWizardStore((s) => s.data.sessionId);
+  const existingPrototypes = useSolutionWizardStore(
+    (s) => s.data.prototypes.generatedPrototypes,
+  );
+  const setGeneratedPrototypes = useSolutionWizardStore(
+    (s) => s.setGeneratedPrototypes,
+  );
+  const setIsGenerating = useSolutionWizardStore((s) => s.setIsGenerating);
+  const nextStep = useSolutionWizardStore((s) => s.nextStep);
+
+  const [cards, setCards] = useState<PrototypeCardItem[]>([]);
+  const [readyCount, setReadyCount] = useState(0);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+
+  const cancelledRef = useRef(false);
+  const pollCountRef = useRef(0);
+  const hasStartedRef = useRef(false);
+
+  /* ── 생성 실행 ── */
+  const startGeneration = useCallback(async () => {
+    if (!sessionId || !token) return;
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
+    cancelledRef.current = false;
+    pollCountRef.current = 0;
+
+    setIsStarting(true);
+    setIsGenerating(true);
+    setIsFailed(false);
+    setReadyCount(0);
+    setCards([]);
+
+    // 1) 생성 트리거
+    try {
+      await prototypeSessions.generatePrototypes(token, sessionId);
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        // 이미 generating/completed — 폴링만 계속
+      } else {
+        setIsGenerating(false);
+        setIsFailed(true);
+        setIsStarting(false);
+        return;
+      }
+    }
+    setIsStarting(false);
+
+    // 2) 상태 폴링
+    const poll = async () => {
+      if (cancelledRef.current) return;
+      pollCountRef.current += 1;
+
+      if (pollCountRef.current > MAX_POLL_ATTEMPTS) {
+        setIsGenerating(false);
+        setIsFailed(true);
+        return;
+      }
+
+      try {
+        const statusResp = await prototypeSessions.getStatus(token, sessionId);
+        if (cancelledRef.current) return;
+
+        if (statusResp.status === "completed") {
+          // 3) 프로토타입 목록 가져오기
+          const protoList = await prototypeSessions.listPrototypes(
+            token,
+            sessionId,
+          );
+          if (cancelledRef.current) return;
+
+          const fetched: PrototypeCardItem[] = protoList.items.map((p) => ({
+            id: p.id,
+            name: p.title,
+            description: p.description,
+            solutionType: p.design_pattern ?? "custom",
+            status: "generating",
+          }));
+
+          setCards(fetched);
+
+          // 스토어에 저장
+          setGeneratedPrototypes(
+            protoList.items.map((p) => ({
+              id: p.id,
+              name: p.title,
+              solutionType: p.design_pattern ?? "custom",
+              reasoning: p.description,
+              config: (p.ui_structure ?? {}) as Record<string, unknown>,
+            })),
+          );
+
+          // 4) 순차 카드 공개 (stagger)
+          for (let i = 0; i < fetched.length; i++) {
+            await new Promise<void>((res) =>
+              setTimeout(res, REVEAL_STAGGER_MS),
+            );
+            if (cancelledRef.current) return;
+            setCards((prev) =>
+              prev.map((c, idx) =>
+                idx === i ? { ...c, status: "ready" } : c,
+              ),
+            );
+            setReadyCount(i + 1);
+          }
+
+          setIsGenerating(false);
+
+          // 5) 짧은 딜레이 후 자동 이동
+          await new Promise<void>((res) => setTimeout(res, 600));
+          if (!cancelledRef.current) {
+            nextStep();
+          }
+        } else if (statusResp.status === "failed") {
+          setIsGenerating(false);
+          setIsFailed(true);
+        } else {
+          // pending / generating — 다음 폴링 예약
+          setTimeout(() => void poll(), POLL_INTERVAL_MS);
+        }
+      } catch {
+        if (!cancelledRef.current) {
+          setTimeout(() => void poll(), POLL_INTERVAL_MS);
+        }
+      }
+    };
+
+    setTimeout(() => void poll(), POLL_INTERVAL_MS);
+  }, [sessionId, token, setGeneratedPrototypes, setIsGenerating, nextStep]);
+
+  /* ── 이미 생성된 프로토타입이 있으면 즉시 이동 ── */
+  useEffect(() => {
+    if (existingPrototypes.length > 0) {
+      nextStep();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── 마운트 시 생성 시작 ── */
+  useEffect(() => {
+    if (existingPrototypes.length > 0) return; // 이미 처리됨
+
+    cancelledRef.current = false;
+    void startGeneration();
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, [startGeneration, existingPrototypes.length]);
+
+  /* ── 재시도 ── */
+  const handleRetry = () => {
+    hasStartedRef.current = false;
+    pollCountRef.current = 0;
+    void startGeneration();
+  };
+
+  const totalCount = Math.max(cards.length || EXPECTED_COUNT, EXPECTED_COUNT);
+
+  /* ── 실패 상태 ─────────────────────────────────────────────────────── */
+  if (isFailed) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10">
+          <AlertCircle
+            className="h-7 w-7 text-rose-400"
+            aria-hidden="true"
+          />
+        </div>
+        <h3 className="mb-1 text-sm font-semibold text-rose-300">
+          프로토타입 생성에 실패했습니다
+        </h3>
+        <p className="mb-6 text-xs text-slate-500">
+          일시적인 오류가 발생했습니다. 다시 시도해 주세요.
+        </p>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  /* ── 생성 중 + 완료 상태 ─────────────────────────────────────────── */
+  const displayCards: PrototypeCardItem[] =
+    cards.length > 0
+      ? cards
+      : Array.from({ length: EXPECTED_COUNT }, (_, i) => ({
+          id: `skeleton-${i}`,
+          name: "",
+          description: null,
+          solutionType: "",
+          status: "skeleton" as CardStatus,
+        }));
+
+  const allReady = readyCount === totalCount && totalCount > 0 && !isStarting;
+
+  return (
+    <div className="space-y-6">
+      {/* 헤더 + 카운터 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          {isStarting ? (
+            <Loader2
+              className="h-5 w-5 animate-spin text-emerald-400"
+              aria-hidden="true"
+            />
+          ) : allReady ? (
+            <CheckCircle2
+              className="h-5 w-5 text-emerald-400"
+              aria-hidden="true"
+            />
+          ) : (
+            <Sparkles
+              className="h-5 w-5 animate-pulse text-emerald-400"
+              aria-hidden="true"
+            />
+          )}
+          <span className="text-sm font-medium text-slate-300">
+            {isStarting
+              ? "생성 준비 중..."
+              : allReady
+                ? "프로토타입 생성 완료!"
+                : "AI가 솔루션 프로토타입을 설계하고 있습니다"}
+          </span>
+        </div>
+
+        <span
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400"
+          aria-live="polite"
+          aria-label={`${totalCount}개 중 ${readyCount}개 완료`}
+        >
+          {readyCount} / {totalCount}
+        </span>
+      </div>
+
+      {/* 전체 진행률 바 */}
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+        role="progressbar"
+        aria-valuenow={readyCount}
+        aria-valuemin={0}
+        aria-valuemax={totalCount}
+        aria-label="프로토타입 생성 진행률"
+      >
+        <div
+          className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+          style={{
+            width: `${totalCount > 0 ? (readyCount / totalCount) * 100 : 0}%`,
+          }}
+        />
+      </div>
+
+      {/* 프로토타입 카드 목록 */}
+      <div className="space-y-3" aria-label="프로토타입 생성 현황">
+        {displayCards.map((card, idx) =>
+          card.status === "skeleton" ? (
+            <SkeletonCard key={card.id} index={idx} />
+          ) : card.status === "generating" ? (
+            <GeneratingCard key={card.id} index={idx} />
+          ) : (
+            <ReadyCard key={card.id} card={card} index={idx} />
+          ),
+        )}
+      </div>
+
+      {/* 안내 메시지 */}
+      {!isStarting && !allReady && (
+        <p className="text-center text-xs text-slate-600">
+          약 30초~1분 소요됩니다. 잠시만 기다려 주세요.
+        </p>
+      )}
+
+      {/* 완료 후 자동 이동 메시지 */}
+      {allReady && (
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-emerald-500">
+          <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+          프로토타입 선택 화면으로 이동 중...
+        </p>
+      )}
+    </div>
+  );
+}

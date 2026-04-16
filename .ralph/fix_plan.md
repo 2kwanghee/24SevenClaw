@@ -6,22 +6,24 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[web] Step 7 최종 확인 + 프로젝트 생성**
-  > 요청사항: src/components/solutions/wizard/steps/step-confirmation.tsx
+- [x] **[web] Step 2 프로토타입 생성 로딩 UI**
+  > 요청사항: src/components/solutions/wizard/steps/step-prototype-generation.tsx
 
-전체 요약 카드:
+Step 1에서 "다음" 클릭 시:
 
-* 회사 정보 요약
-* 선택된 프로토타입 썸네일 + 정보
-* 선택된 PM 카드 미니 버전
-* PM 구성 요약 (agent/skill/hook/mcp/plugin 수)
+1. POST /prototype-sessions (세션 생성)
+2. POST /prototype-sessions/{id}/prototypes/generate (생성 트리거)
+3. GET /prototype-sessions/{id}/status 폴링 (3초 간격)
 
-액션:
+UI:
 
-* "이대로 진행" → POST /prototype-sessions/{id}/finalize → 프로젝트 생성 → /projects/{id}로 이동
-* "재선택" → 특정 스텝으로 돌아가기
+* 전체 진행률 표시 (0/4 → 1/4 → ... → 4/4)
+* 각 프로토타입별 생성 상태 카드 (generating → ready)
+* 로딩 애니메이션 (스켈레톤 + 스피너)
+* 실패 시 재시도 버튼
+* 모두 완료 시 자동으로 Step 3으로 이동
 
 ---
 
@@ -31,4 +33,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 7 최종 확인 + 프로젝트 생성 | ✅ 완료 | step-confirmation.tsx 신규 생성, finalize API 연동, 재선택 버튼 구현 |
+| 2026-04-16 | [web] Step 2 프로토타입 생성 로딩 UI | ✅ 완료 | step-prototype-generation.tsx 신규 생성, SOLUTION_WIZARD_STEPS에 generation 단계 추가, step-prototypes.tsx 순수 선택 컴포넌트로 분리 |
