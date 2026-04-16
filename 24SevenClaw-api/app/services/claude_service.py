@@ -1,10 +1,24 @@
-"""Claude AI 연동 서비스 (Phase 2: 규칙 기반 스텁).
+"""Claude AI 연동 서비스.
 
-Phase 3에서 실제 Claude API 연동으로 교체 예정.
-현재는 솔루션 유형 기반 규칙 매칭으로 프로토타입을 생성한다.
+기존 규칙 기반 스텁 메서드(analyze_input, generate_prototypes, recommend_pm_scores)와
+실제 Anthropic SDK 기반 async 메서드(analyze_solution, generate_ui_structure, recommend_pm)를
+함께 제공한다.
 """
 
+from __future__ import annotations
+
+import json
+import logging
 from typing import Any
+
+import anthropic
+from anthropic.types import Message, TextBlock
+
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+# ── 규칙 기반 스텁 데이터 (Phase 2 하위 호환) ────────────────────────────────
 
 # 솔루션 유형별 프로토타입 템플릿 (새 Prototype 모델 필드 기준)
 PROTOTYPE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
@@ -217,23 +231,152 @@ KEYWORD_TYPE_MAP: dict[str, str] = {
     "빠르게": "mvp",
 }
 
+# ── 시스템 프롬프트 ────────────────────────────────────────────────────────────
+
+_ANALYZE_SOLUTION_SYSTEM = (
+    "You are a software architect specializing in analyzing natural language "
+    "descriptions to extract structured requirements.\n\n"
+    "Your task is to analyze the user's solution description "
+    "and return a structured JSON object.\n\n"
+    "IMPORTANT: Always respond with valid JSON only "
+    "— no markdown, no code blocks, no extra text.\n\n"
+    'Return exactly this JSON structure:\n'
+    "{\n"
+    '  "solution_type": "<one of: saas, rest-api, fullstack, internal-tool, mvp>",\n'
+    '  "features": ["<feature 1>", "<feature 2>", ...],\n'
+    '  "tech_stack": {\n'
+    '    "frontend": "<framework or null>",\n'
+    '    "backend": "<framework>",\n'
+    '    "database": "<db type>",\n'
+    '    "auth": "<auth method>",\n'
+    '    "deployment": "<deployment target>"\n'
+    "  },\n"
+    '  "complexity": "<one of: low, medium, high>",\n'
+    '  "target_users": "<description of target users>",\n'
+    '  "key_requirements": ["<requirement 1>", "<requirement 2>", ...]\n'
+    "}"
+)
+
+_GENERATE_UI_STRUCTURE_SYSTEM = (
+    "You are a UI/UX architect specializing in designing application structures.\n\n"
+    "Your task is to generate a detailed UI structure for an application "
+    "based on provided requirements.\n"
+    "If variant_index is provided, generate an alternative design variant "
+    "(0 = primary, 1 = alternative, etc.).\n\n"
+    "IMPORTANT: Always respond with valid JSON only "
+    "— no markdown, no code blocks, no extra text.\n\n"
+    "Return exactly this JSON structure:\n"
+    "{\n"
+    '  "menu_structure": {\n'
+    '    "nav_type": "<sidebar | topbar | hybrid>",\n'
+    '    "items": [\n'
+    "      {\n"
+    '        "label": "<menu label>",\n'
+    '        "path": "<route path>",\n'
+    '        "icon": "<icon name>",\n'
+    '        "children": []\n'
+    "      }\n"
+    "    ]\n"
+    "  },\n"
+    '  "pages": [\n'
+    "    {\n"
+    '      "name": "<page name>",\n'
+    '      "path": "<route>",\n'
+    '      "layout": "<layout type>",\n'
+    '      "components": ["<component 1>", "<component 2>"]\n'
+    "    }\n"
+    "  ],\n"
+    '  "color_palette": {\n'
+    '    "primary": "<hex color>",\n'
+    '    "secondary": "<hex color>",\n'
+    '    "accent": "<hex color>",\n'
+    '    "background": "<hex color>",\n'
+    '    "surface": "<hex color>",\n'
+    '    "text_primary": "<hex color>"\n'
+    "  },\n"
+    '  "typography": {\n'
+    '    "heading_font": "<font family>",\n'
+    '    "body_font": "<font family>"\n'
+    "  },\n"
+    '  "design_style": "<one of: minimal, corporate, playful, dark, light>"\n'
+    "}"
+)
+
+_RECOMMEND_PM_SYSTEM = (
+    "You are a PM matchmaker specializing in matching project managers "
+    "to software projects.\n\n"
+    "Your task is to analyze project requirements and recommend the most "
+    "suitable PM from the provided catalog.\n\n"
+    "IMPORTANT: Always respond with valid JSON only "
+    "— no markdown, no code blocks, no extra text.\n\n"
+    "Return exactly this JSON structure:\n"
+    "{\n"
+    '  "recommended_pm_id": "<UUID of the best PM or null if catalog is empty>",\n'
+    '  "match_score": <integer 0-100>,\n'
+    '  "reasoning": "<detailed explanation of why this PM is the best match>",\n'
+    '  "key_strengths": ["<strength 1>", "<strength 2>"],\n'
+    '  "potential_gaps": ["<gap 1>"],\n'
+    '  "alternatives": [\n'
+    "    {\n"
+    '      "pm_id": "<UUID>",\n'
+    '      "match_score": <integer 0-100>,\n'
+    '      "reasoning": "<brief explanation>"\n'
+    "    }\n"
+    "  ]\n"
+    "}"
+)
+
+
+# ── 유틸리티 ──────────────────────────────────────────────────────────────────
+
+
+def _extract_text(message: Message) -> str:
+    """Message의 첫 번째 TextBlock에서 텍스트를 추출한다. 없으면 '{}'을 반환한다."""
+    for block in message.content:
+        if isinstance(block, TextBlock):
+            return block.text
+    return "{}"
+
+
+# ── ClaudeService ─────────────────────────────────────────────────────────────
+
 
 class ClaudeService:
-    """Claude AI 분석 서비스 (Phase 2: 규칙 기반 스텁).
+    """Claude AI 분석 서비스.
 
-    Phase 3에서 실제 Claude API로 교체 예정.
+    규칙 기반 동기 메서드(하위 호환)와 Anthropic SDK 기반 비동기 메서드를 모두 제공한다.
+
+    동기 메서드 (Phase 2 하위 호환):
+        analyze_input(prompt) → str
+        generate_prototypes(solution_type, prompt) → list[dict]
+        recommend_pm_scores(solution_type, pm_specialties) → dict[str, int]
+
+    비동기 메서드 (Phase 3 Claude API):
+        analyze_solution(prompt, org_context) → dict
+        generate_ui_structure(requirements, variant_index) → dict
+        recommend_pm(requirements, prototype_style, pm_catalog) → dict
     """
+
+    def __init__(self) -> None:
+        self._api_key = settings.anthropic_api_key
+        self._model = settings.anthropic_model_default
+        self._timeout = settings.prototype_generation_timeout
+
+    def _get_client(self) -> anthropic.AsyncAnthropic:
+        return anthropic.AsyncAnthropic(
+            api_key=self._api_key,
+            timeout=float(self._timeout),
+        )
+
+    # ── 규칙 기반 동기 메서드 (Phase 2 하위 호환) ────────────────────────────
 
     def analyze_input(self, solution_prompt: str) -> str:
         """솔루션 프롬프트에서 솔루션 유형을 추출한다."""
         text = solution_prompt.lower()
-
-        # 키워드 매칭으로 솔루션 유형 결정
         for keyword, solution_type in KEYWORD_TYPE_MAP.items():
             if keyword in text:
                 return solution_type
-
-        return "fullstack"  # 기본값
+        return "fullstack"
 
     def generate_prototypes(
         self, solution_type: str, solution_prompt: str
@@ -245,12 +388,11 @@ class ClaudeService:
     def recommend_pm_scores(
         self, solution_type: str, pm_specialties: list[str]
     ) -> dict[str, int]:
-        """솔루션 유형에 따른 PM specialty 별 매칭 점수를 반환한다.
+        """솔루션 유형에 따른 PM specialty별 매칭 점수를 반환한다.
 
         Returns:
             dict[specialty, score(0~100)]
         """
-        # 솔루션 유형 → 선호 specialty 매핑
         affinity: dict[str, list[str]] = {
             "saas": ["product", "growth", "platform"],
             "rest-api": ["backend", "platform", "data"],
@@ -259,7 +401,6 @@ class ClaudeService:
             "mvp": ["product", "growth", "frontend"],
             "custom": ["product", "backend"],
         }
-
         preferred = affinity.get(solution_type, affinity["custom"])
         scores: dict[str, int] = {}
         for spec in pm_specialties:
@@ -268,5 +409,154 @@ class ClaudeService:
                 scores[spec] = max(60, 95 - rank * 15)
             else:
                 scores[spec] = 40
-
         return scores
+
+    # ── Claude API 비동기 메서드 (Phase 3) ───────────────────────────────────
+
+    async def analyze_solution(
+        self,
+        prompt: str,
+        org_context: dict[str, Any],
+    ) -> dict[str, Any]:
+        """자연어 솔루션 설명을 구조화된 요구사항 JSON으로 변환한다.
+
+        Args:
+            prompt: 사용자가 입력한 솔루션 설명 (자연어)
+            org_context: 조직 컨텍스트 (industry, size, existing_stack 등)
+
+        Returns:
+            {
+                solution_type, features, tech_stack,
+                complexity, target_users, key_requirements
+            }
+        """
+        user_content = (
+            f"Solution description:\n{prompt}\n\n"
+            f"Organization context:\n{json.dumps(org_context, ensure_ascii=False)}"
+        )
+
+        client = self._get_client()
+        message = await client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=_ANALYZE_SOLUTION_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+
+        raw = _extract_text(message)
+        try:
+            result: dict[str, Any] = json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("analyze_solution: Claude 응답 JSON 파싱 실패, 스텁 폴백")
+            result = {
+                "solution_type": self.analyze_input(prompt),
+                "features": [],
+                "tech_stack": {},
+                "complexity": "medium",
+                "target_users": "",
+                "key_requirements": [],
+            }
+        return result
+
+    async def generate_ui_structure(
+        self,
+        requirements: dict[str, Any],
+        variant_index: int = 0,
+    ) -> dict[str, Any]:
+        """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러)을 생성한다.
+
+        Args:
+            requirements: analyze_solution()의 반환값
+            variant_index: 변형 인덱스 (0=기본, 1=대안 디자인, …)
+
+        Returns:
+            {menu_structure, pages, color_palette, typography, design_style}
+        """
+        user_content = (
+            f"Requirements:\n{json.dumps(requirements, ensure_ascii=False)}\n\n"
+            f"Design variant index: {variant_index}\n"
+            "Generate a unique UI structure for this variant index. "
+            "Variant 0 should be the primary/recommended design, "
+            "variant 1 an alternative color scheme, "
+            "variant 2+ additional creative interpretations."
+        )
+
+        client = self._get_client()
+        message = await client.messages.create(
+            model=self._model,
+            max_tokens=2048,
+            system=_GENERATE_UI_STRUCTURE_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+
+        raw = _extract_text(message)
+        try:
+            result: dict[str, Any] = json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("generate_ui_structure: Claude 응답 JSON 파싱 실패, 스텁 폴백")
+            result = {
+                "menu_structure": {},
+                "pages": [],
+                "color_palette": {},
+                "typography": {},
+                "design_style": "minimal",
+            }
+        return result
+
+    async def recommend_pm(
+        self,
+        requirements: dict[str, Any],
+        prototype_style: str,
+        pm_catalog: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """요구사항과 프로토타입 스타일에 맞는 PM을 카탈로그에서 추천한다.
+
+        Args:
+            requirements: analyze_solution()의 반환값
+            prototype_style: 선택된 프로토타입의 design_pattern
+            pm_catalog: PM 프로필 목록 (id, name, domain, specialty, skills 등)
+
+        Returns:
+            {
+                recommended_pm_id, match_score, reasoning,
+                key_strengths, potential_gaps, alternatives
+            }
+        """
+        if not pm_catalog:
+            return {
+                "recommended_pm_id": None,
+                "match_score": 0,
+                "reasoning": "PM 카탈로그가 비어 있습니다.",
+                "key_strengths": [],
+                "potential_gaps": [],
+                "alternatives": [],
+            }
+
+        user_content = (
+            f"Project requirements:\n{json.dumps(requirements, ensure_ascii=False)}\n\n"
+            f"Selected prototype style: {prototype_style}\n\n"
+            f"PM catalog:\n{json.dumps(pm_catalog, ensure_ascii=False, default=str)}"
+        )
+
+        client = self._get_client()
+        message = await client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=_RECOMMEND_PM_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+
+        raw = _extract_text(message)
+        try:
+            result: dict[str, Any] = json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("recommend_pm: Claude 응답 JSON 파싱 실패, 스텁 폴백")
+            result = {
+                "recommended_pm_id": None,
+                "match_score": 0,
+                "reasoning": "PM 추천 분석 중 오류가 발생했습니다.",
+                "key_strengths": [],
+                "potential_gaps": [],
+                "alternatives": [],
+            }
+        return result
