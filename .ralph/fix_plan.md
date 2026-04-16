@@ -8,14 +8,13 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[api] Pydantic 스키마 구현 (prototype, pm_profile, solution)**
-  > 요청사항: Pydantic v2 스키마 신규 작성.
+- [x] **[api] PM 시드 데이터 로딩 스크립트**
+  > 요청사항: pm_profiles.json + pm_compositions.json → DB 초기 로딩 스크립트.
 
-* app/schemas/prototype.py: PrototypeSessionCreate, PrototypeSessionResponse, PrototypeResponse, PrototypeDetailResponse
-* app/schemas/pm_profile.py: PMProfileResponse, PMProfileWithMetrics, PMCompositionResponse, PMRatingCreate, PMRatingResponse
-* app/schemas/solution.py: SolutionAnalyzeRequest, SolutionAnalyzeResponse, UIStructureSchema
-
-model_config = {"from_attributes": True} 패턴 준수.
+* scripts/seed_pm_data.py
+* 이미 존재하면 skip (멱등성)
+* pm_metrics 초기값 함께 생성 (모두 0)
+* pytest fixture로도 활용 가능하도록 구조화
 
 ---
 
@@ -25,4 +24,4 @@ model_config = {"from_attributes": True} 패턴 준수.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | Pydantic 스키마 (prototype/pm_profile/solution) | ✅ 완료 | 신규 3종 + 기존 2종 보강, 337 tests passed |
+| 2026-04-16 | [api] PM 시드 데이터 로딩 스크립트 | ✅ 완료 | data/pm_compositions.json, scripts/seed_pm_data.py 생성 |
