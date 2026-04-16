@@ -100,24 +100,30 @@ export function PMProfileCard({
         </p>
       )}
 
-      {/* 지표 3개 */}
+      {/* 지표 4개 */}
       {metrics && (
-        <div className="mb-3 grid grid-cols-3 divide-x divide-white/5 rounded-lg bg-white/[0.03] px-2 py-2">
-          <div className="px-2 text-center">
+        <div className="mb-3 grid grid-cols-4 divide-x divide-white/5 rounded-lg bg-white/[0.03] px-2 py-2">
+          <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-white">{totalProjects}</p>
             <p className="text-[10px] text-slate-500">완료건수</p>
           </div>
-          <div className="px-2 text-center">
+          <div className="px-1.5 text-center">
+            <p className="text-sm font-semibold text-white">
+              {metrics.usage_count}
+            </p>
+            <p className="text-[10px] text-slate-500">사용빈도</p>
+          </div>
+          <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-white">
               {(successRate * 100).toFixed(0)}%
             </p>
             <p className="text-[10px] text-slate-500">성공률</p>
           </div>
-          <div className="px-2 text-center">
+          <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-white">
-              {avgRating.toFixed(1)}
+              {metrics.avg_completion_days.toFixed(0)}일
             </p>
-            <p className="text-[10px] text-slate-500">평균 별점</p>
+            <p className="text-[10px] text-slate-500">평균완료일</p>
           </div>
         </div>
       )}

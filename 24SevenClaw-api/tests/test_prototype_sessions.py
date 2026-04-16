@@ -121,8 +121,10 @@ async def test_generate_prototypes(
     )
     assert resp.status_code == 202
     body = resp.json()
-    assert body["message"] == "프로토타입 생성이 시작되었습니다"
+    assert body["task_id"] == session["id"]
     assert body["session_id"] == session["id"]
+    assert body["status"] == "generating"
+    assert body["message"] == "프로토타입 생성이 시작되었습니다"
 
     # BackgroundTask가 완료된 후 상태 확인 (테스트 환경에서 동기 실행)
     status_resp = await client.get(
@@ -141,7 +143,7 @@ async def test_generate_prototypes(
     assert prototypes["total"] >= 1
     first = prototypes["items"][0]
     assert first["title"] is not None
-    assert first["status"] == "draft"
+    assert first["status"] == "ready"
     assert first["variant_index"] == 0
 
 

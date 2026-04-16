@@ -8,21 +8,22 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] Step 3 프로토타입 선택 UI**
-  > 요청사항: src/components/solutions/wizard/steps/step-prototype-selection.tsx
+- [x] **[web] Step 4-5 PM 추천 + 선택 UI**
+  > 요청사항: Step 4: src/components/solutions/wizard/steps/step-pm-recommendation.tsx
 
-3\~4개 프로토타입을 카드형으로 비교 선택.
+* 프로토타입 선택 후 POST /prototype-sessions/{id}/recommend-pms 호출
+* 로딩 중 스켈레톤 카드 표시
+* 완료 시 자동으로 Step 5로 전환
 
-컴포넌트:
+Step 5: src/components/solutions/wizard/steps/step-pm-selection.tsx
 
-* prototype-card.tsx: 썸네일 + 제목 + 설명 + 디자인패턴 배지 + 메뉴구조 요약
-* prototype-preview.tsx: UI 구조 JSON → 자체 렌더링 (메뉴 트리 + 페이지 레이아웃 + 컬러팔레트)
-
-동작:
-
-* 카드 클릭 → 선택 하이라이트 + 프리뷰 확대
-* 선택 후 PATCH /prototype-sessions/{id} (selected_prototype_id)
-* "다음" 클릭 → Step 4로 이동
+* PM 카드형 UI (pm-profile-card.tsx):
+  * 아바타 + 이름 + 직함
+  * 별점 (pm-rating-stars.tsx) + 평점
+  * 프로젝트 완료건수, 사용빈도, 성공률, 평균 완료일
+  * 전문 분야 태그
+* 카드 클릭 → 선택 하이라이트
+* PATCH /prototype-sessions/{id} (selected_pm_id)
 
 ---
 
@@ -32,4 +33,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 3 프로토타입 선택 UI | ✅ 완료 | step-prototype-selection.tsx 생성, prototype-card/preview 강화 |
+| 2026-04-16 | [web] Step 4-5 PM 추천 + 선택 UI | ✅ 완료 | step-pm-recommendation.tsx + step-pm-selection.tsx 생성, SOLUTION_WIZARD_STEPS 9단계로 분리, PMProfileCard 4메트릭 추가 |

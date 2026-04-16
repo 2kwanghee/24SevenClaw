@@ -96,8 +96,10 @@ class PrototypeDetailResponse(BaseModel):
 class GenerateStartResponse(BaseModel):
     """프로토타입 생성 시작 응답 (202 Accepted)."""
 
-    message: str
+    task_id: UUID
     session_id: UUID
+    status: str
+    message: str
 
 
 class PrototypeSessionUpdate(BaseModel):

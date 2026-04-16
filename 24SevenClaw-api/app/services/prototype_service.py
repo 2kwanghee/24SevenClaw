@@ -1,5 +1,6 @@
 """프로토타입 세션 서비스 — 세션 생성, 프로토타입 생성/조회/선택/확정."""
 
+import logging
 import re
 from typing import Any
 from uuid import UUID
@@ -19,6 +20,8 @@ from app.schemas.prototype import (
     PrototypeSessionUpdate,
 )
 from app.services.claude_service import ClaudeService
+
+logger = logging.getLogger(__name__)
 
 
 def _slugify(text: str) -> str:
@@ -120,7 +123,15 @@ class PrototypeService:
         """백그라운드에서 실제 프로토타입 생성 작업을 수행한다.
 
         이 메서드는 BackgroundTasks에 의해 독립 DB 세션으로 호출된다.
-        성공 시 status=completed, 실패 시 status=failed.
+
+        절차:
+        1. analyze_solution으로 요구사항 구조화 (실패 시 규칙 기반 폴백)
+        2. generate_ui_structure × 3 — 변형별 UI 구조 생성
+           - 성공 시 prototype.status = "ready"
+           - API 실패 시 규칙 기반 스텁 폴백 → status = "ready"
+           - 스텁도 실패(치명적 오류) 시 prototype.status = "failed"
+        3. 변형 루프 완료 후 session.status = "completed"
+        4. 루프 외부 예외 발생 시 session.status = "failed"
         """
         stmt = select(PrototypeSession).where(
             PrototypeSession.id == session_id,
@@ -131,31 +142,100 @@ class PrototypeService:
         if session is None:
             return
 
+        prompt = str(session.solution_prompt or "")
+
         try:
-            prompt = str(session.solution_prompt or "")
-            solution_type = self._claude.analyze_input(prompt)
-
-            templates = self._claude.generate_prototypes(solution_type, prompt)
-
-            for idx, tmpl in enumerate(templates):
-                proto = Prototype(
-                    session_id=session.id,
-                    variant_index=idx,
-                    title=tmpl["title"],
-                    description=tmpl.get("description"),
-                    design_pattern=tmpl.get("design_pattern"),
-                    menu_structure=tmpl.get("menu_structure"),
-                    ui_structure=tmpl.get("ui_structure"),
-                    color_palette=tmpl.get("color_palette"),
-                    status="draft",
+            # 1. 요구사항 분석 — Claude API, 실패 시 규칙 기반 폴백
+            try:
+                requirements = await self._claude.analyze_solution(prompt, {})
+            except Exception:
+                logger.warning(
+                    "analyze_solution API 실패, 규칙 기반 폴백 사용 (session_id=%s)", session_id
                 )
-                self.db.add(proto)
+                solution_type = self._claude.analyze_input(prompt)
+                requirements = {
+                    "solution_type": solution_type,
+                    "features": [],
+                    "tech_stack": {},
+                    "complexity": "medium",
+                    "target_users": "",
+                    "key_requirements": [],
+                }
 
-            session.status = "completed"  # type: ignore[assignment]
+            # parsed_requirements 세션에 저장
+            await self.db.execute(
+                update(PrototypeSession)
+                .where(PrototypeSession.id == session_id)
+                .values(parsed_requirements=requirements)
+            )
+            await self.db.commit()
+
+            # 2. 변형별 UI 구조 생성 (3개)
+            solution_type = str(requirements.get("solution_type", "fullstack"))
+            stub_templates = self._claude.generate_prototypes(solution_type, prompt)
+
+            for idx in range(3):
+                proto: Prototype
+                try:
+                    ui_data = await self._claude.generate_ui_structure(requirements, idx)
+                    design_style = str(ui_data.get("design_style", "minimal"))
+                    proto = Prototype(
+                        session_id=session.id,
+                        variant_index=idx,
+                        title=f"프로토타입 {idx + 1} — {design_style}",
+                        design_pattern=design_style,
+                        menu_structure=ui_data.get("menu_structure"),
+                        ui_structure=ui_data,
+                        color_palette=ui_data.get("color_palette"),
+                        status="ready",
+                    )
+                except Exception:
+                    # API 실패 → 규칙 기반 스텁으로 폴백
+                    logger.warning(
+                        "generate_ui_structure 실패 (variant=%d), 스텁 폴백 (session_id=%s)",
+                        idx,
+                        session_id,
+                    )
+                    tmpl_idx = min(idx, len(stub_templates) - 1)
+                    tmpl = stub_templates[tmpl_idx]
+                    try:
+                        proto = Prototype(
+                            session_id=session.id,
+                            variant_index=idx,
+                            title=tmpl["title"],
+                            description=tmpl.get("description"),
+                            design_pattern=tmpl.get("design_pattern"),
+                            menu_structure=tmpl.get("menu_structure"),
+                            ui_structure=tmpl.get("ui_structure"),
+                            color_palette=tmpl.get("color_palette"),
+                            status="ready",
+                        )
+                    except Exception:
+                        # 스텁도 실패 시 failed 마킹
+                        proto = Prototype(
+                            session_id=session.id,
+                            variant_index=idx,
+                            title=f"프로토타입 {idx + 1}",
+                            status="failed",
+                        )
+
+                self.db.add(proto)
+                await self.db.commit()
+
+            # 3. 세션 완료 처리
+            await self.db.execute(
+                update(PrototypeSession)
+                .where(PrototypeSession.id == session_id)
+                .values(status="completed")
+            )
             await self.db.commit()
 
         except Exception:
-            session.status = "failed"  # type: ignore[assignment]
+            await self.db.execute(
+                update(PrototypeSession)
+                .where(PrototypeSession.id == session_id)
+                .values(status="failed")
+            )
             await self.db.commit()
             raise
 

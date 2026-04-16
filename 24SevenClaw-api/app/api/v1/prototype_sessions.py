@@ -141,8 +141,10 @@ async def generate_prototypes(
         _run_generation_bg, session_id, user.id  # type: ignore[arg-type]
     )
     return GenerateStartResponse(
-        message="프로토타입 생성이 시작되었습니다",
+        task_id=session_id,
         session_id=session_id,
+        status="generating",
+        message="프로토타입 생성이 시작되었습니다",
     )
 
 
