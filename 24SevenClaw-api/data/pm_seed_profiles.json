@@ -1,0 +1,262 @@
+{
+  "version": "1.0",
+  "description": "Solution Wizard v2 PM(Project Manager) 시드 프로필 데이터",
+  "profiles": [
+    {
+      "name": "Atlas",
+      "slug": "atlas",
+      "specialty": "backend",
+      "title": "백엔드 아키텍트",
+      "description": "대규모 API 설계와 데이터베이스 아키텍처에 특화된 PM. 고가용성 시스템 구축과 마이크로서비스 전환을 주도합니다.",
+      "avatar_url": "/avatars/pm-atlas.svg",
+      "skills": [
+        "api-design",
+        "database-architecture",
+        "microservices",
+        "performance-optimization",
+        "caching-strategy",
+        "message-queue"
+      ],
+      "experience_areas": [
+        "REST API / GraphQL 설계",
+        "PostgreSQL / Redis 아키텍처",
+        "FastAPI / Django 프로젝트",
+        "대용량 트래픽 처리",
+        "서비스 간 통신 설계"
+      ],
+      "personality_traits": {
+        "style": "systematic",
+        "communication": "구조화된 설계 문서와 다이어그램으로 커뮤니케이션",
+        "strength": "복잡한 시스템을 명확한 컴포넌트로 분해하는 능력",
+        "approach": "설계 우선, 구현 후"
+      },
+      "compatible_solution_types": ["rest-api", "saas", "fullstack", "internal-tool"],
+      "compatible_agents": ["claude-code", "gemini-cli", "codex"],
+      "is_active": true
+    },
+    {
+      "name": "Pixel",
+      "slug": "pixel",
+      "specialty": "frontend",
+      "title": "프론트엔드 크래프터",
+      "description": "사용자 경험과 접근성을 최우선으로 하는 프론트엔드 전문 PM. 디자인 시스템 구축과 반응형 UI 개발을 리드합니다.",
+      "avatar_url": "/avatars/pm-pixel.svg",
+      "skills": [
+        "component-architecture",
+        "accessibility",
+        "responsive-design",
+        "state-management",
+        "design-system",
+        "performance-frontend"
+      ],
+      "experience_areas": [
+        "React / Next.js 프로젝트",
+        "디자인 시스템 구축",
+        "WCAG AA 접근성 준수",
+        "모바일 우선 반응형 설계",
+        "프론트엔드 성능 최적화"
+      ],
+      "personality_traits": {
+        "style": "creative",
+        "communication": "시각적 프로토타입과 인터랙션 데모로 커뮤니케이션",
+        "strength": "사용자 관점에서 기능을 설계하는 공감 능력",
+        "approach": "사용자 플로우 먼저, 구현 세부사항 후"
+      },
+      "compatible_solution_types": ["saas", "fullstack", "mvp", "internal-tool"],
+      "compatible_agents": ["claude-code", "cursor"],
+      "is_active": true
+    },
+    {
+      "name": "Nova",
+      "slug": "nova",
+      "specialty": "fullstack",
+      "title": "풀스택 리더",
+      "description": "프론트엔드와 백엔드를 아우르는 종합적인 프로젝트 관리 역량의 PM. MVP 빌딩부터 스케일업까지 전 과정을 총괄합니다.",
+      "avatar_url": "/avatars/pm-nova.svg",
+      "skills": [
+        "project-planning",
+        "fullstack-architecture",
+        "api-integration",
+        "deployment-strategy",
+        "code-review",
+        "technical-debt-management"
+      ],
+      "experience_areas": [
+        "풀스택 웹 애플리케이션",
+        "SaaS 제품 개발",
+        "스타트업 MVP 빌딩",
+        "기술 부채 관리",
+        "팀 온보딩 및 코드 리뷰"
+      ],
+      "personality_traits": {
+        "style": "balanced",
+        "communication": "우선순위 기반 태스크 분배와 진행 상황 대시보드",
+        "strength": "프론트엔드-백엔드 경계를 넘나드는 통합 시각",
+        "approach": "MVP 먼저, 점진적 개선"
+      },
+      "compatible_solution_types": ["saas", "fullstack", "mvp", "rest-api", "internal-tool", "custom"],
+      "compatible_agents": ["claude-code", "gemini-cli", "cursor", "codex"],
+      "is_active": true
+    },
+    {
+      "name": "Sentinel",
+      "slug": "sentinel",
+      "specialty": "devops",
+      "title": "DevOps 엔지니어",
+      "description": "인프라 자동화와 CI/CD 파이프라인 구축에 특화된 PM. 안정적인 배포 환경과 모니터링 체계를 구축합니다.",
+      "avatar_url": "/avatars/pm-sentinel.svg",
+      "skills": [
+        "ci-cd-pipeline",
+        "container-orchestration",
+        "infrastructure-as-code",
+        "monitoring-alerting",
+        "cloud-architecture",
+        "security-hardening"
+      ],
+      "experience_areas": [
+        "Docker / Kubernetes 오케스트레이션",
+        "GitHub Actions / GitLab CI 파이프라인",
+        "Terraform / Pulumi IaC",
+        "Grafana / Prometheus 모니터링",
+        "AWS / GCP 클라우드 아키텍처"
+      ],
+      "personality_traits": {
+        "style": "methodical",
+        "communication": "체크리스트 기반 배포 절차와 모니터링 대시보드",
+        "strength": "장애 예방과 빠른 복구를 위한 선제적 설계",
+        "approach": "자동화 우선, 수동 개입 최소화"
+      },
+      "compatible_solution_types": ["saas", "rest-api", "fullstack"],
+      "compatible_agents": ["claude-code", "gemini-cli"],
+      "is_active": true
+    },
+    {
+      "name": "Forge",
+      "slug": "forge",
+      "specialty": "data",
+      "title": "데이터 아키텍트",
+      "description": "데이터 파이프라인과 분석 시스템 구축에 전문성을 가진 PM. ETL/ELT 설계부터 ML 모델 배포까지 데이터 중심 프로젝트를 이끕니다.",
+      "avatar_url": "/avatars/pm-forge.svg",
+      "skills": [
+        "data-pipeline",
+        "etl-design",
+        "data-modeling",
+        "ml-ops",
+        "analytics-platform",
+        "data-quality"
+      ],
+      "experience_areas": [
+        "데이터 파이프라인 설계 (Airflow, Dagster)",
+        "데이터 웨어하우스 아키텍처",
+        "ML 모델 서빙 및 모니터링",
+        "실시간 스트리밍 처리",
+        "데이터 거버넌스"
+      ],
+      "personality_traits": {
+        "style": "analytical",
+        "communication": "데이터 플로우 다이어그램과 메트릭 기반 리포트",
+        "strength": "복잡한 데이터 흐름을 최적화하는 설계 능력",
+        "approach": "데이터 모델 먼저, 처리 로직 후"
+      },
+      "compatible_solution_types": ["saas", "rest-api", "internal-tool", "custom"],
+      "compatible_agents": ["claude-code", "gemini-cli", "codex"],
+      "is_active": true
+    },
+    {
+      "name": "Shield",
+      "slug": "shield",
+      "specialty": "security",
+      "title": "보안 가디언",
+      "description": "애플리케이션 보안과 컴플라이언스를 전담하는 PM. 인증/인가 설계부터 취약점 분석까지 보안 전 영역을 커버합니다.",
+      "avatar_url": "/avatars/pm-shield.svg",
+      "skills": [
+        "authentication-design",
+        "authorization-rbac",
+        "vulnerability-assessment",
+        "encryption-strategy",
+        "compliance-audit",
+        "secure-coding"
+      ],
+      "experience_areas": [
+        "OAuth 2.0 / OIDC 인증 설계",
+        "RBAC / ABAC 권한 관리",
+        "OWASP Top 10 대응",
+        "데이터 암호화 전략",
+        "SOC2 / ISO27001 컴플라이언스"
+      ],
+      "personality_traits": {
+        "style": "cautious",
+        "communication": "위협 모델링 문서와 보안 체크리스트",
+        "strength": "잠재적 공격 벡터를 사전에 식별하는 방어적 사고",
+        "approach": "위협 모델링 먼저, 구현 후"
+      },
+      "compatible_solution_types": ["saas", "rest-api", "fullstack", "internal-tool"],
+      "compatible_agents": ["claude-code", "codex"],
+      "is_active": true
+    },
+    {
+      "name": "Spark",
+      "slug": "spark",
+      "specialty": "mvp",
+      "title": "MVP 빌더",
+      "description": "빠른 프로토타이핑과 린 개발에 특화된 PM. 최소한의 리소스로 핵심 가치를 검증하는 제품 빌딩을 주도합니다.",
+      "avatar_url": "/avatars/pm-spark.svg",
+      "skills": [
+        "rapid-prototyping",
+        "lean-development",
+        "user-validation",
+        "feature-prioritization",
+        "technical-scoping",
+        "iteration-planning"
+      ],
+      "experience_areas": [
+        "MVP 설계 및 빠른 출시",
+        "사용자 피드백 기반 반복 개발",
+        "기능 우선순위 결정 (RICE, ICE)",
+        "프로토타입 → 프로덕션 전환",
+        "스타트업 기술 스코핑"
+      ],
+      "personality_traits": {
+        "style": "agile",
+        "communication": "간결한 스프린트 보드와 데모 중심 진행",
+        "strength": "핵심 기능을 빠르게 식별하고 불필요한 것을 과감히 제거",
+        "approach": "출시 먼저, 완성도 후"
+      },
+      "compatible_solution_types": ["mvp", "saas", "fullstack", "custom"],
+      "compatible_agents": ["claude-code", "cursor"],
+      "is_active": true
+    },
+    {
+      "name": "Bridge",
+      "slug": "bridge",
+      "specialty": "integration",
+      "title": "통합 스페셜리스트",
+      "description": "외부 서비스 연동과 시스템 통합에 전문성을 가진 PM. API 통합, 서드파티 연동, 마이그레이션 프로젝트를 관리합니다.",
+      "avatar_url": "/avatars/pm-bridge.svg",
+      "skills": [
+        "api-integration",
+        "third-party-sdk",
+        "data-migration",
+        "webhook-design",
+        "protocol-adapter",
+        "error-handling"
+      ],
+      "experience_areas": [
+        "REST / GraphQL / gRPC 통합",
+        "결제 / 인증 서드파티 연동",
+        "레거시 시스템 마이그레이션",
+        "웹훅 설계 및 재시도 정책",
+        "멀티 서비스 오케스트레이션"
+      ],
+      "personality_traits": {
+        "style": "connector",
+        "communication": "시퀀스 다이어그램과 통합 테스트 결과 공유",
+        "strength": "이질적인 시스템 사이의 일관된 인터페이스 설계",
+        "approach": "계약(Contract) 먼저, 구현 후"
+      },
+      "compatible_solution_types": ["saas", "rest-api", "fullstack", "internal-tool", "custom"],
+      "compatible_agents": ["claude-code", "gemini-cli", "codex"],
+      "is_active": true
+    }
+  ]
+}

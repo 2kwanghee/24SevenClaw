@@ -6,34 +6,17 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[api] KPI 메트릭 집계 엔드포인트 확장**
-  > 요청사항: ## 개요
+- [!] **[Phase 0] Solution Wizard v2 — 준비** (Linear 24S-89~24S-124로 이관, fix_plan에서 관리하지 않음)
+  > 요청사항: ## Solution Wizard v2 준비 단계
 
-기존 ReportService를 확장하여 KPI 메트릭 집계 엔드포인트를 추가한다. 24Seven 사용의 가치를 정량적으로 보여주기 위한 데이터 기반.
+기존 7-Step 위저드 → AI 주도 프로토타입 생성 + AI PM 매칭 기반 새 위저드로 전환하기 위한 준비 작업.
 
-## 범위
-
-### report_service.py 확장
-
-* avg_phase_duration_seconds: PhaseEvent 기반 단계별 평균 소요시간
-* throughput_per_week: 주간 완료 태스크 수
-* automation_rate: AI 자동처리 비율 (SubTask.actor_type)
-* review_acceptance_rate: 초안 수용률
-
-### 새 엔드포인트
-
-* GET /api/v1/reports/projects/{id}/kpi: 프로젝트 KPI
-* GET /api/v1/reports/platform/summary: 플랫폼 전체 요약 (superadmin)
-
-## 완료 조건
-
-- 4개 KPI 메트릭 집계 로직
-- 엔드포인트 동작 + 테스트
-- platform/summary superadmin 권한 체크
-
-## 크기: M | 독립적 — 병렬 작업 가능
+* PRD 기획문서 작성
+* PM 시드 데이터 JSON 작성
+* UI 구조 JSON 스키마 정의
+* [config.py](<http://config.py>) 환경 변수 추가
 
 ---
 
@@ -43,4 +26,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] KPI 메트릭 집계 엔드포인트 확장 | ✅ | 4개 KPI 메트릭 + 2개 엔드포인트 + 7개 테스트 |
