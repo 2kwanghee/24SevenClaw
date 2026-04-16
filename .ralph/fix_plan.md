@@ -8,22 +8,21 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] Step 2 프로토타입 생성 로딩 UI**
-  > 요청사항: src/components/solutions/wizard/steps/step-prototype-generation.tsx
+- [x] **[web] Step 3 프로토타입 선택 UI**
+  > 요청사항: src/components/solutions/wizard/steps/step-prototype-selection.tsx
 
-Step 1에서 "다음" 클릭 시:
+3\~4개 프로토타입을 카드형으로 비교 선택.
 
-1. POST /prototype-sessions (세션 생성)
-2. POST /prototype-sessions/{id}/prototypes/generate (생성 트리거)
-3. GET /prototype-sessions/{id}/status 폴링 (3초 간격)
+컴포넌트:
 
-UI:
+* prototype-card.tsx: 썸네일 + 제목 + 설명 + 디자인패턴 배지 + 메뉴구조 요약
+* prototype-preview.tsx: UI 구조 JSON → 자체 렌더링 (메뉴 트리 + 페이지 레이아웃 + 컬러팔레트)
 
-* 전체 진행률 표시 (0/4 → 1/4 → ... → 4/4)
-* 각 프로토타입별 생성 상태 카드 (generating → ready)
-* 로딩 애니메이션 (스켈레톤 + 스피너)
-* 실패 시 재시도 버튼
-* 모두 완료 시 자동으로 Step 3으로 이동
+동작:
+
+* 카드 클릭 → 선택 하이라이트 + 프리뷰 확대
+* 선택 후 PATCH /prototype-sessions/{id} (selected_prototype_id)
+* "다음" 클릭 → Step 4로 이동
 
 ---
 
@@ -33,4 +32,4 @@ UI:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 2 프로토타입 생성 로딩 UI | ✅ 완료 | step-prototype-generation.tsx 신규 생성, SOLUTION_WIZARD_STEPS에 generation 단계 추가, step-prototypes.tsx 순수 선택 컴포넌트로 분리 |
+| 2026-04-16 | [web] Step 3 프로토타입 선택 UI | ✅ 완료 | step-prototype-selection.tsx 생성, prototype-card/preview 강화 |

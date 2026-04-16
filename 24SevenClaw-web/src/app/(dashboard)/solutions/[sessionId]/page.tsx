@@ -9,7 +9,7 @@ import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wiz
 import {
   StepCompany,
   StepPrototypeGeneration,
-  StepPrototypes,
+  StepPrototypeSelection,
   StepPMSelect,
   StepSolutionAgents,
   StepSolutionPlatform,
@@ -23,7 +23,7 @@ import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 const STEP_COMPONENTS = [
   StepCompany,
   StepPrototypeGeneration,
-  StepPrototypes,
+  StepPrototypeSelection,
   StepPMSelect,
   StepSolutionAgents,
   StepSolutionPlatform,
