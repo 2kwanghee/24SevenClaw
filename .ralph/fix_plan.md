@@ -8,20 +8,20 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[Phase 1] Solution Wizard v2 — DB + 백엔드 모델**
-  > 요청사항: ## DB 스키마 + 백엔드 모델 구현
+- [x] **[Phase 2] Solution Wizard v2 — 백엔드 서비스 + API**
+  > 요청사항: ## 백엔드 서비스 레이어 + API 라우터 구현
 
-신규 테이블 6개 + 기존 테이블 확장 2개 + Alembic 마이그레이션 + Pydantic 스키마.
+### 신규 서비스
 
-### 신규 모델
+* ClaudeService (자연어 분석, UI 구조 생성, PM 추천)
+* PrototypeService (세션 생성, 프로토타입 생성, 선택)
+* PMService (추천, 구성 조회, 평가)
 
-* prototype_sessions, prototypes
-* pm_profiles, pm_compositions, pm_metrics, pm_ratings
+### 신규 API 라우터
 
-### 기존 모델 확장
-
-* organizations (main_product, business_type, company_description)
-* projects (prototype_session_id, pm_profile_id, project_type)
+* prototype_sessions.py (8개 엔드포인트)
+* pm_profiles.py (5개 엔드포인트)
+* [router.py](<http://router.py>) 등록
 
 ---
 
@@ -31,4 +31,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | Phase 1: DB + 백엔드 모델 | ✅ | 신규 6테이블 + 기존 2테이블 확장 + Alembic 009 + Pydantic 스키마 |
+| 2026-04-16 | Phase 2: 백엔드 서비스 + API | ✅ | 3 서비스 + 2 라우터(13 엔드포인트) + 22 테스트 |
