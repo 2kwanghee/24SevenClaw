@@ -2,6 +2,7 @@
 
 export const SOLUTION_WIZARD_STEPS = [
   { id: "company", label: "회사 정보", description: "회사 정보와 솔루션 요구사항 입력" },
+  { id: "generation", label: "솔루션 생성", description: "AI가 솔루션 프로토타입을 생성합니다" },
   { id: "prototypes", label: "프로토타입", description: "AI가 생성한 솔루션 후보 선택" },
   { id: "pm", label: "PM 선택", description: "프로젝트 매니저 AI 선택" },
   { id: "agents", label: "에이전트", description: "AI 에이전트 구성 확인" },

@@ -8,6 +8,7 @@ import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import {
   StepCompany,
+  StepPrototypeGeneration,
   StepPrototypes,
   StepPMSelect,
   StepSolutionAgents,
@@ -18,8 +19,10 @@ import {
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 
+// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM, 4=에이전트, 5=플랫폼, 6=환경변수, 7=최종확인
 const STEP_COMPONENTS = [
   StepCompany,
+  StepPrototypeGeneration,
   StepPrototypes,
   StepPMSelect,
   StepSolutionAgents,
@@ -42,6 +45,7 @@ export default function SolutionSessionPage() {
     setSessionId,
     setOrganizationId,
     setCompany,
+    setGeneratedPrototypes,
     goToStep,
   } = useSolutionWizardStore();
 
@@ -75,14 +79,36 @@ export default function SolutionSessionPage() {
           solutionRequest: ps.solution_prompt ?? "",
         });
 
-        // 세션 상태에 따라 적절한 스텝으로 이동 (step 0에 있으면 step 1로)
-        if (
-          (ps.status === "completed" ||
-            ps.status === "generating" ||
-            ps.status === "pending") &&
-          currentStep === 0
-        ) {
-          goToStep(1);
+        // 세션 상태에 따라 적절한 스텝으로 이동 (step 0에 있으면)
+        if (currentStep === 0) {
+          if (ps.status === "completed") {
+            // 완료된 세션: 프로토타입 목록 복원 후 선택 단계로 이동
+            try {
+              const protoList = await prototypeSessions.listPrototypes(
+                token,
+                ps.id,
+              );
+              if (protoList.items.length > 0) {
+                setGeneratedPrototypes(
+                  protoList.items.map((p) => ({
+                    id: p.id,
+                    name: p.title,
+                    solutionType: p.design_pattern ?? "custom",
+                    reasoning: p.description,
+                    config: (p.ui_structure ?? {}) as Record<string, unknown>,
+                  })),
+                );
+                goToStep(2); // 프로토타입 선택 단계로 바로 이동
+              } else {
+                goToStep(1); // 프로토타입 없으면 생성 단계부터
+              }
+            } catch {
+              goToStep(1); // 실패 시 생성 단계부터
+            }
+          } else {
+            // generating/pending: 생성 단계로 이동
+            goToStep(1);
+          }
         }
 
         restoredRef.current = true;
@@ -102,12 +128,14 @@ export default function SolutionSessionPage() {
     setSessionId,
     setOrganizationId,
     setCompany,
+    setGeneratedPrototypes,
     goToStep,
     router,
   ]);
 
   const StepComponent = STEP_COMPONENTS[currentStep];
 
+  // 인덱스: 0=회사정보, 1=솔루션생성(자동이동), 2=프로토타입선택, 3=PM, 4=에이전트, 5=플랫폼, 6=환경변수, 7=최종확인
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
@@ -118,10 +146,13 @@ export default function SolutionSessionPage() {
           data.company.solutionRequest.length >= 10
         );
       case 1:
+        // 솔루션 생성 단계: 자동 이동, 수동 진행 불가
+        return false;
+      case 2:
         return !!data.prototypes.selectedPrototypeId;
-      case 3:
-        return data.agents.selectedAgents.length > 0;
       case 4:
+        return data.agents.selectedAgents.length > 0;
+      case 5:
         return !!data.platform.platformId;
       default:
         return true;
