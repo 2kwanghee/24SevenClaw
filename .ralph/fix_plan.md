@@ -8,13 +8,14 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[Phase 6] Solution Wizard v2 — 통합 + 마무리**
-  > 요청사항: ## E2E 통합 테스트 + 마무리
+- [x] **[Phase 4] Solution Wizard v2 — 프로토타입 UI**
+  > 요청사항: ## 프로토타입 생성/선택 UI 구현
 
-* E2E 플로우 테스트 (전체 7단계 관통)
-* 에러 핸들링 + 로딩 상태
-* 반응형 + 접근성
-* 대시보드 네비게이션 업데이트 (새 위저드 메인, 기존 위저드 레거시 병행)
+* Step 2 (생성 로딩 UI + 폴링)
+* Step 3 (프로토타입 카드 + 자체 프리뷰 렌더링)
+* prototype-card.tsx, prototype-preview.tsx
+* 백엔드 비동기 생성 구조 (BackgroundTasks)
+* Claude API → UI 구조 JSON → 자체 렌더링
 
 ---
 
@@ -24,4 +25,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | Phase 6 Solution Wizard v2 통합+마무리 | ✅ 완료 | 네비게이션 버그 수정, 세션 복원, /solutions 페이지, Vitest 15개 통과, 접근성 개선 |
+| 2026-04-16 | [Phase 4] Solution Wizard v2 — 프로토타입 UI | ✅ 완료 | step-prototypes.tsx, prototype-card.tsx, prototype-preview.tsx, 백엔드 비동기 생성(BackgroundTasks), 폴링 구현 완료. API 337개 통과, 타입체크 통과. |
