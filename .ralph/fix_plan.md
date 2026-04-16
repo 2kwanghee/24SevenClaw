@@ -8,22 +8,15 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] Organization/Project 모델 확장**
-  > 요청사항: 기존 모델에 필드 추가.
+- [x] **[api] Alembic 마이그레이션 4개 작성**
+  > 요청사항: 순서대로 마이그레이션 작성 + 적용.
 
-Organization:
+1. add_prototype_session_tables (prototype_sessions, prototypes)
+2. add_pm_profile_tables (pm_profiles, pm_compositions, pm_metrics, pm_ratings)
+3. extend_organization_fields (3개 컬럼)
+4. extend_project_fields (3개 컬럼)
 
-* main_product VARCHAR(500)
-* business_type VARCHAR(100)
-* company_description TEXT
-
-Project:
-
-* prototype_session_id UUID FK(prototype_sessions, SET NULL)
-* pm_profile_id UUID FK(pm_profiles, SET NULL)
-* project_type VARCHAR(30) DEFAULT 'legacy'
-
-기존 스키마(schemas/organization.py)도 함께 확장.
+`alembic revision --autogenerate` → `alembic upgrade head` 검증.
 
 ---
 
@@ -33,4 +26,4 @@ Project:
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] Organization/Project 모델 확장 | ✅ | business_type VARCHAR(100), project_type VARCHAR(30) DEFAULT 'legacy', 마이그레이션 011 |
+| 2026-04-16 | [api] Alembic 마이그레이션 4개 적용 | ✅ | 006-011 + c255febcea16 적용, 337 tests passed |

@@ -119,10 +119,11 @@ def upgrade() -> None:
         sa.Column("avg_rating", sa.Float(), nullable=False, server_default="0.0"),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("pm_profile_id"),
+        sa.UniqueConstraint("pm_profile_id", name="uq_pm_metrics_pm_profile_id"),
         sa.ForeignKeyConstraint(
             ["pm_profile_id"],
             ["pm_profiles.id"],
+            name="fk_pm_metrics_pm_profile_id",
             ondelete="CASCADE",
         ),
     )
