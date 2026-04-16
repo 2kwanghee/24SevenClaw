@@ -116,7 +116,7 @@ async def test_generate_prototypes(
 
     # 생성 시작 → 202 Accepted
     resp = await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/generate",
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes/generate",
         headers=auth_headers,
     )
     assert resp.status_code == 202
@@ -154,13 +154,13 @@ async def test_generate_prototypes_duplicate(
 
     # 첫 번째 생성 시작
     await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/generate",
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes/generate",
         headers=auth_headers,
     )
 
     # 중복 생성 시도 (이미 generating 또는 completed 상태)
     resp = await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/generate",
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes/generate",
         headers=auth_headers,
     )
     assert resp.status_code == 409
@@ -175,7 +175,7 @@ async def test_list_prototypes(
 
     # 생성 시작 (백그라운드 완료 대기)
     gen_resp = await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/generate",
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes/generate",
         headers=auth_headers,
     )
     assert gen_resp.status_code == 202
@@ -199,7 +199,7 @@ async def test_select_prototype(
 
     # 생성 시작 (백그라운드 완료 대기)
     await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/generate",
+        f"/api/v1/prototype-sessions/{session['id']}/prototypes/generate",
         headers=auth_headers,
     )
 
@@ -210,10 +210,10 @@ async def test_select_prototype(
     )
     prototype_id = proto_resp.json()["items"][0]["id"]
 
-    # 선택
-    resp = await client.post(
-        f"/api/v1/prototype-sessions/{session['id']}/select",
-        json={"prototype_id": prototype_id},
+    # PATCH로 프로토타입 선택
+    resp = await client.patch(
+        f"/api/v1/prototype-sessions/{session['id']}",
+        json={"selected_prototype_id": prototype_id},
         headers=auth_headers,
     )
     assert resp.status_code == 200
