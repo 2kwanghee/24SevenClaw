@@ -22,7 +22,7 @@ import { usePermissions } from "@/hooks/use-rbac";
 
 const navItems = [
   // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
-  { href: "/solutions/new", label: "솔루션 위저드", icon: Sparkles, activePrefix: "/solutions" },
+  { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions" },
   { href: "/projects", label: "프로젝트", icon: FolderKanban },
   { href: "/registry/agents", label: "에이전트", icon: Bot },
   { href: "/registry/skills", label: "스킬", icon: Puzzle },
@@ -92,6 +92,7 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-slate-950">
       {/* 사이드바 */}
       <aside
+        aria-label="메인 네비게이션"
         className={`relative flex flex-col border-r border-white/5 bg-slate-900/50 transition-all duration-300 ${
           collapsed ? "w-[68px]" : "w-64"
         }`}
@@ -167,6 +168,8 @@ export default function DashboardLayout({
         {/* 접기 토글 */}
         <button
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          aria-expanded={!collapsed}
           className="m-3 flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] py-2 text-slate-500 transition-all hover:bg-white/5 hover:text-slate-300"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}

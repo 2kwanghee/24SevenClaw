@@ -174,7 +174,7 @@ export function StepCompany() {
           name="businessType"
           control={control}
           render={({ field }) => (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {BUSINESS_TYPE_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
                 const selected = field.value === opt.value;

@@ -56,7 +56,7 @@ export function StepSolutionAgents() {
           <Bot className="h-4 w-4 text-emerald-400" />
           AI 에이전트
         </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(AGENT_LABELS).map(([id, meta]) => {
             const isSelected = agents.selectedAgents.includes(id);
             return (

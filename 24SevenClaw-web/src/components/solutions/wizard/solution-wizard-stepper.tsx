@@ -11,6 +11,18 @@ import {
 export function SolutionWizardStepper() {
   const { currentStep, goToStep } = useSolutionWizardStore();
 
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const next = index + 1;
+      if (next <= currentStep) goToStep(next);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const prev = index - 1;
+      if (prev >= 0) goToStep(prev);
+    }
+  };
+
   return (
     <nav aria-label="솔루션 위저드 진행 단계" className="w-full">
       {/* 데스크톱: 가로 스텝 */}
@@ -25,12 +37,14 @@ export function SolutionWizardStepper() {
               <button
                 type="button"
                 onClick={() => isClickable && goToStep(index)}
+                onKeyDown={(e) => isClickable && handleKeyDown(e, index)}
                 disabled={!isClickable}
                 className={cn(
                   "group flex w-full flex-col items-center gap-2",
                   isClickable ? "cursor-pointer" : "cursor-default",
                 )}
                 aria-current={isCurrent ? "step" : undefined}
+                aria-label={`${step.label} (${index + 1}/${SOLUTION_WIZARD_STEPS.length}단계)${isCompleted ? " - 완료됨" : isCurrent ? " - 현재 단계" : " - 미완료"}`}
               >
                 <div className="flex w-full items-center">
                   {index > 0 ? (

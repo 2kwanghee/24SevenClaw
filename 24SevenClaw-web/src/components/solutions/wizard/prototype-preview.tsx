@@ -267,7 +267,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-600">
             페이지 레이아웃
           </p>
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {pages!.slice(0, 6).map((page, i) => (
               <div
                 key={i}
