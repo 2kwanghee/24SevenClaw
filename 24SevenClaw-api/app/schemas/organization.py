@@ -9,6 +9,19 @@ class OrganizationCreate(BaseModel):
     size: str | None = Field(None, max_length=50)
     industry: str | None = Field(None, max_length=100)
     tech_stack: list[str] | None = None
+    main_product: str | None = Field(None, max_length=500)
+    business_type: str | None = Field(None, pattern=r"^(b2b|b2c|internal)$")
+    company_description: str | None = None
+
+
+class OrganizationUpdate(BaseModel):
+    company_name: str | None = Field(None, min_length=1, max_length=200)
+    size: str | None = Field(None, max_length=50)
+    industry: str | None = Field(None, max_length=100)
+    tech_stack: list[str] | None = None
+    main_product: str | None = Field(None, max_length=500)
+    business_type: str | None = Field(None, pattern=r"^(b2b|b2c|internal)$")
+    company_description: str | None = None
 
 
 class OrganizationResponse(BaseModel):
@@ -17,6 +30,9 @@ class OrganizationResponse(BaseModel):
     size: str | None
     industry: str | None
     tech_stack: list[str] | None
+    main_product: str | None
+    business_type: str | None
+    company_description: str | None
     created_at: datetime
     updated_at: datetime
 
