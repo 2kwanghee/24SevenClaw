@@ -6,18 +6,17 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[Phase 3] Solution Wizard v2 — 프론트엔드 기반**
-  > 요청사항: ## 프론트엔드 기반 구조 구현
+- [x] **[Phase 0] Solution Wizard v2 — 준비**
+  > 요청사항: ## Solution Wizard v2 준비 단계
 
-* 타입 정의 (solution-wizard.ts)
-* Zustand 스토어 (solution-wizard-store.ts)
-* api-client.ts 확장
-* 위저드 레이아웃 + stepper
-* Step 1 (회사정보 + 자연어 입력)
-* Step 7 (최종 확인)
-* 라우트 셋업 (/solutions/new, /solutions/\[sessionId\])
+기존 7-Step 위저드 → AI 주도 프로토타입 생성 + AI PM 매칭 기반 새 위저드로 전환하기 위한 준비 작업.
+
+* PRD 기획문서 작성
+* PM 시드 데이터 JSON 작성
+* UI 구조 JSON 스키마 정의
+* [config.py](<http://config.py>) 환경 변수 추가
 
 ---
 
@@ -27,4 +26,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [Phase 3] Solution Wizard v2 프론트엔드 기반 | ✅ 완료 | 타입·스토어·api-client·위저드 레이아웃·Step1·Step7·라우트 |
+| 2026-04-16 | [Phase 0] Solution Wizard v2 — 준비 | ✅ 완료 | PRD/시드데이터/UI스키마/config.py 모두 기존 존재 확인. 테스트 337개 통과 |
