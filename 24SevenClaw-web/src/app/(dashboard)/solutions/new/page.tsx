@@ -7,7 +7,7 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import {
-  StepCompany,
+  StepCompanySolution,
   StepPrototypes,
   StepPMSelect,
   StepSolutionAgents,
@@ -19,7 +19,7 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { apiClient, organizations, prototypeSessions, ApiClientError } from "@/lib/api-client";
 
 const STEP_COMPONENTS = [
-  StepCompany,
+  StepCompanySolution,
   StepPrototypes,
   StepPMSelect,
   StepSolutionAgents,
@@ -58,9 +58,11 @@ export default function NewSolutionPage() {
       case 0:
         return !!(
           data.company.companyName &&
+          data.company.companySize &&
+          data.company.industry &&
           data.company.mainProduct &&
           data.company.businessType &&
-          data.company.solutionRequest.length >= 10
+          data.company.solutionRequest.length >= 50
         );
       case 1:
         return !!data.prototypes.selectedPrototypeId;

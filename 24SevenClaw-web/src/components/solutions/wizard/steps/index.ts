@@ -1,4 +1,5 @@
 export { StepCompany } from "./step-company";
+export { StepCompanySolution } from "./step-company-solution";
 export { StepPrototypes } from "./step-prototypes";
 export { StepPMSelect } from "./step-pm-select";
 export { StepSolutionAgents } from "./step-solution-agents";
