@@ -23,6 +23,31 @@ class PMProfileResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PMProfileWithMetrics(BaseModel):
+    """PM 프로필 + 메트릭 통합 응답."""
+
+    id: UUID
+    name: str
+    slug: str
+    avatar_url: str | None
+    title: str | None
+    description: str | None
+    domain: str | None
+    specialties: list[str]
+    personality: dict[str, Any]
+    is_active: bool
+    created_at: datetime
+    # 메트릭 (없을 경우 기본값)
+    usage_count: int = 0
+    completed_projects: int = 0
+    avg_rating: float = 0.0
+    total_ratings: int = 0
+    success_rate: float = 0.0
+    avg_completion_days: float = 0.0
+
+    model_config = {"from_attributes": True}
+
+
 class PMProfileListResponse(BaseModel):
     items: list[PMProfileResponse]
     total: int

@@ -68,6 +68,31 @@ class PrototypeListResponse(BaseModel):
     total: int
 
 
+class PrototypeDetailResponse(BaseModel):
+    """프로토타입 상세 응답 — 세션 요약 정보 포함."""
+
+    id: UUID
+    session_id: UUID
+    variant_index: int
+    title: str
+    description: str | None
+    design_pattern: str | None
+    menu_structure: dict[str, Any] | None
+    ui_structure: dict[str, Any] | None
+    color_palette: dict[str, Any] | None
+    thumbnail_url: str | None
+    figma_file_key: str | None
+    figma_embed_url: str | None
+    status: str
+    # 세션 요약
+    solution_prompt: str | None
+    session_status: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class GenerateStartResponse(BaseModel):
     """프로토타입 생성 시작 응답 (202 Accepted)."""
 
