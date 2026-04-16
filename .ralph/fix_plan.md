@@ -8,22 +8,21 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] Step 4-5 PM 추천 + 선택 UI**
-  > 요청사항: Step 4: src/components/solutions/wizard/steps/step-pm-recommendation.tsx
+- [x] **[web] Step 6 PM 구성 확인 UI**
+  > 요청사항: src/components/solutions/wizard/steps/step-pm-composition.tsx
 
-* 프로토타입 선택 후 POST /prototype-sessions/{id}/recommend-pms 호출
-* 로딩 중 스켈레톤 카드 표시
-* 완료 시 자동으로 Step 5로 전환
+GET /pm-profiles/{id}/composition 호출하여 PM 구성 표시.
 
-Step 5: src/components/solutions/wizard/steps/step-pm-selection.tsx
+pm-composition-view.tsx:
 
-* PM 카드형 UI (pm-profile-card.tsx):
-  * 아바타 + 이름 + 직함
-  * 별점 (pm-rating-stars.tsx) + 평점
-  * 프로젝트 완료건수, 사용빈도, 성공률, 평균 완료일
-  * 전문 분야 태그
-* 카드 클릭 → 선택 하이라이트
-* PATCH /prototype-sessions/{id} (selected_pm_id)
+* 5개 카테고리별 섹션: Agent, Skill, Hook, MCP Server, Plugin
+* 각 항목: 아이콘 + 이름 + 슬러그 + 필수/선택 배지 + 간단 설명
+* 카테고리별 접기/펴기
+
+액션:
+
+* "이대로 진행" → Step 7로 이동
+* "PM 재선택" → Step 5로 돌아가기
 
 ---
 
@@ -33,4 +32,4 @@ Step 5: src/components/solutions/wizard/steps/step-pm-selection.tsx
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 4-5 PM 추천 + 선택 UI | ✅ 완료 | step-pm-recommendation.tsx + step-pm-selection.tsx 생성, SOLUTION_WIZARD_STEPS 9단계로 분리, PMProfileCard 4메트릭 추가 |
+| 2026-04-16 | [web] Step 6 PM 구성 확인 UI | ✅ | step-pm-composition.tsx 생성, SOLUTION_WIZARD_STEPS 업데이트 |

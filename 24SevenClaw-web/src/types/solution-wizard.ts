@@ -6,6 +6,7 @@ export const SOLUTION_WIZARD_STEPS = [
   { id: "prototypes", label: "프로토타입", description: "AI가 생성한 솔루션 후보 선택" },
   { id: "pm-recommendation", label: "PM 추천", description: "AI가 최적의 PM을 분석합니다" },
   { id: "pm-selection", label: "PM 선택", description: "프로젝트 매니저 AI 선택" },
+  { id: "pm-composition", label: "PM 구성", description: "선택한 PM의 구성 요소 확인" },
   { id: "agents", label: "에이전트", description: "AI 에이전트 구성 확인" },
   { id: "platform", label: "플랫폼", description: "Agent 플랫폼 선택" },
   { id: "env", label: "환경변수", description: "API 키 및 환경변수 입력" },
