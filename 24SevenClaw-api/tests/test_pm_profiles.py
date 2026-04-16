@@ -14,33 +14,33 @@ async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
             id=uuid.uuid4(),
             name="김제품",
             slug="kim-product",
-            specialty="product",
+            domain="product",
+            title="제품 전략 PM",
             description="제품 전략 전문 PM",
-            skills=["roadmap", "user-research", "a/b-testing"],
-            experience_areas=["saas", "fintech"],
-            personality_traits={"leadership": 9, "communication": 8},
+            specialties=["roadmap", "user-research", "a/b-testing"],
+            personality={"leadership": 9, "communication": 8},
             is_active=True,
         ),
         PMProfile(
             id=uuid.uuid4(),
             name="이백엔드",
             slug="lee-backend",
-            specialty="backend",
+            domain="backend",
+            title="백엔드 아키텍처 PM",
             description="백엔드 아키텍처 전문 PM",
-            skills=["system-design", "api-design", "database"],
-            experience_areas=["rest-api", "microservices"],
-            personality_traits={"technical": 9, "detail-oriented": 8},
+            specialties=["system-design", "api-design", "database"],
+            personality={"technical": 9, "detail-oriented": 8},
             is_active=True,
         ),
         PMProfile(
             id=uuid.uuid4(),
             name="박그로스",
             slug="park-growth",
-            specialty="growth",
+            domain="growth",
+            title="성장 전략 PM",
             description="성장 전략 전문 PM",
-            skills=["analytics", "marketing", "conversion"],
-            experience_areas=["saas", "marketplace"],
-            personality_traits={"data-driven": 9, "creative": 7},
+            specialties=["analytics", "marketing", "conversion"],
+            personality={"data-driven": 9, "creative": 7},
             is_active=True,
         ),
     ]
@@ -55,11 +55,10 @@ async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
     return ids
 
 
-async def _create_org_and_prototype(
+async def _create_session_id(
     client: AsyncClient, headers: dict[str, str]
-) -> dict:
-    """테스트용 조직 + 세션 + 프로토타입을 생성하고 첫 프로토타입을 반환한다."""
-    # 조직 생성
+) -> str:
+    """테스트용 조직 + 프로토타입 세션을 생성하고 session_id를 반환한다."""
     org_resp = await client.post(
         "/api/v1/organizations/",
         json={"company_name": "PM 테스트 회사", "size": "11-50"},
@@ -67,7 +66,28 @@ async def _create_org_and_prototype(
     )
     org_id = org_resp.json()["id"]
 
-    # 세션 생성
+    session_resp = await client.post(
+        "/api/v1/prototype-sessions/",
+        json={
+            "organization_id": org_id,
+            "solution_prompt": "SaaS 구독 서비스를 만들고 싶습니다",
+        },
+        headers=headers,
+    )
+    return session_resp.json()["id"]
+
+
+async def _create_org_and_prototype(
+    client: AsyncClient, headers: dict[str, str]
+) -> dict:
+    """테스트용 조직 + 세션 + 프로토타입을 생성하고 첫 프로토타입을 반환한다."""
+    org_resp = await client.post(
+        "/api/v1/organizations/",
+        json={"company_name": "PM 테스트 회사", "size": "11-50"},
+        headers=headers,
+    )
+    org_id = org_resp.json()["id"]
+
     session_resp = await client.post(
         "/api/v1/prototype-sessions/",
         json={
@@ -78,14 +98,12 @@ async def _create_org_and_prototype(
     )
     session_id = session_resp.json()["id"]
 
-    # 프로토타입 생성 시작 (202 Accepted)
     gen_resp = await client.post(
         f"/api/v1/prototype-sessions/{session_id}/generate",
         headers=headers,
     )
     assert gen_resp.status_code == 202
 
-    # 백그라운드 완료 후 첫 번째 프로토타입 반환
     proto_resp = await client.get(
         f"/api/v1/prototype-sessions/{session_id}/prototypes",
         headers=headers,
@@ -119,7 +137,7 @@ async def test_list_profiles(
 
 
 @pytest.mark.asyncio
-async def test_list_profiles_filter_specialty(
+async def test_list_profiles_filter_domain(
     client: AsyncClient,
     auth_headers: dict[str, str],
     db_session: AsyncSession,
@@ -127,12 +145,12 @@ async def test_list_profiles_filter_specialty(
     await _seed_pm_profiles(db_session)
 
     resp = await client.get(
-        "/api/v1/pm-profiles/?specialty=product", headers=auth_headers
+        "/api/v1/pm-profiles/?domain=product", headers=auth_headers
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["total"] == 1
-    assert body["items"][0]["specialty"] == "product"
+    assert body["items"][0]["domain"] == "product"
 
 
 @pytest.mark.asyncio
@@ -203,22 +221,17 @@ async def test_rate_pm(
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
 
-    # 프로젝트 생성
-    project_resp = await client.post(
-        "/api/v1/projects/",
-        json={"name": "평가 테스트 프로젝트"},
-        headers=auth_headers,
-    )
-    project_id = project_resp.json()["id"]
+    # 세션 생성
+    session_id = await _create_session_id(client, auth_headers)
 
     resp = await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
-        json={"project_id": project_id, "score": 4, "comment": "좋은 PM입니다"},
+        json={"session_id": session_id, "rating": 4, "comment": "좋은 PM입니다"},
         headers=auth_headers,
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["score"] == 4
+    assert body["rating"] == 4
     assert body["comment"] == "좋은 PM입니다"
 
 
@@ -233,8 +246,8 @@ async def test_rate_pm_invalid_score(
     resp = await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
         json={
-            "project_id": "00000000-0000-0000-0000-000000000000",
-            "score": 6,
+            "session_id": "00000000-0000-0000-0000-000000000001",
+            "rating": 6,
         },
         headers=auth_headers,
     )
@@ -249,17 +262,12 @@ async def test_get_metrics(
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
 
-    # 프로젝트 생성 + 평가
-    project_resp = await client.post(
-        "/api/v1/projects/",
-        json={"name": "메트릭 테스트"},
-        headers=auth_headers,
-    )
-    project_id = project_resp.json()["id"]
+    # 세션 생성 + 평가
+    session_id = await _create_session_id(client, auth_headers)
 
     await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/rate",
-        json={"project_id": project_id, "score": 5},
+        json={"session_id": session_id, "rating": 5},
         headers=auth_headers,
     )
 
@@ -268,7 +276,7 @@ async def test_get_metrics(
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["total_projects"] == 1
+    assert body["total_ratings"] == 1
     assert body["avg_rating"] == 5.0
 
 

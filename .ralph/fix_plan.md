@@ -8,11 +8,13 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 프로토타입 세션/프로토타입 모델 구현**
+- [x] **[api] PM 프로필/구성/평가 모델 구현**
   > 요청사항: SQLAlchemy 모델 신규 작성.
 
-* app/models/prototype_session.py: id, user_id(FK), organization_id(FK), solution_prompt, parsed_requirements(JSON), status, selected_prototype_id, selected_pm_id, current_step, metadata, created_at, updated_at
-* app/models/prototype.py: id, session_id(FK CASCADE), variant_index, title, description, design_pattern, menu_structure(JSON), ui_structure(JSON), color_palette(JSON), thumbnail_url, figma_file_key, figma_embed_url, status, created_at, updated_at
+* app/models/pm_profile.py: id, name, slug(UNIQUE), avatar_url, title, description, domain, specialties(JSON), personality(JSON), is_active
+* app/models/pm_composition.py: id, pm_id(FK CASCADE), component_type, component_slug, component_name, config(JSON), display_order, is_required
+* app/models/pm_metrics.py: id, pm_id(FK CASCADE UNIQUE), usage_count, completed_projects, avg_rating, total_ratings, success_rate, avg_completion_days
+* app/models/pm_rating.py: id, pm_id(FK), user_id(FK), session_id(FK), rating(1\~5), comment
 
 models/**init**.py에 등록.
 
@@ -24,4 +26,4 @@ models/**init**.py에 등록.
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [api] 프로토타입 세션/프로토타입 모델 구현 | ✅ 완료 | 모델·스키마·서비스·테스트 일괄 업데이트, 337 passed |
+| 2026-04-16 | [api] PM 프로필/구성/평가 모델 구현 | ✅ | pm_profile.py 재설계, pm_composition/metrics/rating.py 신규, 마이그레이션 010, 테스트 337개 전부 통과 |

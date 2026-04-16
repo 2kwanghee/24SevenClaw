@@ -7,7 +7,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
-from app.models.pm_profile import PMComposition, PMMetric, PMProfile, PMRating
+from app.models.pm_composition import PMComposition
+from app.models.pm_metrics import PMMetrics
+from app.models.pm_profile import PMProfile
+from app.models.pm_rating import PMRating
 from app.models.prototype_session import Prototype
 from app.schemas.pm_profile import (
     PMCompositionCreate,
@@ -26,15 +29,15 @@ class PMService:
 
     async def list_profiles(
         self,
-        specialty: str | None = None,
+        domain: str | None = None,
         is_active: bool | None = None,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[PMProfile], int]:
         """PM 프로필 목록을 반환한다."""
         conditions = []
-        if specialty:
-            conditions.append(PMProfile.specialty == specialty)
+        if domain:
+            conditions.append(PMProfile.domain == domain)
         if is_active is not None:
             conditions.append(PMProfile.is_active == is_active)
 
@@ -89,16 +92,17 @@ class PMService:
         if not profiles:
             return []
 
-        # ClaudeService로 매칭 점수 계산
+        # ClaudeService로 매칭 점수 계산 (domain 기반)
         design_pattern = str(prototype.design_pattern or "")
-        specialties = [str(p.specialty) for p in profiles]
-        scores = self._claude.recommend_pm_scores(design_pattern, specialties)
+        domains = [str(p.domain or "") for p in profiles]
+        scores = self._claude.recommend_pm_scores(design_pattern, domains)
 
         recommendations: list[dict[str, Any]] = []
         for profile in profiles:
-            score = scores.get(str(profile.specialty), 40)
+            domain_key = str(profile.domain or "")
+            score = scores.get(domain_key, 40)
             reasoning = (
-                f"{profile.name}({profile.specialty})은 "
+                f"{profile.name}({profile.domain})은 "
                 f"{design_pattern} 프로젝트에 "
                 f"매칭 점수 {score}점으로 추천됩니다."
             )
@@ -117,55 +121,36 @@ class PMService:
     # ── PM 구성 ──
 
     async def get_composition(
-        self, prototype_id: UUID
+        self, pm_id: UUID
     ) -> list[PMComposition]:
-        """프로토타입의 PM 구성을 조회한다."""
+        """PM 프로필의 구성 컴포넌트 목록을 조회한다."""
         stmt = (
             select(PMComposition)
-            .where(PMComposition.prototype_id == prototype_id)
-            .order_by(PMComposition.match_score.desc())
+            .where(PMComposition.pm_id == pm_id)
+            .order_by(PMComposition.display_order.asc())
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
     async def create_composition(
-        self, prototype_id: UUID, data: PMCompositionCreate
+        self, pm_id: UUID, data: PMCompositionCreate
     ) -> PMComposition:
-        """PM 구성을 생성한다."""
-        # 프로토타입 존재 확인
-        prototype = await self.db.get(Prototype, prototype_id)
-        if prototype is None:
-            raise AppError(
-                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-            )
-
+        """PM 구성 컴포넌트를 추가한다."""
         # PM 프로필 존재 확인
-        pm_profile = await self.db.get(PMProfile, data.pm_profile_id)
+        pm_profile = await self.db.get(PMProfile, pm_id)
         if pm_profile is None:
             raise AppError(
                 "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
             )
 
-        # 매칭 점수 계산
-        design_pattern = str(prototype.design_pattern or "")
-        scores = self._claude.recommend_pm_scores(
-            design_pattern, [str(pm_profile.specialty)]
-        )
-        match_score = scores.get(str(pm_profile.specialty), 40)
-
-        reasoning = (
-            f"{pm_profile.name}이(가) {data.role} 역할로 "
-            f"{design_pattern} 프로젝트에 배정되었습니다."
-        )
-
         composition = PMComposition(
-            prototype_id=prototype_id,
-            pm_profile_id=data.pm_profile_id,
-            role=data.role,
-            assigned_agents=data.assigned_agents,
-            assigned_skills=data.assigned_skills,
-            match_score=match_score,
-            reasoning=reasoning,
+            pm_id=pm_id,
+            component_type=data.component_type,
+            component_slug=data.component_slug,
+            component_name=data.component_name,
+            config=data.config,
+            display_order=data.display_order,
+            is_required=data.is_required,
         )
         self.db.add(composition)
         await self.db.commit()
@@ -175,7 +160,7 @@ class PMService:
     async def update_composition(
         self, composition_id: UUID, data: PMCompositionUpdate
     ) -> PMComposition:
-        """PM 구성을 수정한다."""
+        """PM 구성 컴포넌트를 수정한다."""
         composition = await self.db.get(PMComposition, composition_id)
         if composition is None:
             raise AppError(
@@ -204,10 +189,10 @@ class PMService:
             )
 
         rating = PMRating(
-            pm_profile_id=pm_profile_id,
-            project_id=data.project_id,
+            pm_id=pm_profile_id,
+            session_id=data.session_id,
             user_id=user_id,
-            score=data.score,
+            rating=data.rating,
             comment=data.comment,
         )
         self.db.add(rating)
@@ -219,10 +204,10 @@ class PMService:
 
         return rating
 
-    async def get_metrics(self, pm_profile_id: UUID) -> PMMetric:
+    async def get_metrics(self, pm_profile_id: UUID) -> PMMetrics:
         """PM 메트릭을 조회한다."""
-        stmt = select(PMMetric).where(
-            PMMetric.pm_profile_id == pm_profile_id
+        stmt = select(PMMetrics).where(
+            PMMetrics.pm_id == pm_profile_id
         )
         result = await self.db.execute(stmt)
         metric = result.scalar_one_or_none()
@@ -234,34 +219,33 @@ class PMService:
 
     async def _update_metrics(self, pm_profile_id: UUID) -> None:
         """평가 데이터로 PM 메트릭을 갱신한다."""
-        # 평균 점수 및 총 프로젝트 수 계산
         stmt = select(
             func.count().label("total"),
-            func.avg(PMRating.score).label("avg_score"),
-        ).where(PMRating.pm_profile_id == pm_profile_id)
+            func.avg(PMRating.rating).label("avg_rating"),
+        ).where(PMRating.pm_id == pm_profile_id)
         result = await self.db.execute(stmt)
         row = result.one()
 
-        total = int(row.total)
-        avg_rating = float(row.avg_score) if row.avg_score else 0.0
+        total_ratings = int(row.total)
+        avg_rating = float(row.avg_rating) if row.avg_rating else 0.0
 
         # 메트릭 upsert
-        stmt_metric = select(PMMetric).where(
-            PMMetric.pm_profile_id == pm_profile_id
+        stmt_metric = select(PMMetrics).where(
+            PMMetrics.pm_id == pm_profile_id
         )
         metric_result = await self.db.execute(stmt_metric)
         metric = metric_result.scalar_one_or_none()
 
         if metric is None:
-            metric = PMMetric(
-                pm_profile_id=pm_profile_id,
-                total_projects=total,
+            metric = PMMetrics(
+                pm_id=pm_profile_id,
+                total_ratings=total_ratings,
                 avg_rating=avg_rating,
                 success_rate=min(avg_rating / 5.0 * 100, 100.0),
             )
             self.db.add(metric)
         else:
-            metric.total_projects = total  # type: ignore[assignment]
+            metric.total_ratings = total_ratings  # type: ignore[assignment]
             metric.avg_rating = avg_rating  # type: ignore[assignment]
             success = avg_rating / 5.0 * 100
             metric.success_rate = success if success <= 100.0 else 100.0  # type: ignore[assignment]

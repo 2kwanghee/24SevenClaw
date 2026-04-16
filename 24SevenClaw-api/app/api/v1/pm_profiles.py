@@ -9,7 +9,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.pm_profile import (
-    PMMetricResponse,
+    PMMetricsResponse,
     PMProfileListResponse,
     PMProfileResponse,
     PMRatingCreate,
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/pm-profiles", tags=["pm-profiles"])
 
 @router.get("/", response_model=PMProfileListResponse)
 async def list_profiles(
-    specialty: str | None = Query(None, max_length=50),
+    domain: str | None = Query(None, max_length=100),
     is_active: bool | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -35,7 +35,7 @@ async def list_profiles(
     """PM 프로필 목록을 반환한다."""
     service = PMService(db)
     profiles, total = await service.list_profiles(
-        specialty=specialty, is_active=is_active, offset=offset, limit=limit
+        domain=domain, is_active=is_active, offset=offset, limit=limit
     )
     return PMProfileListResponse(
         items=[PMProfileResponse.model_validate(p) for p in profiles],
@@ -94,14 +94,14 @@ async def rate_pm(
 
 
 @router.get(
-    "/{profile_id}/metrics", response_model=PMMetricResponse
+    "/{profile_id}/metrics", response_model=PMMetricsResponse
 )
 async def get_metrics(
     profile_id: UUID,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> PMMetricResponse:
+) -> PMMetricsResponse:
     """PM 메트릭을 조회한다."""
     service = PMService(db)
     metric = await service.get_metrics(profile_id)
-    return PMMetricResponse.model_validate(metric)
+    return PMMetricsResponse.model_validate(metric)
