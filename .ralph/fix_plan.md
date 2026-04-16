@@ -6,18 +6,22 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] Step 1 회사정보 + 자연어 솔루션 입력**
-  > 요청사항: src/components/solutions/wizard/steps/step-company-solution.tsx
+- [x] **[web] Step 7 최종 확인 + 프로젝트 생성**
+  > 요청사항: src/components/solutions/wizard/steps/step-confirmation.tsx
 
-기존 step-organization.tsx 참고 + 자연어 입력 영역 추가.
+전체 요약 카드:
 
-* 회사명, 규모, 업종, 기술스택 (기존 필드)
-* 주력상품, 기업유형, 회사 설명 (신규 필드)
-* 자연어 솔루션 입력 (textarea, 최소 50자)
-* React Hook Form + Zod 유효성 검증
-* watch() → Zustand 스토어 자동 저장
+* 회사 정보 요약
+* 선택된 프로토타입 썸네일 + 정보
+* 선택된 PM 카드 미니 버전
+* PM 구성 요약 (agent/skill/hook/mcp/plugin 수)
+
+액션:
+
+* "이대로 진행" → POST /prototype-sessions/{id}/finalize → 프로젝트 생성 → /projects/{id}로 이동
+* "재선택" → 특정 스텝으로 돌아가기
 
 ---
 
@@ -27,4 +31,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-16 | [web] Step 1 회사정보 + 자연어 솔루션 입력 | ✅ 완료 | step-company-solution.tsx 신규 생성, 타입 확장(companySize/industry/techStack), solutionRequest 50자 최소 |
+| 2026-04-16 | [web] Step 7 최종 확인 + 프로젝트 생성 | ✅ 완료 | step-confirmation.tsx 신규 생성, finalize API 연동, 재선택 버튼 구현 |

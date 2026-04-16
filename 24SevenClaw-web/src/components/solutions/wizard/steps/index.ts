@@ -6,3 +6,4 @@ export { StepSolutionAgents } from "./step-solution-agents";
 export { StepSolutionPlatform } from "./step-solution-platform";
 export { StepSolutionEnv } from "./step-solution-env";
 export { StepSolutionConfirm } from "./step-solution-confirm";
+export { StepConfirmation } from "./step-confirmation";

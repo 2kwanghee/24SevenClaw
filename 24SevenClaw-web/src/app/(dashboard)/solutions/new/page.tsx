@@ -13,10 +13,10 @@ import {
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
-  StepSolutionConfirm,
+  StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { apiClient, organizations, prototypeSessions, ApiClientError } from "@/lib/api-client";
+import { organizations, prototypeSessions, ApiClientError } from "@/lib/api-client";
 
 const STEP_COMPONENTS = [
   StepCompanySolution,
@@ -25,7 +25,7 @@ const STEP_COMPONENTS = [
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
-  StepSolutionConfirm,
+  StepConfirmation,
 ];
 
 export default function NewSolutionPage() {
@@ -115,19 +115,25 @@ export default function NewSolutionPage() {
     }
   };
 
-  /** 마지막 스텝: 프로젝트 생성 */
+  /** 마지막 스텝: prototype-session finalize → 프로젝트 생성 */
   const handleSubmit = async () => {
-    if (!token || !data.company.companyName) return;
+    if (!token) return;
+    if (!data.sessionId) {
+      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
-      const project = await apiClient.projects.create(token, {
-        name: data.company.companyName,
-        description: data.company.solutionRequest || undefined,
+      const result = await prototypeSessions.finalize(token, data.sessionId, {
+        project_name:
+          data.company.companyName ||
+          `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+        description: data.company.solutionRequest || null,
       });
 
       reset();
-      router.push(`/projects/${project.id}/dashboard`);
+      router.push(`/projects/${result.project_id}`);
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.detail);
@@ -142,7 +148,7 @@ export default function NewSolutionPage() {
   return (
     <SolutionWizardLayout
       onSubmit={handleSubmit}
-      onNextStep={handleStep1Next}
+      onNextStep={currentStep === 0 ? handleStep1Next : undefined}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
     >
