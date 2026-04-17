@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
@@ -110,7 +111,6 @@ async def preview_project(
     db: AsyncSession = Depends(get_db),
 ) -> PreviewResponse:
     """위저드 설정 기반 파일 트리 + 내용 프리뷰 생성."""
-    # 프로젝트 소유권 검증
     service = ProjectService(db)
     await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
@@ -118,19 +118,52 @@ async def preview_project(
 
 
 async def _resolve_pm(
-    db: AsyncSession, pm_slug: str | None
-) -> tuple[str | None, str | None]:
-    """pm_slug로 PM 프로필을 조회해 (slug, markdown) 튜플을 반환한다."""
-    if not pm_slug:
-        return None, None
+    db: AsyncSession,
+    pm_slug: str | None,
+    pm_profile_id: UUID | None = None,
+) -> tuple[str | None, str | None, list[dict[str, Any]] | None]:
+    """pm_profile_id(우선) 또는 pm_slug로 PM 프로필과 compositions을 조회한다.
+
+    Returns:
+        (slug, markdown, compositions) — 프로필 없으면 (None, None, None)
+    """
+    if not pm_slug and not pm_profile_id:
+        return None, None, None
+
     from sqlalchemy import select
 
+    from app.models.pm_composition import PMComposition
     from app.models.pm_profile import PMProfile
-    result = await db.execute(select(PMProfile).where(PMProfile.slug == pm_slug))
+
+    if pm_profile_id:
+        result = await db.execute(
+            select(PMProfile).where(PMProfile.id == pm_profile_id)
+        )
+    else:
+        result = await db.execute(
+            select(PMProfile).where(PMProfile.slug == pm_slug)
+        )
+
     profile = result.scalar_one_or_none()
     if profile is None:
-        return None, None
-    return pm_slug, serialize_pm_to_markdown(profile)
+        return None, None, None
+
+    # Compositions 로드 (display_order 순)
+    comp_result = await db.execute(
+        select(PMComposition)
+        .where(PMComposition.pm_id == profile.id)
+        .order_by(PMComposition.display_order)
+    )
+    compositions: list[dict[str, Any]] = [
+        {
+            "component_type": c.component_type,
+            "component_slug": c.component_slug,
+            "is_required": c.is_required,
+        }
+        for c in comp_result.scalars().all()
+    ]
+
+    return str(profile.slug), serialize_pm_to_markdown(profile), compositions or None
 
 
 @router.post("/draft/generate")
@@ -141,8 +174,15 @@ async def generate_draft(
 ) -> StreamingResponse:
     """프로젝트 생성 전 드래프트 ZIP 다운로드 (project ID 불필요)."""
     project_name = data.solution.get("projectName", "project")
-    pm_slug, pm_markdown = await _resolve_pm(db, data.pm_slug)
-    buffer = generate_zip(data, project_name, pm_slug=pm_slug, pm_markdown=pm_markdown)
+    pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
+        db, pm_slug=data.pm_slug, pm_profile_id=data.pm_profile_id
+    )
+    buffer = generate_zip(
+        data, project_name,
+        pm_slug=pm_slug,
+        pm_markdown=pm_markdown,
+        pm_compositions=pm_compositions,
+    )
 
     filename = f"{project_name}.zip"
     return StreamingResponse(
@@ -160,12 +200,21 @@ async def generate_project(
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드."""
+    from datetime import UTC, datetime
+
     service = ProjectService(db)
     project = await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
     project_name = data.solution.get("projectName", project.name)
-    pm_slug, pm_markdown = await _resolve_pm(db, data.pm_slug)
-    buffer = generate_zip(data, project_name, pm_slug=pm_slug, pm_markdown=pm_markdown)
+    pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
+        db, pm_slug=data.pm_slug, pm_profile_id=data.pm_profile_id
+    )
+    buffer = generate_zip(
+        data, project_name,
+        pm_slug=pm_slug,
+        pm_markdown=pm_markdown,
+        pm_compositions=pm_compositions,
+    )
 
     # 위저드 설정 자동 저장 (env_vars 제외)
     wizard_data = WizardConfigSave(
@@ -181,6 +230,12 @@ async def generate_project(
     await service.save_wizard_config(
         project_id=project_id, owner_id=user.id, data=wizard_data  # type: ignore[arg-type]
     )
+
+    # pm_profile_id 영속화
+    if data.pm_profile_id is not None:
+        project.pm_profile_id = data.pm_profile_id  # type: ignore[assignment]
+        project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+        await db.commit()
 
     filename = f"{project_name}.zip"
     return StreamingResponse(
@@ -222,7 +277,19 @@ async def redownload_project(
     )
 
     project_name = gen_request.solution.get("projectName", project.name)
-    buffer = generate_zip(gen_request, project_name)
+
+    # 저장된 pm_profile_id로 PM 데이터 복원
+    stored_pm_id: UUID | None = project.pm_profile_id  # type: ignore[assignment]
+    pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
+        db, pm_slug=None, pm_profile_id=stored_pm_id
+    )
+
+    buffer = generate_zip(
+        gen_request, project_name,
+        pm_slug=pm_slug,
+        pm_markdown=pm_markdown,
+        pm_compositions=pm_compositions,
+    )
 
     filename = f"{project_name}.zip"
     return StreamingResponse(

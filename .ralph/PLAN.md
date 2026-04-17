@@ -8,22 +8,21 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[24S-142/P4] 통합 Composition & Registry Admin UI**
+- [ ] **[24S-142/P5] ZIP 엔진 PM 통합 (4개 플랫폼)**
   > 요청사항: ## 작업 내용
 
-* `src/components/admin/pm/composition-panel.tsx` 신규 — 타입별(agent/skill/hook/mcp_server/plugin) composition CRUD + body_md_override markdown-editor
-* `src/app/(dashboard)/admin/pm/[id]/composition/page.tsx` 삭제 + redirect → `/admin/pm/[id]`
-* `src/hooks/use-pm-admin.ts`: `useUpsertComposition` 뮤테이션 추가
-* `src/hooks/use-registry-admin.ts` 신규 — Agent/Skill/MCP CRUD 훅
-* `src/components/admin/registry/registry-editor-drawer.tsx` 신규
-* `src/components/admin/registry/registry-list-table.tsx` 신규
-* `src/app/(dashboard)/admin/registry/agents/page.tsx`, `…/skills/page.tsx`, `…/mcps/page.tsx` 신규
-* `src/app/(dashboard)/layout.tsx`: Admin 사이드바에 "Agent 레지스트리", "Skill 레지스트리", "MCP 레지스트리" 링크 추가
-* `src/lib/api-client.ts`: registryAdmin + useUpsertComposition 메서드
+* `app/engine/platforms.py`: `PlatformDirs`에 `pm_dir` 추가, `_build_codex_settings` 분기
+* `app/engine/generator.py`: `_generate_pm_files` 신규 writer, composition 우선 병합, codex 분기
+* `app/engine/templates/pm/pm-{claude,gemini,cursor}.md.j2`, `pm-codex.py.j2` 신규
+* `app/engine/templates/codex.md.j2` 신규(누락분)
+* `app/schemas/generate.py`: `pm_profile_id: UUID | None` 추가
+* `app/services/generate_service.py`: PM + compositions DB 로드 후 엔진 전달
+* `app/api/v1/projects.py`: `wizard_data`에 `pm_profile_id` 영속화
+* `tests/test_generate_pm.py` 신규 — 4개 플랫폼별 ZIP 내 파일 존재+내용 검증
 
 ## 완료 기준
 
-`pnpm lint && pnpm typecheck` 통과 + composition add/edit/delete + registry CRUD 동작 확인
+pytest 통과 + Claude/Gemini/Cursor/Codex 각 ZIP에 PM 파일 주입 확인
 
 ---
 

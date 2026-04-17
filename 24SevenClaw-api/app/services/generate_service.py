@@ -2,8 +2,9 @@
 
 import io
 import zipfile
+from typing import Any
 
-from app.engine.generator import generate_all, generate_pm_files
+from app.engine.generator import generate_all
 from app.schemas.generate import GenerateRequest
 
 
@@ -12,11 +13,13 @@ def generate_zip(
     project_name: str,
     pm_slug: str | None = None,
     pm_markdown: str | None = None,
+    pm_compositions: list[dict[str, Any]] | None = None,
 ) -> io.BytesIO:
     """위저드 설정 기반 프로젝트 파일을 ZIP으로 패키징하여 BytesIO로 반환.
 
     API 키(env_vars)는 메모리에서만 처리되며 DB/로그에 기록하지 않음.
     pm_slug/pm_markdown 이 있으면 플랫폼별 PM 파일을 ZIP에 포함한다.
+    pm_compositions 이 있으면 composition 에이전트/스킬을 우선 병합한다.
     """
     engine_project_name = request.solution.get("projectName", project_name)
     project_type = request.solution.get("solutionType", "fullstack")
@@ -33,16 +36,10 @@ def generate_zip(
         workflow_ids=workflow_ids,
         platform_id=platform_id,
         env_vars=request.env_vars if request.env_vars else None,
+        pm_slug=pm_slug,
+        pm_markdown=pm_markdown,
+        pm_compositions=pm_compositions,
     )
-
-    # PM 파일 주입 (선택)
-    if pm_slug and pm_markdown:
-        pm_files = generate_pm_files(
-            pm_slug=pm_slug,
-            pm_markdown=pm_markdown,
-            platform_id=platform_id,
-        )
-        files.update(pm_files)
 
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:

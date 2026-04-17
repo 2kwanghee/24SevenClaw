@@ -26,6 +26,17 @@ _env = Environment(
 )
 
 
+def _merge_unique(primary: list[str], secondary: list[str]) -> list[str]:
+    """primary 먼저, secondary에서 중복 없이 추가."""
+    seen = set(primary)
+    result = list(primary)
+    for item in secondary:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
+
 def generate_all(
     *,
     project_name: str,
@@ -35,11 +46,29 @@ def generate_all(
     workflow_ids: list[str],
     platform_id: str = "claude-code",
     env_vars: dict[str, str] | None = None,
+    pm_slug: str | None = None,
+    pm_markdown: str | None = None,
+    pm_compositions: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
     """위저드 설정 기반 모든 파일을 생성하여 {relativePath: content} 딕셔너리로 반환."""
     stack = find_stack(stack_id)
     dirs = get_platform_dirs(platform_id)
     files: dict[str, str] = {}
+
+    # PM compositions 우선 병합 — composition의 에이전트/스킬을 우선으로 포함
+    if pm_compositions:
+        comp_agents = [
+            c["component_slug"]
+            for c in pm_compositions
+            if c.get("component_type") == "agent"
+        ]
+        comp_skills = [
+            c["component_slug"]
+            for c in pm_compositions
+            if c.get("component_type") == "skill"
+        ]
+        agent_ids = _merge_unique(comp_agents, agent_ids)
+        workflow_ids = _merge_unique(comp_skills, workflow_ids)
 
     # 에이전트 파일 생성
     _generate_agent_files(files, dirs, project_name, project_type, stack, agent_ids)
@@ -61,6 +90,10 @@ def generate_all(
 
     # .env / .env.example 생성
     _generate_env_files(files, workflow_ids, env_vars or {})
+
+    # PM 파일 주입
+    if pm_slug and pm_markdown:
+        _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown)
 
     return files
 
@@ -117,6 +150,7 @@ def _get_root_guide_template(platform_id: str) -> str:
         "claude-code": "claude.md.j2",
         "gemini-cli": "gemini.md.j2",
         "cursor": "cursor.md.j2",
+        "codex": "codex.md.j2",
     }
     return templates.get(platform_id, "claude.md.j2")
 
@@ -160,6 +194,8 @@ def _generate_settings(
         settings = _build_gemini_settings(workflow_ids)
     elif platform_id == "cursor":
         settings = _build_cursor_settings(workflow_ids)
+    elif platform_id == "codex":
+        settings = _build_codex_settings(workflow_ids)
     else:
         settings = _build_claude_settings(workflow_ids)
 
@@ -254,6 +290,24 @@ def _build_cursor_settings(workflow_ids: list[str]) -> dict[str, Any]:
     return settings
 
 
+def _build_codex_settings(workflow_ids: list[str]) -> dict[str, Any]:
+    """Codex용 settings.json 빌드."""
+    settings: dict[str, Any] = {
+        "safetySettings": {
+            "denyPatterns": [
+                "rm -rf *",
+                "git push *",
+                "git checkout main",
+            ],
+        },
+    }
+
+    if "harness-gate" in workflow_ids:
+        settings["preCommandHook"] = "bash scripts/harness-gate.sh"
+
+    return settings
+
+
 def _generate_hook_files(
     files: dict[str, str],
     stack: dict[str, Any] | None,
@@ -319,12 +373,44 @@ def _generate_script_files(
         files["scripts/run-tests.sh"] = "\n".join(lines) + "\n"
 
 
+def _generate_pm_files(
+    files: dict[str, str],
+    dirs: PlatformDirs,
+    platform_id: str,
+    pm_slug: str,
+    pm_markdown: str,
+) -> None:
+    """플랫폼별 PM 파일 생성 — Jinja2 템플릿 기반."""
+    template_map: dict[str, tuple[str, str]] = {
+        "claude-code": (
+            "pm/pm-claude.md.j2",
+            f"{dirs['pm_dir']}/{pm_slug}.md",
+        ),
+        "gemini-cli": (
+            "pm/pm-gemini.md.j2",
+            f"{dirs['pm_dir']}/{pm_slug}.md",
+        ),
+        "cursor": (
+            "pm/pm-cursor.md.j2",
+            f"{dirs['pm_dir']}/pm-{pm_slug}.md",
+        ),
+        "codex": (
+            "pm/pm-codex.py.j2",
+            f"{dirs['pm_dir']}/{pm_slug}.py",
+        ),
+    }
+    template_name, output_path = template_map.get(platform_id, template_map["claude-code"])
+    template = _env.get_template(template_name)
+    content = template.render(pm_slug=pm_slug, pm_markdown=pm_markdown)
+    files[output_path] = content
+
+
 def generate_pm_files(
     pm_slug: str,
     pm_markdown: str,
     platform_id: str = "claude-code",
 ) -> dict[str, str]:
-    """선택된 PM 프로필을 플랫폼별 파일로 주입한다.
+    """선택된 PM 프로필을 플랫폼별 파일로 주입한다. (하위 호환성 유지)
 
     생성 경로:
         claude-code → .claude/pm/{slug}.md
@@ -333,22 +419,9 @@ def generate_pm_files(
         codex       → .codex/pm/{slug}.py (Python docstring 래핑)
         기타         → .claude/pm/{slug}.md (claude-code 기본)
     """
+    dirs = get_platform_dirs(platform_id)
     files: dict[str, str] = {}
-    slug = pm_slug
-
-    if platform_id == "gemini-cli":
-        files[f".gemini/pm/{slug}.md"] = pm_markdown
-    elif platform_id == "cursor":
-        files[f".cursor/rules/pm-{slug}.md"] = pm_markdown
-    elif platform_id == "codex":
-        py_content = (
-            f'"""\nPM Profile: {slug}\n\n{pm_markdown}\n"""\n'
-        )
-        files[f".codex/pm/{slug}.py"] = py_content
-    else:
-        # claude-code 또는 기본값
-        files[f".claude/pm/{slug}.md"] = pm_markdown
-
+    _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown)
     return files
 
 
