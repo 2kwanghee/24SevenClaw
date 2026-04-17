@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { LogOut, Bell } from "lucide-react";
+import { ThemeSwitcher } from "@/components/common/theme-switcher";
 
 export function Header() {
   const { data: session } = useSession();
@@ -13,20 +14,29 @@ export function Header() {
     : "U";
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-white/5 bg-slate-950/50 px-8 backdrop-blur-sm">
+    <header className="flex h-16 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-header)] px-8 backdrop-blur-sm">
       <div />
       <div className="flex items-center gap-4">
+        {/* 테마 스위처 */}
+        <ThemeSwitcher />
+
+        {/* 구분선 */}
+        <div className="h-6 w-px bg-[var(--border-medium)]" />
+
         {/* 알림 */}
-        <button className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300">
+        <button
+          aria-label="알림"
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+        >
           <Bell className="h-4 w-4" />
         </button>
 
         {/* 구분선 */}
-        <div className="h-6 w-px bg-white/10" />
+        <div className="h-6 w-px bg-[var(--border-medium)]" />
 
         {/* 유저 정보 */}
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-sm font-medium text-violet-300">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-bg)] text-sm font-medium text-[var(--accent-text)]">
             {session.user.avatarUrl ? (
               <span>{initials}</span>
             ) : (
@@ -34,11 +44,11 @@ export function Header() {
             )}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-medium text-slate-200">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
               {session.user.displayName}
             </p>
           </div>
-          <span className="rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-300">
+          <span className="rounded-md bg-[var(--accent-bg)] px-2 py-0.5 text-xs font-medium text-[var(--accent-text)]">
             {session.user.plan}
           </span>
         </div>
@@ -46,7 +56,7 @@ export function Header() {
         {/* 로그아웃 */}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover-danger)] hover:text-red-400"
           title="로그아웃"
         >
           <LogOut className="h-4 w-4" />

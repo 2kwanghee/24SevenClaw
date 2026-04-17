@@ -8,19 +8,8 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[24S-142/P6] 문서 + E2E 검증**
-  > 요청사항: ## 작업 내용
-
-* `docs/pages/admin/pm-management.md`: MD 편집·composition·registry 연동 섹션 추가
-* `docs/pages/admin/registry.md` 신규 — Agent/Skill/MCP 관리 가이드
-* `docs/pages/solutions/wizard/step-04-pm-recommend.md`: PM → ZIP 배포 흐름 보강
-* `docs/pages/download/pm-environment.md` 신규 — 플랫폼별 배포 파일 매핑
-* E2E 시나리오: 관리자 로그인 → PM 생성 → composition 편집 → MD 직접편집 저장 → 위저드 PM 선택 → ZIP 다운 → 파일 내용 일치 검증
-* 권한 회귀: 일반 user로 `/admin/registry/*`·`/admin/pm/*` 접근 시 AccessDenied
-
-## 완료 기준
-
-4개 문서 업데이트 완료 + E2E 시나리오 수동 통과
+- [x] **테마 기능 추가**
+  > 요청사항: 현재 블랙테마만 적용되어있어서 솔루션이 어두운 느낌인데 화이트테마 블루테마 그레이테마등 솔루션에 다른 테마 색상을 적용할수 있는 기능을 제공해
 
 ---
 
@@ -30,4 +19,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-17 | [24S-142/P6] 문서 + E2E 검증 | ✅ 완료 | 4개 문서 작성: pm-management.md 보강, registry.md 신규, step-04-pm-recommend.md 보강, pm-environment.md 신규 |
+| 2026-04-17 | 테마 기능 추가 | ✅ 완료 | CSS 변수 기반 4테마(dark/light/blue/gray), 헤더 스위처 |
