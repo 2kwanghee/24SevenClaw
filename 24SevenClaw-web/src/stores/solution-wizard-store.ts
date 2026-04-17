@@ -26,6 +26,8 @@ interface SolutionWizardState {
   step1Done: boolean;
   /** Step 3 (PM 추천) 완료 플래그 — 부모가 감시해서 nextStep() 호출 */
   step3Done: boolean;
+  /** 프로젝트 생성 완료 후 설정 — StepConfirmation에서 가이드 모달 트리거에 사용 */
+  createdProjectId: string | null;
 }
 
 interface SolutionWizardActions {
@@ -47,6 +49,7 @@ interface SolutionWizardActions {
   setPlatform: (data: PlatformStep) => void;
   setEnv: (data: Partial<EnvStep>) => void;
   setIsGenerating: (v: boolean) => void;
+  setCreatedProjectId: (id: string) => void;
   reset: () => void;
 }
 
@@ -57,6 +60,7 @@ const initialState: SolutionWizardState = {
   step0Valid: false,
   step1Done: false,
   step3Done: false,
+  createdProjectId: null,
 };
 
 export const useSolutionWizardStore = create<
@@ -164,6 +168,8 @@ export const useSolutionWizardStore = create<
     })),
 
   setIsGenerating: (isGenerating) => set({ isGenerating }),
+
+  setCreatedProjectId: (createdProjectId) => set({ createdProjectId }),
 
   reset: () => set(initialState),
 }));

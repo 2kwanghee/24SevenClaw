@@ -50,6 +50,7 @@ export default function NewSolutionPage() {
     nextStep,
     setSessionId,
     setOrganizationId,
+    setCreatedProjectId,
     reset,
   } = useSolutionWizardStore();
 
@@ -85,6 +86,16 @@ export default function NewSolutionPage() {
         return data.agents.selectedAgents.length > 0;
       case 7:
         return !!data.platform.platformId;
+      case 8: {
+        // ANTHROPIC_API_KEY 필수 + linear 스킬 선택 시 LINEAR_API_KEY, LINEAR_TEAM_ID 필수
+        const ev = data.env.envVars;
+        if (!ev["ANTHROPIC_API_KEY"]?.trim()) return false;
+        if (data.agents.selectedSkills.includes("linear")) {
+          if (!ev["LINEAR_API_KEY"]?.trim()) return false;
+          if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
+        }
+        return true;
+      }
       default:
         return true;
     }
@@ -165,8 +176,8 @@ export default function NewSolutionPage() {
         description: data.company.solutionRequest || null,
       });
 
-      reset();
-      router.push(`/projects/${result.project_id}`);
+      // 가이드 모달 표시를 위해 projectId를 store에 설정 (즉시 라우팅 대신 StepConfirmation이 모달을 보여줌)
+      setCreatedProjectId(result.project_id);
     } catch (err) {
       if (err instanceof NetworkError) {
         toast.error(err.message);
