@@ -18,6 +18,20 @@ from app.engine.platforms import PlatformDirs, get_platform_dirs
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
+_GUIDE_FILE_MAP: dict[str, str] = {
+    "ANTHROPIC_API_KEY": "anthropic-api-key-guide.md",
+    "LINEAR_API_KEY": "linear-api-key-guide.md",
+    "LINEAR_TEAM_ID": "linear-api-key-guide.md",
+    "GEMINI_API_KEY": "gemini-api-key-guide.md",
+}
+
+_PLATFORM_COMMANDS_PATH: dict[str, str | None] = {
+    "claude-code": ".claude/commands/24SeventStart.md",
+    "gemini-cli": ".gemini/commands/24SeventStart.md",
+    "cursor": ".cursor/commands/24SeventStart.md",
+    "codex": None,
+}
+
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     keep_trailing_newline=True,
@@ -94,6 +108,10 @@ def generate_all(
     # PM 파일 주입
     if pm_slug and pm_markdown:
         _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown)
+
+    # 온보딩 docs 및 /24SeventStart 커맨드 주입
+    _emit_docs(files)
+    _emit_start_command(files, platform_id, project_name, workflow_ids)
 
     return files
 
@@ -442,3 +460,42 @@ def _generate_env_files(
         env_vars=env_vars,
     )
     files.update(env_files)
+
+
+def _emit_docs(files: dict[str, str]) -> None:
+    """docs/api-keys/*.md 정적 가이드 문서를 ZIP에 포함."""
+    docs_src = TEMPLATES_DIR / "docs" / "api-keys"
+    for doc_file in sorted(docs_src.glob("*.md")):
+        files[f"docs/api-keys/{doc_file.name}"] = doc_file.read_text(encoding="utf-8")
+
+
+def _emit_start_command(
+    files: dict[str, str],
+    platform_id: str,
+    project_name: str,
+    workflow_ids: list[str],
+) -> None:
+    """/24SeventStart 온보딩 커맨드 파일을 플랫폼별 경로로 생성."""
+    output_path = _PLATFORM_COMMANDS_PATH.get(platform_id)
+    if output_path is None:
+        return
+
+    env_var_definitions = get_env_var_definitions(workflow_ids)
+    required_vars = [
+        {
+            "name": v["name"],
+            "description": v.get("description", ""),
+            "guide_file": _GUIDE_FILE_MAP.get(v["name"], "anthropic-api-key-guide.md"),
+        }
+        for v in env_var_definitions
+        if v.get("required") and v["name"] != "ANTHROPIC_API_KEY"
+    ]
+
+    template = _env.get_template("commands/24seven-start.md.j2")
+    content = template.render(
+        project_name=project_name,
+        required_vars=required_vars,
+        has_ralph="ralph-loop" in workflow_ids,
+        has_linear="linear" in workflow_ids,
+    )
+    files[output_path] = content

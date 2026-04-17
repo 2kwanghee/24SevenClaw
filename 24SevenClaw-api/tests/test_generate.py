@@ -35,6 +35,79 @@ def test_generate_zip_basic() -> None:
         assert ".claude/settings.json" in names
 
 
+def test_generate_zip_includes_onboarding_docs() -> None:
+    """ZIP에 docs/api-keys 가이드 4종 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "onboarding-test", "stackPreset": "fastapi-nextjs"},
+        agents=["backend"],
+        skills=["tdd"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = generate_zip(request, "onboarding-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert "docs/api-keys/anthropic-api-key-guide.md" in names
+        assert "docs/api-keys/linear-api-key-guide.md" in names
+        assert "docs/api-keys/claude-code-subscription-guide.md" in names
+        assert "docs/api-keys/gemini-api-key-guide.md" in names
+
+
+def test_generate_zip_includes_start_command_claude() -> None:
+    """claude-code 플랫폼 ZIP에 /24SeventStart 커맨드 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "cmd-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["tdd"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = generate_zip(request, "cmd-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".claude/commands/24SeventStart.md" in names
+        content = zf.read(".claude/commands/24SeventStart.md").decode()
+        assert "24SevenClaw" in content
+        assert "ANTHROPIC_API_KEY" in content
+
+
+def test_generate_zip_start_command_gemini() -> None:
+    """gemini-cli 플랫폼 ZIP에 Gemini용 커맨드 경로 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "gemini-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=[],
+        platform={"platformId": "gemini-cli"},
+    )
+
+    buffer = generate_zip(request, "gemini-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".gemini/commands/24SeventStart.md" in names
+
+
+def test_generate_zip_linear_skill_includes_team_id() -> None:
+    """linear 스킬 선택 시 .env.example에 LINEAR_TEAM_ID 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "linear-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["linear"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = generate_zip(request, "linear-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".env.example" in names
+        example = zf.read(".env.example").decode()
+        assert "LINEAR_API_KEY=" in example
+        assert "LINEAR_TEAM_ID=" in example
+
+
 def test_generate_zip_with_env_vars() -> None:
     """envVars 전달 시 .env + .env.example 포함."""
     request = GenerateRequest(

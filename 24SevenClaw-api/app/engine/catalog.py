@@ -86,6 +86,12 @@ SKILLS: list[dict[str, Any]] = [
                 "pattern": r"^lin_api_[A-Za-z0-9]+$",
                 "required": True,
             },
+            {
+                "name": "LINEAR_TEAM_ID",
+                "description": "Linear 팀 UUID (API로 조회 또는 URL에서 확인)",
+                "pattern": "",
+                "required": True,
+            },
         ],
     },
     {
