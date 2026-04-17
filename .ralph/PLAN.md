@@ -8,20 +8,21 @@
 
 ## P2: 기능 요구사항
 
-- [ ] **[24S-142/P2] PM Markdown 직렬화/파싱 API**
+- [ ] **[24S-142/P3] Web MD 편집 UI (react-markdown 도입)**
   > 요청사항: ## 작업 내용
 
-* `app/services/pm_markdown.py` 신규
-  * `serialize_pm_to_markdown(pm, compositions) -> str`: YAML frontmatter + 섹션(소개/운영가이드/구성)
-  * `parse_markdown_to_pm(md) -> (PMProfileUpdate, list[PMCompositionUpsert])`: frontmatter + 섹션 파싱
-* `app/schemas/pm_profile.py`: `markdown_body`, `PMMarkdownUpsertRequest` 추가
-* `app/api/v1/pm_profiles.py`: `GET/PUT /pm-profiles/{id}/markdown` 추가
-* `app/services/pm_service.py`: `markdown_body` 저장 경로
-* `tests/test_pm_markdown.py` 신규 — 라운드트립 `serialize(parse(serialize(pm))) == serialize(pm)` 포함
+* `package.json`: `react-markdown ^9`, `remark-gfm ^4`, `gray-matter ^4` 추가
+* `src/components/admin/markdown/markdown-editor.tsx` 신규 — split pane (textarea ↔ react-markdown preview)
+* `src/components/admin/markdown/collapsible-section.tsx` 신규 — useState+Chevron 핸드롤 패턴 재사용 컴포넌트
+* `src/lib/validations/pm.ts` 신규 — RHF + Zod 스키마
+* `src/app/(dashboard)/admin/pm/[id]/page.tsx` 전면 리팩터 — raw useState → RHF, 7블록 레이아웃(기본정보/태그/자유서술/MD전체/SKILL/AGENT/기타)
+* `src/components/admin/pm/pm-edit-form.tsx` 신규 — 추출 폼 컴포넌트
+* `src/components/admin/pm/pm-markdown-pane.tsx` 신규 — 전체 MD 토글 패널
+* `src/components/admin/pm/tag-input.tsx` — 기존 inline 추출
 
 ## 완료 기준
 
-pytest 통과 + mypy strict 통과
+`pnpm lint && pnpm typecheck` 통과 + PM 편집 화면에서 폼 수정 → MD 실시간 반영 확인
 
 ---
 
