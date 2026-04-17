@@ -80,6 +80,18 @@ class MaturityService:
     def get_questions(self) -> list[MaturityQuestion]:
         return _load_questions()
 
+    async def get_latest_assessment(self, user_id: UUID) -> MaturityAssessment | None:
+        """해당 유저의 가장 최근 성숙도 평가를 반환한다. 없으면 None."""
+        from sqlalchemy import desc
+        stmt = (
+            select(MaturityAssessment)
+            .where(MaturityAssessment.user_id == user_id)
+            .order_by(desc(MaturityAssessment.created_at))
+            .limit(1)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().first()
+
     async def assess(
         self,
         user_id: UUID,
