@@ -14,14 +14,14 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-/* ── 상수 ────────────────────────────────────────────────────────────── */
+/* -- 상수 -------------------------------------------------------------- */
 
-const EXPECTED_COUNT = 4;
+const EXPECTED_COUNT = 3;
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 40; // 최대 2분
 const REVEAL_STAGGER_MS = 350;
 
-/* ── 타입 ────────────────────────────────────────────────────────────── */
+/* -- 타입 -------------------------------------------------------------- */
 
 type CardStatus = "skeleton" | "generating" | "ready";
 
@@ -33,7 +33,7 @@ interface PrototypeCardItem {
   status: CardStatus;
 }
 
-/* ── 하위 컴포넌트 ───────────────────────────────────────────────────── */
+/* -- 하위 컴포넌트 ----------------------------------------------------- */
 
 function SkeletonCard({ index }: { index: number }) {
   return (
@@ -115,7 +115,7 @@ function ReadyCard({ card, index }: ReadyCardProps) {
   );
 }
 
-/* ── 메인 컴포넌트 ───────────────────────────────────────────────────── */
+/* -- 메인 컴포넌트 ----------------------------------------------------- */
 
 export function StepPrototypeGeneration() {
   const { data: session } = useSession();
@@ -129,7 +129,7 @@ export function StepPrototypeGeneration() {
     (s) => s.setGeneratedPrototypes,
   );
   const setIsGenerating = useSolutionWizardStore((s) => s.setIsGenerating);
-  const nextStep = useSolutionWizardStore((s) => s.nextStep);
+  const setStep1Done = useSolutionWizardStore((s) => s.setStep1Done);
 
   const [cards, setCards] = useState<PrototypeCardItem[]>([]);
   const [readyCount, setReadyCount] = useState(0);
@@ -140,7 +140,7 @@ export function StepPrototypeGeneration() {
   const pollCountRef = useRef(0);
   const hasStartedRef = useRef(false);
 
-  /* ── 생성 실행 ── */
+  /* -- 생성 실행 -- */
   const startGeneration = useCallback(async () => {
     if (!sessionId || !token) return;
     if (hasStartedRef.current) return;
@@ -187,7 +187,7 @@ export function StepPrototypeGeneration() {
 
         if (statusResp.status === "completed") {
           // 3) 프로토타입 목록 가져오기
-          const protoList = await prototypeSessions.listPrototypes(
+          const protoList = await prototypeSessions.getPrototypes(
             token,
             sessionId,
           );
@@ -211,6 +211,12 @@ export function StepPrototypeGeneration() {
               solutionType: p.design_pattern ?? "custom",
               reasoning: p.description,
               config: (p.ui_structure ?? {}) as Record<string, unknown>,
+              techStack: Array.isArray(p.tech_stack_tags) ? p.tech_stack_tags : [],
+              architecturePattern: p.architecture_pattern ?? undefined,
+              rationale: p.variant_rationale ?? undefined,
+              isRecommended: p.is_recommended,
+              pros: Array.isArray(p.pros) ? p.pros : [],
+              cons: Array.isArray(p.cons) ? p.cons : [],
             })),
           );
 
@@ -230,10 +236,9 @@ export function StepPrototypeGeneration() {
 
           setIsGenerating(false);
 
-          // 5) 짧은 딜레이 후 자동 이동
-          await new Promise<void>((res) => setTimeout(res, 600));
+          // 5) 완료 플래그 설정 → 부모의 canProceed(case 1)가 true가 되어 "다음" 버튼 활성화
           if (!cancelledRef.current) {
-            nextStep();
+            setStep1Done(true);
           }
         } else if (statusResp.status === "failed") {
           setIsGenerating(false);
@@ -250,27 +255,44 @@ export function StepPrototypeGeneration() {
     };
 
     setTimeout(() => void poll(), POLL_INTERVAL_MS);
-  }, [sessionId, token, setGeneratedPrototypes, setIsGenerating, nextStep]);
+  }, [sessionId, token, setGeneratedPrototypes, setIsGenerating, setStep1Done]);
 
-  /* ── 이미 생성된 프로토타입이 있으면 즉시 이동 ── */
+  /* -- 이미 생성된 프로토타입이 있으면 카드 복원 + 다음 버튼 활성화 -- */
   useEffect(() => {
     if (existingPrototypes.length > 0) {
-      nextStep();
+      const readyCards: PrototypeCardItem[] = existingPrototypes.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.reasoning,
+        solutionType: p.solutionType,
+        status: "ready" as CardStatus,
+      }));
+      setCards(readyCards);
+      setReadyCount(readyCards.length);
+      setIsGenerating(false);
+      setStep1Done(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── 마운트 시 생성 시작 ── */
+  /* -- 마운트 시 생성 시작 -- */
   useEffect(() => {
-    if (existingPrototypes.length > 0) return; // 이미 처리됨
+    // 이미 생성된 프로토타입이 있으면 실행 안 함 (첫 번째 effect가 처리)
+    // existingPrototypes.length를 dep에 넣으면 setGeneratedPrototypes() 호출 시
+    // 클린업이 실행되어 cancelledRef.current = true 가 되고
+    // nextStep() 호출이 차단되는 버그 발생 → dep에서 제외
+    if (existingPrototypes.length > 0) return;
 
     cancelledRef.current = false;
     void startGeneration();
     return () => {
       cancelledRef.current = true;
+      // strict mode 이중 실행 시 재시작 허용 (hasStartedRef 리셋)
+      hasStartedRef.current = false;
     };
-  }, [startGeneration, existingPrototypes.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startGeneration]);
 
-  /* ── 재시도 ── */
+  /* -- 재시도 -- */
   const handleRetry = () => {
     hasStartedRef.current = false;
     pollCountRef.current = 0;
@@ -279,7 +301,7 @@ export function StepPrototypeGeneration() {
 
   const totalCount = Math.max(cards.length || EXPECTED_COUNT, EXPECTED_COUNT);
 
-  /* ── 실패 상태 ─────────────────────────────────────────────────────── */
+  /* -- 실패 상태 ------------------------------------------------------- */
   if (isFailed) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -307,7 +329,7 @@ export function StepPrototypeGeneration() {
     );
   }
 
-  /* ── 생성 중 + 완료 상태 ─────────────────────────────────────────── */
+  /* -- 생성 중 + 완료 상태 ------------------------------------------- */
   const displayCards: PrototypeCardItem[] =
     cards.length > 0
       ? cards
@@ -397,11 +419,10 @@ export function StepPrototypeGeneration() {
         </p>
       )}
 
-      {/* 완료 후 자동 이동 메시지 */}
+      {/* 완료 후 안내 메시지 */}
       {allReady && (
-        <p className="flex items-center justify-center gap-1.5 text-center text-xs text-emerald-500">
-          <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-          프로토타입 선택 화면으로 이동 중...
+        <p className="text-center text-xs text-emerald-500">
+          아래 <strong>다음</strong> 버튼을 클릭해 프로토타입을 확인하세요.
         </p>
       )}
     </div>

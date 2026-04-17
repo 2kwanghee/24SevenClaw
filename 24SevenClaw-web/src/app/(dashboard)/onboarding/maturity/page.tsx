@@ -48,7 +48,7 @@ export default function MaturityAssessmentPage() {
           </p>
           <button
             type="button"
-            onClick={() => router.push("/projects/new")}
+            onClick={() => router.push("/solutions/new")}
             className="mt-2 flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
           >
             건너뛰고 직접 설정하기
@@ -80,7 +80,7 @@ export default function MaturityAssessmentPage() {
           </p>
           <button
             type="button"
-            onClick={() => router.push("/projects/new")}
+            onClick={() => router.push("/solutions/new")}
             className="mt-4 text-sm text-violet-400 hover:text-violet-300"
           >
             위저드로 이동

@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Integer,
     String,
     Text,
     Uuid,
@@ -28,3 +29,11 @@ class PMProfile(Base):
     personality = Column(JSON, nullable=False, default=dict)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    # Phase 3: PM 관리 확장 필드
+    bio_long = Column(Text, nullable=True)
+    years_experience = Column(Integer, nullable=True)
+    preferred_solution_types = Column(JSON, nullable=False, default=list)
+    tech_stack_tags = Column(JSON, nullable=False, default=list)
+    industry_tags = Column(JSON, nullable=False, default=list)
+    language = Column(String(8), nullable=False, default="ko")
+    updated_at = Column(DateTime(timezone=True), nullable=True)

@@ -13,9 +13,9 @@ const dirs = PLATFORM_DIR_MAP["claude-code"];
  *
  * .claude/ 디렉토리 구조:
  *   .claude/
- *   ├── agents/          # 에이전트 가이드 (.md)
- *   ├── skills/          # 스킬/워크플로우 (.md)
- *   └── settings.json    # 권한 + Hook 설정
+ *   ├-- agents/          # 에이전트 가이드 (.md)
+ *   ├-- skills/          # 스킬/워크플로우 (.md)
+ *   └-- settings.json    # 권한 + Hook 설정
  *   CLAUDE.md            # 루트 프로젝트 가이드
  */
 export class ClaudeCodeAdapter implements PlatformAdapter {

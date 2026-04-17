@@ -3,24 +3,28 @@
 import io
 import zipfile
 
-from app.engine.generator import generate_all
+from app.engine.generator import generate_all, generate_pm_files
 from app.schemas.generate import GenerateRequest
 
 
-def generate_zip(request: GenerateRequest, project_name: str) -> io.BytesIO:
+def generate_zip(
+    request: GenerateRequest,
+    project_name: str,
+    pm_slug: str | None = None,
+    pm_markdown: str | None = None,
+) -> io.BytesIO:
     """위저드 설정 기반 프로젝트 파일을 ZIP으로 패키징하여 BytesIO로 반환.
 
     API 키(env_vars)는 메모리에서만 처리되며 DB/로그에 기록하지 않음.
+    pm_slug/pm_markdown 이 있으면 플랫폼별 PM 파일을 ZIP에 포함한다.
     """
-    # 위저드 데이터에서 생성 엔진 파라미터 추출
     engine_project_name = request.solution.get("projectName", project_name)
     project_type = request.solution.get("solutionType", "fullstack")
     stack_id = request.solution.get("stackPreset", "custom")
     agent_ids = request.agents
     workflow_ids = request.skills + request.pipelines
-    platform_id = request.platform.get("platformId", "claude-code")
+    platform_id = str(request.platform.get("platformId", "claude-code"))
 
-    # 생성 엔진 호출 (env_vars 포함 — 엔진이 .env/.env.example 생성)
     files = generate_all(
         project_name=engine_project_name,
         project_type=project_type,
@@ -31,7 +35,15 @@ def generate_zip(request: GenerateRequest, project_name: str) -> io.BytesIO:
         env_vars=request.env_vars if request.env_vars else None,
     )
 
-    # ZIP 패키징
+    # PM 파일 주입 (선택)
+    if pm_slug and pm_markdown:
+        pm_files = generate_pm_files(
+            pm_slug=pm_slug,
+            pm_markdown=pm_markdown,
+            platform_id=platform_id,
+        )
+        files.update(pm_files)
+
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for path, content in sorted(files.items()):

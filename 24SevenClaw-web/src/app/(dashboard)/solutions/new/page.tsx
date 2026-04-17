@@ -44,6 +44,9 @@ export default function NewSolutionPage() {
   const {
     currentStep,
     data,
+    step0Valid,
+    step1Done,
+    step3Done,
     nextStep,
     setSessionId,
     setOrganizationId,
@@ -65,22 +68,14 @@ export default function NewSolutionPage() {
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
-        return !!(
-          data.company.companyName &&
-          data.company.companySize &&
-          data.company.industry &&
-          data.company.mainProduct &&
-          data.company.businessType &&
-          data.company.solutionRequest.length >= 50
-        );
+        // formState.isValid를 스토어에 동기화한 값으로 판단 (store 간접 참조 사이클 회피)
+        return step0Valid;
       case 1:
-        // 솔루션 생성 단계: 자동 이동, 수동 진행 불가
-        return false;
+        return step1Done;
       case 2:
         return !!data.prototypes.selectedPrototypeId;
       case 3:
-        // PM 추천 단계: 자동 이동, 수동 진행 불가
-        return false;
+        return step3Done;
       case 4:
         return !!data.pm.selectedPmProfileId;
       case 5:
@@ -97,27 +92,34 @@ export default function NewSolutionPage() {
 
   /** Step 1 완료 시: 조직 upsert → 프로토타입 세션 생성 → Step 2로 이동 */
   const handleStep1Next = async () => {
-    if (!token) return;
+    if (!token) {
+      toast.error("로그인이 필요합니다. 페이지를 새로고침해 주세요.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
+      // 클릭 시점의 최신 스토어 값 사용 (렌더 클로저 stale 방지)
+      const company = useSolutionWizardStore.getState().data.company;
+
       // 1. 조직 정보 저장/업데이트
       const org = await organizations.upsert(token, {
-        company_name: data.company.companyName,
-        main_product: data.company.mainProduct,
+        company_name: company.companyName,
+        main_product: company.mainProduct,
         // b2b2c는 API 미지원으로 b2b로 매핑
         business_type:
-          data.company.businessType === "b2b2c"
+          company.businessType === "b2b2c"
             ? "b2b"
-            : (data.company.businessType ?? undefined),
-        company_description: data.company.companyDescription || undefined,
+            : (company.businessType ?? undefined),
+        company_description: company.companyDescription || undefined,
       });
       setOrganizationId(org.id);
 
       // 2. 프로토타입 세션 생성
       const ps = await prototypeSessions.create(token, {
         organization_id: org.id,
-        solution_prompt: data.company.solutionRequest,
+        solution_prompt: company.solutionRequest,
+        tech_stack: company.techStack,
       });
       setSessionId(ps.id);
 
@@ -129,9 +131,12 @@ export default function NewSolutionPage() {
         toast.error(err.message);
         setError(err.message);
       } else if (err instanceof ApiClientError) {
+        toast.error(err.detail);
         setError(err.detail);
       } else {
-        setError("세션 생성에 실패했습니다.");
+        const msg = "세션 생성에 실패했습니다.";
+        toast.error(msg);
+        setError(msg);
       }
     } finally {
       setIsSubmitting(false);
@@ -140,9 +145,14 @@ export default function NewSolutionPage() {
 
   /** 마지막 스텝: prototype-session finalize → 프로젝트 생성 */
   const handleSubmit = async () => {
-    if (!token) return;
+    if (!token) {
+      toast.error("로그인이 필요합니다. 페이지를 새로고침해 주세요.");
+      return;
+    }
     if (!data.sessionId) {
-      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      const msg = "세션 정보가 없습니다. 처음부터 다시 시작해 주세요.";
+      toast.error(msg);
+      setError(msg);
       return;
     }
     setError(null);
@@ -162,9 +172,12 @@ export default function NewSolutionPage() {
         toast.error(err.message);
         setError(err.message);
       } else if (err instanceof ApiClientError) {
+        toast.error(err.detail);
         setError(err.detail);
       } else {
-        setError("프로젝트 생성에 실패했습니다.");
+        const msg = "프로젝트 생성에 실패했습니다.";
+        toast.error(msg);
+        setError(msg);
       }
     } finally {
       setIsSubmitting(false);

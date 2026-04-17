@@ -17,7 +17,7 @@ import { useEffect } from "react";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import type { BusinessType, CompanySize, IndustryType } from "@/types/solution-wizard";
 
-/* ── 상수 ── */
+/* -- 상수 -- */
 
 const BUSINESS_TYPE_OPTIONS: {
   value: BusinessType;
@@ -72,7 +72,7 @@ const TECH_STACK_OPTIONS = [
   "Kubernetes",
 ];
 
-/* ── Zod 스키마 ── */
+/* -- Zod 스키마 -- */
 
 const schema = z.object({
   companyName: z
@@ -118,56 +118,60 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-/* ── 컴포넌트 ── */
+/* -- 컴포넌트 -- */
 
 export function StepCompanySolution() {
-  const company = useSolutionWizardStore((s) => s.data.company);
+  // defaultValues 초기화에만 필요 — reactive 구독 없이 1회 읽기
+  const initialCompany = useSolutionWizardStore.getState().data.company;
   const setCompany = useSolutionWizardStore((s) => s.setCompany);
+  const setStep0Valid = useSolutionWizardStore((s) => s.setStep0Valid);
 
   const {
     register,
     control,
     watch,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: {
-      companyName: company.companyName,
-      companySize: company.companySize ?? undefined,
-      industry: company.industry ?? undefined,
-      techStack: company.techStack,
-      mainProduct: company.mainProduct,
-      businessType: company.businessType ?? undefined,
-      companyDescription: company.companyDescription,
-      solutionRequest: company.solutionRequest,
+      companyName: initialCompany.companyName,
+      companySize: initialCompany.companySize ?? undefined,
+      industry: initialCompany.industry ?? undefined,
+      techStack: initialCompany.techStack,
+      mainProduct: initialCompany.mainProduct,
+      businessType: initialCompany.businessType ?? undefined,
+      companyDescription: initialCompany.companyDescription,
+      solutionRequest: initialCompany.solutionRequest,
     },
   });
 
-  const watchedValues = watch();
-
-  // 입력 변경 시 스토어 자동 저장
+  // ① 폼 유효성(boolean) → 스토어 동기화 — 다음 버튼 활성화에 사용
   useEffect(() => {
+    setStep0Valid(isValid);
+  }, [isValid, setStep0Valid]);
+
+  // ② 필드값 → 스토어 동기화 — handleStep1Next의 data.company 읽기에 사용
+  //    JSON.stringify로 직렬화하여 배열 참조 변경 문제 회피
+  const values = watch();
+  const valuesJson = JSON.stringify(values);
+
+  useEffect(() => {
+    const v = JSON.parse(valuesJson) as FormData;
     setCompany({
-      companyName: watchedValues.companyName ?? "",
-      companySize: watchedValues.companySize ?? null,
-      industry: watchedValues.industry ?? null,
-      techStack: watchedValues.techStack ?? [],
-      mainProduct: watchedValues.mainProduct ?? "",
-      businessType: watchedValues.businessType ?? null,
-      companyDescription: watchedValues.companyDescription ?? "",
-      solutionRequest: watchedValues.solutionRequest ?? "",
+      companyName: v.companyName ?? "",
+      companySize: v.companySize ?? null,
+      industry: v.industry ?? null,
+      techStack: v.techStack ?? [],
+      mainProduct: v.mainProduct ?? "",
+      businessType: v.businessType ?? null,
+      companyDescription: v.companyDescription ?? "",
+      solutionRequest: v.solutionRequest ?? "",
     });
-  }, [
-    watchedValues.companyName,
-    watchedValues.companySize,
-    watchedValues.industry,
-    watchedValues.techStack,
-    watchedValues.mainProduct,
-    watchedValues.businessType,
-    watchedValues.companyDescription,
-    watchedValues.solutionRequest,
-    setCompany,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valuesJson, setCompany]);
+
+  const solutionRequest = watch("solutionRequest");
 
   return (
     <div className="space-y-6">
@@ -446,15 +450,15 @@ export function StepCompanySolution() {
           )}
           <span
             className={`text-xs ${
-              (watchedValues.solutionRequest?.length ?? 0) < 50
+              (solutionRequest?.length ?? 0) < 50
                 ? "text-slate-500"
                 : "text-emerald-500"
             }`}
           >
-            {watchedValues.solutionRequest?.length ?? 0} / 2000
-            {(watchedValues.solutionRequest?.length ?? 0) < 50 && (
+            {solutionRequest?.length ?? 0} / 2000
+            {(solutionRequest?.length ?? 0) < 50 && (
               <span className="ml-1 text-slate-600">
-                (최소 {50 - (watchedValues.solutionRequest?.length ?? 0)}자 더)
+                (최소 {50 - (solutionRequest?.length ?? 0)}자 더)
               </span>
             )}
           </span>

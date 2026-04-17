@@ -31,7 +31,7 @@ import type {
   CustomerContractOverrideResponse,
 } from "@/lib/api-client";
 
-/* ── 오버라이드 카드 ── */
+/* -- 오버라이드 카드 -- */
 
 function OverrideCard({
   override,
@@ -129,7 +129,7 @@ function OverrideCard({
   );
 }
 
-/* ── 계약 적용 다이얼로그 ── */
+/* -- 계약 적용 다이얼로그 -- */
 
 function ApplyContractDialog({
   isOpen,
@@ -241,7 +241,7 @@ function ApplyContractDialog({
   );
 }
 
-/* ── 메인 콘텐츠 ── */
+/* -- 메인 콘텐츠 -- */
 
 function ProjectContractsContent() {
   const { projectId } = useParams<{ projectId: string }>();

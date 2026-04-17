@@ -19,7 +19,7 @@ import { SolutionWizardLayout } from "../solution-wizard-layout";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { SOLUTION_WIZARD_STEPS } from "@/types/solution-wizard";
 
-/* ── 모킹 ── */
+/* -- 모킹 -- */
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -32,7 +32,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-/* ── 헬퍼 ── */
+/* -- 헬퍼 -- */
 
 interface RenderOptions {
   onSubmit?: () => void;
@@ -67,7 +67,7 @@ const PREV_BTN_LABEL = "이전 단계로 이동";
 // 마지막 스텝 다음 버튼은 aria-label="프로젝트 생성하기"
 const SUBMIT_BTN_LABEL = "프로젝트 생성하기";
 
-/* ── 테스트 ── */
+/* -- 테스트 -- */
 
 describe("SolutionWizardLayout — 네비게이션", () => {
   beforeEach(() => {

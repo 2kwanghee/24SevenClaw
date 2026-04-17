@@ -16,7 +16,7 @@ import { useEffect } from "react";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import type { BusinessType } from "@/types/solution-wizard";
 
-/* ── 상수 ── */
+/* -- 상수 -- */
 
 const BUSINESS_TYPE_OPTIONS: {
   value: BusinessType;
@@ -50,7 +50,7 @@ const BUSINESS_TYPE_OPTIONS: {
   },
 ];
 
-/* ── Zod 스키마 ── */
+/* -- Zod 스키마 -- */
 
 const schema = z.object({
   companyName: z
@@ -76,7 +76,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-/* ── 컴포넌트 ── */
+/* -- 컴포넌트 -- */
 
 export function StepCompany() {
   const company = useSolutionWizardStore((s) => s.data.company);

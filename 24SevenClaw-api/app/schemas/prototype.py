@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 class PrototypeSessionCreate(BaseModel):
     organization_id: UUID
     solution_prompt: str = Field(..., description="솔루션을 설명하는 자연어 프롬프트")
+    tech_stack: list[str] = Field(default_factory=list, description="사용자 선호 기술 스택")
 
 
 class PrototypeSessionResponse(BaseModel):
@@ -53,6 +54,13 @@ class PrototypeResponse(BaseModel):
     figma_file_key: str | None
     figma_embed_url: str | None
     status: str
+    # 다양성 메타데이터 (ui_structure에서 추출)
+    tech_stack_tags: list[str] = Field(default_factory=list)
+    architecture_pattern: str | None = None
+    variant_rationale: str | None = None
+    is_recommended: bool = False
+    pros: list[str] = Field(default_factory=list)
+    cons: list[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -84,6 +92,10 @@ class PrototypeDetailResponse(BaseModel):
     figma_file_key: str | None
     figma_embed_url: str | None
     status: str
+    tech_stack_tags: list[str] = Field(default_factory=list)
+    architecture_pattern: str | None = None
+    variant_rationale: str | None = None
+    is_recommended: bool = False
     # 세션 요약
     solution_prompt: str | None
     session_status: str

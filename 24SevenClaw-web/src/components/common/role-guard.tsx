@@ -24,14 +24,14 @@ export function RoleGuard({
   fallback,
 }: RoleGuardProps) {
   const { data, isLoading } = usePermissions();
-  const store = useRBACStore();
+  const setPermissions = useRBACStore((s) => s.setPermissions);
 
   // 권한 데이터를 스토어에 동기화
   useEffect(() => {
     if (data) {
-      store.setPermissions(data.permissions, data.system_role);
+      setPermissions(data.permissions, data.system_role);
     }
-  }, [data, store]);
+  }, [data, setPermissions]);
 
   if (isLoading) {
     return (

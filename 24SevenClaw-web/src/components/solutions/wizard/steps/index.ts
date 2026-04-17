@@ -1,4 +1,3 @@
-export { StepCompany } from "./step-company";
 export { StepCompanySolution } from "./step-company-solution";
 export { StepPrototypeGeneration } from "./step-prototype-generation";
 export { StepPrototypes } from "./step-prototypes";

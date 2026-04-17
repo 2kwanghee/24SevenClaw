@@ -25,7 +25,7 @@ export function ProjectList({ projects }: ProjectListProps) {
           첫 번째 프로젝트를 생성하여 시작하세요
         </p>
         <Link
-          href="/projects/new"
+          href="/solutions/new"
           className="mt-6 rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500"
         >
           새 프로젝트 만들기

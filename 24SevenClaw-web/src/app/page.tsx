@@ -17,7 +17,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-/* ── 데이터 ── */
+/* -- 데이터 -- */
 
 const features = [
   {
@@ -132,7 +132,7 @@ const earlyAccessFeatures = [
   "ZIP 다운로드 무제한",
 ];
 
-/* ── 페이지 ── */
+/* -- 페이지 -- */
 
 export default function Home() {
   return (
@@ -165,7 +165,7 @@ export default function Home() {
               로그인
             </Link>
             <Link
-              href="/projects/new"
+              href="/solutions/new"
               className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500"
             >
               솔루션 설계 시작
@@ -208,7 +208,7 @@ export default function Home() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/projects/new"
+              href="/solutions/new"
               className="group flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-3.5 text-sm font-semibold text-white shadow-xl shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30"
             >
               솔루션 설계 시작
@@ -500,7 +500,7 @@ export default function Home() {
                 브라우저에서 설계하고, ZIP으로 시작하세요. API 키는 당신의 로컬에만 있습니다.
               </p>
               <Link
-                href="/projects/new"
+                href="/solutions/new"
                 className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-semibold text-slate-900 shadow-xl transition-all hover:bg-slate-100"
               >
                 솔루션 설계 시작

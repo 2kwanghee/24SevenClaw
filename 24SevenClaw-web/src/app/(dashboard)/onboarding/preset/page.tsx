@@ -6,7 +6,6 @@ import { Loader2, Sparkles, ArrowRight, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { usePresets } from "@/hooks/use-presets";
-import { useWizardStore } from "@/stores/wizard-store";
 import { PresetCard } from "@/components/presets/preset-card";
 import { NaturalLanguageInput } from "@/components/presets/natural-language-input";
 import type { PresetResponse, NaturalLanguageConfigResponse } from "@/lib/api-client";
@@ -14,8 +13,6 @@ import type { PresetResponse, NaturalLanguageConfigResponse } from "@/lib/api-cl
 export default function PresetSelectionPage() {
   const router = useRouter();
   const { data, isLoading } = usePresets();
-  const applyPreset = useWizardStore((s) => s.applyPreset);
-  const reset = useWizardStore((s) => s.reset);
   const [selectedPreset, setSelectedPreset] = useState<PresetResponse | null>(null);
   const [nlResult, setNlResult] = useState<NaturalLanguageConfigResponse | null>(null);
   const [nlLoading, setNlLoading] = useState(false);
@@ -28,9 +25,7 @@ export default function PresetSelectionPage() {
 
   const handleApplyAndStart = () => {
     if (!selectedPreset) return;
-    reset();
-    applyPreset(selectedPreset);
-    router.push("/projects/new");
+    router.push("/solutions/new");
   };
 
   const handleNlAnalyze = (text: string) => {
@@ -82,8 +77,7 @@ export default function PresetSelectionPage() {
   };
 
   const handleSkip = () => {
-    reset();
-    router.push("/projects/new");
+    router.push("/solutions/new");
   };
 
   return (

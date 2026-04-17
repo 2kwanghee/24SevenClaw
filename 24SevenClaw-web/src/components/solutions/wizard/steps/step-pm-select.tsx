@@ -117,7 +117,7 @@ export function StepPMSelect() {
     void fetchItems();
   }, [token, selectedPrototypeId]);
 
-  /* ── 로딩 상태 ─────────────────────────────────── */
+  /* -- 로딩 상태 ----------------------------------- */
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -160,7 +160,7 @@ export function StepPMSelect() {
     );
   }
 
-  /* ── 빈 상태 ─────────────────────────────────── */
+  /* -- 빈 상태 ----------------------------------- */
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -172,7 +172,7 @@ export function StepPMSelect() {
     );
   }
 
-  /* ── 정상 상태 ─────────────────────────────────── */
+  /* -- 정상 상태 ----------------------------------- */
   return (
     <div className="space-y-5">
       {/* 추천 안내 배너 */}

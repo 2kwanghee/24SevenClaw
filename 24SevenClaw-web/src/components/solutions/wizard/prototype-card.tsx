@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, Star, ThumbsUp, ThumbsDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { PrototypeOption } from "@/types/solution-wizard";
@@ -102,6 +102,13 @@ export function PrototypeCard({
             <span className="text-sm font-semibold text-white">
               {prototype.name}
             </span>
+            {/* 추천 배지 */}
+            {prototype.isRecommended && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-300">
+                <Star className="h-2.5 w-2.5" aria-hidden="true" />
+                추천
+              </span>
+            )}
             {/* 디자인 패턴 배지 */}
             <span
               className={cn(
@@ -114,11 +121,76 @@ export function PrototypeCard({
             </span>
           </div>
 
+          {/* 아키텍처 패턴 */}
+          {prototype.architecturePattern && (
+            <p className="text-[11px] font-medium text-slate-500">
+              {prototype.architecturePattern}
+            </p>
+          )}
+
+          {/* 근거 (1줄) */}
+          {prototype.rationale && (
+            <p className="line-clamp-1 text-xs italic text-slate-500">
+              {prototype.rationale}
+            </p>
+          )}
+
           {/* AI 추론 설명 (description) */}
           {prototype.reasoning && (
             <p className="text-xs leading-relaxed text-slate-400">
               {prototype.reasoning}
             </p>
+          )}
+
+          {/* 기술 스택 뱃지 */}
+          {prototype.techStack && prototype.techStack.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {prototype.techStack.slice(0, 5).map((tech) => (
+                <span
+                  key={tech}
+                  className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                >
+                  {tech}
+                </span>
+              ))}
+              {prototype.techStack.length > 5 && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">
+                  +{prototype.techStack.length - 5}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 장단점 */}
+          {((prototype.pros && prototype.pros.length > 0) || (prototype.cons && prototype.cons.length > 0)) && (
+            <div className="mt-2 space-y-1.5 rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
+              {prototype.pros && prototype.pros.length > 0 && (
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1 mb-1">
+                    <ThumbsUp className="h-2.5 w-2.5 text-emerald-500" aria-hidden="true" />
+                    <span className="text-[10px] font-medium text-emerald-500">장점</span>
+                  </div>
+                  {prototype.pros.map((pro, i) => (
+                    <p key={i} className="text-[11px] leading-relaxed text-slate-400 pl-3.5">
+                      {pro}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {prototype.cons && prototype.cons.length > 0 && (
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1 mb-1">
+                    <ThumbsDown className="h-2.5 w-2.5 text-amber-500" aria-hidden="true" />
+                    <span className="text-[10px] font-medium text-amber-500">단점</span>
+                  </div>
+                  {prototype.cons.map((con, i) => (
+                    <p key={i} className="text-[11px] leading-relaxed text-slate-400 pl-3.5">
+                      {con}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
