@@ -36,7 +36,9 @@ const adminItems = [
   { href: "/admin/users", label: "사용자 관리", icon: Shield },
   { href: "/admin/contracts", label: "계약 관리", icon: FileText },
   { href: "/admin/pm", label: "PM 관리", icon: Users },
-  { href: "/admin/registry", label: "Registry", icon: Blocks },
+  { href: "/admin/registry/agents", label: "Agent 레지스트리", icon: Bot },
+  { href: "/admin/registry/skills", label: "Skill 레지스트리", icon: Puzzle },
+  { href: "/admin/registry/mcps", label: "MCP 레지스트리", icon: Blocks },
   { href: "/admin/recommendations", label: "추천 로그", icon: BarChart3 },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText },
 ];

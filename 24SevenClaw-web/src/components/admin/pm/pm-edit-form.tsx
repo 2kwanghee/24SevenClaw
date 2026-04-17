@@ -5,7 +5,7 @@ import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, Save, Layers, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -15,6 +15,7 @@ import { pmProfileSchema, type PMProfileFormData } from "@/lib/validations/pm";
 import { CollapsibleSection } from "@/components/admin/markdown/collapsible-section";
 import { PMMarkdownPane } from "@/components/admin/pm/pm-markdown-pane";
 import { TagInput } from "@/components/admin/pm/tag-input";
+import { CompositionPanel } from "@/components/admin/pm/composition-panel";
 
 interface PMEditFormInnerProps {
   profileId: string;
@@ -164,13 +165,6 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           <h1 className="text-sm font-semibold text-white">{profile?.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/pm/${profileId}/composition`}
-            className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-white/5"
-          >
-            <Layers className="h-3.5 w-3.5" />
-            구성 관리
-          </Link>
           {mdDirty ? (
             <button
               type="button"
@@ -358,20 +352,9 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         />
       </CollapsibleSection>
 
-      {/* 블록 7: 기타 — 구성 관리 링크 */}
-      <CollapsibleSection title="기타" defaultOpen={false}>
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3">
-          <p className="text-xs text-slate-500 mb-2">
-            PM에 할당된 Skill, Agent, Hook, MCP 구성은 별도 페이지에서 관리합니다.
-          </p>
-          <Link
-            href={`/admin/pm/${profileId}/composition`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5"
-          >
-            <Layers className="h-3.5 w-3.5" />
-            구성 관리 페이지로 이동
-          </Link>
-        </div>
+      {/* 블록 7: 구성 관리 (인라인) */}
+      <CollapsibleSection title="구성 컴포넌트" defaultOpen={false}>
+        <CompositionPanel profileId={profileId} />
       </CollapsibleSection>
     </form>
   );

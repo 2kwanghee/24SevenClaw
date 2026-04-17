@@ -8,21 +8,22 @@
 
 ## P2: 기능 요구사항
 
-- [ ] **[24S-142/P3] Web MD 편집 UI (react-markdown 도입)**
+- [x] **[24S-142/P4] 통합 Composition & Registry Admin UI**
   > 요청사항: ## 작업 내용
 
-* `package.json`: `react-markdown ^9`, `remark-gfm ^4`, `gray-matter ^4` 추가
-* `src/components/admin/markdown/markdown-editor.tsx` 신규 — split pane (textarea ↔ react-markdown preview)
-* `src/components/admin/markdown/collapsible-section.tsx` 신규 — useState+Chevron 핸드롤 패턴 재사용 컴포넌트
-* `src/lib/validations/pm.ts` 신규 — RHF + Zod 스키마
-* `src/app/(dashboard)/admin/pm/[id]/page.tsx` 전면 리팩터 — raw useState → RHF, 7블록 레이아웃(기본정보/태그/자유서술/MD전체/SKILL/AGENT/기타)
-* `src/components/admin/pm/pm-edit-form.tsx` 신규 — 추출 폼 컴포넌트
-* `src/components/admin/pm/pm-markdown-pane.tsx` 신규 — 전체 MD 토글 패널
-* `src/components/admin/pm/tag-input.tsx` — 기존 inline 추출
+* `src/components/admin/pm/composition-panel.tsx` 신규 — 타입별(agent/skill/hook/mcp_server/plugin) composition CRUD + body_md_override markdown-editor
+* `src/app/(dashboard)/admin/pm/[id]/composition/page.tsx` 삭제 + redirect → `/admin/pm/[id]`
+* `src/hooks/use-pm-admin.ts`: `useUpsertComposition` 뮤테이션 추가
+* `src/hooks/use-registry-admin.ts` 신규 — Agent/Skill/MCP CRUD 훅
+* `src/components/admin/registry/registry-editor-drawer.tsx` 신규
+* `src/components/admin/registry/registry-list-table.tsx` 신규
+* `src/app/(dashboard)/admin/registry/agents/page.tsx`, `…/skills/page.tsx`, `…/mcps/page.tsx` 신규
+* `src/app/(dashboard)/layout.tsx`: Admin 사이드바에 "Agent 레지스트리", "Skill 레지스트리", "MCP 레지스트리" 링크 추가
+* `src/lib/api-client.ts`: registryAdmin + useUpsertComposition 메서드
 
 ## 완료 기준
 
-`pnpm lint && pnpm typecheck` 통과 + PM 편집 화면에서 폼 수정 → MD 실시간 반영 확인
+`pnpm lint && pnpm typecheck` 통과 + composition add/edit/delete + registry CRUD 동작 확인
 
 ---
 
