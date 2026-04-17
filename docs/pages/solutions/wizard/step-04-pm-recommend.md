@@ -113,6 +113,65 @@ PM 카탈로그(모든 활성 PM 프로필 목록)와 시스템 프롬프트 블
 
 ---
 
+## PM → ZIP 배포 흐름
+
+이 단계에서 추천된 PM을 선택하면 최종 ZIP 안에 **플랫폼별 PM 파일**이 자동 주입된다.
+
+### 전체 데이터 흐름
+
+```
+Step 3 (PM 추천)  →  Step 4 (PM 선택)  →  Step 9 (최종 확인)  →  프로젝트 생성
+                                                                        │
+                                                                        ▼
+                                                              POST /api/v1/projects/
+                                                              {
+                                                                pm_slug: "alex-pm",
+                                                                pm_markdown: "# Alex PM\n...",
+                                                                pm_compositions: [...],
+                                                                platform_id: "claude-code",
+                                                                ...
+                                                              }
+                                                                        │
+                                                                        ▼
+                                                              generate_all()
+                                                              ├── 에이전트 파일
+                                                              ├── 스킬 파일
+                                                              ├── settings.json
+                                                              └── PM 파일 주입
+                                                                  └── .claude/pm/alex-pm.md
+```
+
+### PM 파일이 ZIP에 포함되는 조건
+
+| 조건 | 결과 |
+|------|------|
+| PM 선택됨 + `pm_markdown` 있음 | ✅ 플랫폼별 PM 파일 생성 |
+| PM 선택됨 + `pm_markdown` 비어있음 | ❌ PM 파일 생략 (경고 표시) |
+| PM 미선택 | ❌ PM 파일 없음 |
+
+### 플랫폼별 PM 파일 경로
+
+| 플랫폼 | PM 파일 경로 예시 |
+|--------|------------------|
+| Claude Code | `.claude/pm/{slug}.md` |
+| Gemini CLI | `.gemini/pm/{slug}.md` |
+| Cursor | `.cursor/rules/pm-{slug}.md` |
+| Codex | `.codex/pm/{slug}.py` |
+
+자세한 파일 매핑은 `docs/pages/download/pm-environment.md` 참조.
+
+### PM Composition 병합 규칙
+
+PM에 연결된 Composition(에이전트·스킬)이 있으면 위저드에서 수동 선택한 항목과 **병합**된다.
+Composition 항목이 우선 순위를 가지며 중복은 제거된다.
+
+```
+최종 에이전트 목록 = PM composition 에이전트 + 사용자 추가 에이전트 (중복 제외)
+최종 스킬 목록    = PM composition 스킬 + 사용자 추가 스킬 (중복 제외)
+```
+
+---
+
 ## 구현 노트
 
 - **[v1.2]** Claude 하이브리드 추천 연결: `recommend_pms_for_session()` 재작성, Claude API 실패 시 rule 폴백, `pm_recommendation_logs` INSERT
@@ -121,3 +180,4 @@ PM 카탈로그(모든 활성 PM 프로필 목록)와 시스템 프롬프트 블
 - **[v1.1]** 자동 이동 제거: 응답 수신 시 `nextStep()` 자동 호출 대신 `step3Done=true`로 설정하여 다음 버튼 활성화
 - **[v1.1]** 이전 버튼 지원: `recommendedPMItems.length > 0`이면 API 재호출 없이 기존 카드 즉시 표시 + `step3Done=true`
 - 세션 없으면 Step 0으로 리다이렉트
+- PM `pm_markdown` 필드가 비어있으면 Step 4(선택 화면)에 경고 배지 표시 — 관리자에게 MD 편집을 요청하는 메시지 포함
