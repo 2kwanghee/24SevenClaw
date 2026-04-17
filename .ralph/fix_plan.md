@@ -6,46 +6,32 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[P1][engine] /24SeventStart 슬래시 커맨드 + 온보딩 스크립트 생성**
+- [x] **[P8][api+web] AI Team 화면 draft 제출 UI + Linear 동기화 트리거**
   > 요청사항: ## 목표
 
-ZIP 다운로드 후 Claude Code에서 `/24SeventStart` 한 줄로 로컬 개발 파이프라인 셋업 완료.
+AI Team 화면에서 실제 draft 제출 UI + 사용자 로컬 Agent가 읽을 수 있는 Linear 동기화 힌트 노출.
 
-## 작업 범위
+## 수정 파일
 
-### 신규 파일
+* 24SevenClaw-web/src/components/ai-team/session-create-modal.tsx: decompose 완료 후 "AI 초안 생성" 버튼 추가
+* 24SevenClaw-web/src/components/ai-team/subtask-card.tsx: draft_content 표시 + 제출 버튼
+* 24SevenClaw-web/src/hooks/use-orchestrator.ts: submit_draft 훅 연결
+* 24SevenClaw-api/app/api/v1/review_pipeline.py: linear_sync_hint 필드 응답에 포함
 
-* `24SevenClaw-api/app/engine/templates/commands/24seven-start.md.j2`
+## 동작 흐름
 
-### 수정 파일
-
-* `24SevenClaw-api/app/engine/generator.py` — `generate_all()`에 `_emit_start_command()` 추가
-
-### 동작 내용 (마크다운 지시사항)
-
-1. `.env` 파일 존재 확인 → 없으면 `.env.example` 복사
-2. 필수 키 목록 검증 (`ANTHROPIC_API_KEY`, `LINEAR_API_KEY`, `LINEAR_TEAM_ID` 등)
-3. 누락된 키에 대해 `docs/api-keys/*.md` 가이드 링크 안내
-4. 사용자에게 대화형으로 입력 요청 (한 번에 한 키씩 질문)
-5. 모든 키 완료 시 "24SevenClaw 솔루션 셋업 완료" 메시지
-
-### 플랫폼별 경로
-
-* Claude Code: `.claude/commands/24SeventStart.md`
-* Gemini CLI: `.gemini/commands/24SeventStart.md`
-* Cursor: `.cursor/commands/24SeventStart.md`
-* Codex: `AGENTS.md`에 절차 삽입
-
-## 재사용
-
-* `app/engine/env_generator.py:get_env_var_definitions()` — 필수 키 목록 소스
+1. decompose 완료 후 "AI 초안 생성" 버튼 클릭
+2. P6의 generate_draft() 호출 → draft_content 자동 채워짐
+3. 세션/서브태스크 생성 시 API 응답에 linear_sync_hint 포함
+4. 사용자 로컬 Claude Code가 linear 스킬로 해당 힌트 읽어 Linear에 이슈 등록
 
 ## 완료 조건
 
-* ZIP 내 `.claude/commands/24SeventStart.md` 존재 확인
-* Claude Code에서 `/24SeventStart` 실행 시 누락 키 대화형 요청 동작
+* decompose 후 AI 초안 생성 버튼 클릭 시 draft_content 자동 채워짐
+* API 응답에 linear_sync_hint 필드 포함
+* npm run typecheck, ruff check 통과
 
 ---
 
@@ -55,4 +41,4 @@ ZIP 다운로드 후 Claude Code에서 `/24SeventStart` 한 줄로 로컬 개발
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-18 | [P1][engine] /24SeventStart 커맨드 | ✅ 완료 | generator.py + 24seven-start.md.j2 구현 확인, 테스트 11/11 통과 |
+| 2026-04-17 | P8 AI Team draft UI + Linear sync | ✅ 완료 | generate-drafts 엔드포인트, useGenerateDrafts 훅, "AI 초안 생성" 버튼, LinearSyncHint 패널 |
