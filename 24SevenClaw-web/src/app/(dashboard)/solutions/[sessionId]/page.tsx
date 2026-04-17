@@ -53,6 +53,7 @@ export default function SolutionSessionPage() {
     setOrganizationId,
     setCompany,
     setGeneratedPrototypes,
+    setCreatedProjectId,
     goToStep,
   } = useSolutionWizardStore();
 
@@ -165,6 +166,15 @@ export default function SolutionSessionPage() {
         return data.agents.selectedAgents.length > 0;
       case 7:
         return !!data.platform.platformId;
+      case 8: {
+        const ev = data.env.envVars;
+        if (!ev["ANTHROPIC_API_KEY"]?.trim()) return false;
+        if (data.agents.selectedSkills.includes("linear")) {
+          if (!ev["LINEAR_API_KEY"]?.trim()) return false;
+          if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
+        }
+        return true;
+      }
       default:
         return true;
     }
@@ -186,7 +196,7 @@ export default function SolutionSessionPage() {
         description: data.company.solutionRequest || null,
       });
 
-      router.push(`/projects/${result.project_id}`);
+      setCreatedProjectId(result.project_id);
     } catch (err) {
       if (err instanceof NetworkError) {
         toast.error(err.message);
@@ -206,7 +216,7 @@ export default function SolutionSessionPage() {
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
-      nextLabel={currentStep === 5 ? "이대로 진행" : undefined}
+      nextLabel={currentStep === 5 ? "이대로 진행" : currentStep === 9 ? "이대로 진행" : undefined}
     >
       {error && (
         <div
