@@ -37,3 +37,4 @@ class PMProfile(Base):
     industry_tags = Column(JSON, nullable=False, default=list)
     language = Column(String(8), nullable=False, default="ko")
     updated_at = Column(DateTime(timezone=True), nullable=True)
+    markdown_body = Column(Text, nullable=True)

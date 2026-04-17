@@ -6,28 +6,22 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[PM Admin] MD↔UI 양방향 편집 + 통합 Composition/Registry 관리 + 환경 배포 자동화**
-  > 요청사항: ## 목표
+- [x] **[24S-142/P1] DB migration 013 + Registry Admin API**
+  > 요청사항: ## 작업 내용
 
-PM 관리 시스템(Phase 1-6 완료) 위에 **서비스 자산 수준의 PM Admin**을 구축한다.
+* `alembic/versions/013_registry_body_md_and_pm_overrides.py` 신규 — `agents/skills/mcp_servers`에 `body_md TEXT NULL`, `pm_profiles`에 `markdown_body TEXT NULL` 추가
+* `app/models/registry.py`, `app/models/pm_profile.py` 컬럼 매핑
+* `app/schemas/registry_admin.py` 신규 — `AgentCreate/Update/Response`, `SkillCreate/Update/Response`, `MCPServerCreate/Update/Response`
+* `app/services/registry_admin_service.py` 신규 — CRUD + slug 중복 방지
+* `app/api/v1/registry_admin.py` 신규 — `GET/POST /admin/agents`, `PUT/DELETE /admin/agents/{id}` + skill/mcp-servers 동일 구조, `Depends(require_permission("pm:manage"))`
+* `app/api/v1/router.py` 라우터 등록
+* `tests/test_registry_admin_api.py` 신규 — 성공/인증실패/유효성검사 각 3개
 
-### 핵심 기능
+## 완료 기준
 
-1. **MD ↔ UI 양방향 편집** — 설정 폼 값이 하단 Markdown(YAML frontmatter + 본문)으로 실시간 렌더링. 반대로 MD 직접 수정 시 폼 + DB 반영.
-2. **통합 SubAgent/Skill 관리** — PM 편집 화면 하단 SKILL·AGENT 토글 패널에서 composition CRUD + 각 구성요소 Markdown body 인라인 편집.
-3. **환경 배포 자동화** — PM 선택 시 ZIP 생성에서 플랫폼별 `.claude/pm/{slug}.md`, `.gemini/pm/{slug}.md`, `.cursor/rules/pm-{slug}.md`, `.codex/pm/{slug}.py` 자동 주입.
-4. **Registry Admin CRUD** — Agent/Skill/MCPServer 모델에 `body_md` 추가 + Admin UI 제공.
-
-### 구현 Phase (각 Phase별 하위 이슈 참조)
-
-* Phase 1: DB migration 013 + Registry Admin API
-* Phase 2: PM Markdown 직렬화/파싱 API
-* Phase 3: Web MD 편집 UI (react-markdown 도입)
-* Phase 4: 통합 Composition & Registry Admin UI
-* Phase 5: ZIP 엔진 PM 통합 (4개 플랫폼)
-* Phase 6: 문서 + E2E 검증
+`alembic upgrade head && alembic downgrade -1 && alembic upgrade head` 통과 + pytest 통과
 
 ---
 
@@ -37,4 +31,4 @@ PM 관리 시스템(Phase 1-6 완료) 위에 **서비스 자산 수준의 PM Adm
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-17 | PM Admin MD↔UI 편집 + Registry Admin + ZIP PM 통합 (Phase 1-6) | ✅ | 367/367 테스트 통과 |
+| 2026-04-17 | [24S-142] Migration 014 + pm_profile.markdown_body + test_registry_admin_api.py | ✅ | 381 passed |
