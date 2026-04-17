@@ -110,6 +110,23 @@ export function useTransition() {
   });
 }
 
+export function useGenerateDrafts() {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
+      reviews.generateDrafts(token, sessionId),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["orchestrator-summary", vars.sessionId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["review-rounds", vars.sessionId],
+      });
+    },
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string) {

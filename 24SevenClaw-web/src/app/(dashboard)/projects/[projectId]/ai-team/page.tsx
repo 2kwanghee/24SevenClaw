@@ -14,6 +14,8 @@ import {
   Brain,
   FileText,
   CheckCircle2,
+  Sparkles,
+  Link2,
 } from "lucide-react";
 
 import { PipelineStepper } from "@/components/ai-team/pipeline-stepper";
@@ -25,7 +27,9 @@ import {
   useSessionSummary,
   useReviewRounds,
   useTransition,
+  useGenerateDrafts,
 } from "@/hooks/use-orchestrator";
+import type { LinearSyncHint } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
 
 const PHASE_LABELS: Record<string, string> = {
@@ -45,6 +49,7 @@ export default function AITeamDashboardPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [linearHint, setLinearHint] = useState<LinearSyncHint | null>(null);
 
   const {
     data: sessions,
@@ -61,6 +66,7 @@ export default function AITeamDashboardPage() {
   const { data: reviewData } = useReviewRounds(selectedSessionId);
 
   const transition = useTransition();
+  const generateDrafts = useGenerateDrafts();
 
   // 세션이 로드되면 첫 세션 자동 선택
   const activeSessionId = selectedSessionId || sessions?.items[0]?.id || "";
@@ -88,6 +94,19 @@ export default function AITeamDashboardPage() {
   };
 
   const isReviewPhase = session?.phase === "reviewing";
+
+  const handleGenerateDrafts = () => {
+    if (!session) return;
+    generateDrafts.mutate(
+      { sessionId: session.id },
+      {
+        onSuccess: (data) => {
+          setLinearHint(data.linear_sync_hint);
+          void refetchSummary();
+        },
+      },
+    );
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -221,6 +240,23 @@ export default function AITeamDashboardPage() {
                 </div>
               )}
 
+              {/* AI 초안 생성 버튼 (assigned 단계일 때) */}
+              {session.phase === "assigned" && (
+                <button
+                  type="button"
+                  onClick={handleGenerateDrafts}
+                  disabled={generateDrafts.isPending}
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                >
+                  {generateDrafts.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  AI 초안 생성
+                </button>
+              )}
+
               {/* 승인 버튼 (validating 단계일 때) */}
               {session.phase === "validating" && (
                 <button
@@ -302,11 +338,11 @@ export default function AITeamDashboardPage() {
               </div>
             )}
 
-            {/* 리뷰 통합 (reviewing 단계일 때) */}
-            {isReviewPhase && reviewRounds.length > 0 && (
+            {/* 초안/리뷰 (drafting 이상 단계일 때) */}
+            {["drafting", "reviewing", "integrating", "validating", "approved", "transitioning", "completed"].includes(session.phase) && reviewRounds.length > 0 && (
               <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
                 <h3 className="mb-4 text-sm font-semibold text-slate-200">
-                  리뷰 라운드
+                  {isReviewPhase ? "리뷰 라운드" : "AI 초안"}
                 </h3>
                 <div className="space-y-3">
                   {reviewRounds.map((round) => (
@@ -316,6 +352,51 @@ export default function AITeamDashboardPage() {
               </div>
             )}
           </section>
+
+          {/* Linear 동기화 힌트 */}
+          {linearHint && (
+            <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-violet-400" />
+                  <h3 className="text-sm font-semibold text-violet-300">
+                    Linear 동기화
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLinearHint(null)}
+                  className="rounded px-2 py-0.5 text-[11px] text-slate-500 hover:bg-white/5 hover:text-slate-300"
+                >
+                  닫기
+                </button>
+              </div>
+              <p className="mb-3 text-xs text-slate-400">{linearHint.instructions}</p>
+              <div className="space-y-2">
+                {linearHint.subtasks.map((st) => (
+                  <div
+                    key={st.title}
+                    className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-400">
+                        {st.role}
+                      </span>
+                      <span className="text-xs font-medium text-slate-200">
+                        {st.title}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[11px] text-slate-500">
+                      {st.draft_summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-slate-600">
+                로컬 Claude Code에서 linear 스킬의 sync 명령을 실행하면 위 이슈가 자동으로 생성됩니다.
+              </p>
+            </div>
+          )}
 
           {/* --- 3계층: AI Team --- */}
           <section

@@ -120,3 +120,32 @@ class ReviewPrompt(BaseModel):
     draft_content: str
     review_type: ReviewTypeType
     instructions: str
+
+
+# === AI 초안 자동 생성 ===
+
+
+class LinearSyncHintSubtask(BaseModel):
+    title: str
+    role: str
+    draft_summary: str
+
+
+class LinearSyncHint(BaseModel):
+    """로컬 Agent(Claude Code)가 Linear에 이슈를 생성할 때 참고하는 힌트."""
+
+    action: str = "create_issues"
+    session_title: str
+    subtasks: list[LinearSyncHintSubtask]
+    suggested_labels: list[str] = ["ai-team"]
+    instructions: str = (
+        "이 힌트를 참고해 Linear에 이슈를 생성하세요. "
+        "각 subtask를 하나의 이슈로 생성하고 session_title을 프로젝트/에픽으로 연결하세요."
+    )
+
+
+class GenerateDraftsResponse(BaseModel):
+    """AI 초안 자동 생성 결과."""
+
+    rounds: list[ReviewRoundResponse]
+    linear_sync_hint: LinearSyncHint

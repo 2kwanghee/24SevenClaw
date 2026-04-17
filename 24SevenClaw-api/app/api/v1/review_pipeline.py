@@ -1,13 +1,18 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.orchestrator import SubTask
 from app.models.user import User
 from app.schemas.review_pipeline import (
     DiffResult,
+    GenerateDraftsResponse,
+    LinearSyncHint,
+    LinearSyncHintSubtask,
     MergeRequest,
     RejectRequest,
     ReviewEventResponse,
@@ -17,6 +22,8 @@ from app.schemas.review_pipeline import (
     ReviewRoundResponse,
     ReviewSubmit,
 )
+from app.services.claude_service import ClaudeService
+from app.services.orchestrator_service import OrchestratorService
 from app.services.review_pipeline import ReviewPipelineService
 
 router = APIRouter(prefix="/orchestrator", tags=["review-pipeline"])
@@ -40,6 +47,88 @@ async def submit_draft(
     service = ReviewPipelineService(db)
     review_round = await service.submit_draft(session_id=session_id, data=data)
     return ReviewRoundResponse.model_validate(review_round)
+
+
+# === AI 초안 자동 생성 ===
+
+
+@router.post(
+    "/sessions/{session_id}/generate-drafts",
+    response_model=GenerateDraftsResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_drafts(
+    session_id: UUID,
+    user: User = Depends(get_current_user),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> GenerateDraftsResponse:
+    """서브태스크별 AI 초안을 자동 생성하고 drafting 단계로 전이한다."""
+    orch_service = OrchestratorService(db)
+    review_service = ReviewPipelineService(db)
+    claude = ClaudeService()
+
+    session = await orch_service.get_session(session_id)
+    if session.phase != "assigned":
+        raise HTTPException(
+            status_code=422,
+            detail=f"AI 초안 생성은 'assigned' 단계에서만 가능합니다. 현재: '{session.phase}'",
+        )
+
+    # 서브태스크 조회
+    result = await db.execute(
+        select(SubTask)
+        .where(SubTask.session_id == session_id)
+        .order_by(SubTask.order_index)
+    )
+    subtasks = list(result.scalars().all())
+
+    if not subtasks:
+        raise HTTPException(status_code=422, detail="분해된 서브태스크가 없습니다.")
+
+    # drafting 단계로 전이
+    from app.schemas.orchestrator import PhaseTransitionRequest  # noqa: PLC0415
+    await orch_service.transition(
+        session_id=session_id,
+        data=PhaseTransitionRequest(target_phase="drafting", message="AI 초안 생성 시작"),
+        actor_type="system",
+    )
+
+    session_context = f"세션: {session.title}\n설명: {session.description or '없음'}"
+
+    rounds = []
+    for st in subtasks:
+        draft_content = await claude.generate_draft(
+            subtask_title=str(st.title),
+            subtask_description=str(st.description) if st.description else None,
+            session_context=session_context,
+        )
+        review_round = await review_service.submit_draft(
+            session_id=session_id,
+            data=ReviewRoundCreate(
+                subtask_id=st.id,
+                main_ai_role=str(st.assigned_role),
+                draft_content=draft_content,
+            ),
+        )
+        rounds.append(ReviewRoundResponse.model_validate(review_round))
+
+    # LinearSyncHint 생성
+    hint_subtasks = [
+        LinearSyncHintSubtask(
+            title=str(st.title),
+            role=str(st.assigned_role),
+            draft_summary=(
+                r.draft_content[:200] + "..." if len(r.draft_content) > 200 else r.draft_content
+            ),
+        )
+        for st, r in zip(subtasks, rounds, strict=False)
+    ]
+    linear_sync_hint = LinearSyncHint(
+        session_title=str(session.title),
+        subtasks=hint_subtasks,
+    )
+
+    return GenerateDraftsResponse(rounds=rounds, linear_sync_hint=linear_sync_hint)
 
 
 # === 리뷰 라운드 조회 ===

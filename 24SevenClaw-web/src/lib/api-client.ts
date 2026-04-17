@@ -1530,6 +1530,25 @@ export interface MergeReviewRequest {
   message?: string;
 }
 
+export interface LinearSyncHintSubtask {
+  title: string;
+  role: string;
+  draft_summary: string;
+}
+
+export interface LinearSyncHint {
+  action: string;
+  session_title: string;
+  subtasks: LinearSyncHintSubtask[];
+  suggested_labels: string[];
+  instructions: string;
+}
+
+export interface GenerateDraftsResponse {
+  rounds: ReviewRoundResponse[];
+  linear_sync_hint: LinearSyncHint;
+}
+
 export const orchestrator = {
   listSessions: (
     token: string,
@@ -1599,6 +1618,13 @@ export const orchestrator = {
 };
 
 export const reviews = {
+  generateDrafts: (token: string, sessionId: string) =>
+    authRequest<GenerateDraftsResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/generate-drafts`,
+      token,
+      { method: "POST" },
+    ),
+
   list: (
     token: string,
     sessionId: string,
