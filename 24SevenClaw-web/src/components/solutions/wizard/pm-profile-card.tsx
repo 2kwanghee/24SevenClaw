@@ -48,7 +48,7 @@ export function PMProfileCard({
           <div className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5">
             <Sparkles className="h-2.5 w-2.5 text-emerald-400" />
             <span className="text-[10px] font-medium text-emerald-300">
-              {Math.round(matchScore * 100)}% 일치
+              {Math.round(matchScore)}% 일치
             </span>
           </div>
         ) : null}

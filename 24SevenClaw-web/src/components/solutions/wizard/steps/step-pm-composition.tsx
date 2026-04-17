@@ -336,7 +336,7 @@ export function StepPMComposition() {
           </div>
           {selectedPMInfo.matchScore > 0 && (
             <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-400">
-              일치율 {Math.round(selectedPMInfo.matchScore * 100)}%
+              일치율 {Math.round(selectedPMInfo.matchScore)}%
             </span>
           )}
         </div>
