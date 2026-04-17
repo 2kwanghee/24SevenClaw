@@ -366,6 +366,41 @@ _GENERATE_UI_STRUCTURE_SYSTEM = (
     "}"
 )
 
+_DECOMPOSE_TASKS_SYSTEM = (
+    "You are a software project orchestrator specializing in decomposing "
+    "development sessions into focused subtasks for an AI team.\n\n"
+    "Given a session title and description, create 2-5 focused subtasks. "
+    "Each subtask must be assigned to exactly one of these roles: "
+    "architect, frontend, backend, qa, security, devops, reviewer.\n\n"
+    "Rules:\n"
+    "- Cover all clearly implied technical domains; omit unrelated ones.\n"
+    "- If unsure, use the default set: architect → backend → qa.\n"
+    "- Write titles and descriptions in Korean.\n\n"
+    "IMPORTANT: Always respond with valid JSON only "
+    "— no markdown, no code blocks, no extra text.\n\n"
+    "Return exactly this JSON structure (array):\n"
+    "[\n"
+    "  {\n"
+    '    "title": "<concise subtask title in Korean>",\n'
+    '    "description": "<what this subtask should accomplish, 1-2 sentences>",\n'
+    '    "assigned_role": "<one of: architect, frontend, backend, qa, security, devops, reviewer>"\n'
+    "  }\n"
+    "]"
+)
+
+_GENERATE_DRAFT_SYSTEM = (
+    "You are a senior software engineer generating an initial draft plan "
+    "for a development subtask in an AI team workflow.\n\n"
+    "Given a subtask title, description, and session context, create a "
+    "comprehensive initial draft in Korean that includes:\n"
+    "1. 구현 접근 방법 및 핵심 결정 사항\n"
+    "2. 단계별 실행 계획\n"
+    "3. 주요 고려 사항 및 잠재 리스크\n"
+    "4. 예상 산출물\n\n"
+    "Write entirely in Korean. Be specific and actionable. "
+    "Use markdown headings and bullet points. No JSON."
+)
+
 _RECOMMEND_PM_SYSTEM = (
     "You are a PM matchmaker specializing in matching project managers "
     "to software projects.\n\n"
@@ -658,3 +693,81 @@ class ClaudeService:
                 "alternatives": [],
             }
         return result
+
+    # ── 오케스트레이터용 Claude 메서드 ────────────────────────────────────────
+
+    async def decompose_tasks(
+        self,
+        session_title: str,
+        session_description: str | None,
+        hints: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """세션 제목/설명을 분석해 서브태스크 목록을 생성한다.
+
+        Returns:
+            [{"title": str, "description": str, "assigned_role": str}, ...]
+        """
+        user_text = f"Session title: {session_title}\n"
+        if session_description:
+            user_text += f"Description: {session_description}\n"
+        if hints:
+            user_text += f"Hints: {', '.join(hints)}\n"
+
+        client = self._get_client()
+        message = await client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=[
+                {
+                    "type": "text",
+                    "text": _DECOMPOSE_TASKS_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": user_text}],
+        )
+
+        raw = _extract_text(message)
+        try:
+            result: list[dict[str, Any]] = json.loads(raw)
+            if not isinstance(result, list):
+                raise ValueError("응답이 배열이 아님")
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("decompose_tasks: Claude 응답 파싱 실패, 빈 목록 반환")
+            result = []
+        return result
+
+    async def generate_draft(
+        self,
+        subtask_title: str,
+        subtask_description: str | None,
+        session_context: str,
+    ) -> str:
+        """서브태스크에 대한 초안 내용을 생성한다.
+
+        Returns:
+            마크다운 형식의 한국어 초안 문자열
+        """
+        user_text = (
+            f"## 세션 컨텍스트\n{session_context}\n\n"
+            f"## 서브태스크\n"
+            f"제목: {subtask_title}\n"
+            f"설명: {subtask_description or '없음'}\n\n"
+            "위 서브태스크에 대한 초안을 작성해 주세요."
+        )
+
+        client = self._get_client()
+        message = await client.messages.create(
+            model=self._model,
+            max_tokens=2048,
+            system=[
+                {
+                    "type": "text",
+                    "text": _GENERATE_DRAFT_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": user_text}],
+        )
+
+        return _extract_text(message)

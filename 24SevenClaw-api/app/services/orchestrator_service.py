@@ -13,6 +13,7 @@
 10단계 프로세스: 요청→분해→배정→초안→리뷰→통합→검증→승인→전이→완료
 """
 
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -30,6 +31,9 @@ from app.schemas.orchestrator import (
     SubTaskUpdate,
 )
 from app.services.artifact_service import ArtifactService
+from app.services.claude_service import ClaudeService
+
+logger = logging.getLogger(__name__)
 
 # 단계 전이 맵 (contracts와 동기화)
 ORCHESTRATOR_TRANSITIONS: dict[str, list[str]] = {
@@ -155,8 +159,8 @@ class OrchestratorService:
                 422,
             )
 
-        # 제목+설명에서 서브태스크 생성
-        subtasks = self._generate_subtasks(session, data.hints)
+        # Claude로 지능형 분해 시도 → 실패 시 키워드 폴백
+        subtasks = await self._generate_subtasks_with_claude(session, data.hints)
         for st in subtasks:
             self.db.add(st)
         await self.db.flush()  # subtask.id 확정 (depends_on 참조용)
@@ -366,6 +370,41 @@ class OrchestratorService:
                 )
 
         return event
+
+    async def _generate_subtasks_with_claude(
+        self, session: OrchestratorSession, hints: list[str] | None
+    ) -> list[SubTask]:
+        """Claude API로 서브태스크를 생성한다. 실패 시 키워드 폴백."""
+        try:
+            claude = ClaudeService()
+            items = await claude.decompose_tasks(
+                str(session.title),
+                str(session.description) if session.description is not None else None,
+                hints,
+            )
+            if items:
+                valid_roles = {
+                    "architect", "frontend", "backend", "qa",
+                    "security", "devops", "reviewer",
+                }
+                subtasks: list[SubTask] = []
+                for idx, item in enumerate(items):
+                    role = item.get("assigned_role", "backend")
+                    if role not in valid_roles:
+                        role = "backend"
+                    st = SubTask(
+                        session_id=session.id,
+                        title=item.get("title", f"서브태스크 {idx + 1}"),
+                        description=item.get("description") or f"[{session.title}] {role} 작업",
+                        assigned_role=role,
+                        order_index=idx,
+                        depends_on=[str(subtasks[idx - 1].id)] if idx > 0 and subtasks else [],
+                    )
+                    subtasks.append(st)
+                return subtasks
+        except Exception:
+            logger.warning("_generate_subtasks_with_claude: Claude 호출 실패, 키워드 폴백")
+        return self._generate_subtasks(session, hints)
 
     def _generate_subtasks(
         self, session: OrchestratorSession, hints: list[str] | None

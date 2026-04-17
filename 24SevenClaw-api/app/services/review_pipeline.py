@@ -8,6 +8,7 @@
 """
 
 import difflib
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -24,6 +25,9 @@ from app.schemas.review_pipeline import (
     ReviewSubmit,
 )
 from app.services.artifact_service import ArtifactService
+from app.services.claude_service import ClaudeService
+
+logger = logging.getLogger(__name__)
 
 # 리뷰 라운드 상태 전이 맵
 REVIEW_TRANSITIONS: dict[str, list[str]] = {
@@ -354,6 +358,43 @@ class ReviewPipelineService:
             draft_content=review_round.draft_content,
             review_type=review_type,  # type: ignore[arg-type]
             instructions=instructions,
+        )
+
+    # === Claude 자동 리뷰 생성 ===
+
+    async def generate_review(
+        self,
+        round_id: UUID,
+        review_type: str = "cross_review",
+        sub_ai_role: str = "reviewer",
+    ) -> ReviewRound:
+        """Claude로 교차 리뷰를 자동 생성하고 제출한다."""
+        review_prompt = await self.build_review_prompt(round_id, review_type)
+
+        draft_with_context = (
+            f"## 검토 지침\n{review_prompt.instructions}\n\n"
+            f"## 초안\n{review_prompt.draft_content or '(초안 없음)'}"
+        )
+
+        try:
+            claude = ClaudeService()
+            review_content = await claude.generate_draft(
+                subtask_title=f"[{review_type}] {review_prompt.session_title}",
+                subtask_description=review_prompt.instructions,
+                session_context=draft_with_context,
+            )
+        except Exception:
+            logger.warning("generate_review: Claude 호출 실패")
+            review_content = f"[자동 생성 실패] {review_type} 리뷰를 수동으로 입력해 주세요."
+
+        return await self.submit_review(
+            round_id=round_id,
+            data=ReviewSubmit(
+                sub_ai_role=sub_ai_role,
+                review_type=review_type,  # type: ignore[arg-type]
+                review_content=review_content,
+                review_score=None,
+            ),
         )
 
     # === 내부 헬퍼 ===
