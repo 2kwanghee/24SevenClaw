@@ -6,39 +6,28 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[web] 중앙 계약 관리 UI**
-  > 요청사항: ## 개요
+- [ ] **[PM Admin] MD↔UI 양방향 편집 + 통합 Composition/Registry 관리 + 환경 배포 자동화**
+  > 요청사항: ## 목표
 
-중앙 계약 관리 어드민 + 프로젝트별 UI 구현.
+PM 관리 시스템(Phase 1-6 완료) 위에 **서비스 자산 수준의 PM Admin**을 구축한다.
 
-## 선행 조건
+### 핵심 기능
 
-* \[api\] 중앙 계약 API + \[web\] RBAC UI 완료 필수
+1. **MD ↔ UI 양방향 편집** — 설정 폼 값이 하단 Markdown(YAML frontmatter + 본문)으로 실시간 렌더링. 반대로 MD 직접 수정 시 폼 + DB 반영.
+2. **통합 SubAgent/Skill 관리** — PM 편집 화면 하단 SKILL·AGENT 토글 패널에서 composition CRUD + 각 구성요소 Markdown body 인라인 편집.
+3. **환경 배포 자동화** — PM 선택 시 ZIP 생성에서 플랫폼별 `.claude/pm/{slug}.md`, `.gemini/pm/{slug}.md`, `.cursor/rules/pm-{slug}.md`, `.codex/pm/{slug}.py` 자동 주입.
+4. **Registry Admin CRUD** — Agent/Skill/MCPServer 모델에 `body_md` 추가 + Admin UI 제공.
 
-## 범위
+### 구현 Phase (각 Phase별 하위 이슈 참조)
 
-### 새 페이지
-
-* (dashboard)/admin/contracts/page.tsx: 계약 목록
-* (dashboard)/admin/contracts/\[id\]/page.tsx: 상세 + JSON 에디터 + 감사 로그
-* (dashboard)/projects/\[projectId\]/contracts/page.tsx: 프로젝트별 뷰 (잠금=회색, 수정가능=파란색)
-
-### 새 컴포넌트
-
-* components/contracts/contract-viewer.tsx
-* components/contracts/override-editor.tsx
-* components/contracts/contract-audit-table.tsx
-
-## 완료 조건
-
-- 계약 CRUD UI 동작
-- 오버라이드 편집 동작
-- 잠금 필드 시각적 구분
-- 동기화 버튼 동작
-
-## 크기: M
+* Phase 1: DB migration 013 + Registry Admin API
+* Phase 2: PM Markdown 직렬화/파싱 API
+* Phase 3: Web MD 편집 UI (react-markdown 도입)
+* Phase 4: 통합 Composition & Registry Admin UI
+* Phase 5: ZIP 엔진 PM 통합 (4개 플랫폼)
+* Phase 6: 문서 + E2E 검증
 
 ---
 
