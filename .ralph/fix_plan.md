@@ -8,20 +8,20 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[24S-142/P1] DB migration 013 + Registry Admin API**
+- [x] **[24S-142/P2] PM Markdown 직렬화/파싱 API**
   > 요청사항: ## 작업 내용
 
-* `alembic/versions/013_registry_body_md_and_pm_overrides.py` 신규 — `agents/skills/mcp_servers`에 `body_md TEXT NULL`, `pm_profiles`에 `markdown_body TEXT NULL` 추가
-* `app/models/registry.py`, `app/models/pm_profile.py` 컬럼 매핑
-* `app/schemas/registry_admin.py` 신규 — `AgentCreate/Update/Response`, `SkillCreate/Update/Response`, `MCPServerCreate/Update/Response`
-* `app/services/registry_admin_service.py` 신규 — CRUD + slug 중복 방지
-* `app/api/v1/registry_admin.py` 신규 — `GET/POST /admin/agents`, `PUT/DELETE /admin/agents/{id}` + skill/mcp-servers 동일 구조, `Depends(require_permission("pm:manage"))`
-* `app/api/v1/router.py` 라우터 등록
-* `tests/test_registry_admin_api.py` 신규 — 성공/인증실패/유효성검사 각 3개
+* `app/services/pm_markdown.py` 신규
+  * `serialize_pm_to_markdown(pm, compositions) -> str`: YAML frontmatter + 섹션(소개/운영가이드/구성)
+  * `parse_markdown_to_pm(md) -> (PMProfileUpdate, list[PMCompositionUpsert])`: frontmatter + 섹션 파싱
+* `app/schemas/pm_profile.py`: `markdown_body`, `PMMarkdownUpsertRequest` 추가
+* `app/api/v1/pm_profiles.py`: `GET/PUT /pm-profiles/{id}/markdown` 추가
+* `app/services/pm_service.py`: `markdown_body` 저장 경로
+* `tests/test_pm_markdown.py` 신규 — 라운드트립 `serialize(parse(serialize(pm))) == serialize(pm)` 포함
 
 ## 완료 기준
 
-`alembic upgrade head && alembic downgrade -1 && alembic upgrade head` 통과 + pytest 통과
+pytest 통과 + mypy strict 통과
 
 ---
 
@@ -31,4 +31,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-17 | [24S-142] Migration 014 + pm_profile.markdown_body + test_registry_admin_api.py | ✅ | 381 passed |

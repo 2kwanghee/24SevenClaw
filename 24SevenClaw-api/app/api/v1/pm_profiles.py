@@ -270,7 +270,7 @@ async def get_profile_markdown(
 
 
 @router.put(
-    "/{profile_id}/from-markdown",
+    "/{profile_id}/markdown",
     response_model=PMProfileResponse,
 )
 async def update_profile_from_markdown(
@@ -283,6 +283,8 @@ async def update_profile_from_markdown(
     update_dict = parse_markdown_to_pm_dict(markdown)
     # slug는 URL 기반 식별자이므로 변경 방지
     update_dict.pop("slug", None)
+    # 원본 Markdown 본문을 저장한다
+    update_dict["markdown_body"] = markdown
     data = PMProfileUpdate(**update_dict)
     service = PMService(db)
     profile = await service.update_profile(profile_id, data)
