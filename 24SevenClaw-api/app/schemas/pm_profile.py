@@ -40,6 +40,7 @@ class PMProfileUpdate(BaseModel):
     tech_stack_tags: list[str] | None = None
     industry_tags: list[str] | None = None
     language: str | None = Field(None, max_length=8)
+    markdown_body: str | None = None
 
 
 class PMProfileResponse(BaseModel):
@@ -61,6 +62,7 @@ class PMProfileResponse(BaseModel):
     industry_tags: list[str] = Field(default_factory=list)
     language: str = "ko"
     updated_at: datetime | None = None
+    markdown_body: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -86,6 +88,7 @@ class PMProfileWithMetrics(BaseModel):
     industry_tags: list[str] = Field(default_factory=list)
     language: str = "ko"
     updated_at: datetime | None = None
+    markdown_body: str | None = None
     # 메트릭 (없을 경우 기본값)
     usage_count: int = 0
     completed_projects: int = 0
@@ -227,3 +230,12 @@ class PMRecommendationLogResponse(BaseModel):
 class PMRecommendationLogListResponse(BaseModel):
     items: list[PMRecommendationLogResponse]
     total: int
+
+
+# --- Markdown 양방향 편집 ---
+
+
+class PMMarkdownUpsertRequest(BaseModel):
+    """YAML frontmatter + 본문 Markdown으로 PM 프로필을 업데이트하는 요청."""
+
+    markdown_body: str = Field(..., description="YAML frontmatter + 섹션 본문 Markdown 텍스트")
