@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.admin_recommendations import router as admin_recommendations_router
 from app.api.v1.artifacts import router as artifacts_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.catalog import router as catalog_router
@@ -17,10 +18,13 @@ from app.api.v1.prototype_sessions import router as prototype_sessions_router
 from app.api.v1.quality_gate import router as quality_gate_router
 from app.api.v1.rbac import router as rbac_router
 from app.api.v1.recommend import router as recommend_router
+from app.api.v1.registry_admin import router as registry_admin_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
 
 api_v1_router = APIRouter()
+api_v1_router.include_router(admin_recommendations_router)
+api_v1_router.include_router(registry_admin_router)
 api_v1_router.include_router(health_router, tags=["health"])
 api_v1_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(catalog_router)

@@ -14,7 +14,7 @@ import {
 import { PMProfileCard } from "../pm-profile-card";
 import { PMCompositionView } from "../pm-composition-view";
 
-/* ── 타입 ────────────────────────────────────────────────────────────── */
+/* -- 타입 -------------------------------------------------------------- */
 
 interface PMListItem {
   profile: PMProfileWithMetrics;
@@ -23,7 +23,7 @@ interface PMListItem {
   reasoning?: string;
 }
 
-/* ── 헬퍼: PMProfileWithMetrics → PMMetricResponse 변환 ─────────────── */
+/* -- 헬퍼: PMProfileWithMetrics → PMMetricResponse 변환 --------------- */
 
 function toMetricResponse(p: PMProfileWithMetrics): PMMetricResponse {
   return {
@@ -38,7 +38,7 @@ function toMetricResponse(p: PMProfileWithMetrics): PMMetricResponse {
   };
 }
 
-/* ── 메인 컴포넌트 ───────────────────────────────────────────────────── */
+/* -- 메인 컴포넌트 ----------------------------------------------------- */
 
 /**
  * Step 5: PM 선택
@@ -70,7 +70,7 @@ export function StepPMSelection() {
     (i) => i.profile.id === selectedPmProfileId,
   );
 
-  /* ── PM 목록 로드 ── */
+  /* -- PM 목록 로드 -- */
   useEffect(() => {
     if (!token) return;
 
@@ -149,7 +149,7 @@ export function StepPMSelection() {
     void fetchItems();
   }, [token, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── 선택 핸들러 ── */
+  /* -- 선택 핸들러 -- */
   const handleSelect = (pmProfileId: string) => {
     setPM({ selectedPmProfileId: pmProfileId });
 
@@ -163,7 +163,7 @@ export function StepPMSelection() {
     }
   };
 
-  /* ── 로딩 상태: 스켈레톤 카드 그리드 ─────────────────────────────── */
+  /* -- 로딩 상태: 스켈레톤 카드 그리드 ------------------------------- */
   if (isLoading) {
     return (
       <div className="space-y-5">
@@ -204,7 +204,7 @@ export function StepPMSelection() {
     );
   }
 
-  /* ── 빈 상태 ─────────────────────────────────────────────────────── */
+  /* -- 빈 상태 ------------------------------------------------------- */
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -216,7 +216,7 @@ export function StepPMSelection() {
     );
   }
 
-  /* ── 정상 상태 ─────────────────────────────────────────────────────── */
+  /* -- 정상 상태 ------------------------------------------------------- */
   return (
     <div className="space-y-5">
       {/* 추천 안내 배너 */}

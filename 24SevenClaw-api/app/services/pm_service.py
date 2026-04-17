@@ -1,5 +1,6 @@
 """PM 프로필 서비스 — PM 목록/추천/구성/평가."""
 
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -18,6 +19,8 @@ from app.schemas.pm_profile import (
     PMCompositionGroupedResponse,
     PMCompositionResponse,
     PMCompositionUpdate,
+    PMProfileCreate,
+    PMProfileUpdate,
     PMProfileWithMetrics,
     PMRatingCreate,
 )
@@ -111,6 +114,69 @@ class PMService:
             success_rate=float(metric.success_rate) if metric else 0.0,
             avg_completion_days=float(metric.avg_completion_days) if metric else 0.0,
         )
+
+    # ── PM 프로필 관리 (admin) ──
+
+    async def create_profile(self, data: PMProfileCreate) -> PMProfile:
+        """PM 프로필을 생성한다."""
+        existing = await self.db.execute(
+            select(PMProfile).where(PMProfile.slug == data.slug)
+        )
+        if existing.scalar_one_or_none() is not None:
+            raise AppError("SLUG_CONFLICT", "이미 사용 중인 slug입니다", 409)
+
+        profile = PMProfile(
+            name=data.name,
+            slug=data.slug,
+            avatar_url=data.avatar_url,
+            title=data.title,
+            description=data.description,
+            domain=data.domain,
+            specialties=data.specialties,
+            personality=data.personality,
+            is_active=data.is_active,
+            bio_long=data.bio_long,
+            years_experience=data.years_experience,
+            preferred_solution_types=data.preferred_solution_types,
+            tech_stack_tags=data.tech_stack_tags,
+            industry_tags=data.industry_tags,
+            language=data.language,
+        )
+        self.db.add(profile)
+        await self.db.commit()
+        await self.db.refresh(profile)
+        return profile
+
+    async def update_profile(self, profile_id: UUID, data: PMProfileUpdate) -> PMProfile:
+        """PM 프로필을 수정한다."""
+        profile = await self.db.get(PMProfile, profile_id)
+        if profile is None:
+            raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
+
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(profile, key, value)
+        profile.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+
+        await self.db.commit()
+        await self.db.refresh(profile)
+        return profile
+
+    async def delete_profile(self, profile_id: UUID) -> None:
+        """PM 프로필을 삭제한다."""
+        profile = await self.db.get(PMProfile, profile_id)
+        if profile is None:
+            raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
+        await self.db.delete(profile)
+        await self.db.commit()
+
+    async def delete_composition(self, composition_id: UUID) -> None:
+        """PM 구성 컴포넌트를 삭제한다."""
+        composition = await self.db.get(PMComposition, composition_id)
+        if composition is None:
+            raise AppError("COMPOSITION_NOT_FOUND", "PM 구성을 찾을 수 없습니다", 404)
+        await self.db.delete(composition)
+        await self.db.commit()
 
     # ── PM 추천 ──
 

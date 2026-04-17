@@ -7,6 +7,41 @@ from pydantic import BaseModel, Field
 # --- PMProfile ---
 
 
+class PMProfileCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    slug: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
+    avatar_url: str | None = Field(None, max_length=500)
+    title: str | None = Field(None, max_length=200)
+    description: str | None = None
+    domain: str | None = Field(None, max_length=100)
+    specialties: list[str] = Field(default_factory=list)
+    personality: dict[str, Any] = Field(default_factory=dict)
+    is_active: bool = True
+    bio_long: str | None = None
+    years_experience: int | None = Field(None, ge=0, le=50)
+    preferred_solution_types: list[str] = Field(default_factory=list)
+    tech_stack_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[str] = Field(default_factory=list)
+    language: str = Field(default="ko", max_length=8)
+
+
+class PMProfileUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    avatar_url: str | None = Field(None, max_length=500)
+    title: str | None = Field(None, max_length=200)
+    description: str | None = None
+    domain: str | None = Field(None, max_length=100)
+    specialties: list[str] | None = None
+    personality: dict[str, Any] | None = None
+    is_active: bool | None = None
+    bio_long: str | None = None
+    years_experience: int | None = Field(None, ge=0, le=50)
+    preferred_solution_types: list[str] | None = None
+    tech_stack_tags: list[str] | None = None
+    industry_tags: list[str] | None = None
+    language: str | None = Field(None, max_length=8)
+
+
 class PMProfileResponse(BaseModel):
     id: UUID
     name: str
@@ -19,6 +54,13 @@ class PMProfileResponse(BaseModel):
     personality: dict[str, Any]
     is_active: bool
     created_at: datetime
+    bio_long: str | None = None
+    years_experience: int | None = None
+    preferred_solution_types: list[str] = Field(default_factory=list)
+    tech_stack_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[str] = Field(default_factory=list)
+    language: str = "ko"
+    updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -37,6 +79,13 @@ class PMProfileWithMetrics(BaseModel):
     personality: dict[str, Any]
     is_active: bool
     created_at: datetime
+    bio_long: str | None = None
+    years_experience: int | None = None
+    preferred_solution_types: list[str] = Field(default_factory=list)
+    tech_stack_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[str] = Field(default_factory=list)
+    language: str = "ko"
+    updated_at: datetime | None = None
     # 메트릭 (없을 경우 기본값)
     usage_count: int = 0
     completed_projects: int = 0
@@ -155,4 +204,26 @@ class PMRatingResponse(BaseModel):
 
 class PMRatingListResponse(BaseModel):
     items: list[PMRatingResponse]
+    total: int
+
+
+# --- PMRecommendationLog ---
+
+
+class PMRecommendationLogResponse(BaseModel):
+    id: UUID
+    session_id: UUID
+    created_at: datetime | None
+    input_snapshot: dict[str, Any]
+    claude_raw: dict[str, Any] | None
+    final_ranking: list[dict[str, Any]]
+    selected_pm_id: UUID | None
+    latency_ms: int | None
+    is_fallback: bool
+
+    model_config = {"from_attributes": True}
+
+
+class PMRecommendationLogListResponse(BaseModel):
+    items: list[PMRecommendationLogResponse]
     total: int

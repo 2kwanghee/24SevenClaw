@@ -3,15 +3,16 @@
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import {
-  StepCompany,
+  StepCompanySolution,
   StepPrototypeGeneration,
   StepPrototypeSelection,
   StepPMRecommendation,
   StepPMSelection,
+  StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -21,13 +22,14 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError, NetworkError } from "@/lib/api-client";
 import { toast } from "sonner";
 
-// 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
+// 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
 const STEP_COMPONENTS = [
-  StepCompany,
+  StepCompanySolution,
   StepPrototypeGeneration,
   StepPrototypeSelection,
   StepPMRecommendation,
   StepPMSelection,
+  StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
   StepSolutionEnv,
@@ -45,6 +47,8 @@ export default function SolutionSessionPage() {
   const {
     currentStep,
     data,
+    step1Done,
+    step3Done,
     setSessionId,
     setOrganizationId,
     setCompany,
@@ -52,7 +56,6 @@ export default function SolutionSessionPage() {
     goToStep,
   } = useSolutionWizardStore();
 
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const restoredRef = useRef(false);
@@ -61,13 +64,9 @@ export default function SolutionSessionPage() {
   useEffect(() => {
     if (!token || !sessionId) return;
     // 이미 복원했으면 재실행 방지
-    if (restoredRef.current) {
-      setIsLoading(false);
-      return;
-    }
+    if (restoredRef.current) return;
 
     const restore = async () => {
-      setIsLoading(true);
       try {
         const ps = await prototypeSessions.get(token, sessionId);
         setSessionId(ps.id);
@@ -87,7 +86,7 @@ export default function SolutionSessionPage() {
           if (ps.status === "completed") {
             // 완료된 세션: 프로토타입 목록 복원 후 선택 단계로 이동
             try {
-              const protoList = await prototypeSessions.listPrototypes(
+              const protoList = await prototypeSessions.getPrototypes(
                 token,
                 ps.id,
               );
@@ -99,6 +98,12 @@ export default function SolutionSessionPage() {
                     solutionType: p.design_pattern ?? "custom",
                     reasoning: p.description,
                     config: (p.ui_structure ?? {}) as Record<string, unknown>,
+                    techStack: Array.isArray(p.tech_stack_tags) ? p.tech_stack_tags : [],
+                    architecturePattern: p.architecture_pattern ?? undefined,
+                    rationale: p.variant_rationale ?? undefined,
+                    isRecommended: p.is_recommended,
+                    pros: Array.isArray(p.pros) ? p.pros : [],
+                    cons: Array.isArray(p.cons) ? p.cons : [],
                   })),
                 );
                 goToStep(2); // 프로토타입 선택 단계로 바로 이동
@@ -118,8 +123,6 @@ export default function SolutionSessionPage() {
       } catch {
         // 세션 없으면 새 세션 생성 페이지로
         router.replace("/solutions/new");
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -138,7 +141,7 @@ export default function SolutionSessionPage() {
 
   const StepComponent = STEP_COMPONENTS[currentStep];
 
-  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=에이전트, 6=플랫폼, 7=환경변수, 8=최종확인
+  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
@@ -149,18 +152,18 @@ export default function SolutionSessionPage() {
           data.company.solutionRequest.length >= 10
         );
       case 1:
-        // 솔루션 생성 단계: 자동 이동, 수동 진행 불가
-        return false;
+        return step1Done;
       case 2:
         return !!data.prototypes.selectedPrototypeId;
       case 3:
-        // PM 추천 단계: 자동 이동, 수동 진행 불가
-        return false;
+        return step3Done;
       case 4:
         return !!data.pm.selectedPmProfileId;
       case 5:
-        return data.agents.selectedAgents.length > 0;
+        return true; // PM 구성 확인 — 항상 진행 가능
       case 6:
+        return data.agents.selectedAgents.length > 0;
+      case 7:
         return !!data.platform.platformId;
       default:
         return true;
@@ -198,24 +201,12 @@ export default function SolutionSessionPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div
-        className="flex h-64 items-center justify-center"
-        role="status"
-        aria-label="세션 불러오는 중"
-      >
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-        <span className="sr-only">세션을 복원하고 있습니다...</span>
-      </div>
-    );
-  }
-
   return (
     <SolutionWizardLayout
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
+      nextLabel={currentStep === 5 ? "이대로 진행" : undefined}
     >
       {error && (
         <div

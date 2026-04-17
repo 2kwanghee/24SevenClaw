@@ -14,11 +14,11 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 import type { PMRecommendedItem } from "@/types/solution-wizard";
 
-/* ── 상수 ────────────────────────────────────────────────────────────── */
+/* -- 상수 -------------------------------------------------------------- */
 
 const EXPECTED_COUNT = 3;
 
-/* ── 스켈레톤 카드 ───────────────────────────────────────────────────── */
+/* -- 스켈레톤 카드 ----------------------------------------------------- */
 
 function PMSkeletonCard({ index }: { index: number }) {
   return (
@@ -60,7 +60,7 @@ function PMSkeletonCard({ index }: { index: number }) {
   );
 }
 
-/* ── 완료 카드 ───────────────────────────────────────────────────────── */
+/* -- 완료 카드 --------------------------------------------------------- */
 
 interface PMReadyCardProps {
   item: PMRecommendedItem;
@@ -96,7 +96,7 @@ function PMReadyCard({ item, index }: PMReadyCardProps) {
   );
 }
 
-/* ── 메인 컴포넌트 ───────────────────────────────────────────────────── */
+/* -- 메인 컴포넌트 ----------------------------------------------------- */
 
 /**
  * Step 4: PM 추천
@@ -116,7 +116,7 @@ export function StepPMRecommendation() {
   const setRecommendedPMItems = useSolutionWizardStore(
     (s) => s.setRecommendedPMItems,
   );
-  const nextStep = useSolutionWizardStore((s) => s.nextStep);
+  const setStep3Done = useSolutionWizardStore((s) => s.setStep3Done);
 
   const [items, setItems] = useState<PMRecommendedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +125,7 @@ export function StepPMRecommendation() {
   const cancelledRef = useRef(false);
   const hasStartedRef = useRef(false);
 
-  /* ── 추천 실행 ── */
+  /* -- 추천 실행 -- */
   const startRecommendation = useCallback(async () => {
     if (!sessionId || !token) return;
     if (hasStartedRef.current) return;
@@ -156,49 +156,57 @@ export function StepPMRecommendation() {
       setRecommendedPMItems(recommended);
       setIsLoading(false);
 
-      // 짧은 딜레이 후 자동 이동
-      await new Promise<void>((res) => setTimeout(res, 700));
+      // 완료 플래그 설정 → 부모의 canProceed(case 3)가 true가 되어 "다음" 버튼 활성화
       if (!cancelledRef.current) {
-        nextStep();
+        setStep3Done(true);
       }
     } catch (err) {
       if (cancelledRef.current) return;
       if (err instanceof ApiClientError && err.status === 409) {
-        // 이미 처리된 경우 — 스킵하고 다음 단계로
-        nextStep();
+        // 이미 처리된 경우 — 완료 플래그 설정
+        if (!cancelledRef.current) {
+          setStep3Done(true);
+        }
         return;
       }
       setIsLoading(false);
       setIsFailed(true);
     }
-  }, [sessionId, token, setRecommendedPMItems, nextStep]);
+  }, [sessionId, token, setRecommendedPMItems, setStep3Done]);
 
-  /* ── 이미 추천 결과가 있으면 즉시 이동 ── */
+  /* -- 이미 추천 결과가 있으면 카드 복원 + 다음 버튼 활성화 -- */
   useEffect(() => {
     if (existingItems.length > 0) {
-      nextStep();
+      setItems(existingItems);
+      setIsLoading(false);
+      setStep3Done(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── 마운트 시 추천 시작 ── */
+  /* -- 마운트 시 추천 시작 -- */
   useEffect(() => {
+    // existingItems.length를 dep에 넣으면 setRecommendedPMItems() 호출 시
+    // 클린업이 cancelledRef.current = true 로 만들어 nextStep() 차단 버그 발생
+    // → dep에서 제외하고 클로저 값으로만 체크
     if (existingItems.length > 0) return;
 
     cancelledRef.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void startRecommendation();
     return () => {
       cancelledRef.current = true;
+      // strict mode 이중 실행 시 재시작 허용
+      hasStartedRef.current = false;
     };
-  }, [startRecommendation, existingItems.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startRecommendation]);
 
-  /* ── 재시도 ── */
+  /* -- 재시도 -- */
   const handleRetry = () => {
     hasStartedRef.current = false;
     void startRecommendation();
   };
 
-  /* ── 실패 상태 ─────────────────────────────────────────────────────── */
+  /* -- 실패 상태 ------------------------------------------------------- */
   if (isFailed) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -268,14 +276,10 @@ export function StepPMRecommendation() {
             ))}
       </div>
 
-      {/* 완료 후 자동 이동 메시지 */}
+      {/* 완료 후 안내 메시지 */}
       {isDone && (
-        <p
-          className="flex items-center justify-center gap-1.5 text-center text-xs text-emerald-500"
-          aria-live="polite"
-        >
-          <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-          PM 선택 화면으로 이동 중...
+        <p className="text-center text-xs text-emerald-500" aria-live="polite">
+          아래 <strong>다음</strong> 버튼을 클릭해 PM을 선택하세요.
         </p>
       )}
     </div>

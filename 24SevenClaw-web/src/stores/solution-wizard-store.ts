@@ -20,6 +20,12 @@ interface SolutionWizardState {
   currentStep: number;
   data: SolutionWizardData;
   isGenerating: boolean;
+  /** Step 0 폼의 유효성 (formState.isValid 동기화) — canProceed 판단에 사용 */
+  step0Valid: boolean;
+  /** Step 1 (프로토타입 생성) 완료 플래그 — 부모가 감시해서 nextStep() 호출 */
+  step1Done: boolean;
+  /** Step 3 (PM 추천) 완료 플래그 — 부모가 감시해서 nextStep() 호출 */
+  step3Done: boolean;
 }
 
 interface SolutionWizardActions {
@@ -27,6 +33,9 @@ interface SolutionWizardActions {
   prevStep: () => void;
   goToStep: (step: number) => void;
   setCompany: (data: Partial<CompanyStep>) => void;
+  setStep0Valid: (valid: boolean) => void;
+  setStep1Done: (done: boolean) => void;
+  setStep3Done: (done: boolean) => void;
   setSessionId: (sessionId: string) => void;
   setOrganizationId: (organizationId: string) => void;
   setPrototypes: (data: Partial<PrototypesStep>) => void;
@@ -45,6 +54,9 @@ const initialState: SolutionWizardState = {
   currentStep: 0,
   data: INITIAL_SOLUTION_WIZARD_DATA,
   isGenerating: false,
+  step0Valid: false,
+  step1Done: false,
+  step3Done: false,
 };
 
 export const useSolutionWizardStore = create<
@@ -61,9 +73,15 @@ export const useSolutionWizardStore = create<
     })),
 
   prevStep: () =>
-    set((state) => ({
-      currentStep: Math.max(state.currentStep - 1, 0),
-    })),
+    set((state) => {
+      const next = Math.max(state.currentStep - 1, 0);
+      return {
+        currentStep: next,
+        // 자동 진행 스텝으로 돌아갈 때 완료 플래그 리셋 → 자동 전진 방지
+        ...(next === 1 ? { step1Done: false } : {}),
+        ...(next === 3 ? { step3Done: false } : {}),
+      };
+    }),
 
   goToStep: (step) =>
     set({
@@ -80,6 +98,10 @@ export const useSolutionWizardStore = create<
         company: { ...state.data.company, ...company },
       },
     })),
+
+  setStep0Valid: (step0Valid) => set({ step0Valid }),
+  setStep1Done: (step1Done) => set({ step1Done }),
+  setStep3Done: (step3Done) => set({ step3Done }),
 
   setSessionId: (sessionId) =>
     set((state) => ({ data: { ...state.data, sessionId } })),

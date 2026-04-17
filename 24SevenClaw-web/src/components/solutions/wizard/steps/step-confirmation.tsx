@@ -187,7 +187,7 @@ export function StepConfirmation() {
 
   return (
     <div className="space-y-4" role="region" aria-label="최종 확인">
-      {/* ── 회사 정보 ── */}
+      {/* -- 회사 정보 -- */}
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -222,7 +222,7 @@ export function StepConfirmation() {
         </div>
       </div>
 
-      {/* ── 선택된 프로토타입 ── */}
+      {/* -- 선택된 프로토타입 -- */}
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -260,7 +260,7 @@ export function StepConfirmation() {
         )}
       </div>
 
-      {/* ── 선택된 PM ── */}
+      {/* -- 선택된 PM -- */}
       <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -351,7 +351,7 @@ export function StepConfirmation() {
         )}
       </div>
 
-      {/* ── 최종 안내 ── */}
+      {/* -- 최종 안내 -- */}
       <div className="flex flex-col items-center justify-center pt-4 text-center">
         <CheckCircle2
           className="mb-3 h-8 w-8 text-emerald-400"

@@ -57,3 +57,38 @@ class Prototype(Base):
     status = Column(String(30), nullable=False, default="draft")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    @property
+    def tech_stack_tags(self) -> list[str]:
+        data = self.ui_structure or {}
+        tags = data.get("tech_stack_tags", [])
+        return list(tags) if isinstance(tags, list) else []
+
+    @property
+    def architecture_pattern(self) -> str | None:
+        data = self.ui_structure or {}
+        val = data.get("architecture_pattern")
+        return str(val) if val else None
+
+    @property
+    def variant_rationale(self) -> str | None:
+        data = self.ui_structure or {}
+        val = data.get("variant_rationale")
+        return str(val) if val else None
+
+    @property
+    def is_recommended(self) -> bool:
+        data = self.ui_structure or {}
+        return bool(data.get("is_recommended", False))
+
+    @property
+    def pros(self) -> list[str]:
+        data = self.ui_structure or {}
+        val = data.get("pros", [])
+        return list(val) if isinstance(val, list) else []
+
+    @property
+    def cons(self) -> list[str]:
+        data = self.ui_structure or {}
+        val = data.get("cons", [])
+        return list(val) if isinstance(val, list) else []

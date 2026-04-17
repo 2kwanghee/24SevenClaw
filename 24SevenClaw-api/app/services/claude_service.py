@@ -21,189 +21,235 @@ logger = logging.getLogger(__name__)
 # ── 규칙 기반 스텁 데이터 (Phase 2 하위 호환) ────────────────────────────────
 
 # 솔루션 유형별 프로토타입 템플릿 (새 Prototype 모델 필드 기준)
+# variant_index: 0=추천(사용자 스택), 1=대안 스택, 2=대안 아키텍처
 PROTOTYPE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
     "saas": [
         {
-            "title": "SaaS 풀스택 (Next.js + FastAPI)",
-            "description": (
-                "SaaS 서비스에 최적화된 풀스택 구성입니다. "
-                "Next.js의 SSR/SSG와 FastAPI의 고성능 비동기 처리를 결합합니다."
-            ),
+            "title": "SaaS 표준형 (Next.js + FastAPI + PostgreSQL)",
+            "description": "SaaS 서비스의 검증된 풀스택 조합. SSR/SSG와 비동기 API를 결합합니다.",
             "design_pattern": "saas-fullstack",
-            "ui_structure": {
-                "frontend": "next.js",
-                "backend": "fastapi",
-                "database": "postgresql",
-                "auth": "jwt",
-                "deployment": "docker",
-            },
+            "architecture_pattern": "모놀리식 3-tier",
+            "tech_stack_tags": ["Next.js", "FastAPI", "PostgreSQL", "Docker"],
+            "pros": ["검증된 조합, 레퍼런스 풍부", "SSR로 SEO·초기 로딩 우수", "비동기 API로 높은 처리량"],
+            "cons": ["프론트/백 분리 배포로 운영 복잡도↑", "Python 서버 cold start 존재"],
+            "ui_structure": {"frontend": "next.js", "backend": "fastapi", "database": "postgresql", "auth": "jwt", "deployment": "docker"},
             "menu_structure": {},
             "color_palette": {},
         },
         {
-            "title": "SaaS 경량 (React + Express)",
-            "description": (
-                "빠른 프로토타이핑에 적합한 경량 SaaS 구성입니다. "
-                "React SPA와 Express의 간결한 API 서버를 활용합니다."
-            ),
-            "design_pattern": "saas-lightweight",
-            "ui_structure": {
-                "frontend": "react",
-                "backend": "express",
-                "database": "postgresql",
-                "auth": "session",
-                "deployment": "docker",
-            },
+            "title": "SaaS 경량형 (Vue.js + Django + PostgreSQL)",
+            "description": "Django의 강력한 ORM과 Vue.js의 반응형 UI를 조합한 대안 스택.",
+            "design_pattern": "saas-django",
+            "architecture_pattern": "MVC 모놀리식",
+            "tech_stack_tags": ["Vue.js", "Django", "PostgreSQL", "Nginx"],
+            "pros": ["Django 어드민으로 백오피스 즉시 확보", "배터리-인클루디드 프레임워크", "Python 생태계 재사용"],
+            "cons": ["GIL로 동시성 제약", "Django REST Framework 설정 verbose"],
+            "ui_structure": {"frontend": "vue.js", "backend": "django", "database": "postgresql", "auth": "session", "deployment": "nginx"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "SaaS 서버리스형 (React + AWS Lambda + DynamoDB)",
+            "description": "서버 관리 없이 트래픽에 따라 자동 스케일링되는 서버리스 아키텍처.",
+            "design_pattern": "saas-serverless",
+            "architecture_pattern": "서버리스 이벤트 기반",
+            "tech_stack_tags": ["React", "AWS Lambda", "DynamoDB", "API Gateway"],
+            "pros": ["트래픽 0일 때 비용 없음", "인프라 관리 최소화", "자동 스케일링"],
+            "cons": ["Cold start 지연 (첫 요청)", "복잡한 트랜잭션 처리 어려움", "벤더 락인(AWS)"],
+            "ui_structure": {"frontend": "react", "backend": "aws-lambda", "database": "dynamodb", "auth": "cognito", "deployment": "serverless"},
             "menu_structure": {},
             "color_palette": {},
         },
     ],
     "rest-api": [
         {
-            "title": "REST API (FastAPI + PostgreSQL)",
-            "description": (
-                "고성능 REST API에 최적화된 구성입니다. "
-                "FastAPI의 자동 문서 생성과 비동기 처리를 활용합니다."
-            ),
+            "title": "REST API 표준형 (FastAPI + PostgreSQL)",
+            "description": "자동 OpenAPI 문서와 비동기 처리가 강점인 Python REST API.",
             "design_pattern": "api-first",
-            "ui_structure": {
-                "framework": "fastapi",
-                "database": "postgresql",
-                "auth": "jwt",
-                "docs": "openapi",
-                "deployment": "docker",
-            },
+            "architecture_pattern": "API-first 모놀리식",
+            "tech_stack_tags": ["FastAPI", "PostgreSQL", "Redis", "Docker"],
+            "pros": ["자동 OpenAPI/Swagger 문서", "비동기로 높은 처리량", "Pydantic 검증 내장"],
+            "cons": ["Python 생태계 의존", "대규모 시 수평 확장 설계 필요"],
+            "ui_structure": {"framework": "fastapi", "database": "postgresql", "auth": "jwt", "docs": "openapi", "deployment": "docker"},
             "menu_structure": {},
             "color_palette": {},
         },
         {
-            "title": "REST API (Express + MongoDB)",
-            "description": (
-                "유연한 스키마가 필요한 API에 적합한 구성입니다. "
-                "MongoDB의 문서 기반 저장소와 Express의 미들웨어 생태계를 활용합니다."
-            ),
-            "design_pattern": "api-first",
-            "ui_structure": {
-                "framework": "express",
-                "database": "mongodb",
-                "auth": "jwt",
-                "docs": "swagger",
-                "deployment": "docker",
-            },
+            "title": "REST API Node.js형 (Express + MongoDB)",
+            "description": "유연한 스키마와 JS 풀스택이 강점인 Node.js API 서버.",
+            "design_pattern": "api-nodejs",
+            "architecture_pattern": "API-first 모놀리식",
+            "tech_stack_tags": ["Express", "MongoDB", "Node.js", "Docker"],
+            "pros": ["JS 단일 언어로 프론트/백 통일", "유연한 스키마 설계", "npm 생태계 방대"],
+            "cons": ["타입 안전성 약함 (TS 필수)", "MongoDB 트랜잭션 제약"],
+            "ui_structure": {"framework": "express", "database": "mongodb", "auth": "jwt", "docs": "swagger", "deployment": "docker"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "REST API 고성능형 (Go Gin + PostgreSQL)",
+            "description": "초저지연·고처리량이 필요한 API에 최적화된 Go 기반 구성.",
+            "design_pattern": "api-go",
+            "architecture_pattern": "마이크로서비스 지향",
+            "tech_stack_tags": ["Go", "Gin", "PostgreSQL", "gRPC", "Kubernetes"],
+            "pros": ["초고속 처리량 (동시 수만 req)", "메모리 효율 최고", "컴파일 타입 안전성"],
+            "cons": ["Go 개발자 채용 풀 협소", "초기 개발 속도 느림", "제네릭 생태계 아직 성숙 중"],
+            "ui_structure": {"framework": "gin", "database": "postgresql", "auth": "jwt", "deployment": "kubernetes"},
             "menu_structure": {},
             "color_palette": {},
         },
     ],
     "fullstack": [
         {
-            "title": "풀스택 (Next.js + FastAPI)",
-            "description": (
-                "풀스택 애플리케이션의 표준 구성입니다. "
-                "Next.js의 풀스택 기능과 FastAPI의 고성능 API를 결합합니다."
-            ),
+            "title": "풀스택 표준형 (Next.js + FastAPI + PostgreSQL)",
+            "description": "프론트/백 분리 배포의 검증된 풀스택 구성.",
             "design_pattern": "fullstack-separated",
-            "ui_structure": {
-                "frontend": "next.js",
-                "backend": "fastapi",
-                "database": "postgresql",
-                "auth": "jwt",
-                "deployment": "docker-compose",
-            },
+            "architecture_pattern": "풀스택 분리 배포",
+            "tech_stack_tags": ["Next.js", "FastAPI", "PostgreSQL", "Docker Compose"],
+            "pros": ["프론트/백 독립 배포·스케일링", "각 레이어 최적 기술 선택", "타입 공유 가능"],
+            "cons": ["CORS·API 연동 설정 필요", "두 런타임 관리"],
+            "ui_structure": {"frontend": "next.js", "backend": "fastapi", "database": "postgresql", "auth": "jwt", "deployment": "docker-compose"},
             "menu_structure": {},
             "color_palette": {},
         },
         {
-            "title": "풀스택 (Next.js + Prisma)",
-            "description": (
-                "Next.js 단일 프레임워크로 프론트/백을 통합하는 구성입니다. "
-                "Prisma ORM과 NextAuth로 빠르게 풀스택을 구축합니다."
-            ),
-            "design_pattern": "fullstack-monolith",
-            "ui_structure": {
-                "frontend": "next.js",
-                "backend": "next.js-api-routes",
-                "database": "postgresql",
-                "orm": "prisma",
-                "auth": "next-auth",
-                "deployment": "vercel",
-            },
+            "title": "풀스택 통합형 (Remix + Prisma + PostgreSQL)",
+            "description": "서버 컴포넌트와 로더로 프론트/백을 통합하는 현대적 풀스택.",
+            "design_pattern": "fullstack-remix",
+            "architecture_pattern": "풀스택 통합 SSR",
+            "tech_stack_tags": ["Remix", "Prisma", "PostgreSQL", "Fly.io"],
+            "pros": ["서버/클라이언트 코드 통합", "Form 기반 데이터 뮤테이션 내장", "빠른 페이지 전환"],
+            "cons": ["Remix 학습 곡선", "생태계가 Next.js 대비 작음"],
+            "ui_structure": {"frontend": "remix", "backend": "remix-loaders", "database": "postgresql", "orm": "prisma", "auth": "remix-auth", "deployment": "fly.io"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "풀스택 BaaS형 (Next.js + Supabase)",
+            "description": "Supabase로 DB·Auth·Storage를 일괄 관리하는 서버리스 풀스택.",
+            "design_pattern": "fullstack-baas",
+            "architecture_pattern": "BaaS 기반 서버리스",
+            "tech_stack_tags": ["Next.js", "Supabase", "PostgreSQL", "Vercel"],
+            "pros": ["백엔드 코드 거의 불필요", "실시간 구독·Auth 즉시 사용", "Vercel+Supabase 무료 티어"],
+            "cons": ["Supabase 벤더 의존", "복잡한 비즈니스 로직 구현 제약", "Row-level security 설계 필요"],
+            "ui_structure": {"frontend": "next.js", "backend": "supabase", "database": "supabase-postgres", "auth": "supabase-auth", "deployment": "vercel"},
             "menu_structure": {},
             "color_palette": {},
         },
     ],
     "internal-tool": [
         {
-            "title": "내부 도구 (React Admin + FastAPI)",
-            "description": (
-                "내부 관리 도구에 최적화된 구성입니다. "
-                "React Admin의 CRUD UI와 FastAPI의 빠른 API 개발을 결합합니다."
-            ),
+            "title": "내부 도구 표준형 (React Admin + FastAPI)",
+            "description": "CRUD 중심 관리 도구에 최적화된 React Admin + FastAPI 구성.",
             "design_pattern": "admin-dashboard",
-            "ui_structure": {
-                "frontend": "react-admin",
-                "backend": "fastapi",
-                "database": "postgresql",
-                "auth": "ldap",
-                "deployment": "docker",
-            },
+            "architecture_pattern": "어드민 대시보드",
+            "tech_stack_tags": ["React Admin", "FastAPI", "PostgreSQL", "Docker"],
+            "pros": ["CRUD UI 자동 생성", "권한 관리 내장", "빠른 MVP 출시"],
+            "cons": ["커스텀 UI 자유도 제한", "React Admin 의존성 큼"],
+            "ui_structure": {"frontend": "react-admin", "backend": "fastapi", "database": "postgresql", "auth": "ldap", "deployment": "docker"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "내부 도구 로우코드형 (Retool + PostgreSQL)",
+            "description": "개발 없이 드래그&드롭으로 내부 도구를 구성하는 로우코드 접근.",
+            "design_pattern": "lowcode-tool",
+            "architecture_pattern": "로우코드 플랫폼",
+            "tech_stack_tags": ["Retool", "PostgreSQL", "REST API 연동"],
+            "pros": ["개발 시간 90% 단축", "비개발자도 유지보수 가능", "다양한 DB·API 커넥터"],
+            "cons": ["Retool 라이선스 비용", "복잡한 로직 구현 한계", "벤더 의존"],
+            "ui_structure": {"frontend": "retool", "backend": "retool-queries", "database": "postgresql", "auth": "retool-auth", "deployment": "retool-cloud"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "내부 도구 자체 개발형 (Next.js + Supabase)",
+            "description": "완전한 커스텀 UI가 필요한 내부 도구를 자체 개발하는 구성.",
+            "design_pattern": "custom-internal",
+            "architecture_pattern": "BaaS 기반 커스텀",
+            "tech_stack_tags": ["Next.js", "Supabase", "shadcn/ui", "Vercel"],
+            "pros": ["완전한 UI 자유도", "shadcn/ui 고품질 컴포넌트", "실시간 기능 즉시 사용"],
+            "cons": ["초기 개발 공수↑", "보안 설계 직접 책임"],
+            "ui_structure": {"frontend": "next.js", "backend": "supabase", "database": "supabase-postgres", "auth": "supabase-auth", "deployment": "vercel"},
             "menu_structure": {},
             "color_palette": {},
         },
     ],
     "mvp": [
         {
-            "title": "MVP (Next.js 풀스택)",
-            "description": (
-                "최소 기능 제품을 빠르게 출시하기 위한 구성입니다. "
-                "Next.js 하나로 프론트/백을 구현하고 Vercel로 즉시 배포합니다."
-            ),
+            "title": "MVP 빠른 배포형 (Next.js + Vercel)",
+            "description": "Next.js 단일 프레임워크로 최단 시간 출시에 최적화된 MVP.",
             "design_pattern": "mvp-monolith",
-            "ui_structure": {
-                "frontend": "next.js",
-                "backend": "next.js-api-routes",
-                "database": "sqlite",
-                "auth": "next-auth",
-                "deployment": "vercel",
-            },
+            "architecture_pattern": "풀스택 모놀리식",
+            "tech_stack_tags": ["Next.js", "Prisma", "SQLite→PostgreSQL", "Vercel"],
+            "pros": ["push 즉시 Vercel 배포", "프론트/백 코드 통합", "무료 티어로 시작 가능"],
+            "cons": ["트래픽 증가 시 리팩토링 필요", "API Routes 성능 한계"],
+            "ui_structure": {"frontend": "next.js", "backend": "next.js-api-routes", "database": "sqlite", "auth": "next-auth", "deployment": "vercel"},
             "menu_structure": {},
             "color_palette": {},
         },
         {
-            "title": "MVP (Flask + HTMX)",
-            "description": (
-                "최소 복잡도로 동작하는 MVP 구성입니다. "
-                "Flask + HTMX로 SPA 없이 인터랙티브한 웹 앱을 구현합니다."
-            ),
+            "title": "MVP 서버 렌더링형 (Flask + HTMX)",
+            "description": "SPA 없이 서버 렌더링으로 구현하는 초경량 MVP.",
             "design_pattern": "mvp-server-rendered",
-            "ui_structure": {
-                "frontend": "htmx",
-                "backend": "flask",
-                "database": "sqlite",
-                "auth": "session",
-                "deployment": "railway",
-            },
+            "architecture_pattern": "서버 사이드 렌더링",
+            "tech_stack_tags": ["Flask", "HTMX", "SQLite", "Railway"],
+            "pros": ["JS 최소화, 빠른 로딩", "단일 Python 코드베이스", "Railway 무료 배포"],
+            "cons": ["복잡한 인터랙션 구현 제약", "SPA 수준 UX 불가"],
+            "ui_structure": {"frontend": "htmx", "backend": "flask", "database": "sqlite", "auth": "session", "deployment": "railway"},
+            "menu_structure": {},
+            "color_palette": {},
+        },
+        {
+            "title": "MVP 노코드형 (Firebase + React)",
+            "description": "Firebase BaaS로 백엔드를 대체하고 React로 빠르게 UI 구성.",
+            "design_pattern": "mvp-firebase",
+            "architecture_pattern": "BaaS 서버리스",
+            "tech_stack_tags": ["React", "Firebase", "Firestore", "Firebase Hosting"],
+            "pros": ["Auth·DB·Hosting 원스톱", "실시간 DB 즉시 사용", "무료 시작 가능"],
+            "cons": ["Firebase 벤더 락인", "복잡한 쿼리 제약", "비용 예측 어려움"],
+            "ui_structure": {"frontend": "react", "backend": "firebase", "database": "firestore", "auth": "firebase-auth", "deployment": "firebase-hosting"},
             "menu_structure": {},
             "color_palette": {},
         },
     ],
 }
 
-# 기본 템플릿 (매칭 안 될 때)
+# 기본 템플릿 (매칭 안 될 때) — 3-variant 구조
 DEFAULT_TEMPLATES: list[dict[str, Any]] = [
     {
-        "title": "범용 웹 애플리케이션 (Next.js + FastAPI)",
-        "description": (
-            "범용적인 웹 애플리케이션 구성입니다. "
-            "Next.js와 FastAPI의 검증된 조합을 활용합니다."
-        ),
+        "title": "범용 풀스택 (Next.js + FastAPI)",
+        "description": "범용적인 웹 애플리케이션의 검증된 조합.",
         "design_pattern": "fullstack-separated",
-        "ui_structure": {
-            "frontend": "next.js",
-            "backend": "fastapi",
-            "database": "postgresql",
-            "auth": "jwt",
-            "deployment": "docker",
-        },
+        "architecture_pattern": "풀스택 분리 배포",
+        "tech_stack_tags": ["Next.js", "FastAPI", "PostgreSQL", "Docker"],
+        "pros": ["검증된 조합, 레퍼런스 풍부", "프론트/백 독립 스케일링", "타입 안전성 우수"],
+        "cons": ["두 런타임 관리 필요", "CORS 설정 초기 공수"],
+        "ui_structure": {"frontend": "next.js", "backend": "fastapi", "database": "postgresql", "auth": "jwt", "deployment": "docker"},
+        "menu_structure": {},
+        "color_palette": {},
+    },
+    {
+        "title": "범용 Node.js형 (Express + React + MongoDB)",
+        "description": "JS 단일 언어로 풀스택을 구성하는 대안 조합.",
+        "design_pattern": "js-fullstack",
+        "architecture_pattern": "MERN 스택",
+        "tech_stack_tags": ["React", "Express", "MongoDB", "Node.js"],
+        "pros": ["JS 단일 언어 사용", "npm 생태계 방대", "유연한 스키마"],
+        "cons": ["MongoDB 트랜잭션 제약", "타입 안전성 TS 설정 필요"],
+        "ui_structure": {"frontend": "react", "backend": "express", "database": "mongodb", "auth": "jwt", "deployment": "docker"},
+        "menu_structure": {},
+        "color_palette": {},
+    },
+    {
+        "title": "범용 서버리스형 (Next.js + Supabase)",
+        "description": "인프라 관리 없이 빠르게 구축하는 BaaS 기반 구성.",
+        "design_pattern": "baas-serverless",
+        "architecture_pattern": "BaaS 기반 서버리스",
+        "tech_stack_tags": ["Next.js", "Supabase", "PostgreSQL", "Vercel"],
+        "pros": ["서버 관리 불필요", "Auth·DB·Storage 즉시 사용", "빠른 배포"],
+        "cons": ["벤더 의존", "복잡한 로직 구현 한계"],
+        "ui_structure": {"frontend": "next.js", "backend": "supabase", "database": "supabase-postgres", "auth": "supabase-auth", "deployment": "vercel"},
         "menu_structure": {},
         "color_palette": {},
     },
@@ -258,15 +304,33 @@ _ANALYZE_SOLUTION_SYSTEM = (
 )
 
 _GENERATE_UI_STRUCTURE_SYSTEM = (
-    "You are a UI/UX architect specializing in designing application structures.\n\n"
-    "Your task is to generate a detailed UI structure for an application "
-    "based on provided requirements.\n"
-    "If variant_index is provided, generate an alternative design variant "
-    "(0 = primary, 1 = alternative, etc.).\n\n"
+    "You are a UI/UX architect and tech stack advisor specializing in designing "
+    "application structures with diverse technology combinations.\n\n"
+    "VARIANT ROLES — each variant MUST be meaningfully different:\n"
+    "- user_stack_recommended: Use the user's preferred tech stack (from user_tech_stack) as-is. "
+    "Pair with the most standard architecture for that domain. Mark is_recommended=true.\n"
+    "- alternative_stack: Propose a completely DIFFERENT primary tech stack from user_tech_stack. "
+    "MUST NOT reuse the same frontend or backend framework. "
+    "Example: if user chose Next.js+FastAPI, propose Vue.js+Django or Express+React. "
+    "Keep a similar overall architecture pattern. Mark is_recommended=false.\n"
+    "- different_architecture: Use a FUNDAMENTALLY different architectural pattern "
+    "(serverless, microservices, edge-first, BFF, modular monolith, BaaS). "
+    "Choose the best-fit stack for this architecture regardless of user preference. "
+    "Mark is_recommended=false.\n\n"
+    "If user_tech_stack is empty, freely propose three distinct stacks covering: "
+    "(0) a popular mainstream stack, (1) a JS-ecosystem alternative, (2) a serverless/BaaS approach.\n\n"
+    "PROS AND CONS: For each variant, list 2-3 concise pros and 1-2 cons specific to this "
+    "stack+architecture combination in the context of the given solution.\n\n"
     "IMPORTANT: Always respond with valid JSON only "
     "— no markdown, no code blocks, no extra text.\n\n"
     "Return exactly this JSON structure:\n"
     "{\n"
+    '  "tech_stack_tags": ["<tech 1>", "<tech 2>", "<tech 3>"],\n'
+    '  "architecture_pattern": "<human-readable pattern in Korean, e.g. 모놀리식 3-tier | 마이크로서비스 | 서버리스>",\n'
+    '  "variant_rationale": "<1-2 sentences in Korean explaining why this stack+architecture fits>",\n'
+    '  "is_recommended": <true|false>,\n'
+    '  "pros": ["<장점 1>", "<장점 2>", "<장점 3>"],\n'
+    '  "cons": ["<단점 1>", "<단점 2>"],\n'
     '  "menu_structure": {\n'
     '    "nav_type": "<sidebar | topbar | hybrid>",\n'
     '    "items": [\n'
@@ -462,23 +526,33 @@ class ClaudeService:
         self,
         requirements: dict[str, Any],
         variant_index: int = 0,
+        variant_config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러)을 생성한다.
+        """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러, 스택/아키텍처)을 생성한다.
 
         Args:
             requirements: analyze_solution()의 반환값
-            variant_index: 변형 인덱스 (0=기본, 1=대안 디자인, …)
+            variant_index: 변형 인덱스 (0=추천, 1=대안 스택, 2=대안 아키텍처)
+            variant_config: 변형별 역할 정보 {role, is_recommended, user_tech_stack}
 
         Returns:
-            {menu_structure, pages, color_palette, typography, design_style}
+            {tech_stack_tags, architecture_pattern, variant_rationale, is_recommended,
+             menu_structure, pages, color_palette, typography, design_style}
         """
+        cfg = variant_config or {}
+        role = cfg.get("role", "user_stack_recommended")
+        user_tech_stack: list[str] = list(cfg.get("user_tech_stack") or [])
+        is_recommended: bool = bool(cfg.get("is_recommended", variant_index == 0))
+
         user_content = (
             f"Requirements:\n{json.dumps(requirements, ensure_ascii=False)}\n\n"
-            f"Design variant index: {variant_index}\n"
-            "Generate a unique UI structure for this variant index. "
-            "Variant 0 should be the primary/recommended design, "
-            "variant 1 an alternative color scheme, "
-            "variant 2+ additional creative interpretations."
+            f"Variant index: {variant_index}\n"
+            f"Variant role: {role}\n"
+            f"User preferred tech stack: {json.dumps(user_tech_stack)}\n"
+            f"is_recommended: {json.dumps(is_recommended)}\n\n"
+            "Generate a unique UI structure following the variant role instructions. "
+            "Ensure tech_stack_tags, architecture_pattern, variant_rationale, "
+            "and is_recommended are included in the response."
         )
 
         client = self._get_client()
@@ -495,12 +569,19 @@ class ClaudeService:
         except json.JSONDecodeError:
             logger.warning("generate_ui_structure: Claude 응답 JSON 파싱 실패, 스텁 폴백")
             result = {
+                "tech_stack_tags": user_tech_stack or [],
+                "architecture_pattern": "모놀리식 3-tier",
+                "variant_rationale": "",
+                "is_recommended": is_recommended,
                 "menu_structure": {},
                 "pages": [],
                 "color_palette": {},
                 "typography": {},
                 "design_style": "minimal",
             }
+        # is_recommended가 누락된 경우 role 기반으로 채움
+        if "is_recommended" not in result:
+            result["is_recommended"] = is_recommended
         return result
 
     async def recommend_pm(
@@ -511,16 +592,12 @@ class ClaudeService:
     ) -> dict[str, Any]:
         """요구사항과 프로토타입 스타일에 맞는 PM을 카탈로그에서 추천한다.
 
-        Args:
-            requirements: analyze_solution()의 반환값
-            prototype_style: 선택된 프로토타입의 design_pattern
-            pm_catalog: PM 프로필 목록 (id, name, domain, specialty, skills 등)
+        prompt caching: system 블록 + pm_catalog 블록에 ephemeral 캐시 적용.
+        같은 카탈로그 기준 2회 연속 요청 시 입력 토큰 비용 ~90% 절감.
 
         Returns:
-            {
-                recommended_pm_id, match_score, reasoning,
-                key_strengths, potential_gaps, alternatives
-            }
+            {recommended_pm_id, match_score, reasoning, key_strengths, potential_gaps, alternatives[]}
+            alternatives 각 항목도 match_score(0-100) 포함.
         """
         if not pm_catalog:
             return {
@@ -532,18 +609,39 @@ class ClaudeService:
                 "alternatives": [],
             }
 
-        user_content = (
-            f"Project requirements:\n{json.dumps(requirements, ensure_ascii=False)}\n\n"
-            f"Selected prototype style: {prototype_style}\n\n"
-            f"PM catalog:\n{json.dumps(pm_catalog, ensure_ascii=False, default=str)}"
-        )
+        catalog_json = json.dumps(pm_catalog, ensure_ascii=False, default=str)
+        requirements_json = json.dumps(requirements, ensure_ascii=False)
 
         client = self._get_client()
         message = await client.messages.create(
             model=self._model,
             max_tokens=1024,
-            system=_RECOMMEND_PM_SYSTEM,
-            messages=[{"role": "user", "content": user_content}],
+            system=[
+                {
+                    "type": "text",
+                    "text": _RECOMMEND_PM_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"PM catalog:\n{catalog_json}",
+                            "cache_control": {"type": "ephemeral"},
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                f"Project requirements:\n{requirements_json}\n\n"
+                                f"Selected prototype style: {prototype_style}"
+                            ),
+                        },
+                    ],
+                }
+            ],
         )
 
         raw = _extract_text(message)

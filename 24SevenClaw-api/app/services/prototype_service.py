@@ -2,6 +2,8 @@
 
 import logging
 import re
+import time
+import uuid as _uuid_mod
 from typing import Any
 from uuid import UUID
 
@@ -11,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError
 from app.models.pm_metrics import PMMetrics
 from app.models.pm_profile import PMProfile
+from app.models.pm_recommendation_log import PMRecommendationLog
 from app.models.project import Project
 from app.models.prototype_session import Prototype, PrototypeSession
 from app.schemas.prototype import (
@@ -45,6 +48,7 @@ class PrototypeService:
             user_id=user_id,
             solution_prompt=data.solution_prompt,
             status="pending",
+            extra={"user_tech_stack": list(data.tech_stack)},
         )
         self.db.add(session)
         await self.db.commit()
@@ -145,9 +149,15 @@ class PrototypeService:
         prompt = str(session.solution_prompt or "")
 
         try:
+            # 사용자 선호 기술 스택 읽기
+            user_tech_stack: list[str] = list(
+                (session.extra or {}).get("user_tech_stack", [])
+            )
+            org_context: dict[str, Any] = {"user_tech_stack": user_tech_stack}
+
             # 1. 요구사항 분석 — Claude API, 실패 시 규칙 기반 폴백
             try:
-                requirements = await self._claude.analyze_solution(prompt, {})
+                requirements = await self._claude.analyze_solution(prompt, org_context)
             except Exception:
                 logger.warning(
                     "analyze_solution API 실패, 규칙 기반 폴백 사용 (session_id=%s)", session_id
@@ -170,19 +180,44 @@ class PrototypeService:
             )
             await self.db.commit()
 
-            # 2. 변형별 UI 구조 생성 (3개)
+            # 2. 변형별 UI 구조 생성 (3개) — 스택+아키텍처 다양화
             solution_type = str(requirements.get("solution_type", "fullstack"))
             stub_templates = self._claude.generate_prototypes(solution_type, prompt)
 
+            # variant별 역할 정의
+            variant_roles = [
+                {
+                    "role": "user_stack_recommended",
+                    "is_recommended": True,
+                    "user_tech_stack": user_tech_stack,
+                },
+                {
+                    "role": "alternative_stack",
+                    "is_recommended": False,
+                    "user_tech_stack": user_tech_stack,
+                },
+                {
+                    "role": "different_architecture",
+                    "is_recommended": False,
+                    "user_tech_stack": user_tech_stack,
+                },
+            ]
+
             for idx in range(3):
                 proto: Prototype
+                role_config = variant_roles[idx]
                 try:
-                    ui_data = await self._claude.generate_ui_structure(requirements, idx)
+                    ui_data = await self._claude.generate_ui_structure(
+                        requirements, idx, role_config
+                    )
                     design_style = str(ui_data.get("design_style", "minimal"))
+                    arch_pattern = str(
+                        ui_data.get("architecture_pattern", design_style)
+                    )
                     proto = Prototype(
                         session_id=session.id,
                         variant_index=idx,
-                        title=f"프로토타입 {idx + 1} — {design_style}",
+                        title=f"프로토타입 {idx + 1} — {arch_pattern}",
                         design_pattern=design_style,
                         menu_structure=ui_data.get("menu_structure"),
                         ui_structure=ui_data,
@@ -198,6 +233,19 @@ class PrototypeService:
                     )
                     tmpl_idx = min(idx, len(stub_templates) - 1)
                     tmpl = stub_templates[tmpl_idx]
+                    stub_ui = dict(tmpl.get("ui_structure") or {})
+                    stub_ui["is_recommended"] = role_config["is_recommended"]
+                    # variant 0만 사용자 선택 스택 우선 적용 — 1/2는 템플릿 고유 스택 유지
+                    if idx == 0 and user_tech_stack:
+                        stub_ui["tech_stack_tags"] = user_tech_stack
+                    else:
+                        stub_ui["tech_stack_tags"] = tmpl.get("tech_stack_tags", [])
+                    stub_ui["architecture_pattern"] = tmpl.get(
+                        "architecture_pattern", tmpl.get("design_pattern", "")
+                    )
+                    stub_ui["variant_rationale"] = tmpl.get("description", "")
+                    stub_ui["pros"] = tmpl.get("pros", [])
+                    stub_ui["cons"] = tmpl.get("cons", [])
                     try:
                         proto = Prototype(
                             session_id=session.id,
@@ -206,7 +254,7 @@ class PrototypeService:
                             description=tmpl.get("description"),
                             design_pattern=tmpl.get("design_pattern"),
                             menu_structure=tmpl.get("menu_structure"),
-                            ui_structure=tmpl.get("ui_structure"),
+                            ui_structure=stub_ui,
                             color_palette=tmpl.get("color_palette"),
                             status="ready",
                         )
@@ -319,6 +367,12 @@ class PrototypeService:
                     "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
                 )
             update_values["selected_pm_id"] = data.selected_pm_id
+            # 추천 로그에 선택된 PM 기록 (품질 지표 수집용)
+            await self.db.execute(
+                update(PMRecommendationLog)
+                .where(PMRecommendationLog.session_id == session_id)
+                .values(selected_pm_id=data.selected_pm_id)
+            )
 
         if data.current_step is not None:
             update_values["current_step"] = data.current_step
@@ -334,59 +388,24 @@ class PrototypeService:
 
         return session
 
-    async def recommend_pms_for_session(
-        self, session_id: UUID, user_id: UUID
-    ) -> list[dict[str, Any]]:
-        """세션의 선택된 프로토타입 기반으로 PM을 추천한다.
-
-        selected_prototype_id가 없으면 AppError(409)를 발생시킨다.
-        """
-        session = await self.get_session(session_id, user_id)
-
-        if session.selected_prototype_id is None:
-            raise AppError(
-                "NO_PROTOTYPE_SELECTED",
-                "PM 추천을 위해 먼저 프로토타입을 선택해야 합니다",
-                409,
-            )
-
-        prototype_id: UUID = session.selected_prototype_id  # type: ignore[assignment]
-
-        prototype = await self.db.get(Prototype, prototype_id)
-        if prototype is None:
-            raise AppError(
-                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-            )
-
-        context_text = str(session.solution_prompt or "")
-
-        # 활성 PM 프로필 조회
-        stmt = select(PMProfile).where(PMProfile.is_active.is_(True))
-        result = await self.db.execute(stmt)
-        profiles = list(result.scalars().all())
-
-        if not profiles:
-            return []
-
-        design_pattern = str(prototype.design_pattern or "")
+    def _compute_rule_scores(
+        self,
+        profiles: list[PMProfile],
+        design_pattern: str,
+        context_text: str,
+        metrics_by_pm: dict[Any, PMMetrics],
+    ) -> dict[Any, dict[str, float]]:
+        """규칙 기반 점수 계산. {pm_id: {domain, specialty, metric, rule_score}} 반환."""
         domains = [str(p.domain or "") for p in profiles]
-        domain_scores = self._claude.recommend_pm_scores(design_pattern, domains)
+        domain_scores_map = self._claude.recommend_pm_scores(design_pattern, domains)
 
         combined_text = (design_pattern + " " + context_text).lower()
         keywords = [kw for kw in combined_text.split() if len(kw) > 2]
 
-        # 메트릭 일괄 로드 (N+1 방지)
-        pm_ids = [p.id for p in profiles]
-        metrics_stmt = select(PMMetrics).where(PMMetrics.pm_id.in_(pm_ids))
-        metrics_result = await self.db.execute(metrics_stmt)
-        metrics_by_pm: dict[Any, PMMetrics] = {
-            m.pm_id: m for m in metrics_result.scalars().all()
-        }
-
-        recommendations: list[dict[str, Any]] = []
+        result: dict[Any, dict[str, float]] = {}
         for profile in profiles:
             domain_key = str(profile.domain or "")
-            domain_score = float(domain_scores.get(domain_key, 40))
+            domain_score = float(domain_scores_map.get(domain_key, 40))
 
             _specs: Any = profile.specialties
             pm_specialties = [s.lower() for s in (_specs or [])]
@@ -407,30 +426,196 @@ class PrototypeService:
             else:
                 metric_score = 50.0
 
-            final_score = int(
-                domain_score * 0.4
-                + specialty_score * 0.3
-                + metric_score * 0.3
+            rule_score = (
+                domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3
+            )
+            result[_pid] = {
+                "domain": domain_score,
+                "specialty": specialty_score,
+                "metric": metric_score,
+                "rule_score": rule_score,
+            }
+        return result
+
+    async def recommend_pms_for_session(
+        self, session_id: UUID, user_id: UUID
+    ) -> list[dict[str, Any]]:
+        """세션의 선택된 프로토타입 기반으로 PM을 추천한다 (하이브리드 Claude+Rule).
+
+        Claude 점수 × 0.7 + 규칙 점수 × 0.3으로 최종 순위 결정.
+        Claude API 실패 시 규칙 기반 단독으로 폴백하며 결과를 로그에 기록한다.
+        """
+        session = await self.get_session(session_id, user_id)
+
+        if session.selected_prototype_id is None:
+            raise AppError(
+                "NO_PROTOTYPE_SELECTED",
+                "PM 추천을 위해 먼저 프로토타입을 선택해야 합니다",
+                409,
             )
 
-            reasoning = (
-                f"{profile.name}({profile.domain})은 "
-                f"{design_pattern or '해당'} 프로젝트에 "
-                f"도메인({int(domain_score)}pt)·"
-                f"전문분야({int(specialty_score)}pt)·"
-                f"평가({int(metric_score)}pt) 기준으로 "
-                f"종합 {final_score}점입니다."
+        prototype_id: UUID = session.selected_prototype_id  # type: ignore[assignment]
+
+        prototype = await self.db.get(Prototype, prototype_id)
+        if prototype is None:
+            raise AppError(
+                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
             )
+
+        context_text = str(session.solution_prompt or "")
+        design_pattern = str(prototype.design_pattern or "")
+
+        # 활성 PM 프로필 조회
+        stmt = select(PMProfile).where(PMProfile.is_active.is_(True))
+        result = await self.db.execute(stmt)
+        profiles = list(result.scalars().all())
+
+        if not profiles:
+            return []
+
+        # 메트릭 일괄 로드 (N+1 방지)
+        pm_ids = [p.id for p in profiles]
+        metrics_stmt = select(PMMetrics).where(PMMetrics.pm_id.in_(pm_ids))
+        metrics_result = await self.db.execute(metrics_stmt)
+        metrics_by_pm: dict[Any, PMMetrics] = {
+            m.pm_id: m for m in metrics_result.scalars().all()
+        }
+
+        # 규칙 기반 점수 계산
+        rule_detail = self._compute_rule_scores(
+            profiles, design_pattern, context_text, metrics_by_pm
+        )
+
+        # Claude 하이브리드 추천 시도
+        pm_catalog = [
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "title": p.title or "",
+                "domain": p.domain or "",
+                "specialties": list(p.specialties or []),
+                "tech_stack_tags": list(getattr(p, "tech_stack_tags", None) or []),
+                "industry_tags": list(getattr(p, "industry_tags", None) or []),
+                "preferred_solution_types": list(
+                    getattr(p, "preferred_solution_types", None) or []
+                ),
+                "bio_long": getattr(p, "bio_long", None) or "",
+            }
+            for p in profiles
+        ]
+
+        ui_structure: Any = prototype.ui_structure or {}
+        requirements = {
+            "solution_prompt": context_text,
+            "solution_type": design_pattern,
+            "architecture_pattern": ui_structure.get("architecture_pattern", ""),
+            "tech_stack": ui_structure.get("tech_stack_tags", []),
+            "pros": ui_structure.get("pros", []),
+            "cons": ui_structure.get("cons", []),
+        }
+
+        claude_raw: dict[str, Any] | None = None
+        is_fallback = False
+        start_ms = int(time.monotonic() * 1000)
+
+        try:
+            claude_result = await self._claude.recommend_pm(
+                requirements=requirements,
+                prototype_style=design_pattern,
+                pm_catalog=pm_catalog,
+            )
+            claude_raw = claude_result
+        except Exception as e:
+            logger.warning("recommend_pms_for_session: Claude 호출 실패, 폴백 → %s", e)
+            is_fallback = True
+
+        latency_ms = int(time.monotonic() * 1000) - start_ms
+
+        # Claude 결과로 점수 맵 구성
+        claude_scores: dict[str, float] = {}
+        if not is_fallback and claude_raw:
+            rec_pm_id = str(claude_raw.get("recommended_pm_id") or "")
+            rec_score = float(claude_raw.get("match_score") or 0)
+            if rec_pm_id:
+                claude_scores[rec_pm_id] = rec_score
+            for alt in claude_raw.get("alternatives", []):
+                alt_id = str(alt.get("pm_id") or "")
+                alt_score = float(alt.get("match_score") or 0)
+                if alt_id:
+                    claude_scores[alt_id] = alt_score
+
+        # 하이브리드 최종 점수 산출
+        recommendations: list[dict[str, Any]] = []
+        final_ranking_log: list[dict[str, Any]] = []
+
+        profile_by_id = {str(p.id): p for p in profiles}
+        for pm_id_str, profile in profile_by_id.items():
+            rule_info = rule_detail.get(profile.id, {})
+            rule_score = rule_info.get("rule_score", 50.0)
+
+            if not is_fallback and pm_id_str in claude_scores:
+                claude_score = claude_scores[pm_id_str]
+                final_score = claude_score * 0.7 + rule_score * 0.3
+            else:
+                claude_score = 0.0
+                final_score = rule_score
+
+            final_score_int = int(final_score)
+
+            if not is_fallback and claude_raw and str(claude_raw.get("recommended_pm_id")) == pm_id_str:
+                reasoning = str(claude_raw.get("reasoning") or "")
+            else:
+                rs = rule_info
+                reasoning = (
+                    f"{profile.name}({profile.domain})은 "
+                    f"{design_pattern or '해당'} 프로젝트에 "
+                    f"도메인({int(rs.get('domain', 0))}pt)·"
+                    f"전문분야({int(rs.get('specialty', 0))}pt)·"
+                    f"평가({int(rs.get('metric', 0))}pt) 기준으로 "
+                    f"종합 {final_score_int}점입니다."
+                )
+
             recommendations.append(
                 {
                     "pm_profile": profile,
-                    "match_score": final_score,
+                    "match_score": final_score_int,
                     "reasoning": reasoning,
+                }
+            )
+            final_ranking_log.append(
+                {
+                    "pm_id": pm_id_str,
+                    "claude_score": claude_score,
+                    "rule_score": rule_score,
+                    "final_score": final_score,
                 }
             )
 
         recommendations.sort(key=lambda r: int(r["match_score"]), reverse=True)
-        return recommendations[:5]
+        top5 = recommendations[:5]
+
+        # 추천 로그 기록
+        try:
+            log_entry = PMRecommendationLog(
+                id=_uuid_mod.uuid4(),
+                session_id=session_id,
+                input_snapshot={
+                    "solution_prompt": context_text[:500],
+                    "design_pattern": design_pattern,
+                    "pm_catalog_size": len(profiles),
+                    "tech_stack": ui_structure.get("tech_stack_tags", []),
+                },
+                claude_raw=claude_raw,
+                final_ranking=final_ranking_log,
+                latency_ms=latency_ms,
+                is_fallback=is_fallback,
+            )
+            self.db.add(log_entry)
+            await self.db.commit()
+        except Exception as e:
+            logger.warning("recommend_pms_for_session: 로그 저장 실패 → %s", e)
+
+        return top5
 
     async def finalize_session(
         self, session_id: UUID, user_id: UUID, data: FinalizeRequest

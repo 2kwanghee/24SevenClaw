@@ -319,6 +319,39 @@ def _generate_script_files(
         files["scripts/run-tests.sh"] = "\n".join(lines) + "\n"
 
 
+def generate_pm_files(
+    pm_slug: str,
+    pm_markdown: str,
+    platform_id: str = "claude-code",
+) -> dict[str, str]:
+    """선택된 PM 프로필을 플랫폼별 파일로 주입한다.
+
+    생성 경로:
+        claude-code → .claude/pm/{slug}.md
+        gemini-cli  → .gemini/pm/{slug}.md
+        cursor      → .cursor/rules/pm-{slug}.md
+        codex       → .codex/pm/{slug}.py (Python docstring 래핑)
+        기타         → .claude/pm/{slug}.md (claude-code 기본)
+    """
+    files: dict[str, str] = {}
+    slug = pm_slug
+
+    if platform_id == "gemini-cli":
+        files[f".gemini/pm/{slug}.md"] = pm_markdown
+    elif platform_id == "cursor":
+        files[f".cursor/rules/pm-{slug}.md"] = pm_markdown
+    elif platform_id == "codex":
+        py_content = (
+            f'"""\nPM Profile: {slug}\n\n{pm_markdown}\n"""\n'
+        )
+        files[f".codex/pm/{slug}.py"] = py_content
+    else:
+        # claude-code 또는 기본값
+        files[f".claude/pm/{slug}.md"] = pm_markdown
+
+    return files
+
+
 def _generate_env_files(
     files: dict[str, str],
     workflow_ids: list[str],

@@ -22,18 +22,31 @@ class ApiClientError extends Error {
   }
 }
 
+/** fetch 자체가 실패할 때(네트워크 연결 없음, DNS 실패 등) 던지는 에러 */
+class NetworkError extends Error {
+  constructor(message = "네트워크 연결을 확인해 주세요") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_URL}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new NetworkError();
+  }
 
   if (!res.ok) {
     const body = (await res.json().catch(() => ({
@@ -76,6 +89,7 @@ export interface PreviewRequest {
   skills: string[];
   pipelines: string[];
   platform: Record<string, unknown>;
+  pm_slug?: string | null;
 }
 
 export interface PreviewResponse {
@@ -595,4 +609,812 @@ export const rbac = {
   },
 };
 
-export { ApiClientError };
+// --- Organizations ---
+
+export interface OrganizationCreateRequest {
+  company_name: string;
+  size?: string;
+  industry?: string;
+  tech_stack?: string[];
+  main_product?: string;
+  business_type?: string;
+  company_description?: string;
+}
+
+export interface OrganizationResponse {
+  id: string;
+  company_name: string;
+  size: string | null;
+  industry: string | null;
+  tech_stack: string[] | null;
+  main_product: string | null;
+  business_type: string | null;
+  company_description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const organizations = {
+  upsert: (token: string, data: OrganizationCreateRequest) =>
+    authRequest<OrganizationResponse>("/api/v1/organizations/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  me: (token: string) =>
+    authRequest<OrganizationResponse>("/api/v1/organizations/me", token),
+};
+
+// --- Solution Wizard v2: Prototype Sessions ---
+
+export interface PrototypeSessionCreateRequest {
+  organization_id: string;
+  solution_prompt: string;
+  tech_stack?: string[];
+}
+
+export interface PrototypeSessionResponse {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  solution_prompt: string | null;
+  parsed_requirements: Record<string, unknown> | null;
+  status: "pending" | "generating" | "completed" | "failed";
+  selected_prototype_id: string | null;
+  selected_pm_id: string | null;
+  current_step: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrototypeSessionStatusResponse {
+  id: string;
+  status: string;
+  created_at: string;
+}
+
+export interface PrototypeSessionUpdateRequest {
+  selected_prototype_id?: string | null;
+  selected_pm_id?: string | null;
+  current_step?: number | null;
+}
+
+export interface PrototypeResponse {
+  id: string;
+  session_id: string;
+  variant_index: number;
+  title: string;
+  description: string | null;
+  design_pattern: string | null;
+  menu_structure: Record<string, unknown> | null;
+  ui_structure: Record<string, unknown> | null;
+  color_palette: Record<string, unknown> | null;
+  thumbnail_url: string | null;
+  figma_file_key: string | null;
+  figma_embed_url: string | null;
+  status: string;
+  tech_stack_tags: string[];
+  architecture_pattern: string | null;
+  variant_rationale: string | null;
+  is_recommended: boolean;
+  pros: string[];
+  cons: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrototypeListResponse {
+  items: PrototypeResponse[];
+  total: number;
+}
+
+/** 세션 기반 PM 추천 응답 단일 항목 */
+export interface PMRecommendItemResponse {
+  pm_id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+  title: string | null;
+  domain: string | null;
+  match_score: number;
+  reasoning: string;
+}
+
+/** POST /prototype-sessions/{id}/recommend-pms 응답 */
+export interface SessionRecommendPMsResponse {
+  items: PMRecommendItemResponse[];
+}
+
+export interface FinalizeRequest {
+  project_name: string;
+  description?: string | null;
+}
+
+export interface FinalizeResponse {
+  project_id: string;
+  project_name: string;
+  session_id: string;
+  message: string;
+}
+
+export interface GenerateStartResponse {
+  message: string;
+  session_id: string;
+}
+
+export const prototypeSessions = {
+  create: (token: string, data: PrototypeSessionCreateRequest) =>
+    authRequest<PrototypeSessionResponse>("/api/v1/prototype-sessions/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  list: (token: string, params?: { offset?: number; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PrototypeSessionResponse[]>(
+      `/api/v1/prototype-sessions${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, sessionId: string) =>
+    authRequest<PrototypeSessionResponse>(
+      `/api/v1/prototype-sessions/${sessionId}`,
+      token,
+    ),
+
+  update: (token: string, sessionId: string, data: PrototypeSessionUpdateRequest) =>
+    authRequest<PrototypeSessionResponse>(
+      `/api/v1/prototype-sessions/${sessionId}`,
+      token,
+      { method: "PATCH", body: JSON.stringify(data) },
+    ),
+
+  getStatus: (token: string, sessionId: string) =>
+    authRequest<PrototypeSessionStatusResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/status`,
+      token,
+    ),
+
+  getPrototypes: (token: string, sessionId: string) =>
+    authRequest<PrototypeListResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes`,
+      token,
+    ),
+
+  generatePrototypes: (token: string, sessionId: string) =>
+    authRequest<GenerateStartResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/prototypes/generate`,
+      token,
+      { method: "POST" },
+    ),
+
+  recommendPMs: (token: string, sessionId: string) =>
+    authRequest<SessionRecommendPMsResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/recommend-pms`,
+      token,
+      { method: "POST" },
+    ),
+
+  finalize: (token: string, sessionId: string, data: FinalizeRequest) =>
+    authRequest<FinalizeResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/finalize`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  delete: (token: string, sessionId: string) =>
+    authRequest<void>(`/api/v1/prototype-sessions/${sessionId}`, token, {
+      method: "DELETE",
+    }),
+};
+
+// --- Solution Wizard v2: PM Profiles ---
+
+export interface PMProfileResponse {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+  title: string | null;
+  description: string | null;
+  domain: string | null;
+  specialties: string[];
+  personality: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  bio_long: string | null;
+  years_experience: number | null;
+  preferred_solution_types: string[];
+  tech_stack_tags: string[];
+  industry_tags: string[];
+  language: string;
+  updated_at: string | null;
+}
+
+export interface PMProfileCreateRequest {
+  name: string;
+  slug: string;
+  avatar_url?: string | null;
+  title?: string | null;
+  description?: string | null;
+  domain?: string | null;
+  specialties?: string[];
+  personality?: Record<string, unknown>;
+  is_active?: boolean;
+  bio_long?: string | null;
+  years_experience?: number | null;
+  preferred_solution_types?: string[];
+  tech_stack_tags?: string[];
+  industry_tags?: string[];
+  language?: string;
+}
+
+export type PMProfileUpdateRequest = Partial<PMProfileCreateRequest>;
+
+export interface PMCompositionCreateRequest {
+  component_type: string;
+  component_slug: string;
+  component_name: string;
+  config?: Record<string, unknown>;
+  display_order?: number;
+  is_required?: boolean;
+}
+
+export interface PMCompositionUpdateRequest {
+  component_name?: string;
+  config?: Record<string, unknown>;
+  display_order?: number;
+  is_required?: boolean;
+}
+
+export interface PMRecommendationLogResponse {
+  id: string;
+  session_id: string;
+  created_at: string | null;
+  input_snapshot: Record<string, unknown>;
+  claude_raw: Record<string, unknown> | null;
+  final_ranking: Array<Record<string, unknown>>;
+  selected_pm_id: string | null;
+  latency_ms: number | null;
+  is_fallback: boolean;
+}
+
+export interface PMRecommendationLogListResponse {
+  items: PMRecommendationLogResponse[];
+  total: number;
+}
+
+export interface PMProfileWithMetrics extends PMProfileResponse {
+  usage_count: number;
+  completed_projects: number;
+  avg_rating: number;
+  total_ratings: number;
+  success_rate: number;
+  avg_completion_days: number;
+}
+
+export interface PMProfileListResponse {
+  items: PMProfileResponse[];
+  total: number;
+}
+
+export interface PMRecommendRequest {
+  prototype_id: string;
+  session_id?: string | null;
+}
+
+export interface PMRecommendResponse {
+  pm_profile: PMProfileResponse;
+  match_score: number;
+  reasoning: string | null;
+}
+
+export interface PMRecommendListResponse {
+  items: PMRecommendResponse[];
+}
+
+export interface PMMetricResponse {
+  id: string;
+  pm_id: string;
+  usage_count: number;
+  completed_projects: number;
+  avg_rating: number;
+  total_ratings: number;
+  success_rate: number;
+  avg_completion_days: number;
+}
+
+export interface PMCompositionResponse {
+  id: string;
+  pm_id: string;
+  component_type: string;
+  component_slug: string;
+  component_name: string;
+  config: Record<string, unknown>;
+  display_order: number;
+  is_required: boolean;
+}
+
+export interface PMCompositionGroupedResponse {
+  agents: PMCompositionResponse[];
+  skills: PMCompositionResponse[];
+  hooks: PMCompositionResponse[];
+  mcp_servers: PMCompositionResponse[];
+  plugins: PMCompositionResponse[];
+}
+
+export interface PMRatingCreateRequest {
+  session_id: string;
+  rating: number;
+  comment?: string;
+}
+
+export interface PMRatingResponse {
+  id: string;
+  pm_id: string;
+  user_id: string;
+  session_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface PMRatingListResponse {
+  items: PMRatingResponse[];
+  total: number;
+}
+
+export const pmProfiles = {
+  list: (
+    token: string,
+    params?: { specialty?: string; domain?: string; is_active?: boolean; offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.specialty) query.set("specialty", params.specialty);
+    if (params?.domain) query.set("domain", params.domain);
+    if (params?.is_active !== undefined)
+      query.set("is_active", String(params.is_active));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PMProfileListResponse>(
+      `/api/v1/pm-profiles/${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  get: (token: string, profileId: string) =>
+    authRequest<PMProfileWithMetrics>(`/api/v1/pm-profiles/${profileId}`, token),
+
+  recommend: (token: string, data: PMRecommendRequest) =>
+    authRequest<PMRecommendListResponse>("/api/v1/pm-profiles/recommend", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getComposition: (token: string, profileId: string) =>
+    authRequest<PMCompositionGroupedResponse>(
+      `/api/v1/pm-profiles/${profileId}/composition`,
+      token,
+    ),
+
+  createRating: (token: string, profileId: string, data: PMRatingCreateRequest) =>
+    authRequest<PMRatingResponse>(`/api/v1/pm-profiles/${profileId}/ratings`, token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listRatings: (
+    token: string,
+    profileId: string,
+    params?: { offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PMRatingListResponse>(
+      `/api/v1/pm-profiles/${profileId}/ratings${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getMetrics: (token: string, profileId: string) =>
+    authRequest<PMMetricResponse>(`/api/v1/pm-profiles/${profileId}/metrics`, token),
+
+  // Admin CRUD (pm:manage 권한 필요)
+  create: (token: string, data: PMProfileCreateRequest) =>
+    authRequest<PMProfileResponse>("/api/v1/pm-profiles/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (token: string, profileId: string, data: PMProfileUpdateRequest) =>
+    authRequest<PMProfileResponse>(`/api/v1/pm-profiles/${profileId}`, token, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (token: string, profileId: string) =>
+    authRequest<void>(`/api/v1/pm-profiles/${profileId}`, token, {
+      method: "DELETE",
+    }),
+
+  createComposition: (
+    token: string,
+    profileId: string,
+    data: PMCompositionCreateRequest,
+  ) =>
+    authRequest<PMCompositionResponse>(
+      `/api/v1/pm-profiles/${profileId}/composition`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  updateComposition: (
+    token: string,
+    profileId: string,
+    compositionId: string,
+    data: PMCompositionUpdateRequest,
+  ) =>
+    authRequest<PMCompositionResponse>(
+      `/api/v1/pm-profiles/${profileId}/composition/${compositionId}`,
+      token,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  deleteComposition: (
+    token: string,
+    profileId: string,
+    compositionId: string,
+  ) =>
+    authRequest<void>(
+      `/api/v1/pm-profiles/${profileId}/composition/${compositionId}`,
+      token,
+      { method: "DELETE" },
+    ),
+};
+
+export const pmMarkdown = {
+  get: (token: string, profileId: string): Promise<string> => {
+    const url = `${API_URL}/api/v1/pm-profiles/${profileId}/markdown`;
+    return fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: "Markdown 조회 실패" }));
+        throw new ApiClientError(res.status, extractDetail(body.detail));
+      }
+      return res.text();
+    });
+  },
+
+  update: (token: string, profileId: string, markdown: string): Promise<PMProfileResponse> => {
+    const url = `${API_URL}/api/v1/pm-profiles/${profileId}/from-markdown`;
+    return fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "text/plain",
+      },
+      body: markdown,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: "Markdown 업데이트 실패" }));
+        throw new ApiClientError(res.status, extractDetail(body.detail));
+      }
+      return res.json() as Promise<PMProfileResponse>;
+    });
+  },
+};
+
+// --- Registry Admin ---
+
+export interface RegistryItemResponse {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  body_md: string | null;
+  version: string;
+  image_url: string | null;
+  category: string | null;
+  is_public: boolean;
+  config_schema: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegistryItemListResponse {
+  items: RegistryItemResponse[];
+  total: number;
+}
+
+export interface RegistryItemCreateRequest {
+  name: string;
+  slug: string;
+  description?: string | null;
+  body_md?: string | null;
+  version?: string;
+  image_url?: string | null;
+  category?: string | null;
+  is_public?: boolean;
+  config_schema?: Record<string, unknown>;
+}
+
+export interface RegistryItemUpdateRequest {
+  name?: string;
+  description?: string | null;
+  body_md?: string | null;
+  version?: string;
+  image_url?: string | null;
+  category?: string | null;
+  is_public?: boolean;
+  config_schema?: Record<string, unknown>;
+}
+
+export interface RegistryListParams {
+  category?: string;
+  is_public?: boolean;
+  offset?: number;
+  limit?: number;
+}
+
+function makeRegistryClient(resourcePath: string) {
+  return {
+    list: (token: string, params?: RegistryListParams) => {
+      const query = new URLSearchParams();
+      if (params?.category) query.set("category", params.category);
+      if (params?.is_public !== undefined) query.set("is_public", String(params.is_public));
+      if (params?.offset !== undefined) query.set("offset", String(params.offset));
+      if (params?.limit !== undefined) query.set("limit", String(params.limit));
+      const qs = query.toString();
+      return authRequest<RegistryItemListResponse>(
+        `/api/v1/admin/registry/${resourcePath}${qs ? `?${qs}` : ""}`,
+        token,
+      );
+    },
+    get: (token: string, id: string) =>
+      authRequest<RegistryItemResponse>(`/api/v1/admin/registry/${resourcePath}/${id}`, token),
+    create: (token: string, data: RegistryItemCreateRequest) =>
+      authRequest<RegistryItemResponse>(`/api/v1/admin/registry/${resourcePath}`, token, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (token: string, id: string, data: RegistryItemUpdateRequest) =>
+      authRequest<RegistryItemResponse>(`/api/v1/admin/registry/${resourcePath}/${id}`, token, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    delete: (token: string, id: string) =>
+      authRequest<void>(`/api/v1/admin/registry/${resourcePath}/${id}`, token, {
+        method: "DELETE",
+      }),
+  };
+}
+
+export const registryAgents = makeRegistryClient("agents");
+export const registrySkills = makeRegistryClient("skills");
+export const registryMcpServers = makeRegistryClient("mcp-servers");
+
+export const adminPMRecommendations = {
+  list: (
+    token: string,
+    params?: {
+      session_id?: string;
+      is_fallback?: boolean;
+      offset?: number;
+      limit?: number;
+    },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.session_id) query.set("session_id", params.session_id);
+    if (params?.is_fallback !== undefined)
+      query.set("is_fallback", String(params.is_fallback));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<PMRecommendationLogListResponse>(
+      `/api/v1/admin/pm-recommendations/${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+};
+
+// --- Contracts ---
+
+export interface CentralContractResponse {
+  id: string;
+  slug: string;
+  contract_type: string;
+  source: string;
+  version: string;
+  content: Record<string, unknown>;
+  description: string | null;
+  is_locked: boolean;
+  allowed_overrides: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CentralContractListResponse {
+  items: CentralContractResponse[];
+  total: number;
+}
+
+export interface CentralContractCreateRequest {
+  slug: string;
+  contract_type: string;
+  source: string;
+  version?: string;
+  content?: Record<string, unknown>;
+  description?: string;
+  is_locked?: boolean;
+  allowed_overrides?: string[];
+}
+
+export interface CentralContractUpdateRequest {
+  contract_type?: string;
+  source?: string;
+  version?: string;
+  content?: Record<string, unknown>;
+  description?: string;
+  is_locked?: boolean;
+  allowed_overrides?: string[];
+}
+
+export interface ContractListParams {
+  contract_type?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface CustomerContractOverrideResponse {
+  id: string;
+  project_id: string;
+  central_contract_id: string;
+  override_content: Record<string, unknown>;
+  approved_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerContractOverrideListResponse {
+  items: CustomerContractOverrideResponse[];
+  total: number;
+}
+
+export interface CustomerContractOverrideCreateRequest {
+  central_contract_id: string;
+  override_content?: Record<string, unknown>;
+}
+
+export interface CustomerContractOverrideUpdateRequest {
+  override_content: Record<string, unknown>;
+}
+
+export interface ContractAuditLogResponse {
+  id: string;
+  contract_id: string | null;
+  override_id: string | null;
+  actor_id: string;
+  change_type: string;
+  diff_snapshot: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ContractAuditLogListResponse {
+  items: ContractAuditLogResponse[];
+  total: number;
+}
+
+export interface ContractAuditLogParams {
+  contract_id?: string;
+  change_type?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface ContractSyncResponse {
+  synced_count: number;
+  agent_ids: string[];
+}
+
+export const contracts = {
+  list: (token: string, params?: ContractListParams) => {
+    const query = new URLSearchParams();
+    if (params?.contract_type) query.set("contract_type", params.contract_type);
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<CentralContractListResponse>(
+      `/api/v1/contracts/${qs ? `?${qs}` : ""}`,  // trailing slash prevents 307 redirect
+      token,
+    );
+  },
+
+  get: (token: string, contractId: string) =>
+    authRequest<CentralContractResponse>(`/api/v1/contracts/${contractId}`, token),
+
+  create: (token: string, data: CentralContractCreateRequest) =>
+    authRequest<CentralContractResponse>("/api/v1/contracts/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (token: string, contractId: string, data: CentralContractUpdateRequest) =>
+    authRequest<CentralContractResponse>(`/api/v1/contracts/${contractId}`, token, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: (token: string, contractId: string) =>
+    authRequest<void>(`/api/v1/contracts/${contractId}`, token, {
+      method: "DELETE",
+    }),
+
+  getAuditLog: (token: string, params?: ContractAuditLogParams) => {
+    const query = new URLSearchParams();
+    if (params?.contract_id) query.set("contract_id", params.contract_id);
+    if (params?.change_type) query.set("change_type", params.change_type);
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<ContractAuditLogListResponse>(
+      `/api/v1/contracts/audit${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getProjectOverrides: (
+    token: string,
+    projectId: string,
+    params?: { offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<CustomerContractOverrideListResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides/${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  applyToProject: (
+    token: string,
+    projectId: string,
+    data: CustomerContractOverrideCreateRequest,
+  ) =>
+    authRequest<CustomerContractOverrideResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides/`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  updateOverride: (
+    token: string,
+    projectId: string,
+    overrideId: string,
+    data: CustomerContractOverrideUpdateRequest,
+  ) =>
+    authRequest<CustomerContractOverrideResponse>(
+      `/api/v1/projects/${projectId}/contract-overrides/${overrideId}`,
+      token,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  syncToAgent: (token: string, projectId: string) =>
+    authRequest<ContractSyncResponse>(
+      `/api/v1/projects/${projectId}/contracts/sync`,
+      token,
+      { method: "POST" },
+    ),
+};
+
+export { ApiClientError, NetworkError };

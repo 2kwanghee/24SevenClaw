@@ -14,13 +14,13 @@ import { act, renderHook } from "@testing-library/react";
 import { useSolutionWizardStore } from "../solution-wizard-store";
 import { SOLUTION_WIZARD_STEPS } from "@/types/solution-wizard";
 
-/* ───── 헬퍼 ───── */
+/* ----- 헬퍼 ----- */
 
 function getStore() {
   return renderHook(() => useSolutionWizardStore());
 }
 
-/* ───── 테스트 ───── */
+/* ----- 테스트 ----- */
 
 describe("solution-wizard-store — 7단계 E2E 플로우", () => {
   beforeEach(() => {
@@ -29,7 +29,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     act(() => result.current.reset());
   });
 
-  // ── 1단계: 회사 정보 ──────────────────────────────────────────────────────
+  // -- 1단계: 회사 정보 ------------------------------------------------------
 
   it("Step 0: 초기 상태는 currentStep=0, company 필드 모두 빈 값", () => {
     const { result } = getStore();
@@ -66,7 +66,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.currentStep).toBe(1);
   });
 
-  // ── 2단계: 프로토타입 선택 ──────────────────────────────────────────────
+  // -- 2단계: 프로토타입 선택 ----------------------------------------------
 
   it("Step 1: 세션 ID / 조직 ID 저장", () => {
     const { result } = getStore();
@@ -99,7 +99,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.data.prototypes.selectedPrototypeId).toBe("proto-1");
   });
 
-  // ── 3단계: PM 선택 ──────────────────────────────────────────────────────
+  // -- 3단계: PM 선택 ------------------------------------------------------
 
   it("Step 2: PM 프로필 선택 저장", () => {
     const { result } = getStore();
@@ -114,7 +114,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.data.pm.selectedPmProfileId).toBe("pm-abc");
   });
 
-  // ── 4단계: 에이전트 구성 ────────────────────────────────────────────────
+  // -- 4단계: 에이전트 구성 ------------------------------------------------
 
   it("Step 3: 에이전트 및 스킬 선택 저장", () => {
     const { result } = getStore();
@@ -140,7 +140,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     ]);
   });
 
-  // ── 5단계: 플랫폼 선택 ──────────────────────────────────────────────────
+  // -- 5단계: 플랫폼 선택 --------------------------------------------------
 
   it("Step 4: 플랫폼 선택 저장", () => {
     const { result } = getStore();
@@ -154,7 +154,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.data.platform.platformId).toBe("claude-code");
   });
 
-  // ── 6단계: 환경변수 ─────────────────────────────────────────────────────
+  // -- 6단계: 환경변수 -----------------------------------------------------
 
   it("Step 5: 환경변수 저장", () => {
     const { result } = getStore();
@@ -172,7 +172,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     });
   });
 
-  // ── 7단계: 최종 확인 ────────────────────────────────────────────────────
+  // -- 7단계: 최종 확인 ----------------------------------------------------
 
   it("Step 6: 마지막 단계 도달 후 모든 데이터 유지", () => {
     const { result } = getStore();
@@ -221,7 +221,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.currentStep).toBe(SOLUTION_WIZARD_STEPS.length - 1);
   });
 
-  // ── 이전/건너뛰기 ────────────────────────────────────────────────────────
+  // -- 이전/건너뛰기 --------------------------------------------------------
 
   it("Step 0에서 prevStep은 step을 0 미만으로 내리지 않음", () => {
     const { result } = getStore();
@@ -239,7 +239,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.currentStep).toBe(3);
   });
 
-  // ── reset ─────────────────────────────────────────────────────────────────
+  // -- reset -----------------------------------------------------------------
 
   it("reset 시 초기 상태로 복원", () => {
     const { result } = getStore();
@@ -256,7 +256,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     expect(result.current.data.sessionId).toBeNull();
   });
 
-  // ── isGenerating ──────────────────────────────────────────────────────────
+  // -- isGenerating ----------------------------------------------------------
 
   it("setIsGenerating으로 생성 상태 토글", () => {
     const { result } = getStore();

@@ -1,0 +1,277 @@
+"use client";
+
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { Plus, Users, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { RoleGuard } from "@/components/common/role-guard";
+import {
+  pmProfiles,
+  type PMProfileResponse,
+  type PMProfileCreateRequest,
+} from "@/lib/api-client";
+
+function PMListPage() {
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
+  const qc = useQueryClient();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState<PMProfileCreateRequest>({
+    name: "",
+    slug: "",
+    title: "",
+    domain: "",
+    description: "",
+    bio_long: "",
+    is_active: true,
+    specialties: [],
+    tech_stack_tags: [],
+    industry_tags: [],
+    preferred_solution_types: [],
+    language: "ko",
+  });
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-pm-profiles"],
+    queryFn: () => pmProfiles.list(token, { limit: 100 }),
+    enabled: !!token,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (req: PMProfileCreateRequest) => pmProfiles.create(token, req),
+    onSuccess: () => {
+      toast.success("PM 프로필이 생성되었습니다.");
+      qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
+      setShowCreate(false);
+      setCreateForm({
+        name: "", slug: "", title: "", domain: "", description: "",
+        bio_long: "", is_active: true, specialties: [], tech_stack_tags: [],
+        industry_tags: [], preferred_solution_types: [], language: "ko",
+      });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => pmProfiles.delete(token, id),
+    onSuccess: () => {
+      toast.success("PM 프로필이 삭제되었습니다.");
+      qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const handleCreate = () => {
+    if (!createForm.name || !createForm.slug) {
+      toast.error("이름과 slug는 필수입니다.");
+      return;
+    }
+    createMutation.mutate(createForm);
+  };
+
+  const handleDelete = (pm: PMProfileResponse) => {
+    if (!confirm(`"${pm.name}" PM을 삭제하시겠습니까?`)) return;
+    deleteMutation.mutate(pm.id);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
+            <Users className="h-5 w-5 text-violet-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-white">PM 프로필 관리</h1>
+            <p className="text-xs text-slate-500">AI PM 프로필 생성 및 편집 (관리자 전용)</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+        >
+          <Plus className="h-4 w-4" />
+          PM 생성
+        </button>
+      </div>
+
+      {/* 생성 다이얼로그 */}
+      {showCreate && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-white">새 PM 프로필 생성</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">이름 *</label>
+              <input
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                placeholder="예: Alex Chen"
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Slug *</label>
+              <input
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                placeholder="예: alex-chen"
+                value={createForm.slug}
+                onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">직함</label>
+              <input
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                placeholder="예: Senior PM"
+                value={createForm.title ?? ""}
+                onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">도메인</label>
+              <input
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                placeholder="예: saas, fintech"
+                value={createForm.domain ?? ""}
+                onChange={(e) => setCreateForm({ ...createForm, domain: e.target.value })}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">한 줄 설명</label>
+            <input
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+              placeholder="PM에 대한 간략한 설명"
+              value={createForm.description ?? ""}
+              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
+              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            >
+              {createMutation.isPending ? "생성 중..." : "생성"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 로딩/에러 */}
+      {isLoading && (
+        <div className="py-12 text-center text-sm text-slate-500">불러오는 중...</div>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {(error as Error).message}
+        </div>
+      )}
+
+      {/* PM 목록 */}
+      {data && (
+        <div className="overflow-hidden rounded-xl border border-white/10">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10 bg-white/[0.02]">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">이름</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">도메인</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">전문분야</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">상태</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400">액션</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((pm) => (
+                <tr key={pm.id} className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
+                  <td className="px-4 py-3">
+                    <p className="text-sm font-medium text-white">{pm.name}</p>
+                    <p className="text-xs text-slate-500">{pm.slug}</p>
+                    {pm.title && <p className="text-xs text-slate-500">{pm.title}</p>}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-300">{pm.domain ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {pm.specialties.slice(0, 3).map((s) => (
+                        <span
+                          key={s}
+                          className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      {pm.specialties.length > 3 && (
+                        <span className="text-[10px] text-slate-600">+{pm.specialties.length - 3}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {pm.is_active ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" /> 활성
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                        <XCircle className="h-3 w-3" /> 비활성
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/admin/pm/${pm.id}`}
+                        className="flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        편집
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(pm)}
+                        disabled={deleteMutation.isPending}
+                        className="flex items-center gap-1 rounded-lg border border-red-500/20 px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {data.items.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-600">
+                    PM 프로필이 없습니다. 위 버튼으로 추가하세요.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AdminPMPage() {
+  return (
+    <RoleGuard roles={["superadmin", "admin"]}>
+      <PMListPage />
+    </RoleGuard>
+  );
+}

@@ -8,37 +8,20 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[web] 중앙 계약 관리 UI**
-  > 요청사항: ## 개요
+- [ ] **[24S-142/P1] DB migration 013 + Registry Admin API**
+  > 요청사항: ## 작업 내용
 
-중앙 계약 관리 어드민 + 프로젝트별 UI 구현.
+* `alembic/versions/013_registry_body_md_and_pm_overrides.py` 신규 — `agents/skills/mcp_servers`에 `body_md TEXT NULL`, `pm_profiles`에 `markdown_body TEXT NULL` 추가
+* `app/models/registry.py`, `app/models/pm_profile.py` 컬럼 매핑
+* `app/schemas/registry_admin.py` 신규 — `AgentCreate/Update/Response`, `SkillCreate/Update/Response`, `MCPServerCreate/Update/Response`
+* `app/services/registry_admin_service.py` 신규 — CRUD + slug 중복 방지
+* `app/api/v1/registry_admin.py` 신규 — `GET/POST /admin/agents`, `PUT/DELETE /admin/agents/{id}` + skill/mcp-servers 동일 구조, `Depends(require_permission("pm:manage"))`
+* `app/api/v1/router.py` 라우터 등록
+* `tests/test_registry_admin_api.py` 신규 — 성공/인증실패/유효성검사 각 3개
 
-## 선행 조건
+## 완료 기준
 
-* \[api\] 중앙 계약 API + \[web\] RBAC UI 완료 필수
-
-## 범위
-
-### 새 페이지
-
-* (dashboard)/admin/contracts/page.tsx: 계약 목록
-* (dashboard)/admin/contracts/\[id\]/page.tsx: 상세 + JSON 에디터 + 감사 로그
-* (dashboard)/projects/\[projectId\]/contracts/page.tsx: 프로젝트별 뷰 (잠금=회색, 수정가능=파란색)
-
-### 새 컴포넌트
-
-* components/contracts/contract-viewer.tsx
-* components/contracts/override-editor.tsx
-* components/contracts/contract-audit-table.tsx
-
-## 완료 조건
-
-- 계약 CRUD UI 동작
-- 오버라이드 편집 동작
-- 잠금 필드 시각적 구분
-- 동기화 버튼 동작
-
-## 크기: M
+`alembic upgrade head && alembic downgrade -1 && alembic upgrade head` 통과 + pytest 통과
 
 ---
 

@@ -122,6 +122,12 @@ export interface PrototypeOption {
   solutionType: string;
   reasoning: string | null;
   config: Record<string, unknown>;
+  techStack?: string[];
+  architecturePattern?: string;
+  rationale?: string;
+  isRecommended?: boolean;
+  pros?: string[];
+  cons?: string[];
 }
 
 /** Step 2 위저드 상태 */

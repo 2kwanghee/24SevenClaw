@@ -15,8 +15,10 @@ import {
   ScrollText,
   Users2,
   FileText,
+  Users,
+  BarChart3,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useRBACStore } from "@/stores/rbac-store";
 import { usePermissions } from "@/hooks/use-rbac";
@@ -33,6 +35,9 @@ const navItems = [
 const adminItems = [
   { href: "/admin/users", label: "사용자 관리", icon: Shield },
   { href: "/admin/contracts", label: "계약 관리", icon: FileText },
+  { href: "/admin/pm", label: "PM 관리", icon: Users },
+  { href: "/admin/registry", label: "Registry", icon: Blocks },
+  { href: "/admin/recommendations", label: "추천 로그", icon: BarChart3 },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText },
 ];
 
@@ -80,15 +85,17 @@ export default function DashboardLayout({
 
   // 권한 데이터를 로드하여 스토어에 동기화
   const { data: permsData } = usePermissions();
-  const store = useRBACStore();
+  const loaded = useRBACStore((s) => s.loaded);
+  const setPermissions = useRBACStore((s) => s.setPermissions);
+  const showAdmin = useRBACStore((s) => s.isAdmin());
+  const showOrgManage = useRBACStore((s) => s.hasPermission("org:manage"));
 
   // 스토어에 권한 동기화 (이미 RoleGuard에서도 하지만, 사이드바 렌더링용)
-  if (permsData && !store.loaded) {
-    store.setPermissions(permsData.permissions, permsData.system_role);
-  }
-
-  const showAdmin = store.isAdmin();
-  const showOrgManage = store.hasPermission("org:manage");
+  useEffect(() => {
+    if (permsData && !loaded) {
+      setPermissions(permsData.permissions, permsData.system_role);
+    }
+  }, [permsData, loaded, setPermissions]);
 
   return (
     <div className="flex min-h-screen bg-slate-950">

@@ -15,20 +15,20 @@ import { act } from "react";
 import { StepCompanySolution } from "../step-company-solution";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
-/* ── 모킹 ── */
+/* -- 모킹 -- */
 
 // next-auth는 jsdom 환경에서 실행 불가 → mock
 vi.mock("next-auth/react", () => ({
   useSession: () => ({ data: null, status: "unauthenticated" }),
 }));
 
-/* ── 헬퍼 ── */
+/* -- 헬퍼 -- */
 
 function renderStep() {
   return render(<StepCompanySolution />);
 }
 
-/* ── 테스트 ── */
+/* -- 테스트 -- */
 
 describe("StepCompanySolution — 폼 유효성 검증", () => {
   beforeEach(() => {

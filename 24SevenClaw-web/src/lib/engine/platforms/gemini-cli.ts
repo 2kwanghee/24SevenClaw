@@ -15,9 +15,9 @@ const dirs = PLATFORM_DIR_MAP["gemini-cli"];
  *
  * .gemini/ 디렉토리 구조:
  *   .gemini/
- *   ├── agents/          # 에이전트 가이드 (.md)
- *   ├── skills/          # 스킬/워크플로우 (.md)
- *   └── settings.json    # Gemini CLI 설정
+ *   ├-- agents/          # 에이전트 가이드 (.md)
+ *   ├-- skills/          # 스킬/워크플로우 (.md)
+ *   └-- settings.json    # Gemini CLI 설정
  *   GEMINI.md            # 루트 프로젝트 가이드
  */
 export class GeminiCliAdapter implements PlatformAdapter {

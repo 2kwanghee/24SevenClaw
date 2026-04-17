@@ -17,6 +17,7 @@ from app.schemas.project import (
 )
 from app.schemas.wizard_config import WizardConfigResponse, WizardConfigSave, WizardData
 from app.services.generate_service import generate_zip
+from app.services.pm_markdown_service import serialize_pm_to_markdown
 from app.services.preview_service import generate_preview
 from app.services.project_service import ProjectService
 
@@ -116,14 +117,32 @@ async def preview_project(
     return generate_preview(data)
 
 
+async def _resolve_pm(
+    db: AsyncSession, pm_slug: str | None
+) -> tuple[str | None, str | None]:
+    """pm_slug로 PM 프로필을 조회해 (slug, markdown) 튜플을 반환한다."""
+    if not pm_slug:
+        return None, None
+    from sqlalchemy import select
+
+    from app.models.pm_profile import PMProfile
+    result = await db.execute(select(PMProfile).where(PMProfile.slug == pm_slug))
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        return None, None
+    return pm_slug, serialize_pm_to_markdown(profile)
+
+
 @router.post("/draft/generate")
 async def generate_draft(
     data: GenerateRequest,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """프로젝트 생성 전 드래프트 ZIP 다운로드 (project ID 불필요)."""
     project_name = data.solution.get("projectName", "project")
-    buffer = generate_zip(data, project_name)
+    pm_slug, pm_markdown = await _resolve_pm(db, data.pm_slug)
+    buffer = generate_zip(data, project_name, pm_slug=pm_slug, pm_markdown=pm_markdown)
 
     filename = f"{project_name}.zip"
     return StreamingResponse(
@@ -141,12 +160,12 @@ async def generate_project(
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드."""
-    # 프로젝트 소유권 검증
     service = ProjectService(db)
     project = await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
     project_name = data.solution.get("projectName", project.name)
-    buffer = generate_zip(data, project_name)
+    pm_slug, pm_markdown = await _resolve_pm(db, data.pm_slug)
+    buffer = generate_zip(data, project_name, pm_slug=pm_slug, pm_markdown=pm_markdown)
 
     # 위저드 설정 자동 저장 (env_vars 제외)
     wizard_data = WizardConfigSave(

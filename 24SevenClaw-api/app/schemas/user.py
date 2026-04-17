@@ -26,6 +26,10 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RegisterResponse(UserResponse):
+    maturity_required: bool = True
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str

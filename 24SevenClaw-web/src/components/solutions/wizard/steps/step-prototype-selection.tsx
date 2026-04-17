@@ -41,7 +41,7 @@ export function StepPrototypeSelection() {
     }
   };
 
-  /* ── 빈 상태 ─────────────────────────────────────────────────────────── */
+  /* -- 빈 상태 ----------------------------------------------------------- */
   if (prototypes.generatedPrototypes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -56,7 +56,7 @@ export function StepPrototypeSelection() {
     );
   }
 
-  /* ── 프로토타입 카드 목록 ────────────────────────────────────────────── */
+  /* -- 프로토타입 카드 목록 ---------------------------------------------- */
   return (
     <div className="space-y-4">
       <p className="text-xs text-slate-400">

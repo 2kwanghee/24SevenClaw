@@ -185,7 +185,7 @@ export default function AITeamDashboardPage() {
       {/* 3계층 대시보드 */}
       {session && (
         <div className="space-y-6">
-          {/* ─── 1계층: 사람 (Human) ─── */}
+          {/* --- 1계층: 사람 (Human) --- */}
           <section
             className="rounded-2xl border border-white/5 bg-slate-900/50 p-6"
             aria-label="사람 계층"
@@ -255,7 +255,7 @@ export default function AITeamDashboardPage() {
             )}
           </section>
 
-          {/* ─── 2계층: PM AI ─── */}
+          {/* --- 2계층: PM AI --- */}
           <section aria-label="PM AI 계층" className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-500/10">
@@ -317,7 +317,7 @@ export default function AITeamDashboardPage() {
             )}
           </section>
 
-          {/* ─── 3계층: AI Team ─── */}
+          {/* --- 3계층: AI Team --- */}
           <section
             className="rounded-2xl border border-white/5 bg-slate-900/50 p-6"
             aria-label="AI Team 계층"

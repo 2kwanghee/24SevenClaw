@@ -54,6 +54,10 @@ class PreviewRequest(BaseModel):
         default_factory=dict,
         description="플랫폼 설정 (platformId 포함)",
     )
+    pm_slug: str | None = Field(
+        default=None,
+        description="선택된 PM 프로필 slug — ZIP에 플랫폼별 PM 파일 주입",
+    )
 
     @field_validator("agents")
     @classmethod

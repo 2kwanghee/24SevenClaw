@@ -21,7 +21,7 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { pmProfiles, type PMCompositionResponse } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
-/* ── 상수 ────────────────────────────────────────────────────────────── */
+/* -- 상수 -------------------------------------------------------------- */
 
 /** SOLUTION_WIZARD_STEPS 기준 PM 선택 스텝 인덱스 */
 const PM_SELECTION_STEP = 4;
@@ -71,7 +71,7 @@ const CATEGORY_CONFIG = [
 
 type CategoryKey = (typeof CATEGORY_CONFIG)[number]["key"];
 
-/* ── 카테고리 섹션 컴포넌트 ───────────────────────────────────────────── */
+/* -- 카테고리 섹션 컴포넌트 --------------------------------------------- */
 
 interface CompositionSectionProps {
   label: string;
@@ -180,7 +180,7 @@ function CompositionSection({
   );
 }
 
-/* ── 메인 컴포넌트 ───────────────────────────────────────────────────── */
+/* -- 메인 컴포넌트 ----------------------------------------------------- */
 
 type GroupedComposition = Record<CategoryKey, PMCompositionResponse[]>;
 
@@ -215,7 +215,7 @@ export function StepPMComposition() {
     (i) => i.pmId === selectedPmProfileId,
   );
 
-  /* ── 구성 요소 로드 ── */
+  /* -- 구성 요소 로드 -- */
   useEffect(() => {
     if (!selectedPmProfileId || !token) return;
 
@@ -244,7 +244,7 @@ export function StepPMComposition() {
     void loadComposition();
   }, [token, selectedPmProfileId, retryCount]);
 
-  /* ── PM 미선택 ─────────────────────────────────────────────────────── */
+  /* -- PM 미선택 ------------------------------------------------------- */
   if (!selectedPmProfileId) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -265,7 +265,7 @@ export function StepPMComposition() {
     );
   }
 
-  /* ── 로딩 ────────────────────────────────────────────────────────── */
+  /* -- 로딩 ---------------------------------------------------------- */
   if (isLoading) {
     return (
       <div className="space-y-5">
@@ -288,7 +288,7 @@ export function StepPMComposition() {
     );
   }
 
-  /* ── 에러 ────────────────────────────────────────────────────────── */
+  /* -- 에러 ---------------------------------------------------------- */
   if (fetchError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -314,7 +314,7 @@ export function StepPMComposition() {
     );
   }
 
-  /* ── 정상 상태 ─────────────────────────────────────────────────────── */
+  /* -- 정상 상태 ------------------------------------------------------- */
   return (
     <div className="space-y-5">
       {/* PM 프로필 헤더 */}

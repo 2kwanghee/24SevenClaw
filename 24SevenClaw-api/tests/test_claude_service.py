@@ -60,12 +60,12 @@ class TestAnalyzeInput:
 class TestGeneratePrototypes:
     def test_saas_templates(self, service: ClaudeService) -> None:
         result = service.generate_prototypes("saas", "SaaS 서비스")
-        assert len(result) == 2
+        assert len(result) == 3
         assert result[0]["design_pattern"] == "saas-fullstack"
 
     def test_unknown_type_falls_back_to_default(self, service: ClaudeService) -> None:
         result = service.generate_prototypes("unknown-type", "프로젝트")
-        assert len(result) == 1
+        assert len(result) == 3
         assert result[0]["design_pattern"] == "fullstack-separated"
 
 

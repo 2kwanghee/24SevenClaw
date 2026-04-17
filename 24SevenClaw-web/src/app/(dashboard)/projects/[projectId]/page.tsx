@@ -376,7 +376,7 @@ export default function ProjectDetailPage() {
   );
 }
 
-/* ── 설정 요약 배지 ── */
+/* -- 설정 요약 배지 -- */
 
 interface ConfigBadgeProps {
   icon: typeof Building2;
