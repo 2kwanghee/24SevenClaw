@@ -1417,4 +1417,222 @@ export const contracts = {
     ),
 };
 
+// --- Orchestrator ---
+
+export type OrchestratorPhase =
+  | "requested"
+  | "decomposed"
+  | "assigned"
+  | "drafting"
+  | "reviewing"
+  | "integrating"
+  | "validating"
+  | "approved"
+  | "transitioning"
+  | "completed";
+
+export type SubTaskRole =
+  | "architect"
+  | "frontend"
+  | "backend"
+  | "qa"
+  | "security"
+  | "devops"
+  | "reviewer";
+
+export type MergeStrategy = "accept_draft" | "accept_review" | "manual_merge";
+
+export interface OrchestratorSessionResponse {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  phase: OrchestratorPhase;
+  created_by: string | null;
+  prompt_template: string | null;
+  risk_flags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrchestratorSessionListResponse {
+  items: OrchestratorSessionResponse[];
+  total: number;
+}
+
+export interface SubTaskResponse {
+  id: string;
+  session_id: string;
+  title: string;
+  description: string | null;
+  assigned_role: SubTaskRole;
+  status: string;
+  order_index: number;
+  depends_on: string[];
+  artifact_id: string | null;
+  result_summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PhaseEventResponse {
+  id: string;
+  session_id: string;
+  old_phase: string | null;
+  new_phase: string;
+  actor_type: string;
+  actor_id: string | null;
+  message: string | null;
+  created_at: string;
+}
+
+export interface SessionSummaryResponse {
+  session: OrchestratorSessionResponse;
+  subtasks: SubTaskResponse[];
+  phase_history: PhaseEventResponse[];
+}
+
+export interface ReviewRoundResponse {
+  id: string;
+  session_id: string;
+  subtask_id: string | null;
+  round_number: number;
+  status: string;
+  main_ai_role: string;
+  draft_content: string;
+  sub_ai_role: string | null;
+  review_type: string | null;
+  review_content: string | null;
+  review_score: number | null;
+  diff_summary: string | null;
+  merged_content: string | null;
+  merge_strategy: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewRoundListResponse {
+  items: ReviewRoundResponse[];
+  total: number;
+}
+
+export interface ReviewDiffResponse {
+  round_id: string;
+  draft_content: string;
+  review_content: string;
+  diff_summary: string;
+  review_type: string | null;
+}
+
+export interface MergeReviewRequest {
+  merge_strategy: MergeStrategy;
+  merged_content?: string;
+  message?: string;
+}
+
+export const orchestrator = {
+  listSessions: (
+    token: string,
+    projectId: string,
+    params?: { limit?: number; offset?: number; phase?: string },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.phase) query.set("phase", params.phase);
+    const qs = query.toString();
+    return authRequest<OrchestratorSessionListResponse>(
+      `/api/v1/orchestrator/projects/${projectId}/sessions${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  createSession: (
+    token: string,
+    projectId: string,
+    data: { title: string; description?: string },
+  ) =>
+    authRequest<OrchestratorSessionResponse>(
+      `/api/v1/orchestrator/projects/${projectId}/sessions`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  getSessionSummary: (token: string, sessionId: string) =>
+    authRequest<SessionSummaryResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/summary`,
+      token,
+    ),
+
+  decompose: (token: string, sessionId: string, hints?: string[]) =>
+    authRequest<{ session: OrchestratorSessionResponse; subtasks: SubTaskResponse[] }>(
+      `/api/v1/orchestrator/sessions/${sessionId}/decompose`,
+      token,
+      { method: "POST", body: JSON.stringify({ hints: hints ?? null }) },
+    ),
+
+  assign: (
+    token: string,
+    sessionId: string,
+    overrides?: Record<string, SubTaskRole>,
+  ) =>
+    authRequest<{ session: OrchestratorSessionResponse; subtasks: SubTaskResponse[] }>(
+      `/api/v1/orchestrator/sessions/${sessionId}/assign`,
+      token,
+      { method: "POST", body: JSON.stringify({ overrides: overrides ?? null }) },
+    ),
+
+  transition: (
+    token: string,
+    sessionId: string,
+    targetPhase: OrchestratorPhase,
+    message?: string,
+  ) =>
+    authRequest<OrchestratorSessionResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/transition`,
+      token,
+      {
+        method: "PUT",
+        body: JSON.stringify({ target_phase: targetPhase, message: message ?? null }),
+      },
+    ),
+};
+
+export const reviews = {
+  list: (
+    token: string,
+    sessionId: string,
+    params?: { limit?: number; offset?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return authRequest<ReviewRoundListResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/reviews${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getDiff: (token: string, roundId: string) =>
+    authRequest<ReviewDiffResponse>(
+      `/api/v1/orchestrator/reviews/${roundId}/diff`,
+      token,
+    ),
+
+  merge: (token: string, roundId: string, data: MergeReviewRequest) =>
+    authRequest<ReviewRoundResponse>(
+      `/api/v1/orchestrator/reviews/${roundId}/merge`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  reject: (token: string, roundId: string, reason: string) =>
+    authRequest<ReviewRoundResponse>(
+      `/api/v1/orchestrator/reviews/${roundId}/reject`,
+      token,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    ),
+};
+
 export { ApiClientError, NetworkError };
