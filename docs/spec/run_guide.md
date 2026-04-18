@@ -80,6 +80,63 @@ npm run dev
 
 ---
 
+## 4단계: DB 직접 접속 및 확인
+
+### psql로 접속
+
+```bash
+# 기본 접속 (로컬 PostgreSQL)
+psql -U postgres -d 24sevenclaw
+
+# .env의 DATABASE_URL을 직접 사용할 경우
+psql "postgresql://postgres:password@localhost:5432/24sevenclaw"
+```
+
+### 주요 확인 명령어
+
+```sql
+-- 테이블 목록 확인
+\dt
+
+-- 테이블 스키마 확인
+\d <테이블명>
+
+-- 데이터 확인 예시
+SELECT * FROM pm_profiles LIMIT 10;
+SELECT * FROM prototype_sessions ORDER BY created_at DESC LIMIT 5;
+
+-- 마이그레이션 이력 확인 (Alembic)
+SELECT * FROM alembic_version;
+
+-- psql 종료
+\q
+```
+
+### Redis 접속 및 확인
+
+```bash
+redis-cli
+
+# 저장된 키 목록
+KEYS *
+
+# 특정 키 값 확인
+GET <key>
+
+# 캐시 전체 초기화 (주의: 개발 환경에서만)
+FLUSHDB
+```
+
+### DB 연결 정보 확인
+
+API 서버의 `.env` 파일에서 연결 정보를 확인한다.
+
+```bash
+cat /mnt/c/workspace/24SevenClaw/24SevenClaw-api/.env | grep -E "DATABASE|REDIS"
+```
+
+---
+
 ## 포트 정리
 
 | 서비스 | 포트 |
