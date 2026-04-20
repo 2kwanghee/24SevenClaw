@@ -102,6 +102,10 @@ def generate_all(
     # 자동화 스크립트 생성
     _generate_script_files(files, stack, workflow_ids)
 
+    # Linear webhook 스크립트 생성 (linear 스킬 선택 시)
+    if "linear" in workflow_ids:
+        _generate_webhook_files(files, project_name)
+
     # .env / .env.example 생성
     _generate_env_files(files, workflow_ids, env_vars or {})
 
@@ -338,6 +342,28 @@ def _generate_hook_files(
     template = _env.get_template("hooks/harness-gate.sh.j2")
     content = template.render(stack=stack)
     files["scripts/harness-gate.sh"] = content
+
+
+def _generate_webhook_files(
+    files: dict[str, str],
+    project_name: str,
+) -> None:
+    """Linear webhook 수신 서버 + 폴링 폴백 스크립트 생성."""
+    ctx = {"project_name": project_name}
+
+    for tmpl_path, out_path in [
+        ("scripts/webhook_server.py.j2", "scripts/webhook_server.py"),
+        ("scripts/linear_watcher.py.j2", "scripts/linear_watcher.py"),
+        ("scripts/start-webhook.sh.j2", "scripts/start-webhook.sh"),
+        ("scripts/setup-tunnel.sh.j2", "scripts/setup-tunnel.sh"),
+    ]:
+        tpl = _env.get_template(tmpl_path)
+        files[out_path] = tpl.render(**ctx)
+
+    docs_src = TEMPLATES_DIR / "docs" / "webhook" / "WEBHOOK_SETUP.md.j2"
+    if docs_src.exists():
+        tpl = _env.get_template("docs/webhook/WEBHOOK_SETUP.md.j2")
+        files["docs/WEBHOOK_SETUP.md"] = tpl.render(**ctx)
 
 
 def _generate_script_files(

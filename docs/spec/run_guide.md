@@ -2,17 +2,23 @@
 
 ## 전제 조건
 
-PostgreSQL, Redis가 실행 중이어야 합니다.
+PostgreSQL, Redis를 Docker로 띄웁니다.
 
 ```bash
-# 상태 확인
-pg_isready
-redis-cli ping   # PONG 응답이면 정상
+cd /mnt/c/workspace/24SevenClaw/24SevenClaw-infra/docker
 
-# 실행 안 됐을 경우
-sudo service postgresql start
-sudo service redis-server start
+# DB + Redis 컨테이너 실행 (백그라운드)
+docker compose up -d db redis
+
+# 상태 확인
+docker compose ps
+# sevenclaw-db, sevenclaw-redis 모두 healthy 상태여야 정상
 ```
+
+> API까지 컨테이너로 띄우려면 `--profile full` 옵션 추가:
+> ```bash
+> docker compose --profile full up -d
+> ```
 
 ---
 
@@ -30,8 +36,8 @@ uv run alembic upgrade head
 # 시드 데이터 로딩 (PM 프로필 초기 데이터, 최초 1회)
 uv run python scripts/seed_pm_data.py
 
-# API 서버 실행
-uv run uvicorn app.main:app --reload --port 8000
+# API 서버 실행 (--host 0.0.0.0: WSL2에서 Windows 브라우저 접근 허용)
+uv run uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 서버 기동 후 → **http://localhost:8000/docs** (Swagger UI)
@@ -82,17 +88,14 @@ npm run dev
 
 ## 4단계: DB 직접 접속 및 확인
 
-### psql로 접속
+### PostgreSQL 접속
 
 ```bash
-# 기본 접속 (로컬 PostgreSQL)
-psql -U postgres -d 24sevenclaw
-
-# .env의 DATABASE_URL을 직접 사용할 경우
-psql "postgresql://postgres:password@localhost:5432/24sevenclaw"
+# 컨테이너 안으로 들어가서 psql 실행
+docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw
 ```
 
-### 주요 확인 명령어
+접속 후 주요 확인 명령어:
 
 ```sql
 -- 테이블 목록 확인
@@ -112,10 +115,18 @@ SELECT * FROM alembic_version;
 \q
 ```
 
+한 줄 쿼리 실행 (컨테이너 진입 없이):
+
+```bash
+docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw -c "\dt"
+docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw -c "SELECT * FROM alembic_version;"
+```
+
 ### Redis 접속 및 확인
 
 ```bash
-redis-cli
+# 컨테이너 안에서 redis-cli 실행
+docker exec -it sevenclaw-redis redis-cli
 
 # 저장된 키 목록
 KEYS *
@@ -127,12 +138,21 @@ GET <key>
 FLUSHDB
 ```
 
-### DB 연결 정보 확인
-
-API 서버의 `.env` 파일에서 연결 정보를 확인한다.
+한 줄 실행:
 
 ```bash
-cat /mnt/c/workspace/24SevenClaw/24SevenClaw-api/.env | grep -E "DATABASE|REDIS"
+docker exec -it sevenclaw-redis redis-cli KEYS "*"
+docker exec -it sevenclaw-redis redis-cli PING   # PONG 응답이면 정상
+```
+
+### 컨테이너 로그 확인
+
+```bash
+# DB 로그
+docker logs sevenclaw-db --tail 50
+
+# Redis 로그
+docker logs sevenclaw-redis --tail 50
 ```
 
 ---

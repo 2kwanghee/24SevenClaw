@@ -639,16 +639,18 @@ class PrototypeService:
                 409,
             )
 
-        # slug 생성 (중복 시 숫자 접미사)
+        # slug 생성 (중복 시 숫자 접미사, 삭제된 프로젝트는 충돌에서 제외)
         slug = _slugify(data.project_name)
         base_slug = slug
         counter = 1
         while True:
             stmt = select(Project).where(
-                Project.owner_id == user_id, Project.slug == slug
+                Project.owner_id == user_id,
+                Project.slug == slug,
+                Project.status != "deleted",
             )
             result = await self.db.execute(stmt)
-            if result.scalar_one_or_none() is None:
+            if result.scalars().first() is None:
                 break
             slug = f"{base_slug}-{counter}"
             counter += 1

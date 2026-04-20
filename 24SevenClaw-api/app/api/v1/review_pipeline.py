@@ -14,6 +14,7 @@ from app.schemas.review_pipeline import (
     LinearSyncHint,
     LinearSyncHintSubtask,
     MergeRequest,
+    PushToLinearResponse,
     RejectRequest,
     ReviewEventResponse,
     ReviewPrompt,
@@ -129,6 +130,82 @@ async def generate_drafts(
     )
 
     return GenerateDraftsResponse(rounds=rounds, linear_sync_hint=linear_sync_hint)
+
+
+# === 서버 대행 Linear 이슈 생성 ===
+
+
+@router.post(
+    "/sessions/{session_id}/push-to-linear",
+    response_model=PushToLinearResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def push_to_linear(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PushToLinearResponse:
+    """마지막 generate-drafts 결과를 사용자 Linear에 실제 이슈로 생성한다."""
+    from sqlalchemy import select as sa_select
+
+    from app.core.crypto import decrypt
+    from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import create_issues
+    from app.schemas.review_pipeline import LinearSyncHintSubtask as HintSubtask
+
+    # 사용자 Linear 자격증명 조회
+    creds_result = await db.execute(
+        sa_select(UserLinearCredentials).where(
+            UserLinearCredentials.user_id == user.id
+        )
+    )
+    creds = creds_result.scalar_one_or_none()
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키를 저장하세요.",
+        )
+
+    api_key = decrypt(str(creds.encrypted_api_key))
+    team_id = str(creds.team_id)
+
+    # 세션 및 서브태스크 조회
+    session_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = session_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
+
+    subtask_result = await db.execute(
+        sa_select(SubTask)
+        .where(SubTask.session_id == session_id)
+        .order_by(SubTask.order_index)
+    )
+    subtasks = subtask_result.scalars().all()
+    if not subtasks:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="서브태스크가 없습니다. 먼저 AI 초안 생성을 실행하세요.",
+        )
+
+    hint_subtasks = [
+        HintSubtask(
+            title=str(st.title),
+            role=str(st.assigned_role or "AI"),
+            draft_summary=str(st.result_summary or st.description or ""),
+        )
+        for st in subtasks
+    ]
+
+    created = create_issues(api_key, team_id, hint_subtasks, labels=["ai-team"])
+
+    return PushToLinearResponse(
+        created_identifiers=[c["identifier"] for c in created],
+        created_urls=[c["url"] for c in created],
+        count=len(created),
+    )
 
 
 # === 리뷰 라운드 조회 ===

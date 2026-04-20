@@ -44,8 +44,10 @@ async function request<T>(
         ...options.headers,
       },
     });
-  } catch {
-    throw new NetworkError();
+  } catch (fetchErr) {
+    const detail = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    console.error(`[api-client] fetch 실패 → ${url}\n`, fetchErr);
+    throw new NetworkError(`네트워크 연결을 확인해 주세요 (${detail})`);
   }
 
   if (!res.ok) {
@@ -121,6 +123,7 @@ export interface ProjectResponse {
   status: "active" | "archived";
   settings: Record<string, unknown>;
   wizard_data: WizardConfigData | null;
+  project_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1617,10 +1620,55 @@ export const orchestrator = {
     ),
 };
 
+// --- Linear Credentials ---
+
+export interface LinearCredentialsSave {
+  api_key: string;
+  team_id: string;
+  webhook_secret?: string | null;
+  tunnel_url?: string | null;
+}
+
+export interface LinearCredentialsResponse {
+  api_key_masked: string;
+  team_id: string;
+  webhook_secret_set: boolean;
+  tunnel_url: string | null;
+  linear_webhook_id: string | null;
+  updated_at: string;
+}
+
+export interface PushToLinearResponse {
+  created_identifiers: string[];
+  created_urls: string[];
+  count: number;
+}
+
+export const linearCredentials = {
+  save: (token: string, data: LinearCredentialsSave) =>
+    authRequest<LinearCredentialsResponse>("/api/v1/me/linear-credentials/", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  get: (token: string) =>
+    authRequest<LinearCredentialsResponse>("/api/v1/me/linear-credentials/", token),
+
+  delete: (token: string) =>
+    authRequest<void>("/api/v1/me/linear-credentials/", token, { method: "DELETE" }),
+};
+
 export const reviews = {
   generateDrafts: (token: string, sessionId: string) =>
     authRequest<GenerateDraftsResponse>(
       `/api/v1/orchestrator/sessions/${sessionId}/generate-drafts`,
+      token,
+      { method: "POST" },
+    ),
+
+  pushToLinear: (token: string, sessionId: string) =>
+    authRequest<PushToLinearResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/push-to-linear`,
       token,
       { method: "POST" },
     ),

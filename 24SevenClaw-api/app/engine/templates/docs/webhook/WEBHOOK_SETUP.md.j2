@@ -1,0 +1,99 @@
+# Linear 실시간 이슈 추적 설정 — {{ project_name }}
+
+Linear 이슈 상태가 `Queued`로 변경될 때 로컬 Claude Code를 자동 실행하는 환경을 구성합니다.
+
+## 방식 선택
+
+| 방식 | 비용 | 실시간 | 설정 난이도 |
+|------|------|--------|------------|
+| **Cloudflare Tunnel** | 무료 | ✅ 즉시 | ★★☆ |
+| **ngrok** | 무료(URL변경) / 유료(고정) | ✅ 즉시 | ★☆☆ |
+| **폴링** | 무료 | ≈30초 지연 | ★☆☆ |
+
+---
+
+## Option A: Cloudflare Tunnel (권장 — 무료·정적 URL)
+
+```bash
+# 1. 터널 설치 및 URL 발급 (처음 1회)
+bash scripts/setup-tunnel.sh
+
+# 2. 출력된 URL을 .env에 기록
+# WEBHOOK_PUBLIC_URL=https://xxxx.trycloudflare.com
+
+# 3. Webhook 서버 시작
+bash scripts/start-webhook.sh
+```
+
+### Linear Webhook 등록
+
+1. Linear → Settings → API → Webhooks → **New webhook**
+2. URL: `https://xxxx.trycloudflare.com/webhook/linear`
+3. Events: **Issue** 체크
+4. Save → **Signing Secret** 복사
+5. `.env`에 추가:
+   ```
+   WEBHOOK_SECRET=<복사한 시크릿>
+   ```
+
+---
+
+## Option B: ngrok
+
+```bash
+# 1. ngrok 설치 (https://ngrok.com/download)
+# 2. 인증 토큰 설정 (무료 계정 필요)
+ngrok config add-authtoken <YOUR_TOKEN>
+
+# 3. 터널 기동
+ngrok http 9876
+
+# 4. 출력된 Forwarding URL을 .env에 기록
+# WEBHOOK_PUBLIC_URL=https://xxxx.ngrok-free.app
+
+# 5. Webhook 서버 시작 (별도 터미널)
+bash scripts/start-webhook.sh
+```
+
+> ⚠️ ngrok 무료 플랜은 재시작마다 URL이 변경됩니다.
+> URL 변경 시 Linear Webhook URL도 갱신해야 합니다.
+
+---
+
+## Option C: 폴링 (webhook 불필요)
+
+```bash
+# 30초마다 Linear를 폴링하여 Queued 이슈를 처리합니다
+python3 scripts/linear_watcher.py
+
+# 1회만 실행
+python3 scripts/linear_watcher.py --once
+
+# 테스트 (실제 실행 안 함)
+python3 scripts/linear_watcher.py --dry-run
+```
+
+---
+
+## 동작 확인
+
+```bash
+# Webhook 서버 헬스 체크
+curl http://localhost:9876/health
+
+# 테스트 이벤트 전송 (서명 없이)
+curl -X POST http://localhost:9876/webhook/linear \
+  -H "Content-Type: application/json" \
+  -d '{"type":"Issue","action":"update","data":{"identifier":"TEST-1","title":"테스트","state":{"name":"Queued"}}}'
+```
+
+---
+
+## 트러블슈팅
+
+| 증상 | 해결책 |
+|------|--------|
+| 서명 검증 실패 | `.env`의 WEBHOOK_SECRET이 Linear 시크릿과 일치하는지 확인 |
+| 터널 URL 연결 안 됨 | `setup-tunnel.sh` 재실행 후 Linear Webhook URL 갱신 |
+| claude 명령 없음 | `npm install -g @anthropic-ai/claude-code` |
+| 폴링이 트리거 안 됨 | `LINEAR_API_KEY`/`LINEAR_TEAM_ID` `.env` 확인 |

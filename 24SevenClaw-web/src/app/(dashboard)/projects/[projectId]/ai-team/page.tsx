@@ -28,8 +28,9 @@ import {
   useReviewRounds,
   useTransition,
   useGenerateDrafts,
+  usePushToLinear,
 } from "@/hooks/use-orchestrator";
-import type { LinearSyncHint } from "@/lib/api-client";
+import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
 
 const PHASE_LABELS: Record<string, string> = {
@@ -50,6 +51,8 @@ export default function AITeamDashboardPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [linearHint, setLinearHint] = useState<LinearSyncHint | null>(null);
+  const [linearPushResult, setLinearPushResult] = useState<PushToLinearResponse | null>(null);
+  const [linearPushError, setLinearPushError] = useState<string | null>(null);
 
   const {
     data: sessions,
@@ -67,6 +70,7 @@ export default function AITeamDashboardPage() {
 
   const transition = useTransition();
   const generateDrafts = useGenerateDrafts();
+  const pushToLinear = usePushToLinear();
 
   // 세션이 로드되면 첫 세션 자동 선택
   const activeSessionId = selectedSessionId || sessions?.items[0]?.id || "";
@@ -97,12 +101,25 @@ export default function AITeamDashboardPage() {
 
   const handleGenerateDrafts = () => {
     if (!session) return;
+    setLinearPushResult(null);
+    setLinearPushError(null);
     generateDrafts.mutate(
       { sessionId: session.id },
       {
         onSuccess: (data) => {
           setLinearHint(data.linear_sync_hint);
           void refetchSummary();
+          // generate-drafts 성공 후 자동으로 Linear 이슈 등록 시도
+          pushToLinear.mutate(
+            { sessionId: session.id },
+            {
+              onSuccess: (result) => setLinearPushResult(result),
+              onError: (err) => {
+                const msg = err instanceof Error ? err.message : "Linear 이슈 생성 실패";
+                setLinearPushError(msg);
+              },
+            },
+          );
         },
       },
     );
@@ -392,9 +409,35 @@ export default function AITeamDashboardPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-[11px] text-slate-600">
-                로컬 Claude Code에서 linear 스킬의 sync 명령을 실행하면 위 이슈가 자동으로 생성됩니다.
-              </p>
+              {/* push-to-linear 결과 */}
+              {linearPushResult && (
+                <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+                  <p className="text-xs text-emerald-300">
+                    ✓ Linear 이슈 생성 완료: {linearPushResult.created_identifiers.join(", ")}
+                  </p>
+                </div>
+              )}
+              {linearPushError && (
+                <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                  <p className="text-xs text-amber-300">
+                    {linearPushError.includes("자격증명") ? (
+                      <>
+                        Linear 자격증명이 없습니다.{" "}
+                        <a href="/settings/linear" className="underline hover:text-amber-200">
+                          설정에서 API 키를 저장하세요 →
+                        </a>
+                      </>
+                    ) : (
+                      linearPushError
+                    )}
+                  </p>
+                </div>
+              )}
+              {!linearPushResult && !linearPushError && (
+                <p className="mt-3 text-[11px] text-slate-600">
+                  로컬 Claude Code에서 linear 스킬의 sync 명령을 실행하면 위 이슈가 자동으로 생성됩니다.
+                </p>
+              )}
             </div>
           )}
 

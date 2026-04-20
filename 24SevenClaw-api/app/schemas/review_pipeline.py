@@ -149,3 +149,11 @@ class GenerateDraftsResponse(BaseModel):
 
     rounds: list[ReviewRoundResponse]
     linear_sync_hint: LinearSyncHint
+
+
+class PushToLinearResponse(BaseModel):
+    """서버 대행 Linear 이슈 생성 결과."""
+
+    created_identifiers: list[str]
+    created_urls: list[str]
+    count: int

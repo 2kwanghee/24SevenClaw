@@ -25,6 +25,7 @@ from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
 from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.user_linear_credentials import UserLinearCredentials  # noqa: F401
 
 __all__ = [
     "Agent",
@@ -61,4 +62,5 @@ __all__ = [
     "Ticket",
     "TicketEvent",
     "User",
+    "UserLinearCredentials",
 ]

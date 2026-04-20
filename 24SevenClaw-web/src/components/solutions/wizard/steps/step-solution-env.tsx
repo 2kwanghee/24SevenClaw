@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi } from "lucide-react";
 import { useState } from "react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
@@ -249,6 +249,91 @@ export function StepSolutionEnv() {
           </p>
         )}
       </div>
+
+      {/* Webhook 터널 설정 (linear 선택 시) */}
+      {selectedSkills.includes("linear") && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Wifi className="h-4 w-4 text-violet-400" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-slate-300">
+              실시간 트래킹 방식
+              <span className="ml-1.5 text-[11px] font-normal text-slate-500">(선택)</span>
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500">
+            Linear 이슈 상태 변경 시 로컬 Claude를 자동으로 실행하는 방식을 선택하세요.
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {(["cloudflare", "ngrok", "polling"] as const).map((provider) => {
+              const current = envVars["TUNNEL_PROVIDER"] ?? "cloudflare";
+              const labels: Record<string, { title: string; desc: string }> = {
+                cloudflare: { title: "Cloudflare Tunnel", desc: "무료 · 정적 URL (권장)" },
+                ngrok: { title: "ngrok", desc: "유료 고정 / 무료 임시 URL" },
+                polling: { title: "30초 폴링", desc: "webhook 불필요 · 지연 30초" },
+              };
+              const isSelected = current === provider;
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  onClick={() =>
+                    setEnv({
+                      envVars: { ...envVars, TUNNEL_PROVIDER: provider },
+                    })
+                  }
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-left transition-colors",
+                    isSelected
+                      ? "border-violet-500/40 bg-violet-500/10"
+                      : "border-white/10 bg-white/[0.02] hover:border-white/20",
+                  )}
+                >
+                  <p className={cn("text-xs font-medium", isSelected ? "text-violet-300" : "text-slate-300")}>
+                    {labels[provider].title}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">{labels[provider].desc}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "ngrok" && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+              <label className="block text-xs text-slate-400 mb-1.5">
+                ngrok 인증 토큰{" "}
+                <a
+                  href="https://dashboard.ngrok.com/get-started/your-authtoken"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-400 hover:text-sky-300"
+                >
+                  (ngrok.com에서 발급)
+                </a>
+              </label>
+              <input
+                type="password"
+                value={envVars["NGROK_AUTH_TOKEN"] ?? ""}
+                onChange={(e) =>
+                  setEnv({ envVars: { ...envVars, NGROK_AUTH_TOKEN: e.target.value } })
+                }
+                placeholder="ngrok 인증 토큰"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-white placeholder-slate-600 outline-none focus:border-violet-500/50"
+              />
+            </div>
+          )}
+
+          {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "cloudflare" && (
+            <p className="text-[11px] text-slate-600">
+              ZIP 압축 해제 후 <code className="text-slate-400">bash scripts/setup-tunnel.sh</code>을 실행하면 cloudflared가 자동 설치됩니다.
+            </p>
+          )}
+          {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "polling" && (
+            <p className="text-[11px] text-slate-600">
+              <code className="text-slate-400">python3 scripts/linear_watcher.py</code>를 실행하면 30초마다 Linear를 폴링합니다. webhook 서버 불필요.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 보안 안내 */}
       <div className="flex items-start gap-2 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">

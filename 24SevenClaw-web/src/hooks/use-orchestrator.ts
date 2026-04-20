@@ -127,6 +127,14 @@ export function useGenerateDrafts() {
   });
 }
 
+export function usePushToLinear() {
+  const token = useAccessToken();
+  return useMutation({
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
+      reviews.pushToLinear(token, sessionId),
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string) {

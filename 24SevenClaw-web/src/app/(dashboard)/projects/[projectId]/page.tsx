@@ -259,78 +259,85 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* 설정 요약 */}
-        {project.wizard_data && (
+        {/* 설정 요약 + ZIP 다운로드 (wizard 프로젝트) */}
+        {(project.wizard_data || project.project_type === "wizard") && (
           <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8">
             <h2 className="mb-4 text-lg font-semibold text-white">
               설정 요약
             </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <ConfigBadge
-                icon={Building2}
-                label="회사"
-                value={
-                  (project.wizard_data.organization?.companyName as string) ||
-                  "미설정"
-                }
-              />
-              <ConfigBadge
-                icon={Layers}
-                label="솔루션"
-                value={
-                  project.wizard_data.solution?.solutionType
-                    ? SOLUTION_TYPE_LABELS[
-                        project.wizard_data.solution.solutionType as string
-                      ] ?? (project.wizard_data.solution.solutionType as string)
-                    : "미설정"
-                }
-              />
-              <ConfigBadge
-                icon={Bot}
-                label="에이전트"
-                value={
-                  project.wizard_data.agents?.length > 0
-                    ? `${project.wizard_data.agents.length}개`
-                    : "미설정"
-                }
-              />
-              <ConfigBadge
-                icon={Wrench}
-                label="스킬"
-                value={
-                  project.wizard_data.skills?.length > 0
-                    ? `${project.wizard_data.skills.length}개`
-                    : "미설정"
-                }
-              />
-              <ConfigBadge
-                icon={GitBranch}
-                label="파이프라인"
-                value={
-                  project.wizard_data.pipelines?.length > 0
-                    ? `${project.wizard_data.pipelines.length}개`
-                    : "미설정"
-                }
-              />
-              <ConfigBadge
-                icon={Monitor}
-                label="플랫폼"
-                value={
-                  project.wizard_data.platform?.platformId
-                    ? PLATFORM_LABELS[
-                        project.wizard_data.platform.platformId as string
-                      ] ??
-                      (project.wizard_data.platform.platformId as string)
-                    : "미설정"
-                }
-              />
-            </div>
 
-            {/* 재다운로드 */}
+            {project.wizard_data ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                <ConfigBadge
+                  icon={Building2}
+                  label="회사"
+                  value={
+                    (project.wizard_data.organization?.companyName as string) ||
+                    "미설정"
+                  }
+                />
+                <ConfigBadge
+                  icon={Layers}
+                  label="솔루션"
+                  value={
+                    project.wizard_data.solution?.solutionType
+                      ? SOLUTION_TYPE_LABELS[
+                          project.wizard_data.solution.solutionType as string
+                        ] ?? (project.wizard_data.solution.solutionType as string)
+                      : "미설정"
+                  }
+                />
+                <ConfigBadge
+                  icon={Bot}
+                  label="에이전트"
+                  value={
+                    project.wizard_data.agents?.length > 0
+                      ? `${project.wizard_data.agents.length}개`
+                      : "미설정"
+                  }
+                />
+                <ConfigBadge
+                  icon={Wrench}
+                  label="스킬"
+                  value={
+                    project.wizard_data.skills?.length > 0
+                      ? `${project.wizard_data.skills.length}개`
+                      : "미설정"
+                  }
+                />
+                <ConfigBadge
+                  icon={GitBranch}
+                  label="파이프라인"
+                  value={
+                    project.wizard_data.pipelines?.length > 0
+                      ? `${project.wizard_data.pipelines.length}개`
+                      : "미설정"
+                  }
+                />
+                <ConfigBadge
+                  icon={Monitor}
+                  label="플랫폼"
+                  value={
+                    project.wizard_data.platform?.platformId
+                      ? PLATFORM_LABELS[
+                          project.wizard_data.platform.platformId as string
+                        ] ??
+                        (project.wizard_data.platform.platformId as string)
+                      : "미설정"
+                  }
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                위저드 설정 정보가 없습니다. ZIP을 다시 생성하려면 솔루션 위저드를 다시 진행해 주세요.
+              </p>
+            )}
+
+            {/* ZIP 재다운로드 */}
             <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-6">
               <button
                 onClick={handleRedownload}
-                disabled={downloading}
+                disabled={downloading || !project.wizard_data}
                 className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {downloading ? (
@@ -341,12 +348,14 @@ export default function ProjectDetailPage() {
                 ) : (
                   <>
                     <Download className="h-4 w-4" />
-                    ZIP 재다운로드
+                    ZIP 다운로드
                   </>
                 )}
               </button>
               <span className="text-xs text-slate-500">
-                저장된 설정으로 동일한 ZIP을 다시 생성합니다
+                {project.wizard_data
+                  ? "저장된 설정으로 ZIP을 생성합니다"
+                  : "위저드를 다시 진행하면 ZIP 다운로드가 활성화됩니다"}
               </span>
             </div>
             {downloadError && (

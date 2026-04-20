@@ -19,7 +19,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { prototypeSessions, ApiClientError, NetworkError } from "@/lib/api-client";
+import { prototypeSessions } from "@/lib/api-client";
 import { toast } from "sonner";
 
 // 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
@@ -64,7 +64,6 @@ export default function SolutionSessionPage() {
   // 기존 세션 복원
   useEffect(() => {
     if (!token || !sessionId) return;
-    // 이미 복원했으면 재실행 방지
     if (restoredRef.current) return;
 
     const restore = async () => {
@@ -73,7 +72,6 @@ export default function SolutionSessionPage() {
         setSessionId(ps.id);
         setOrganizationId(ps.organization_id);
 
-        // solution_prompt에서 솔루션 요청 복원 (개별 필드는 복원 불가)
         setCompany({
           companyName: "",
           mainProduct: "",
@@ -82,10 +80,8 @@ export default function SolutionSessionPage() {
           solutionRequest: ps.solution_prompt ?? "",
         });
 
-        // 세션 상태에 따라 적절한 스텝으로 이동 (step 0에 있으면)
         if (currentStep === 0) {
           if (ps.status === "completed") {
-            // 완료된 세션: 프로토타입 목록 복원 후 선택 단계로 이동
             try {
               const protoList = await prototypeSessions.getPrototypes(
                 token,
@@ -107,22 +103,20 @@ export default function SolutionSessionPage() {
                     cons: Array.isArray(p.cons) ? p.cons : [],
                   })),
                 );
-                goToStep(2); // 프로토타입 선택 단계로 바로 이동
+                goToStep(2);
               } else {
-                goToStep(1); // 프로토타입 없으면 생성 단계부터
+                goToStep(1);
               }
             } catch {
-              goToStep(1); // 실패 시 생성 단계부터
+              goToStep(1);
             }
           } else {
-            // generating/pending: 생성 단계로 이동
             goToStep(1);
           }
         }
 
         restoredRef.current = true;
       } catch {
-        // 세션 없으면 새 세션 생성 페이지로
         router.replace("/solutions/new");
       }
     };
@@ -161,7 +155,7 @@ export default function SolutionSessionPage() {
       case 4:
         return !!data.pm.selectedPmProfileId;
       case 5:
-        return true; // PM 구성 확인 — 항상 진행 가능
+        return true;
       case 6:
         return data.agents.selectedAgents.length > 0;
       case 7:
@@ -180,32 +174,73 @@ export default function SolutionSessionPage() {
     }
   })();
 
+  // Next.js 프록시 라우트를 통해 finalize 호출
+  // 브라우저 → /api/solutions/{id}/finalize (같은 출처) → FastAPI (서버사이드)
   const handleSubmit = async () => {
-    if (!token) return;
-    if (!data.sessionId) {
+    const effectiveSessionId = data.sessionId ?? sessionId;
+    if (!effectiveSessionId) {
       setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
       return;
     }
     setError(null);
     setIsSubmitting(true);
     try {
-      const result = await prototypeSessions.finalize(token, data.sessionId, {
-        project_name:
-          data.company.companyName ||
-          `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
-        description: data.company.solutionRequest || null,
+      const res = await fetch(`/api/solutions/${effectiveSessionId}/finalize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_name:
+            data.company.companyName ||
+            `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+          description: data.company.solutionRequest || null,
+          // ZIP 재다운로드를 위해 wizard 설정 저장
+          wizard_data: {
+            organization: {
+              companyName: data.company.companyName,
+              mainProduct: data.company.mainProduct,
+              businessType: data.company.businessType,
+              companyDescription: data.company.companyDescription,
+            },
+            solution: {
+              solutionRequest: data.company.solutionRequest,
+            },
+            agents: data.agents.selectedAgents.map((id) => ({ id })),
+            skills: data.agents.selectedSkills.map((id) => ({ id })),
+            pipelines: [],
+            platform: { platformId: data.platform.platformId ?? null },
+          },
+        }),
       });
 
-      setCreatedProjectId(result.project_id);
-    } catch (err) {
-      if (err instanceof NetworkError) {
-        toast.error(err.message);
-        setError(err.message);
-      } else if (err instanceof ApiClientError) {
-        setError(err.detail);
-      } else {
-        setError("프로젝트 생성에 실패했습니다.");
+      if (res.status === 401) {
+        const msg = "세션이 만료되었습니다. 다시 로그인해 주세요.";
+        toast.error(msg);
+        setError(msg);
+        return;
       }
+
+      const body = (await res.json().catch(() => ({}))) as {
+        project_id?: string;
+        detail?: string;
+      };
+
+      if (!res.ok) {
+        const msg =
+          typeof body.detail === "string"
+            ? body.detail
+            : "프로젝트 생성에 실패했습니다.";
+        toast.error(msg);
+        setError(msg);
+        return;
+      }
+
+      if (body.project_id) {
+        setCreatedProjectId(body.project_id);
+      }
+    } catch {
+      const msg = "네트워크 연결을 확인해 주세요";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }

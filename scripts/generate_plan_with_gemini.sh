@@ -85,7 +85,7 @@ $FIX_PLAN_CONTENT}
 ## 7. 테스트 전략
 - 유닛 테스트, 통합 테스트, 수동 검증 항목"
 
-gemini -p "$PROMPT" > .ralph/PLAN.md 2>/dev/null || {
+timeout 60 gemini -p "$PROMPT" > .ralph/PLAN.md 2>/dev/null || {
   echo "ERROR: Gemini CLI 실행 실패" >&2
   # 폴백: fix_plan을 PLAN.md로 사용
   if [ -n "$FIX_PLAN_CONTENT" ]; then

@@ -70,7 +70,7 @@ ${DIFF_FILES}
 ## 5. PR 코멘트 제안
 - PR에 남길 리뷰 코멘트 초안"
 
-codex -p "$PROMPT" --full-auto 2>/dev/null > .ralph/REVIEW.md || {
+timeout 120 codex exec "$PROMPT" 2>/dev/null > .ralph/REVIEW.md || {
   echo "WARN: Codex CLI 실행 실패. 기본 REVIEW.md 생성" >&2
   {
     echo "# QA Review (자동 생성 실패)"
