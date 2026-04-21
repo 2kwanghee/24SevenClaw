@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import {
@@ -24,10 +25,16 @@ import { useState, useEffect } from "react";
 import { useRBACStore } from "@/stores/rbac-store";
 import { usePermissions } from "@/hooks/use-rbac";
 
+const TourWrapper = dynamic(
+  () =>
+    import("@/components/onboarding/tour").then((m) => ({ default: m.TourWrapper })),
+  { ssr: false },
+);
+
 const navItems = [
   // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
-  { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions" },
-  { href: "/projects", label: "프로젝트", icon: FolderKanban },
+  { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions", dataTour: "new-solution-link" },
+  { href: "/projects", label: "프로젝트", icon: FolderKanban, dataTour: "projects-link" },
   { href: "/guide", label: "가이드", icon: BookOpen },
 ];
 
@@ -52,6 +59,7 @@ function NavLink({
   icon: Icon,
   collapsed,
   isActive,
+  dataTour,
 }: {
   href: string;
   label: string;
@@ -59,10 +67,12 @@ function NavLink({
   collapsed: boolean;
   isActive: boolean;
   activePrefix?: string;
+  dataTour?: string;
 }) {
   return (
     <Link
       href={href}
+      data-tour={dataTour}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
         isActive
           ? "bg-[var(--nav-active-bg)] text-[var(--nav-active-text)] shadow-sm"
@@ -104,6 +114,9 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-base)]">
+      {/* 온보딩 투어 (SSR 비활성화, 클라이언트 전용) */}
+      <TourWrapper />
+
       {/* 사이드바 */}
       <aside
         aria-label="메인 네비게이션"
@@ -124,7 +137,7 @@ export default function DashboardLayout({
         </div>
 
         {/* 네비게이션 */}
-        <nav className="flex-1 overflow-y-auto p-3">
+        <nav className="flex-1 overflow-y-auto p-3" data-tour="sidebar-nav">
           <div className="space-y-1">
             {navItems.map((item) => (
               <NavLink
@@ -138,7 +151,7 @@ export default function DashboardLayout({
 
           {/* 설정 섹션 */}
           {showOrgManage && (
-            <div className="mt-6">
+            <div className="mt-6" data-tour="settings-section">
               {!collapsed && (
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                   설정

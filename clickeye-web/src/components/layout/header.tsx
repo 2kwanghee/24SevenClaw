@@ -2,12 +2,75 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Bell, HelpCircle } from "lucide-react";
+import { LogOut, Bell, HelpCircle, BookOpen, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
+import { useOnboardingStore } from "@/stores/onboarding-store";
+
+function HelpDropdown() {
+  const router = useRouter();
+  const { restartTour } = useOnboardingStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        data-tour="help-button"
+        aria-label="도움말"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+      >
+        <HelpCircle className="h-4 w-4" />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-11 z-50 min-w-[160px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-1 shadow-lg"
+        >
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              router.push("/guide");
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+          >
+            <BookOpen className="h-4 w-4 shrink-0" />
+            가이드 보기
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              restartTour();
+            }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+          >
+            <RotateCcw className="h-4 w-4 shrink-0" />
+            튜토리얼 다시 시작
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Header() {
   const { data: session } = useSession();
-  const router = useRouter();
 
   if (!session) return null;
 
@@ -33,14 +96,8 @@ export function Header() {
           <Bell className="h-4 w-4" />
         </button>
 
-        {/* 가이드 */}
-        <button
-          aria-label="사용 가이드"
-          onClick={() => router.push("/guide")}
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
-        >
-          <HelpCircle className="h-4 w-4" />
-        </button>
+        {/* 도움말 드롭다운 */}
+        <HelpDropdown />
 
         {/* 구분선 */}
         <div className="h-6 w-px bg-[var(--border-medium)]" />
