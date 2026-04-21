@@ -1,5 +1,5 @@
 {
-  "name": "@24sevenclaw/cli",
+  "name": "@clickeye/cli",
   "version": "0.1.0",
   "description": "CLI-First AI 개발 자동화 플랫폼 — 하네스 엔지니어링이 탑재된 Claude Code 워크플로우를 한 줄 명령으로 구축",
   "type": "module",
