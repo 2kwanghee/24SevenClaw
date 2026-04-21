@@ -31,13 +31,13 @@ cd /mnt/c/workspace/24SevenClaw/clickeye-api
 uv sync
 
 # DB 마이그레이션 적용
-uv run alembic upgrade head
+uv run python -m alembic upgrade head
 
 # 시드 데이터 로딩 (PM 프로필 초기 데이터, 최초 1회)
 uv run python scripts/seed_pm_data.py
 
 # API 서버 실행 (--host 0.0.0.0: WSL2에서 Windows 브라우저 접근 허용)
-uv run uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
+uv run python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 서버 기동 후 → **http://localhost:8000/docs** (Swagger UI)
@@ -65,7 +65,7 @@ npm run dev
 ### 3-1. webhook 서버 시작 (Linear 이벤트 수신)
 
 ```bash
-cd /mnt/c/workspace/ClickEye
+cd /mnt/c/workspace/24SevenClaw
 
 # 백그라운드 실행
 nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
@@ -78,7 +78,7 @@ curl -s http://127.0.0.1:9876/health
 ### 3-2. ngrok 터널 시작 (Linear → webhook 연결)
 
 ```bash
-cd /mnt/c/workspace/ClickEye
+cd /mnt/c/workspace/24SevenClaw
 
 # ngrok 실행
 nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &
@@ -130,15 +130,15 @@ crontab -l
 
 ```cron
 # 평일 9-18시 매 5분 큐 폴링 (webhook 죽어도 백업)
-*/5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
+*/5 9-18 * * 1-5 cd /mnt/c/workspace/24SevenClaw && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
 # 자정 야간 배치 (NightQueued 연속 처리)
-0 0 * * * cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
+0 0 * * * cd /mnt/c/workspace/24SevenClaw && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
 # 평일 정오 Confirm → Done 정리
-0 12 * * 1-5 cd /mnt/c/workspace/ClickEye && python3 scripts/linear_confirmer.py >> logs/confirmer.log 2>&1
+0 12 * * 1-5 cd /mnt/c/workspace/24SevenClaw && python3 scripts/linear_confirmer.py >> logs/confirmer.log 2>&1
 # webhook_server watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "webhook_server.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &)
+*/10 * * * * pgrep -f "webhook_server.py" > /dev/null || (cd /mnt/c/workspace/24SevenClaw && nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &)
 # ngrok watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/24SevenClaw && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
 ```
 
 > **WSL2 영구 자동 시작**: `/etc/wsl.conf`에 아래 설정을 추가하면 WSL 부팅 시 cron이 자동 시작됩니다.
@@ -264,7 +264,7 @@ docker logs clickeye-redis --tail 50
 ### 진단 체크리스트 (한눈에 보기)
 
 ```bash
-cd /mnt/c/workspace/ClickEye
+cd /mnt/c/workspace/24SevenClaw
 
 # 1. 프로세스 생존 여부
 pgrep -af webhook_server.py        # PID가 출력되면 실행 중
@@ -296,7 +296,7 @@ tail -5  logs/ngrok.log
    ```bash
    pgrep -f webhook_server.py || echo "프로세스 없음"
    # → 없으면 재기동
-   cd /mnt/c/workspace/ClickEye
+   cd /mnt/c/workspace/24SevenClaw
    nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
    ```
 
