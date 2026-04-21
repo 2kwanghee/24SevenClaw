@@ -22,7 +22,9 @@ from app.schemas.prototype import (
     PrototypeSessionCreate,
     PrototypeSessionUpdate,
 )
+from app.services.app_setting_service import AppSettingService
 from app.services.claude_service import ClaudeService
+from app.services.prototype_catalog_service import PrototypeCatalogService
 
 logger = logging.getLogger(__name__)
 
@@ -130,12 +132,13 @@ class PrototypeService:
 
         절차:
         1. analyze_solution으로 요구사항 구조화 (실패 시 규칙 기반 폴백)
-        2. generate_ui_structure × 3 — 변형별 UI 구조 생성
-           - 성공 시 prototype.status = "ready"
-           - API 실패 시 규칙 기반 스텁 폴백 → status = "ready"
-           - 스텁도 실패(치명적 오류) 시 prototype.status = "failed"
-        3. 변형 루프 완료 후 session.status = "completed"
-        4. 루프 외부 예외 발생 시 session.status = "failed"
+        2. AppSetting에서 variant_count 조회 (기본 3)
+        3. PrototypeCatalogService로 태그 매칭 카탈로그 엔트리 조회
+        4. generate_ui_structure × variant_count — 변형별 UI 구조 생성
+           - AI 모드: 카탈로그 엔트리를 참조 자료로 Claude 프롬프트에 주입
+           - 폴백 모드: 카탈로그 엔트리에서 직접 구조 데이터 사용
+        5. 변형 루프 완료 후 session.status = "completed"
+        6. 루프 외부 예외 발생 시 session.status = "failed"
         """
         stmt = select(PrototypeSession).where(
             PrototypeSession.id == session_id,
@@ -149,7 +152,6 @@ class PrototypeService:
         prompt = str(session.solution_prompt or "")
 
         try:
-            # 사용자 선호 기술 스택 읽기
             user_tech_stack: list[str] = list(
                 (session.extra or {}).get("user_tech_stack", [])
             )
@@ -162,9 +164,11 @@ class PrototypeService:
                 logger.warning(
                     "analyze_solution API 실패, 규칙 기반 폴백 사용 (session_id=%s)", session_id
                 )
-                solution_type = self._claude.analyze_input(prompt)
+                primary_tag = self._claude.analyze_input(prompt)
                 requirements = {
-                    "solution_type": solution_type,
+                    "primary_tag": primary_tag,
+                    "tags": [primary_tag],
+                    "solution_type": primary_tag,
                     "features": [],
                     "tech_stack": {},
                     "complexity": "medium",
@@ -172,7 +176,6 @@ class PrototypeService:
                     "key_requirements": [],
                 }
 
-            # parsed_requirements 세션에 저장
             await self.db.execute(
                 update(PrototypeSession)
                 .where(PrototypeSession.id == session_id)
@@ -180,40 +183,43 @@ class PrototypeService:
             )
             await self.db.commit()
 
-            # 2. 변형별 UI 구조 생성 (3개) — 스택+아키텍처 다양화
-            solution_type = str(requirements.get("solution_type", "fullstack"))
-            stub_templates = self._claude.generate_prototypes(solution_type, prompt)
+            # 2. variant_count 조회 (app_settings 테이블)
+            setting_svc = AppSettingService(self.db)
+            variant_count = await setting_svc.get_variant_count()
 
-            # variant별 역할 정의
-            variant_roles = [
-                {
-                    "role": "user_stack_recommended",
-                    "is_recommended": True,
-                    "user_tech_stack": user_tech_stack,
-                },
-                {
-                    "role": "alternative_stack",
-                    "is_recommended": False,
-                    "user_tech_stack": user_tech_stack,
-                },
-                {
-                    "role": "different_architecture",
-                    "is_recommended": False,
-                    "user_tech_stack": user_tech_stack,
-                },
-            ]
+            # 3. 카탈로그 태그 매칭으로 fallback 엔트리 조회
+            candidate_tags: list[str] = list(requirements.get("tags") or [])
+            primary_tag_val = str(
+                requirements.get("primary_tag")
+                or requirements.get("solution_type")
+                or "fullstack"
+            )
+            if primary_tag_val not in candidate_tags:
+                candidate_tags.insert(0, primary_tag_val)
 
-            for idx in range(3):
+            catalog_svc = PrototypeCatalogService(self.db)
+            catalog_entries = await catalog_svc.match_by_tags(
+                candidate_tags=candidate_tags, limit=variant_count
+            )
+
+            # 4. variant별 역할 목록 생성
+            variant_roles = _build_variant_roles(variant_count, user_tech_stack)
+
+            for idx in range(variant_count):
                 proto: Prototype
                 role_config = variant_roles[idx]
+                catalog_entry_dict = (
+                    _catalog_entry_to_dict(catalog_entries[idx])
+                    if idx < len(catalog_entries)
+                    else None
+                )
+
                 try:
                     ui_data = await self._claude.generate_ui_structure(
-                        requirements, idx, role_config
+                        requirements, idx, role_config, catalog_entry_dict
                     )
                     design_style = str(ui_data.get("design_style", "minimal"))
-                    arch_pattern = str(
-                        ui_data.get("architecture_pattern", design_style)
-                    )
+                    arch_pattern = str(ui_data.get("architecture_pattern", design_style))
                     proto = Prototype(
                         session_id=session.id,
                         variant_index=idx,
@@ -225,41 +231,21 @@ class PrototypeService:
                         status="ready",
                     )
                 except Exception:
-                    # API 실패 → 규칙 기반 스텁으로 폴백
+                    # API 실패 → 카탈로그 엔트리 기반 폴백
                     logger.warning(
-                        "generate_ui_structure 실패 (variant=%d), 스텁 폴백 (session_id=%s)",
+                        "generate_ui_structure 실패 (variant=%d), 카탈로그 폴백 (session_id=%s)",
                         idx,
                         session_id,
                     )
-                    tmpl_idx = min(idx, len(stub_templates) - 1)
-                    tmpl = stub_templates[tmpl_idx]
-                    stub_ui = dict(tmpl.get("ui_structure") or {})
-                    stub_ui["is_recommended"] = role_config["is_recommended"]
-                    # variant 0만 사용자 선택 스택 우선 적용 — 1/2는 템플릿 고유 스택 유지
-                    if idx == 0 and user_tech_stack:
-                        stub_ui["tech_stack_tags"] = user_tech_stack
-                    else:
-                        stub_ui["tech_stack_tags"] = tmpl.get("tech_stack_tags", [])
-                    stub_ui["architecture_pattern"] = tmpl.get(
-                        "architecture_pattern", tmpl.get("design_pattern", "")
-                    )
-                    stub_ui["variant_rationale"] = tmpl.get("description", "")
-                    stub_ui["pros"] = tmpl.get("pros", [])
-                    stub_ui["cons"] = tmpl.get("cons", [])
                     try:
-                        proto = Prototype(
+                        proto = _build_proto_from_catalog(
                             session_id=session.id,
-                            variant_index=idx,
-                            title=tmpl["title"],
-                            description=tmpl.get("description"),
-                            design_pattern=tmpl.get("design_pattern"),
-                            menu_structure=tmpl.get("menu_structure"),
-                            ui_structure=stub_ui,
-                            color_palette=tmpl.get("color_palette"),
-                            status="ready",
+                            idx=idx,
+                            catalog_entry=catalog_entry_dict,
+                            role_config=role_config,
+                            user_tech_stack=user_tech_stack,
                         )
                     except Exception:
-                        # 스텁도 실패 시 failed 마킹
                         proto = Prototype(
                             session_id=session.id,
                             variant_index=idx,
@@ -270,7 +256,7 @@ class PrototypeService:
                 self.db.add(proto)
                 await self.db.commit()
 
-            # 3. 세션 완료 처리
+            # 5. 세션 완료 처리
             await self.db.execute(
                 update(PrototypeSession)
                 .where(PrototypeSession.id == session_id)
@@ -562,7 +548,8 @@ class PrototypeService:
 
             final_score_int = int(final_score)
 
-            if not is_fallback and claude_raw and str(claude_raw.get("recommended_pm_id")) == pm_id_str:
+            rec_pm_id = str(claude_raw.get("recommended_pm_id") if claude_raw else None)
+            if not is_fallback and claude_raw and rec_pm_id == pm_id_str:
                 reasoning = str(claude_raw.get("reasoning") or "")
             else:
                 rs = rule_info
@@ -676,3 +663,96 @@ class PrototypeService:
         await self.db.commit()
         await self.db.refresh(project)
         return project
+
+
+# ── 헬퍼 함수 ────────────────────────────────────────────────────────────────
+
+
+def _build_variant_roles(
+    variant_count: int, user_tech_stack: list[str]
+) -> list[dict[str, Any]]:
+    """variant_count만큼 역할 config 목록을 생성한다."""
+    base_roles = [
+        {"role": "user_stack_recommended", "is_recommended": True},
+        {"role": "alternative_stack", "is_recommended": False},
+        {"role": "different_architecture", "is_recommended": False},
+    ]
+    roles = []
+    for i in range(variant_count):
+        base = base_roles[min(i, len(base_roles) - 1)].copy()
+        if i >= len(base_roles):
+            base = {"role": f"variant_{i}", "is_recommended": False}
+        base["user_tech_stack"] = user_tech_stack
+        roles.append(base)
+    return roles
+
+
+def _catalog_entry_to_dict(entry: Any) -> dict[str, Any]:
+    """PrototypeCatalogEntry SQLAlchemy 모델을 dict로 변환한다."""
+    return {
+        "id": str(entry.id),
+        "slug": entry.slug,
+        "title": entry.title,
+        "description": entry.description or "",
+        "tags": list(entry.tags or []),
+        "primary_tag": entry.primary_tag or "",
+        "design_pattern": entry.design_pattern or "",
+        "architecture_pattern": entry.architecture_pattern or "",
+        "tech_stack_tags": list(entry.tech_stack_tags or []),
+        "pros": list(entry.pros or []),
+        "cons": list(entry.cons or []),
+        "ui_structure": dict(entry.ui_structure or {}),
+        "menu_structure": dict(entry.menu_structure or {}),
+        "color_palette": dict(entry.color_palette or {}),
+        "design_philosophy": entry.design_philosophy or "",
+        "implementation_constraints": list(entry.implementation_constraints or []),
+        "recommended_agents": list(entry.recommended_agents or []),
+        "optional_agents": list(entry.optional_agents or []),
+        "excluded_agents": list(entry.excluded_agents or []),
+        "recommended_skills": list(entry.recommended_skills or []),
+        "agent_strategy": entry.agent_strategy or "",
+        "task_distribution_guide": entry.task_distribution_guide or "",
+    }
+
+
+def _build_proto_from_catalog(
+    session_id: Any,
+    idx: int,
+    catalog_entry: dict[str, Any] | None,
+    role_config: dict[str, Any],
+    user_tech_stack: list[str],
+) -> "Prototype":
+    """카탈로그 엔트리를 베이스로 Prototype 모델 인스턴스를 생성한다."""
+    if catalog_entry is None:
+        return Prototype(
+            session_id=session_id,
+            variant_index=idx,
+            title=f"프로토타입 {idx + 1}",
+            status="ready",
+        )
+
+    stub_ui = dict(catalog_entry.get("ui_structure") or {})
+    stub_ui["is_recommended"] = role_config.get("is_recommended", idx == 0)
+    stub_ui["tech_stack_tags"] = (
+        user_tech_stack if idx == 0 and user_tech_stack
+        else catalog_entry.get("tech_stack_tags", [])
+    )
+    stub_ui["architecture_pattern"] = (
+        catalog_entry.get("architecture_pattern")
+        or catalog_entry.get("design_pattern", "")
+    )
+    stub_ui["variant_rationale"] = catalog_entry.get("description", "")
+    stub_ui["pros"] = catalog_entry.get("pros", [])
+    stub_ui["cons"] = catalog_entry.get("cons", [])
+
+    return Prototype(
+        session_id=session_id,
+        variant_index=idx,
+        title=catalog_entry["title"],
+        description=catalog_entry.get("description"),
+        design_pattern=catalog_entry.get("design_pattern"),
+        menu_structure=catalog_entry.get("menu_structure"),
+        ui_structure=stub_ui,
+        color_palette=catalog_entry.get("color_palette"),
+        status="ready",
+    )

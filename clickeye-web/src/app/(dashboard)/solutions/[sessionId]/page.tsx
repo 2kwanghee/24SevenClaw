@@ -20,6 +20,7 @@ import {
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions } from "@/lib/api-client";
+import { useCatalogSkills } from "@/hooks/use-catalog";
 import { toast } from "sonner";
 
 // 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
@@ -56,6 +57,8 @@ export default function SolutionSessionPage() {
     setCreatedProjectId,
     goToStep,
   } = useSolutionWizardStore();
+
+  const { data: skillsData, isLoading: skillsLoading } = useCatalogSkills();
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,8 +159,20 @@ export default function SolutionSessionPage() {
         return !!data.pm.selectedPmProfileId;
       case 5:
         return true;
-      case 6:
-        return data.agents.selectedAgents.length > 0;
+      case 6: {
+        if (data.agents.selectedAgents.length === 0) return false;
+        if (skillsLoading || !skillsData) return false;
+        const ticketSourceIds = skillsData.items
+          .filter((s) => s.category === "ticket_source")
+          .map((s) => s.id);
+        if (
+          ticketSourceIds.length > 0 &&
+          !data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s))
+        ) {
+          return false;
+        }
+        return true;
+      }
       case 7:
         return !!data.platform.platformId;
       case 8: {
@@ -166,6 +181,10 @@ export default function SolutionSessionPage() {
         if (data.agents.selectedSkills.includes("linear")) {
           if (!ev["LINEAR_API_KEY"]?.trim()) return false;
           if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
+        }
+        if (data.agents.selectedSkills.includes("notion")) {
+          if (!ev["NOTION_API_KEY"]?.trim()) return false;
+          if (!ev["NOTION_DATABASE_ID"]?.trim()) return false;
         }
         return true;
       }

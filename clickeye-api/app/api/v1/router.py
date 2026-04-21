@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin_recommendations import router as admin_recommendations_router
+from app.api.v1.app_settings_admin import router as app_settings_admin_router
 from app.api.v1.artifacts import router as artifacts_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.catalog import router as catalog_router
@@ -8,24 +9,29 @@ from app.api.v1.contracts import project_contracts_router
 from app.api.v1.contracts import router as contracts_router
 from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.health import router as health_router
+from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.maturity import router as maturity_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.pm_profiles import router as pm_profiles_router
 from app.api.v1.presets import router as presets_router
 from app.api.v1.projects import router as projects_router
+from app.api.v1.prototype_catalog import router as prototype_catalog_router
+from app.api.v1.prototype_catalog_admin import router as prototype_catalog_admin_router
 from app.api.v1.prototype_sessions import router as prototype_sessions_router
 from app.api.v1.quality_gate import router as quality_gate_router
 from app.api.v1.rbac import router as rbac_router
 from app.api.v1.recommend import router as recommend_router
 from app.api.v1.registry_admin import router as registry_admin_router
 from app.api.v1.reports import router as reports_router
-from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(admin_recommendations_router)
+api_v1_router.include_router(app_settings_admin_router)
 api_v1_router.include_router(registry_admin_router)
+api_v1_router.include_router(prototype_catalog_admin_router)
+api_v1_router.include_router(prototype_catalog_router)
 api_v1_router.include_router(health_router, tags=["health"])
 api_v1_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(catalog_router)

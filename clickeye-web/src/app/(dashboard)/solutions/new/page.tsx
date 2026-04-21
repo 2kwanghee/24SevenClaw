@@ -55,7 +55,7 @@ export default function NewSolutionPage() {
     reset,
   } = useSolutionWizardStore();
 
-  const { data: skillsData } = useCatalogSkills();
+  const { data: skillsData, isLoading: skillsLoading } = useCatalogSkills();
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,16 +87,16 @@ export default function NewSolutionPage() {
         return true;
       case 6: {
         if (data.agents.selectedAgents.length === 0) return false;
-        if (skillsData) {
-          const ticketSourceIds = skillsData.items
-            .filter((s) => s.category === "ticket_source")
-            .map((s) => s.id);
-          if (
-            ticketSourceIds.length > 0 &&
-            !data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s))
-          ) {
-            return false;
-          }
+        // 카탈로그 로딩 중에는 티켓 소스 검증 불가 → 차단
+        if (skillsLoading || !skillsData) return false;
+        const ticketSourceIds = skillsData.items
+          .filter((s) => s.category === "ticket_source")
+          .map((s) => s.id);
+        if (
+          ticketSourceIds.length > 0 &&
+          !data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s))
+        ) {
+          return false;
         }
         return true;
       }

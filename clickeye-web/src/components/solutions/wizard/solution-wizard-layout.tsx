@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
   SOLUTION_WIZARD_STEPS,
   useSolutionWizardStore,
 } from "@/stores/solution-wizard-store";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 import { SolutionWizardStepper } from "./solution-wizard-stepper";
+
+const WizardTourWrapper = dynamic(
+  () =>
+    import("@/components/onboarding/wizard-tour").then((m) => ({
+      default: m.WizardTourWrapper,
+    })),
+  { ssr: false },
+);
 
 interface SolutionWizardLayoutProps {
   children: React.ReactNode;
@@ -35,6 +45,7 @@ export function SolutionWizardLayout({
 }: SolutionWizardLayoutProps) {
   const { currentStep, nextStep, prevStep, isGenerating } =
     useSolutionWizardStore();
+  const { restartWizardTour } = useOnboardingStore();
 
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -61,6 +72,9 @@ export function SolutionWizardLayout({
 
   return (
     <div className="mx-auto max-w-3xl">
+      {/* 위저드 온보딩 투어 (SSR 비활성화, 첫 방문 시 자동 시작) */}
+      <WizardTourWrapper />
+
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between">
         <div>
@@ -69,24 +83,36 @@ export function SolutionWizardLayout({
             AI가 회사에 맞는 솔루션을 자동 설계합니다
           </p>
         </div>
-        <Link
-          href="/solutions"
-          className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
-          aria-label="솔루션 목록으로 이동"
-        >
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-          솔루션 목록
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={restartWizardTour}
+            aria-label="위저드 가이드 다시 보기"
+            title="위저드 가이드 다시 보기"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-300"
+          >
+            <HelpCircle className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <Link
+            href="/solutions"
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
+            aria-label="솔루션 목록으로 이동"
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            솔루션 목록
+          </Link>
+        </div>
       </div>
 
       {/* Stepper */}
-      <div className="mb-8">
+      <div className="mb-8" data-tour="wizard-stepper">
         <SolutionWizardStepper />
       </div>
 
       {/* 스텝 콘텐츠 */}
       <section
         aria-labelledby="wizard-step-heading"
+        data-tour="wizard-content"
         className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8"
       >
         <h2
@@ -107,7 +133,7 @@ export function SolutionWizardLayout({
       </section>
 
       {/* 네비게이션 버튼 */}
-      <div className="mt-6 flex items-center justify-between" role="group" aria-label="위저드 네비게이션">
+      <div className="mt-6 flex items-center justify-between" role="group" aria-label="위저드 네비게이션" data-tour="wizard-nav">
         <button
           type="button"
           onClick={prevStep}
