@@ -213,11 +213,11 @@ def generate_prd() -> Path:
     # 5. 레포지토리 구조
     doc.add_heading("5. 레포지토리 구조", level=1)
     repos = [
-        ["24SevenClaw-web", "Next.js 15", "3000", "클라우드 프론트엔드"],
-        ["24SevenClaw-api", "FastAPI", "8000", "클라우드 백엔드"],
-        ["24SevenClaw-agent", "Python", "-", "고객 서버 에이전트 데몬"],
-        ["24SevenClaw-infra", "Docker/YAML", "-", "인프라 설정"],
-        ["24SevenClaw-contracts", "TypeScript", "-", "공유 타입/프로토콜"],
+        ["clickeye-web", "Next.js 15", "3000", "클라우드 프론트엔드"],
+        ["clickeye-api", "FastAPI", "8000", "클라우드 백엔드"],
+        ["clickeye-agent", "Python", "-", "고객 서버 에이전트 데몬"],
+        ["clickeye-infra", "Docker/YAML", "-", "인프라 설정"],
+        ["clickeye-contracts", "TypeScript", "-", "공유 타입/프로토콜"],
     ]
     _add_table(doc, ["레포", "기술", "포트", "역할"], repos)
 
@@ -774,7 +774,7 @@ def generate_architecture() -> Path:
 
     doc.add_heading("3.1 Agent 데몬 구조", level=2)
     _add_code_block(doc, (
-        "24SevenClaw-agent/\n"
+        "clickeye-agent/\n"
         "├── agent/\n"
         "│   ├── main.py            # 데몬 엔트리포인트\n"
         "│   ├── config.py          # 설정 (라이센스 키, 클라우드 URL)\n"

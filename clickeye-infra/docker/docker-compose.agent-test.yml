@@ -4,7 +4,7 @@
 services:
   agent:
     build:
-      context: ../../24SevenClaw-agent
+      context: ../../clickeye-agent
       dockerfile: Dockerfile
     container_name: clickeye-agent-test
     environment:

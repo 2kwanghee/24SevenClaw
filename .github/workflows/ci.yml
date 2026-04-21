@@ -30,11 +30,11 @@ jobs:
         with:
           filters: |
             web:
-              - '24SevenClaw-web/**'
+              - 'clickeye-web/**'
             api:
-              - '24SevenClaw-api/**'
+              - 'clickeye-api/**'
             contracts:
-              - '24SevenClaw-contracts/**'
+              - 'clickeye-contracts/**'
             scripts:
               - 'scripts/**'
               - 'CLAUDE.md'
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: 24SevenClaw-web
+        working-directory: clickeye-web
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +57,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: 24SevenClaw-web/package-lock.json
+          cache-dependency-path: clickeye-web/package-lock.json
 
       - run: npm ci
 
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: 24SevenClaw-api
+        working-directory: clickeye-api
     steps:
       - uses: actions/checkout@v4
 
@@ -124,23 +124,23 @@ jobs:
           node-version: "22"
 
       - name: Install API dependencies
-        working-directory: 24SevenClaw-api
+        working-directory: clickeye-api
         run: uv sync
 
       - name: Export OpenAPI spec
-        working-directory: 24SevenClaw-api
+        working-directory: clickeye-api
         run: uv run python -m scripts.export_openapi
 
       - name: Install contracts dependencies
-        working-directory: 24SevenClaw-contracts
+        working-directory: clickeye-contracts
         run: npm install
 
       - name: Generate TypeScript client
-        working-directory: 24SevenClaw-contracts
+        working-directory: clickeye-contracts
         run: npx @hey-api/openapi-ts -i openapi/openapi.json -o generated/typescript -c @hey-api/client-fetch
 
       - name: TypeScript type check
-        working-directory: 24SevenClaw-contracts
+        working-directory: clickeye-contracts
         run: npx tsc --noEmit
 
   # ── Scripts: 기존 검증 ──

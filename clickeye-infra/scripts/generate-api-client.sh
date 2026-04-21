@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-CONTRACTS_DIR="$ROOT_DIR/24SevenClaw-contracts"
+CONTRACTS_DIR="$ROOT_DIR/clickeye-contracts"
 API_URL="${API_URL:-http://localhost:8000}"
 
 echo "🔄 OpenAPI 클라이언트 생성"

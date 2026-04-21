@@ -112,7 +112,7 @@ fi
 # ── DB 확인 ──
 if ! docker ps 2>/dev/null | grep -q sevenclaw-db; then
   log "DB 미실행. 시작합니다..."
-  docker compose -f "$PROJECT_DIR/24SevenClaw-infra/docker/docker-compose.yml" up -d db redis
+  docker compose -f "$PROJECT_DIR/clickeye-infra/docker/docker-compose.yml" up -d db redis
   sleep 10
 fi
 
