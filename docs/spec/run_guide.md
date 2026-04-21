@@ -12,7 +12,7 @@ docker compose up -d db redis
 
 # 상태 확인
 docker compose ps
-# sevenclaw-db, sevenclaw-redis 모두 healthy 상태여야 정상
+# clickeye-db, clickeye-redis 모두 healthy 상태여야 정상
 ```
 
 > API까지 컨테이너로 띄우려면 `--profile full` 옵션 추가:
@@ -181,7 +181,7 @@ crontab -l
 
 ```bash
 # 컨테이너 안으로 들어가서 psql 실행
-docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw
+docker exec -it clickeye-db psql -U clickeye -d clickeye
 ```
 
 접속 후 주요 확인 명령어:
@@ -207,15 +207,15 @@ SELECT * FROM alembic_version;
 한 줄 쿼리 실행 (컨테이너 진입 없이):
 
 ```bash
-docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw -c "\dt"
-docker exec -it sevenclaw-db psql -U sevenclaw -d sevenclaw -c "SELECT * FROM alembic_version;"
+docker exec -it clickeye-db psql -U clickeye -d clickeye -c "\dt"
+docker exec -it clickeye-db psql -U clickeye -d clickeye -c "SELECT * FROM alembic_version;"
 ```
 
 ### Redis 접속 및 확인
 
 ```bash
 # 컨테이너 안에서 redis-cli 실행
-docker exec -it sevenclaw-redis redis-cli
+docker exec -it clickeye-redis redis-cli
 
 # 저장된 키 목록
 KEYS *
@@ -230,18 +230,18 @@ FLUSHDB
 한 줄 실행:
 
 ```bash
-docker exec -it sevenclaw-redis redis-cli KEYS "*"
-docker exec -it sevenclaw-redis redis-cli PING   # PONG 응답이면 정상
+docker exec -it clickeye-redis redis-cli KEYS "*"
+docker exec -it clickeye-redis redis-cli PING   # PONG 응답이면 정상
 ```
 
 ### 컨테이너 로그 확인
 
 ```bash
 # DB 로그
-docker logs sevenclaw-db --tail 50
+docker logs clickeye-db --tail 50
 
 # Redis 로그
-docker logs sevenclaw-redis --tail 50
+docker logs clickeye-redis --tail 50
 ```
 
 ---

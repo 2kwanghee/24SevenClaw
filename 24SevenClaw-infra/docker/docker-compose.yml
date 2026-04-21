@@ -5,24 +5,24 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: sevenclaw-db
+    container_name: clickeye-db
     environment:
-      POSTGRES_DB: sevenclaw
-      POSTGRES_USER: sevenclaw
+      POSTGRES_DB: clickeye
+      POSTGRES_USER: clickeye
       POSTGRES_PASSWORD: devpassword
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sevenclaw"]
+      test: ["CMD-SHELL", "pg_isready -U clickeye"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: sevenclaw-redis
+    container_name: clickeye-redis
     ports:
       - "6379:6379"
     volumes:
@@ -37,11 +37,11 @@ services:
     build:
       context: ../../24SevenClaw-api
       dockerfile: ../24SevenClaw-infra/docker/Dockerfile.api
-    container_name: sevenclaw-api
+    container_name: clickeye-api
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://sevenclaw:devpassword@db:5432/sevenclaw
+      DATABASE_URL: postgresql+asyncpg://clickeye:devpassword@db:5432/clickeye
       REDIS_URL: redis://redis:6379
       JWT_SECRET_KEY: dev-secret-key
       CORS_ORIGINS: '["http://localhost:3000"]'

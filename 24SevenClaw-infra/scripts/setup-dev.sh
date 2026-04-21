@@ -17,7 +17,7 @@ docker compose up -d
 
 # 2. PostgreSQL 준비 대기
 echo "⏳ PostgreSQL 준비 대기 중..."
-until docker compose exec -T db pg_isready -U sevenclaw > /dev/null 2>&1; do
+until docker compose exec -T db pg_isready -U clickeye > /dev/null 2>&1; do
   sleep 1
 done
 echo "✅ PostgreSQL 준비 완료"
@@ -44,7 +44,7 @@ echo "========================================="
 echo "  ✅ 개발 환경이 준비되었습니다!"
 echo "========================================="
 echo ""
-echo "  PostgreSQL: localhost:5432 (sevenclaw/devpassword)"
+echo "  PostgreSQL: localhost:5432 (clickeye/devpassword)"
 echo "  Redis:      localhost:6379"
 echo ""
 echo "  API 서버:   cd 24SevenClaw-api && uv run uvicorn app.main:app --reload"

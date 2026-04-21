@@ -8,16 +8,23 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[rebrand] Phase 2 — 환경변수 prefix 변경 (SEVENCLAW_* → CLICKEYE_*)**
-  > 요청사항: 환경변수 prefix 및 데이터 경로 변경.
+- [x] **[rebrand] Phase 3 — Docker 컨테이너·DB 리네임 (데이터 마이그레이션 포함)**
+  > 요청사항: Docker 컨테이너명 및 PostgreSQL DB/유저명 변경. 기존 데이터 보존을 위한 마이그레이션 절차 포함.
 
-범위: SEVENCLAW\_\* → CLICKEYE\_*, /data/sevenclaw → /data/clickeye, 라이센스 키 포맷 24SC-* → CLK-\*.
+범위: sevenclaw-db/redis/api/web → clickeye-db/redis/api/web, PostgreSQL DB/유저명 sevenclaw → clickeye, DATABASE_URL 갱신.
 
-대상 파일: 24SevenClaw-agent/agent/config.py, .env.example 5개, .env, 에이전트 런타임 코드(SEVENCLAW_AGENT_ID, SEVENCLAW_AGENT_SECRET, SEVENCLAW_LICENSE_KEY, SEVENCLAW_CLOUD_WS_URL 등).
+대상: 24SevenClaw-infra/docker/docker-compose.yml 3종, .env 6곳, docs/spec/run_guide.md.
 
-의존: CLK-1(24S-180) 완료 후 진행.
+데이터 마이그레이션 절차:
 
-검증: 에이전트 부팅 테스트, .env 샘플 로드 확인.
+1. docker exec sevenclaw-db pg_dump -U sevenclaw sevenclaw > /tmp/clickeye_backup.sql
+2. 새 compose로 clickeye-db 기동
+3. docker exec clickeye-db psql -U clickeye -d clickeye < /tmp/clickeye_backup.sql
+4. alembic 버전 일치 확인
+
+의존: CLK-2(24S-181) 완료 후 진행.
+
+검증: API가 새 DB로 접속, pm_profiles 등 기존 데이터 존재 확인.
 
 ---
 
@@ -27,4 +34,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [rebrand] Phase 2 환경변수 prefix 변경 | ✅ 완료 | config.py + .env.example 2개 + docker-compose + license-model. .env는 안전규칙 준수 미변경 |
+| 2026-04-21 | [rebrand] Phase 3 — Docker 컨테이너·DB 리네임 | ✅ 완료 | docker-compose 3종, .env.example 2종, run_guide.md, scripts 2종, CLAUDE.md 수정. 실제 .env는 안전 규칙상 미수정(수동 적용 필요) |
