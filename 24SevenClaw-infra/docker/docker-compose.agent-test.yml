@@ -10,7 +10,7 @@ services:
     environment:
       CLOUD_WS_URL: ws://host.docker.internal:8000
       AGENT_ID: test-agent-001
-      LICENSE_KEY: 24SC-FREE-test000000-0000
+      LICENSE_KEY: CLK-FREE-test000000-0000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - agent-data:/data

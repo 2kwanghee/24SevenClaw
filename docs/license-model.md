@@ -132,11 +132,11 @@ Agent 등록 시:
 ## 5. 라이센스 키 형식
 
 ```
-형식: 24SC-{plan}-{random}-{checksum}
-예시: 24SC-PRO-a1b2c3d4e5f6-x9y8
+형식: CLK-{plan}-{random}-{checksum}
+예시: CLK-PRO-a1b2c3d4e5f6-x9y8
 
 구성:
-  - 24SC: ClickEye 접두사
+  - CLK: ClickEye 접두사
   - PRO: 플랜 코드 (FREE, PRO, ENT)
   - a1b2c3d4e5f6: 랜덤 12자리 hex
   - x9y8: CRC16 체크섬 4자리
