@@ -256,6 +256,9 @@ class PrototypeService:
             await self.db.commit()
 
         except Exception:
+            logger.exception(
+                "run_generation 실패 (session_id=%s)", session_id
+            )
             await self.db.execute(
                 update(PrototypeSession)
                 .where(PrototypeSession.id == session_id)
