@@ -1736,4 +1736,34 @@ export const reviews = {
     ),
 };
 
+// --- Catalog ---
+
+export interface CatalogAgent {
+  id: string;
+  label: string;
+  description: string | null;
+}
+
+export interface CatalogSkill {
+  id: string;
+  label: string;
+  description: string | null;
+}
+
+export interface CatalogListResponse<T> {
+  items: T[];
+  total: number;
+}
+
+export const catalog = {
+  agents: {
+    list: () =>
+      request<CatalogListResponse<CatalogAgent>>("/api/v1/catalog/agents"),
+  },
+  skills: {
+    list: () =>
+      request<CatalogListResponse<CatalogSkill>>("/api/v1/catalog/skills"),
+  },
+};
+
 export { ApiClientError, NetworkError };
