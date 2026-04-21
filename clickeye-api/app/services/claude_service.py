@@ -27,10 +27,10 @@ _ANALYZE_SOLUTION_SYSTEM = (
     "and return a structured JSON object.\n\n"
     "IMPORTANT: Always respond with valid JSON only "
     "— no markdown, no code blocks, no extra text.\n\n"
-    'Return exactly this JSON structure:\n'
+    "Return exactly this JSON structure:\n"
     "{\n"
     '  "primary_tag": "<main category tag — e.g. saas, rest-api, fullstack, '
-    'internal-tool, mvp, mobile, blockchain, ai-platform, e-commerce, '
+    "internal-tool, mvp, mobile, blockchain, ai-platform, e-commerce, "
     'or suggest a new tag if none fits>",\n'
     '  "tags": ["<tag1>", "<tag2>", ...],\n'
     '  "solution_type": "<same value as primary_tag — kept for backwards compatibility>",\n'
@@ -233,9 +233,7 @@ class ClaudeService:
                 return tag
         return "fullstack"
 
-    def recommend_pm_scores(
-        self, solution_type: str, pm_specialties: list[str]
-    ) -> dict[str, int]:
+    def recommend_pm_scores(self, solution_type: str, pm_specialties: list[str]) -> dict[str, int]:
         """솔루션 타입에 따른 PM specialty별 매칭 점수를 반환한다.
 
         Returns:
@@ -325,6 +323,7 @@ class ClaudeService:
         variant_index: int = 0,
         variant_config: dict[str, Any] | None = None,
         catalog_entry: dict[str, Any] | None = None,
+        catalog_references: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러, 스택/아키텍처)을 생성한다.
 
@@ -332,7 +331,8 @@ class ClaudeService:
             requirements: analyze_solution()의 반환값
             variant_index: 변형 인덱스 (0=추천, 1=대안 스택, 2=대안 아키텍처 등)
             variant_config: 변형별 역할 정보 {role, is_recommended, user_tech_stack}
-            catalog_entry: 카탈로그 참조 엔트리 — 있으면 설계 철학/아키텍처를 베이스라인으로 주입
+            catalog_entry: 단일 카탈로그 참조 엔트리 (폴백 베이스라인용)
+            catalog_references: RAG 참조용 카탈로그 엔트리 목록 — 있으면 다수 참조 자료로 주입
 
         Returns:
             {tech_stack_tags, architecture_pattern, variant_rationale, is_recommended,
@@ -344,7 +344,25 @@ class ClaudeService:
         is_recommended: bool = bool(cfg.get("is_recommended", variant_index == 0))
 
         catalog_context = ""
-        if catalog_entry:
+        if catalog_references:
+            # 다수 카탈로그 엔트리를 RAG 참조 자료로 직렬화
+            refs_text = (
+                "\n\nCATALOG REFERENCES (use as reference material"
+                " — combine/adapt to best fit user requirements):\n"
+            )
+            for i, ref in enumerate(catalog_references, 1):
+                refs_text += (
+                    f"\n[{i}] {ref.get('title', '')} (slug: {ref.get('slug', '')})\n"
+                    f"  Design pattern: {ref.get('design_pattern', '')}\n"
+                    f"  Architecture: {ref.get('architecture_pattern', '')}\n"
+                    f"  Tech stack: {json.dumps(ref.get('tech_stack_tags', []))}\n"
+                    f"  Design philosophy: {ref.get('design_philosophy', '')}\n"
+                    f"  Pros: {json.dumps(ref.get('pros', []), ensure_ascii=False)}\n"
+                    f"  Cons: {json.dumps(ref.get('cons', []), ensure_ascii=False)}\n"
+                )
+            catalog_context = refs_text
+        elif catalog_entry:
+            # 단일 엔트리 베이스라인 (하위 호환)
             catalog_context = (
                 "\n\nCATALOG REFERENCE (use as baseline, adapt to user requirements):\n"
                 f"Title: {catalog_entry.get('title', '')}\n"

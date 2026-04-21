@@ -41,9 +41,7 @@ class PrototypeService:
         self.db = db
         self._claude = ClaudeService()
 
-    async def create_session(
-        self, user_id: UUID, data: PrototypeSessionCreate
-    ) -> PrototypeSession:
+    async def create_session(self, user_id: UUID, data: PrototypeSessionCreate) -> PrototypeSession:
         """프로토타입 세션을 생성한다."""
         session = PrototypeSession(
             organization_id=data.organization_id,
@@ -57,9 +55,7 @@ class PrototypeService:
         await self.db.refresh(session)
         return session
 
-    async def get_session(
-        self, session_id: UUID, user_id: UUID
-    ) -> PrototypeSession:
+    async def get_session(self, session_id: UUID, user_id: UUID) -> PrototypeSession:
         """세션을 조회한다. 소유자 검증 포함."""
         stmt = select(PrototypeSession).where(
             PrototypeSession.id == session_id,
@@ -68,9 +64,7 @@ class PrototypeService:
         result = await self.db.execute(stmt)
         session = result.scalar_one_or_none()
         if session is None:
-            raise AppError(
-                "SESSION_NOT_FOUND", "프로토타입 세션을 찾을 수 없습니다", 404
-            )
+            raise AppError("SESSION_NOT_FOUND", "프로토타입 세션을 찾을 수 없습니다", 404)
         return session
 
     async def list_sessions(
@@ -79,11 +73,7 @@ class PrototypeService:
         """사용자의 세션 목록을 반환한다."""
         conditions = [PrototypeSession.user_id == user_id]
 
-        count_stmt = (
-            select(func.count())
-            .select_from(PrototypeSession)
-            .where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(PrototypeSession).where(*conditions)
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
 
@@ -98,15 +88,11 @@ class PrototypeService:
         sessions = list(result.scalars().all())
         return sessions, int(total)
 
-    async def get_session_status(
-        self, session_id: UUID, user_id: UUID
-    ) -> PrototypeSession:
+    async def get_session_status(self, session_id: UUID, user_id: UUID) -> PrototypeSession:
         """세션 상태를 조회한다."""
         return await self.get_session(session_id, user_id)
 
-    async def start_generation(
-        self, session_id: UUID, user_id: UUID
-    ) -> PrototypeSession:
+    async def start_generation(self, session_id: UUID, user_id: UUID) -> PrototypeSession:
         """생성 시작: status를 generating으로 변경하고 세션을 반환한다.
 
         이미 generating/completed 상태이면 AppError(409)를 발생시킨다.
@@ -182,24 +168,30 @@ class PrototypeService:
             )
             await self.db.commit()
 
-            # 2. variant_count 조회 (app_settings 테이블)
+            # 2. variant_count + rag_top_k 조회 (app_settings 테이블)
             setting_svc = AppSettingService(self.db)
             variant_count = await setting_svc.get_variant_count()
+            rag_top_k = await setting_svc.get_rag_top_k()
 
-            # 3. 카탈로그 태그 매칭으로 fallback 엔트리 조회
+            # 3. 카탈로그 태그 매칭 — rag_top_k개 조회 (AI 모드 RAG 컨텍스트용)
             candidate_tags: list[str] = list(requirements.get("tags") or [])
             primary_tag_val = str(
-                requirements.get("primary_tag")
-                or requirements.get("solution_type")
-                or "fullstack"
+                requirements.get("primary_tag") or requirements.get("solution_type") or "fullstack"
             )
             if primary_tag_val not in candidate_tags:
                 candidate_tags.insert(0, primary_tag_val)
 
             catalog_svc = PrototypeCatalogService(self.db)
             catalog_entries = await catalog_svc.match_by_tags(
-                candidate_tags=candidate_tags, limit=variant_count
+                candidate_tags=candidate_tags, limit=rag_top_k
             )
+
+            # RAG 참조용 전체 직렬화 (rag_top_k개)
+            catalog_refs: list[dict[str, Any]] = [
+                _catalog_entry_to_dict(e) for e in catalog_entries
+            ]
+            # 폴백용 top-variant_count 엔트리 (실패 시 카탈로그 직접 사용)
+            fallback_entries = catalog_refs[:variant_count]
 
             # 4. variant별 역할 목록 생성
             variant_roles = _build_variant_roles(variant_count, user_tech_stack)
@@ -207,15 +199,15 @@ class PrototypeService:
             for idx in range(variant_count):
                 proto: Prototype
                 role_config = variant_roles[idx]
-                catalog_entry_dict = (
-                    _catalog_entry_to_dict(catalog_entries[idx])
-                    if idx < len(catalog_entries)
-                    else None
-                )
+                catalog_entry_dict = fallback_entries[idx] if idx < len(fallback_entries) else None
 
                 try:
                     ui_data = await self._claude.generate_ui_structure(
-                        requirements, idx, role_config, catalog_entry_dict
+                        requirements,
+                        idx,
+                        role_config,
+                        catalog_entry=catalog_entry_dict,
+                        catalog_references=catalog_refs if catalog_refs else None,
                     )
                     design_style = str(ui_data.get("design_style", "minimal"))
                     arch_pattern = str(ui_data.get("architecture_pattern", design_style))
@@ -272,9 +264,7 @@ class PrototypeService:
             await self.db.commit()
             raise
 
-    async def list_prototypes(
-        self, session_id: UUID, user_id: UUID
-    ) -> list[Prototype]:
+    async def list_prototypes(self, session_id: UUID, user_id: UUID) -> list[Prototype]:
         """세션의 프로토타입 목록을 반환한다."""
         # 소유자 검증
         await self.get_session(session_id, user_id)
@@ -301,9 +291,7 @@ class PrototypeService:
         result = await self.db.execute(stmt)
         prototype = result.scalar_one_or_none()
         if prototype is None:
-            raise AppError(
-                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-            )
+            raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
 
         # 세션의 selected_prototype_id 업데이트
         await self.db.execute(
@@ -315,9 +303,7 @@ class PrototypeService:
         await self.db.refresh(session)
         return session
 
-    async def delete_session(
-        self, session_id: UUID, user_id: UUID
-    ) -> None:
+    async def delete_session(self, session_id: UUID, user_id: UUID) -> None:
         """세션을 삭제한다 (CASCADE로 프로토타입도 삭제)."""
         session = await self.get_session(session_id, user_id)
         await self.db.delete(session)
@@ -339,18 +325,14 @@ class PrototypeService:
             )
             result = await self.db.execute(stmt)
             if result.scalar_one_or_none() is None:
-                raise AppError(
-                    "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-                )
+                raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
             update_values["selected_prototype_id"] = data.selected_prototype_id
 
         if data.selected_pm_id is not None:
             # PM 프로필 존재 확인
             pm = await self.db.get(PMProfile, data.selected_pm_id)
             if pm is None:
-                raise AppError(
-                    "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
-                )
+                raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
             update_values["selected_pm_id"] = data.selected_pm_id
             # 추천 로그에 선택된 PM 기록 (품질 지표 수집용)
             await self.db.execute(
@@ -396,9 +378,7 @@ class PrototypeService:
             pm_specialties = [s.lower() for s in (_specs or [])]
             if keywords and pm_specialties:
                 matched = sum(
-                    1
-                    for kw in keywords
-                    if any(kw in spec or spec in kw for spec in pm_specialties)
+                    1 for kw in keywords if any(kw in spec or spec in kw for spec in pm_specialties)
                 )
                 specialty_score = min(matched / max(len(keywords), 1) * 200, 100.0)
             else:
@@ -411,9 +391,7 @@ class PrototypeService:
             else:
                 metric_score = 50.0
 
-            rule_score = (
-                domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3
-            )
+            rule_score = domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3
             result[_pid] = {
                 "domain": domain_score,
                 "specialty": specialty_score,
@@ -443,9 +421,7 @@ class PrototypeService:
 
         prototype = await self.db.get(Prototype, prototype_id)
         if prototype is None:
-            raise AppError(
-                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-            )
+            raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
 
         context_text = str(session.solution_prompt or "")
         design_pattern = str(prototype.design_pattern or "")
@@ -462,9 +438,7 @@ class PrototypeService:
         pm_ids = [p.id for p in profiles]
         metrics_stmt = select(PMMetrics).where(PMMetrics.pm_id.in_(pm_ids))
         metrics_result = await self.db.execute(metrics_stmt)
-        metrics_by_pm: dict[Any, PMMetrics] = {
-            m.pm_id: m for m in metrics_result.scalars().all()
-        }
+        metrics_by_pm: dict[Any, PMMetrics] = {m.pm_id: m for m in metrics_result.scalars().all()}
 
         # 규칙 기반 점수 계산
         rule_detail = self._compute_rule_scores(
@@ -776,9 +750,7 @@ def _default_component_recommendation(
     }
 
 
-def _build_variant_roles(
-    variant_count: int, user_tech_stack: list[str]
-) -> list[dict[str, Any]]:
+def _build_variant_roles(variant_count: int, user_tech_stack: list[str]) -> list[dict[str, Any]]:
     """variant_count만큼 역할 config 목록을 생성한다."""
     base_roles = [
         {"role": "user_stack_recommended", "is_recommended": True},
@@ -842,13 +814,13 @@ def _build_proto_from_catalog(
     stub_ui = dict(catalog_entry.get("ui_structure") or {})
     stub_ui["is_recommended"] = role_config.get("is_recommended", idx == 0)
     stub_ui["tech_stack_tags"] = (
-        user_tech_stack if idx == 0 and user_tech_stack
+        user_tech_stack
+        if idx == 0 and user_tech_stack
         else catalog_entry.get("tech_stack_tags", [])
     )
-    stub_ui["architecture_pattern"] = (
-        catalog_entry.get("architecture_pattern")
-        or catalog_entry.get("design_pattern", "")
-    )
+    stub_ui["architecture_pattern"] = catalog_entry.get(
+        "architecture_pattern"
+    ) or catalog_entry.get("design_pattern", "")
     stub_ui["variant_rationale"] = catalog_entry.get("description", "")
     stub_ui["pros"] = catalog_entry.get("pros", [])
     stub_ui["cons"] = catalog_entry.get("cons", [])
