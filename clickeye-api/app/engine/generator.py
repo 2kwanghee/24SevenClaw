@@ -26,9 +26,9 @@ _GUIDE_FILE_MAP: dict[str, str] = {
 }
 
 _PLATFORM_COMMANDS_PATH: dict[str, str | None] = {
-    "claude-code": ".claude/commands/24SeventStart.md",
-    "gemini-cli": ".gemini/commands/24SeventStart.md",
-    "cursor": ".cursor/commands/24SeventStart.md",
+    "claude-code": ".claude/commands/ClickEyeStart.md",
+    "gemini-cli": ".gemini/commands/ClickEyeStart.md",
+    "cursor": ".cursor/commands/ClickEyeStart.md",
     "codex": None,
 }
 
@@ -116,7 +116,7 @@ def generate_all(
     if pm_slug and pm_markdown:
         _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown, catalog_entry)
 
-    # ?¨ë³´??docs ë°?/24SeventStart ì»¤ë§¨??ì£¼ì
+    # 온보딩 docs 및 /ClickEyeStart 커맨드 주입
     _emit_docs(files)
     _emit_start_command(files, platform_id, project_name, workflow_ids)
 
@@ -507,7 +507,7 @@ def _emit_start_command(
     project_name: str,
     workflow_ids: list[str],
 ) -> None:
-    """/24SeventStart 온보딩 커맨드 파일을 플랫폼별 경로로 생성."""
+    """/ClickEyeStart 온보딩 커맨드 파일을 플랫폼별 경로로 생성."""
     output_path = _PLATFORM_COMMANDS_PATH.get(platform_id)
     if output_path is None:
         return

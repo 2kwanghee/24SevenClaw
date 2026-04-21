@@ -168,7 +168,7 @@ function CompositionCountBadge({
 // ---------------------------------------------------------------------------
 
 /* ---------------------------------------------------------------------------
-  SetupGuideModal — 프로젝트 생성 완료 후 /24SeventStart 온보딩 가이드
+  SetupGuideModal — 프로젝트 생성 완료 후 /ClickEyeStart 온보딩 가이드
 --------------------------------------------------------------------------- */
 
 interface SetupGuideModalProps {
@@ -194,8 +194,8 @@ function SetupGuideModal({ projectId }: SetupGuideModalProps) {
     },
     {
       icon: Sparkles,
-      label: "/24SeventStart 실행",
-      desc: "Claude Code에서 /24SeventStart 커맨드를 입력하면 자동 셋업이 시작됩니다",
+      label: "/ClickEyeStart 실행",
+      desc: "Claude Code에서 /ClickEyeStart 커맨드를 입력하면 자동 셋업이 시작됩니다",
     },
   ] as const;
 
@@ -255,7 +255,7 @@ function SetupGuideModal({ projectId }: SetupGuideModalProps) {
             Claude Code에서 실행
           </p>
           <code className="text-sm font-semibold text-emerald-300">
-            /24SeventStart
+            /ClickEyeStart
           </code>
           <p className="mt-1 text-[11px] text-slate-500">
             API 키 자동 검증 + 누락 키 대화형 입력 안내

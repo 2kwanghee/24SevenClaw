@@ -55,7 +55,7 @@ def test_generate_zip_includes_onboarding_docs() -> None:
 
 
 def test_generate_zip_includes_start_command_claude() -> None:
-    """claude-code 플랫폼 ZIP에 /24SeventStart 커맨드 포함 확인."""
+    """claude-code 플랫폼 ZIP에 /ClickEyeStart 커맨드 포함 확인."""
     request = GenerateRequest(
         solution={"projectName": "cmd-test", "stackPreset": "fastapi-nextjs"},
         agents=[],
@@ -67,8 +67,8 @@ def test_generate_zip_includes_start_command_claude() -> None:
 
     with zipfile.ZipFile(buffer) as zf:
         names = zf.namelist()
-        assert ".claude/commands/24SeventStart.md" in names
-        content = zf.read(".claude/commands/24SeventStart.md").decode()
+        assert ".claude/commands/ClickEyeStart.md" in names
+        content = zf.read(".claude/commands/ClickEyeStart.md").decode()
         assert "24SevenClaw" in content
         assert "ANTHROPIC_API_KEY" in content
 
@@ -86,7 +86,7 @@ def test_generate_zip_start_command_gemini() -> None:
 
     with zipfile.ZipFile(buffer) as zf:
         names = zf.namelist()
-        assert ".gemini/commands/24SeventStart.md" in names
+        assert ".gemini/commands/ClickEyeStart.md" in names
 
 
 def test_generate_zip_linear_skill_includes_team_id() -> None:

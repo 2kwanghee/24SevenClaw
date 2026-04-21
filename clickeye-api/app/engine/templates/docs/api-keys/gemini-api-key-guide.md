@@ -52,7 +52,7 @@ gemini  # Gemini CLI 실행
 
 Gemini CLI 실행 후:
 ```
-/24SeventStart
+/ClickEyeStart
 ```
 
 ## 요금 안내

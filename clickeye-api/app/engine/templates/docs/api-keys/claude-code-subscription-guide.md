@@ -55,7 +55,7 @@ claude  # Claude Code 실행
 
 Claude Code 실행 후 슬래시 커맨드 입력:
 ```
-/24SeventStart
+/ClickEyeStart
 ```
 
 ## 문제 해결
