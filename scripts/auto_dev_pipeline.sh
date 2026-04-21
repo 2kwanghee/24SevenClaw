@@ -29,6 +29,30 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# ── Git lock guard ──
+# index.lock 대기 후 실행. 최대 15초 대기, 초과 시 stale lock 제거.
+wait_for_git_lock() {
+  local lock_file
+  lock_file="$(git rev-parse --git-dir 2>/dev/null)/index.lock"
+  local max_wait=15
+  local waited=0
+
+  while [ -f "$lock_file" ] && [ "$waited" -lt "$max_wait" ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  if [ -f "$lock_file" ]; then
+    log "WARN: git index.lock이 ${max_wait}초 후에도 존재. stale lock 제거."
+    rm -f "$lock_file"
+  fi
+}
+
+safe_git() {
+  wait_for_git_lock
+  git "$@"
+}
+
 # ── 파라미터 ──
 MAX_ITERATIONS=30
 MAX_TURNS=""
@@ -70,18 +94,9 @@ echo $$ > "$LOCK_FILE"
 
 cleanup() {
   rm -f "$LOCK_FILE"
-  git checkout main 2>/dev/null || true
+  safe_git checkout main 2>/dev/null || true
 }
 trap cleanup EXIT
-
-# ── stale git lock 정리 ──
-if [ -f "$PROJECT_DIR/.git/index.lock" ]; then
-  LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$PROJECT_DIR/.git/index.lock" 2>/dev/null || echo "0") ))
-  if [ "$LOCK_AGE" -gt 60 ]; then
-    rm -f "$PROJECT_DIR/.git/index.lock"
-    log "WARN: stale git index.lock 제거 (${LOCK_AGE}초 경과)"
-  fi
-fi
 
 log "======================================="
 log "  자동 개발 파이프라인 v6 (멀티 Agent)"
@@ -154,14 +169,14 @@ for title, meta in m.items():
   log "══════════════════════════════════════"
 
   # 브랜치 생성/전환
-  git checkout main 2>/dev/null || true
-  git pull origin main 2>/dev/null || true
+  safe_git checkout main 2>/dev/null || true
+  safe_git pull origin main 2>/dev/null || true
   # 이미 머지된 동명 브랜치가 있으면 삭제 후 재생성
-  if git branch --merged main | grep -q "$BRANCH"; then
+  if safe_git branch --merged main | grep -q "$BRANCH"; then
     log "WARN: 머지 완료된 브랜치 $BRANCH 삭제 후 재생성"
-    git branch -d "$BRANCH" 2>/dev/null || true
+    safe_git branch -d "$BRANCH" 2>/dev/null || true
   fi
-  git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH" 2>/dev/null || {
+  safe_git checkout -b "$BRANCH" 2>/dev/null || safe_git checkout "$BRANCH" 2>/dev/null || {
     log "ERROR: 브랜치 생성 실패: $BRANCH"
     python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
     log "Linear 상태: Backlog (브랜치 생성 실패)"
@@ -173,7 +188,7 @@ for title, meta in m.items():
   mkdir -p ".ralph"
   cp ".ralph/tasks/${ISSUE_KEY}.md" ".ralph/fix_plan.md" 2>/dev/null || {
     log "ERROR: fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"
-    git checkout main 2>/dev/null || true
+    safe_git checkout main 2>/dev/null || true
     python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
     log "Linear 상태: Backlog (fix_plan 없음)"
     FAILED=$((FAILED + 1))
@@ -245,7 +260,7 @@ for title, meta in m.items():
       echo "# TASK — ${TITLE}"
       echo ""
       echo "## 변경 파일"
-      git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
+      safe_git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
       echo ""
       echo "## 구현 내용"
       echo "fix_plan.md 기반 자율 구현 완료"
@@ -279,14 +294,14 @@ for title, meta in m.items():
     log "AUTO_MERGE 활성화: 직접 머지 수행"
 
     # 머지 전 diff 정보 수집
-    MERGE_DIFF_STAT=$(git diff --stat "main..${BRANCH}" 2>/dev/null || echo "(diff 없음)")
-    MERGE_DIFF_FILES=$(git diff --name-only "main..${BRANCH}" 2>/dev/null || echo "")
-    MERGE_COMMITS=$(git log --oneline "main..${BRANCH}" 2>/dev/null || echo "(커밋 없음)")
-    MERGE_DIFF_DETAIL=$(git diff "main..${BRANCH}" 2>/dev/null || echo "")
+    MERGE_DIFF_STAT=$(safe_git diff --stat "main..${BRANCH}" 2>/dev/null || echo "(diff 없음)")
+    MERGE_DIFF_FILES=$(safe_git diff --name-only "main..${BRANCH}" 2>/dev/null || echo "")
+    MERGE_COMMITS=$(safe_git log --oneline "main..${BRANCH}" 2>/dev/null || echo "(커밋 없음)")
+    MERGE_DIFF_DETAIL=$(safe_git diff "main..${BRANCH}" 2>/dev/null || echo "")
 
     # 메인으로 전환 후 머지
-    git checkout main 2>/dev/null || true
-    if git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
+    safe_git checkout main 2>/dev/null || true
+    if safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
       log "머지 성공: ${BRANCH} → main"
 
       # 머지 로그 생성
@@ -322,25 +337,25 @@ for title, meta in m.items():
       log "머지 로그: $MERGE_LOG_FILE"
 
       # push
-      git push origin main 2>/dev/null || log "WARN: push 실패"
+      safe_git push origin main 2>/dev/null || log "WARN: push 실패"
 
       # 머지된 브랜치 정리
-      git branch -d "$BRANCH" 2>/dev/null || true
-      git push origin --delete "$BRANCH" 2>/dev/null || true
+      safe_git branch -d "$BRANCH" 2>/dev/null || true
+      safe_git push origin --delete "$BRANCH" 2>/dev/null || true
     else
       log "ERROR: 머지 실패. PR 생성으로 대체합니다."
-      git merge --abort 2>/dev/null || true
+      safe_git merge --abort 2>/dev/null || true
       python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
         log "WARN: PR 생성 실패"
       }
-      git checkout main 2>/dev/null || true
+      safe_git checkout main 2>/dev/null || true
     fi
   else
     # AUTO_MERGE 비활성: PR만 생성
     python3 scripts/auto_pr_creator.py --branch "$BRANCH" --auto-merge 2>&1 || {
       log "WARN: PR 생성 실패"
     }
-    git checkout main 2>/dev/null || true
+    safe_git checkout main 2>/dev/null || true
   fi
 
   # 임시 파일 정리
