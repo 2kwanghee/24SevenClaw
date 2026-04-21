@@ -307,8 +307,8 @@ Step 7: 최종 확인 + 프로젝트 생성
 
 ### Phase 0 완료 조건
 - [ ] PRD 문서가 `docs/spec/`에 존재하고 전체 플로우를 기술
-- [ ] PM 시드 데이터 JSON이 `24SevenClaw-api/data/`에 존재 (최소 6개 PM 프로필)
-- [ ] UI 구조 JSON 스키마가 `24SevenClaw-api/data/`에 존재 (7 Step 정의)
+- [ ] PM 시드 데이터 JSON이 `clickeye-api/data/`에 존재 (최소 6개 PM 프로필)
+- [ ] UI 구조 JSON 스키마가 `clickeye-api/data/`에 존재 (7 Step 정의)
 - [ ] `config.py`에 `anthropic_api_key` 환경 변수가 추가됨
 - [ ] 기존 테스트가 깨지지 않음
 

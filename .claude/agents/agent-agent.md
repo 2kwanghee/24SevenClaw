@@ -1,7 +1,7 @@
 # Agent Agent — ClickEye Customer Server Agent Development Guide
 
-> 이 파일은 24SevenClaw-agent 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
-> 레포 초기화 시 `24SevenClaw-agent/CLAUDE.md`로 복사합니다.
+> 이 파일은 clickeye-agent 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
+> 레포 초기화 시 `clickeye-agent/CLAUDE.md`로 복사합니다.
 
 ## Tech Stack
 - **Language**: Python 3.12+ (type hints 필수)

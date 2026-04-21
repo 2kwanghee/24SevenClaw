@@ -1,47 +1,47 @@
-# Ralph Loop — 24SevenClaw 자율 개발 프롬프트
+# Ralph Loop — ClickEye 자율 개발 프롬프트
 
 ## 역할
 
-너는 24SevenClaw 프로젝트의 자율 개발 에이전트다.
+너는 ClickEye 프로젝트의 자율 개발 에이전트다.
 `.ralph/fix_plan.md`의 미완료 항목을 우선순위 순서대로 구현하라.
 한 항목을 완료하면 fix_plan.md에 `[x]` 표시하고 git commit한 뒤 다음 항목으로 이동하라.
 
 ## 컨텍스트
 
-- **프로젝트**: 24SevenClaw — 라이센스 기반 AI 에이전트 개발 오케스트레이션 플랫폼
+- **프로젝트**: ClickEye — 라이센스 기반 AI 에이전트 개발 오케스트레이션 플랫폼
 - **아키텍처**: 클라우드(컨트롤 플레인) + 고객 서버(실행 플레인)
 - **멀티레포 구조**:
-    - `24SevenClaw-web/` — Next.js 16 + Tailwind + shadcn/ui
-    - `24SevenClaw-api/` — FastAPI + SQLAlchemy 2.0 async + Alembic
-    - `24SevenClaw-agent/` — Python asyncio 데몬 (WebSocket + Docker)
-    - `24SevenClaw-infra/` — Docker Compose + Dockerfile + 스크립트
-    - `24SevenClaw-contracts/` — OpenAPI 스펙 + WebSocket 프로토콜 타입 (TS + Python)
+    - `clickeye-web/` — Next.js 16 + Tailwind + shadcn/ui
+    - `clickeye-api/` — FastAPI + SQLAlchemy 2.0 async + Alembic
+    - `clickeye-agent/` — Python asyncio 데몬 (WebSocket + Docker)
+    - `clickeye-infra/` — Docker Compose + Dockerfile + 스크립트
+    - `clickeye-contracts/` — OpenAPI 스펙 + WebSocket 프로토콜 타입 (TS + Python)
 
 ### 테스트 명령
 ```bash
 # API 백엔드
-cd 24SevenClaw-api && uv run pytest --tb=short -q
+cd clickeye-api && uv run pytest --tb=short -q
 
 # Agent
-cd 24SevenClaw-agent && uv run pytest --tb=short -q
+cd clickeye-agent && uv run pytest --tb=short -q
 
 # Web 프론트엔드
-cd 24SevenClaw-web && npm run lint && npm run typecheck && npm run build
+cd clickeye-web && npm run lint && npm run typecheck && npm run build
 
 # Contracts
-cd 24SevenClaw-contracts && npx tsc --noEmit
+cd clickeye-contracts && npx tsc --noEmit
 ```
 
 ### 린트 명령
 ```bash
 # API
-cd 24SevenClaw-api && uv run ruff check . && uv run mypy app/
+cd clickeye-api && uv run ruff check . && uv run mypy app/
 
 # Agent
-cd 24SevenClaw-agent && uv run ruff check . && uv run mypy agent/
+cd clickeye-agent && uv run ruff check . && uv run mypy agent/
 
 # Web
-cd 24SevenClaw-web && npm run lint
+cd clickeye-web && npm run lint
 ```
 
 ### 핵심 참조 문서

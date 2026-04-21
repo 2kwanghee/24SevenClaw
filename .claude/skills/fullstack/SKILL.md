@@ -43,19 +43,19 @@ user-invocable: true
 ## 디렉토리 구조
 
 ```
-24SevenClaw-api/
+clickeye-api/
   app/           # FastAPI application (models, schemas, services, api/v1)
   alembic/       # DB migrations
   tests/         # Backend tests
-24SevenClaw-web/
+clickeye-web/
   src/           # Next.js source (app, components, hooks, stores, lib, types)
-24SevenClaw-agent/
+clickeye-agent/
   agent/         # Agent daemon (handlers, utils)
-24SevenClaw-contracts/
+clickeye-contracts/
   openapi/       # REST API spec
   protocol/      # WebSocket messages
   generated/     # Auto-generated (읽기 전용)
-24SevenClaw-infra/
+clickeye-infra/
   docker/        # Docker Compose configs
   scripts/       # Setup, migration scripts
 docs/            # Project documentation

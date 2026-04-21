@@ -10,12 +10,12 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 ## Repository Map
 | Repo | Tech | Port | 역할 |
 |------|------|------|------|
-| `24SevenClaw-web` | Next.js 15 | 3000 | 웹 프론트엔드 (위저드 UI + 대시보드) |
-| `24SevenClaw-api` | FastAPI | 8000 | 백엔드 API (카탈로그 + ZIP 생성) |
-| `24SevenClaw-cli` | TypeScript (Node.js) | - | CLI 도구 (`@24sevenclaw/cli`) |
-| `24SevenClaw-agent` | Python | - | 고객 서버 에이전트 데몬 |
-| `24SevenClaw-infra` | Docker/YAML | - | 인프라 설정 |
-| `24SevenClaw-contracts` | TypeScript | - | 공유 타입/프로토콜 |
+| `clickeye-web` | Next.js 15 | 3000 | 웹 프론트엔드 (위저드 UI + 대시보드) |
+| `clickeye-api` | FastAPI | 8000 | 백엔드 API (카탈로그 + ZIP 생성) |
+| `clickeye-cli` | TypeScript (Node.js) | - | CLI 도구 (`@clickeye/cli`) |
+| `clickeye-agent` | Python | - | 고객 서버 에이전트 데몬 |
+| `clickeye-infra` | Docker/YAML | - | 인프라 설정 |
+| `clickeye-contracts` | TypeScript | - | 공유 타입/프로토콜 |
 
 ## Development Rules
 1. **모듈별 CLAUDE.md 참조**: 각 레포 디렉토리의 CLAUDE.md를 반드시 읽고 따를 것

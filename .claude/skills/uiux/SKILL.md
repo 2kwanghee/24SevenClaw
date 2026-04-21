@@ -66,7 +66,7 @@ user-invocable: true
 ## 디렉토리 구조
 
 ```
-24SevenClaw-web/src/
+clickeye-web/src/
   app/(auth)/        # 인증 페이지
   app/(dashboard)/   # 대시보드 페이지
   components/ui/     # shadcn/ui (수정 금지)

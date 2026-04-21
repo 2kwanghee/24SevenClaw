@@ -1,7 +1,7 @@
 # Web Agent — ClickEye Frontend Development Guide
 
-> 이 파일은 24SevenClaw-web 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
-> 레포 초기화 시 `24SevenClaw-web/CLAUDE.md`로 복사합니다.
+> 이 파일은 clickeye-web 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
+> 레포 초기화 시 `clickeye-web/CLAUDE.md`로 복사합니다.
 
 ## Tech Stack
 - **Framework**: Next.js 15 (App Router)

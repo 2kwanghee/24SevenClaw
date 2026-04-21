@@ -30,7 +30,7 @@ NeMo 적용 시:
 - 작업 실패 시 **어느 단계에서 실패**했는지 span 단위로 디버깅
 - 이 데이터를 Agent → Cloud로 보고하면 **클라우드 대시보드에서 실시간 확인**
 
-**해당 모듈**: `24SevenClaw-agent`의 `claude_handler` + Cloud의 모니터링 대시보드
+**해당 모듈**: `clickeye-agent`의 `claude_handler` + Cloud의 모니터링 대시보드
 
 ---
 

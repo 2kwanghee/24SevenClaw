@@ -145,14 +145,14 @@ contracts:
 
 ### Commands
 ```yaml
-start: "cd 24SevenClaw-infra && docker compose up -d"
-stop: "cd 24SevenClaw-infra && docker compose down"
-reset: "cd 24SevenClaw-infra && docker compose down -v && docker compose up -d"
-logs: "cd 24SevenClaw-infra && docker compose logs -f"
-status: "cd 24SevenClaw-infra && docker compose ps"
-migrate: "cd 24SevenClaw-api && uv run alembic upgrade head"
-seed: "cd 24SevenClaw-infra && ./scripts/seed-db.sh"
-full-setup: "cd 24SevenClaw-infra && ./scripts/setup-dev.sh"
+start: "cd clickeye-infra && docker compose up -d"
+stop: "cd clickeye-infra && docker compose down"
+reset: "cd clickeye-infra && docker compose down -v && docker compose up -d"
+logs: "cd clickeye-infra && docker compose logs -f"
+status: "cd clickeye-infra && docker compose ps"
+migrate: "cd clickeye-api && uv run alembic upgrade head"
+seed: "cd clickeye-infra && ./scripts/seed-db.sh"
+full-setup: "cd clickeye-infra && ./scripts/setup-dev.sh"
 ```
 
 ---

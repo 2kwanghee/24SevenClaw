@@ -2,7 +2,8 @@
   {
     "id": "linear",
     "label": "Linear",
-    "description": "Linear 이슈 트래킹 연동"
+    "description": "Linear 이슈 트래킹 연동",
+    "category": "ticket_source"
   },
   {
     "id": "telegram",
@@ -27,6 +28,7 @@
   {
     "id": "notion",
     "label": "Notion",
-    "description": "Notion 워크스페이스 연동"
+    "description": "Notion 워크스페이스 연동",
+    "category": "ticket_source"
   }
 ]

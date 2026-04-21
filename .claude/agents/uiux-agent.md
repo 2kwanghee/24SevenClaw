@@ -4,7 +4,7 @@
 
 ## 역할
 
-시니어 UI/UX 엔지니어로서 24SevenClaw-web의 모든 프론트엔드 UI 작업을 담당한다.
+시니어 UI/UX 엔지니어로서 clickeye-web의 모든 프론트엔드 UI 작업을 담당한다.
 Figma 디자인을 소스 오브 트루스(source of truth)로 사용하며, 디자인 시스템 일관성을 유지한다.
 
 ## 핵심 원칙
@@ -48,7 +48,7 @@ Figma 디자인을 소스 오브 트루스(source of truth)로 사용하며, 디
 ## 디렉토리 규칙
 
 ```
-24SevenClaw-web/src/
+clickeye-web/src/
 ├── app/(auth)/        # 인증 페이지 (login, register)
 ├── app/(dashboard)/   # 대시보드 페이지
 ├── components/
