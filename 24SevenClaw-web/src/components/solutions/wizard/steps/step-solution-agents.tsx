@@ -1,31 +1,65 @@
 "use client";
 
-import { Bot, Wrench, Info } from "lucide-react";
+import { AlertCircle, Bot, Info, Wrench } from "lucide-react";
 
+import { useCatalogAgents, useCatalogSkills } from "@/hooks/use-catalog";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
-const AGENT_LABELS: Record<string, { label: string; description: string }> = {
-  harness: { label: "Harness", description: "코드 품질 게이트" },
-  architect: { label: "Architect", description: "시스템 설계" },
-  frontend: { label: "Frontend", description: "UI/UX 구현" },
-  backend: { label: "Backend", description: "API/서버" },
-  qa: { label: "QA", description: "테스트 자동화" },
-  devops: { label: "DevOps", description: "인프라/배포" },
-  security: { label: "Security", description: "보안 감사" },
-};
+function AgentsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] px-3 py-3"
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <div className="h-4 w-24 rounded-md bg-white/[0.07]" />
+          <div className="mt-1 h-3 w-32 rounded bg-white/[0.05]" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-const SKILL_LABELS: Record<string, string> = {
-  linear: "Linear",
-  telegram: "Telegram",
-  github: "GitHub",
-  slack: "Slack",
-  jira: "Jira",
-  notion: "Notion",
-};
+function SkillsSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-2" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse h-8 w-16 rounded-lg bg-white/[0.05]"
+          style={{ animationDelay: `${i * 60}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FetchError({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+      <p className="text-xs text-red-400">{message}</p>
+    </div>
+  );
+}
 
 export function StepSolutionAgents() {
   const agents = useSolutionWizardStore((s) => s.data.agents);
   const setAgents = useSolutionWizardStore((s) => s.setAgents);
+
+  const {
+    data: agentsData,
+    isLoading: agentsLoading,
+    isError: agentsError,
+  } = useCatalogAgents();
+
+  const {
+    data: skillsData,
+    isLoading: skillsLoading,
+    isError: skillsError,
+  } = useCatalogSkills();
 
   const toggleAgent = (agentId: string) => {
     const selected = agents.selectedAgents.includes(agentId)
@@ -56,31 +90,37 @@ export function StepSolutionAgents() {
           <Bot className="h-4 w-4 text-emerald-400" />
           AI 에이전트
         </label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(AGENT_LABELS).map(([id, meta]) => {
-            const isSelected = agents.selectedAgents.includes(id);
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggleAgent(id)}
-                aria-pressed={isSelected}
-                className={`flex flex-col gap-0.5 rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
-                  isSelected
-                    ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-                    : "border-white/10 bg-white/5 hover:border-white/20"
-                }`}
-              >
-                <span
-                  className={`text-sm font-medium ${isSelected ? "text-white" : "text-slate-300"}`}
+        {agentsLoading && <AgentsSkeleton />}
+        {agentsError && <FetchError message="에이전트 목록을 불러오지 못했습니다." />}
+        {agentsData && (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {agentsData.items.map(({ id, label, description }) => {
+              const isSelected = agents.selectedAgents.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => toggleAgent(id)}
+                  aria-pressed={isSelected}
+                  className={`flex flex-col gap-0.5 rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
+                    isSelected
+                      ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
+                      : "border-white/10 bg-white/5 hover:border-white/20"
+                  }`}
                 >
-                  {meta.label}
-                </span>
-                <span className="text-xs text-slate-500">{meta.description}</span>
-              </button>
-            );
-          })}
-        </div>
+                  <span
+                    className={`text-sm font-medium ${isSelected ? "text-white" : "text-slate-300"}`}
+                  >
+                    {label}
+                  </span>
+                  {description && (
+                    <span className="text-xs text-slate-500">{description}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 스킬 선택 */}
@@ -90,26 +130,30 @@ export function StepSolutionAgents() {
           연동 스킬{" "}
           <span className="text-xs font-normal text-slate-500">(선택)</span>
         </label>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(SKILL_LABELS).map(([id, label]) => {
-            const isSelected = agents.selectedSkills.includes(id);
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggleSkill(id)}
-                aria-pressed={isSelected}
-                className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
-                  isSelected
-                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
-                    : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {skillsLoading && <SkillsSkeleton />}
+        {skillsError && <FetchError message="스킬 목록을 불러오지 못했습니다." />}
+        {skillsData && (
+          <div className="flex flex-wrap gap-2">
+            {skillsData.items.map(({ id, label }) => {
+              const isSelected = agents.selectedSkills.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => toggleSkill(id)}
+                  aria-pressed={isSelected}
+                  className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                    isSelected
+                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
+                      : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
