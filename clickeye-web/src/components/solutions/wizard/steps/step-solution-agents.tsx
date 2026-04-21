@@ -1,7 +1,10 @@
 "use client";
 
-import { AlertCircle, Bot, Info, Wrench } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, Bot, Info, Sparkles, Wrench } from "lucide-react";
+import { useSession } from "next-auth/react";
 
+import { prototypeSessions } from "@/lib/api-client";
 import { useCatalogAgents, useCatalogSkills } from "@/hooks/use-catalog";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
@@ -46,8 +49,41 @@ function FetchError({ message }: { message: string }) {
 }
 
 export function StepSolutionAgents() {
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
+
   const agents = useSolutionWizardStore((s) => s.data.agents);
   const setAgents = useSolutionWizardStore((s) => s.setAgents);
+  const sessionId = useSolutionWizardStore((s) => s.data.sessionId);
+
+  const [catalogRecommended, setCatalogRecommended] = useState<{ agents: string[]; skills: string[] }>({
+    agents: [],
+    skills: [],
+  });
+  const didAutoSelect = useRef(false);
+
+  useEffect(() => {
+    if (didAutoSelect.current) return;
+    if (!sessionId || !token) return;
+    if (agents.selectedAgents.length > 0) return;
+
+    didAutoSelect.current = true;
+    prototypeSessions
+      .recommendComponents(token, sessionId)
+      .then((rec) => {
+        if (rec.agents.length > 0 || rec.skills.length > 0) {
+          setCatalogRecommended({ agents: rec.agents, skills: rec.skills });
+          setAgents({
+            ...agents,
+            selectedAgents: rec.agents,
+            selectedSkills: rec.skills,
+          });
+        }
+      })
+      .catch(() => {
+        // 실패해도 사용자가 직접 선택 가능
+      });
+  }, [sessionId, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     data: agentsData,
@@ -91,14 +127,25 @@ export function StepSolutionAgents() {
     setAgents({ ...agents, selectedSkills: selected });
   };
 
+  const hasCatalogRecs = catalogRecommended.agents.length > 0 || catalogRecommended.skills.length > 0;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-        <p className="text-xs text-slate-400">
-          선택한 프로토타입의 에이전트 구성을 확인하고 필요에 따라 조정하세요.
-        </p>
-      </div>
+      {hasCatalogRecs ? (
+        <div className="flex items-start gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+          <p className="text-xs text-slate-400">
+            선택한 프로토타입 카탈로그를 기반으로 에이전트와 스킬이 자동 추천되었습니다. 필요에 따라 조정하세요.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+          <p className="text-xs text-slate-400">
+            선택한 프로토타입의 에이전트 구성을 확인하고 필요에 따라 조정하세요.
+          </p>
+        </div>
+      )}
 
       {/* 에이전트 선택 */}
       <div className="space-y-3">
@@ -112,6 +159,7 @@ export function StepSolutionAgents() {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {agentsData.items.map(({ id, label, description }) => {
               const isSelected = agents.selectedAgents.includes(id);
+              const isRecommended = catalogRecommended.agents.includes(id);
               return (
                 <button
                   key={id}
@@ -124,11 +172,19 @@ export function StepSolutionAgents() {
                       : "border-white/10 bg-white/5 hover:border-white/20"
                   }`}
                 >
-                  <span
-                    className={`text-sm font-medium ${isSelected ? "text-white" : "text-slate-300"}`}
-                  >
-                    {label}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-sm font-medium ${isSelected ? "text-white" : "text-slate-300"}`}
+                    >
+                      {label}
+                    </span>
+                    {isRecommended && (
+                      <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
+                        <Sparkles className="h-2.5 w-2.5" />
+                        추천
+                      </span>
+                    )}
+                  </div>
                   {description && (
                     <span className="text-xs text-slate-500">{description}</span>
                   )}
@@ -165,19 +221,25 @@ export function StepSolutionAgents() {
               <div className="flex flex-wrap gap-2">
                 {ticketSourceSkills.map(({ id, label }) => {
                   const isSelected = agents.selectedSkills.includes(id);
+                  const isRecommended = catalogRecommended.skills.includes(id);
                   return (
                     <button
                       key={id}
                       type="button"
                       onClick={() => selectTicketSource(id)}
                       aria-pressed={isSelected}
-                      className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
                         isSelected
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
                           : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
                       }`}
                     >
                       {label}
+                      {isRecommended && (
+                        <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
+                          <Sparkles className="h-2.5 w-2.5" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -206,19 +268,25 @@ export function StepSolutionAgents() {
               <div className="flex flex-wrap gap-2">
                 {otherSkills.map(({ id, label }) => {
                   const isSelected = agents.selectedSkills.includes(id);
+                  const isRecommended = catalogRecommended.skills.includes(id);
                   return (
                     <button
                       key={id}
                       type="button"
                       onClick={() => toggleSkill(id)}
                       aria-pressed={isSelected}
-                      className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
                         isSelected
                           ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
                           : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
                       }`}
                     >
                       {label}
+                      {isRecommended && (
+                        <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
+                          <Sparkles className="h-2.5 w-2.5" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
