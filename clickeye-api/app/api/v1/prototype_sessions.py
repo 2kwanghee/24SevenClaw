@@ -21,6 +21,7 @@ from app.schemas.prototype import (
     PrototypeSessionResponse,
     PrototypeSessionStatusResponse,
     PrototypeSessionUpdate,
+    RecommendComponentsResponse,
     RecommendPMsResponse,
 )
 from app.services.prototype_service import PrototypeService
@@ -146,6 +147,27 @@ async def generate_prototypes(
         status="generating",
         message="프로토타입 생성이 시작되었습니다",
     )
+
+
+@router.get(
+    "/{session_id}/recommend-components",
+    response_model=RecommendComponentsResponse,
+)
+async def recommend_components(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RecommendComponentsResponse:
+    """선택된 프로토타입 기반으로 에이전트·스킬·카탈로그 slug를 추천한다.
+
+    선택된 프로토타입이 없으면 409를 반환한다.
+    위저드의 '에이전트 선택' 스텝에서 자동 pre-select에 사용한다.
+    """
+    service = PrototypeService(db)
+    result = await service.recommend_components_for_session(
+        session_id=session_id, user_id=user.id  # type: ignore[arg-type]
+    )
+    return RecommendComponentsResponse(**result)
 
 
 @router.post(

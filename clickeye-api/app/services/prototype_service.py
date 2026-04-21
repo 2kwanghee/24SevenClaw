@@ -152,9 +152,8 @@ class PrototypeService:
         prompt = str(session.solution_prompt or "")
 
         try:
-            user_tech_stack: list[str] = list(
-                (session.extra or {}).get("user_tech_stack", [])
-            )
+            extra: dict[str, Any] = session.extra or {}  # type: ignore[assignment]
+            user_tech_stack: list[str] = list(extra.get("user_tech_stack", []))
             org_context: dict[str, Any] = {"user_tech_stack": user_tech_stack}
 
             # 1. 요구사항 분석 — Claude API, 실패 시 규칙 기반 폴백
@@ -604,6 +603,83 @@ class PrototypeService:
 
         return top5
 
+    async def recommend_components_for_session(
+        self, session_id: UUID, user_id: UUID
+    ) -> dict[str, Any]:
+        """선택된 프로토타입의 카탈로그 엔트리 기반으로 에이전트/스킬을 추천한다.
+
+        선택된 프로토타입이 없으면 AppError(409).
+        카탈로그 엔트리 매칭 순서:
+          1. prototype.design_pattern == catalog.design_pattern
+          2. prototype.ui_structure.primary_tag == catalog.primary_tag
+          3. 폴백: design_pattern 키워드 기반 기본값
+        """
+        from app.engine.catalog import AGENTS, SKILLS
+        from app.models.prototype_catalog import PrototypeCatalogEntry
+
+        session = await self.get_session(session_id, user_id)
+        if session.selected_prototype_id is None:
+            raise AppError(
+                "NO_PROTOTYPE_SELECTED",
+                "컴포넌트 추천을 위해 먼저 프로토타입을 선택하세요",
+                409,
+            )
+
+        prototype = await self.db.get(Prototype, session.selected_prototype_id)
+        if prototype is None:
+            raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
+
+        valid_agent_ids = {a["id"] for a in AGENTS}
+        valid_skill_ids = {s["id"] for s in SKILLS}
+
+        # 1차 매칭: design_pattern 일치
+        catalog_entry = None
+        if prototype.design_pattern:
+            stmt = (
+                select(PrototypeCatalogEntry)
+                .where(
+                    PrototypeCatalogEntry.design_pattern == prototype.design_pattern,
+                    PrototypeCatalogEntry.is_active.is_(True),
+                )
+                .order_by(PrototypeCatalogEntry.priority.desc())
+                .limit(1)
+            )
+            catalog_entry = (await self.db.execute(stmt)).scalar_one_or_none()
+
+        # 2차 매칭: primary_tag 일치
+        if catalog_entry is None:
+            ui: dict[str, Any] = prototype.ui_structure or {}  # type: ignore[assignment]
+            primary_tag = ui.get("primary_tag") or ui.get("solution_type")
+            if primary_tag:
+                stmt = (
+                    select(PrototypeCatalogEntry)
+                    .where(
+                        PrototypeCatalogEntry.primary_tag == primary_tag,
+                        PrototypeCatalogEntry.is_active.is_(True),
+                    )
+                    .order_by(PrototypeCatalogEntry.priority.desc())
+                    .limit(1)
+                )
+                catalog_entry = (await self.db.execute(stmt)).scalar_one_or_none()
+
+        if catalog_entry is not None:
+            rec_agents = [
+                a for a in list(catalog_entry.recommended_agents or []) if a in valid_agent_ids
+            ]
+            rec_skills = [
+                s for s in list(catalog_entry.recommended_skills or []) if s in valid_skill_ids
+            ]
+            return {
+                "agents": rec_agents,
+                "skills": rec_skills,
+                "excluded_agents": list(catalog_entry.excluded_agents or []),
+                "catalog_entry_slug": catalog_entry.slug,
+                "reasoning": f"{catalog_entry.title} 카탈로그 기반 추천",
+            }
+
+        # 폴백: design_pattern 키워드 기반 기본 추천
+        return _default_component_recommendation(prototype, valid_agent_ids, valid_skill_ids)
+
     async def finalize_session(
         self, session_id: UUID, user_id: UUID, data: FinalizeRequest
     ) -> Project:
@@ -666,6 +742,38 @@ class PrototypeService:
 
 
 # ── 헬퍼 함수 ────────────────────────────────────────────────────────────────
+
+
+def _default_component_recommendation(
+    prototype: "Prototype",
+    valid_agent_ids: set[str],
+    valid_skill_ids: set[str],
+) -> dict[str, Any]:
+    """카탈로그 엔트리 없을 때 design_pattern 키워드 기반 기본 추천."""
+    pattern = (prototype.design_pattern or "").lower()
+    ui: dict[str, Any] = prototype.ui_structure or {}  # type: ignore[assignment]
+    solution_type = (ui.get("primary_tag") or ui.get("solution_type") or "").lower()
+    tag = pattern or solution_type
+
+    agents: list[str] = []
+    if any(k in tag for k in ("fullstack", "saas", "mvp")):
+        agents = ["fullstack", "backend", "frontend"]
+    elif any(k in tag for k in ("rest", "api", "backend")):
+        agents = ["backend"]
+    elif any(k in tag for k in ("internal", "lowcode", "tool")):
+        agents = ["frontend", "backend"]
+    elif any(k in tag for k in ("mobile",)):
+        agents = ["frontend"]
+    else:
+        agents = ["fullstack"]
+
+    return {
+        "agents": [a for a in agents if a in valid_agent_ids],
+        "skills": [],
+        "excluded_agents": [],
+        "catalog_entry_slug": None,
+        "reasoning": "카탈로그 엔트리 미매칭 — 기본값 반환",
+    }
 
 
 def _build_variant_roles(

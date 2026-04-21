@@ -141,6 +141,16 @@ class RecommendPMsResponse(BaseModel):
     items: list[PMRecommendItemResponse]
 
 
+class RecommendComponentsResponse(BaseModel):
+    """GET /prototype-sessions/{id}/recommend-components 응답."""
+
+    agents: list[str] = Field(default_factory=list, description="추천 에이전트 ID 목록")
+    skills: list[str] = Field(default_factory=list, description="추천 스킬 ID 목록")
+    excluded_agents: list[str] = Field(default_factory=list, description="제외 에이전트 ID 목록")
+    catalog_entry_slug: str | None = None
+    reasoning: str | None = None
+
+
 class FinalizeRequest(BaseModel):
     """POST /prototype-sessions/{id}/finalize 요청 스키마."""
 
