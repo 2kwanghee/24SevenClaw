@@ -1,4 +1,4 @@
-# Contracts Agent — 24SevenClaw Shared Protocol Development Guide
+# Contracts Agent — ClickEye Shared Protocol Development Guide
 
 > 이 파일은 24SevenClaw-contracts 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
 > 레포 초기화 시 `24SevenClaw-contracts/CLAUDE.md`로 복사합니다.

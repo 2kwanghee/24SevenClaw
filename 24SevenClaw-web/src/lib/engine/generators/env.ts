@@ -72,7 +72,7 @@ export function generateEnvFiles(options: InitOptions): GeneratedFile[] {
 
   const envLines: string[] = [
     "# 환경 변수 — 이 파일을 .gitignore에 추가하세요",
-    "# 자동 생성됨 (24SevenClaw)",
+    "# 자동 생성됨 (ClickEye)",
     "",
   ];
 

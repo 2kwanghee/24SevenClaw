@@ -8,27 +8,14 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[docs] 에이전트/스킬 메뉴 정비 엔드투엔드 검증 + CLAUDE.md 업데이트**
-  > 요청사항: ## 목적
+- [x] **[rebrand] Phase 1 — 저위험 텍스트 치환 (24SevenClaw → ClickEye)**
+  > 요청사항: 문서·UI 텍스트에서 'ClickEye' 표기로 치환. 디렉토리·DB·패키지명은 손대지 않음.
 
-전체 정비 작업의 최종 검증 및 문서 동기화.
+범위: [CLAUDE.md](<http://CLAUDE.md>) 6개, LoadMap_v3.md, [TODO.md](<http://TODO.md>), docs/ 17파일, .claude/agents·skills 11파일, web layout.tsx(title metadata), page.tsx(로고/푸터), auth/dashboard/solutions layout 4파일, engine 템플릿 gemini.md.hbs/claude.md.hbs/env.ts.
 
-## 작업 범위
+변경 패턴: '24SevenClaw' → 'ClickEye' (단, 디렉토리명·패키지명·DB명·컨테이너명 등 고유식별자는 제외).
 
-* 수동 e2e 시나리오 검증:
-  1. 일반 사용자 사이드바에 에이전트/스킬/MCP 메뉴 사라짐 확인
-  2. 관리자 `/admin/registry/agents`에서 테스트 항목 추가 → 위저드 Step 6 반영 확인
-  3. 테스트 항목 삭제 → 위저드에서 사라짐 확인
-* `24SevenClaw-web/CLAUDE.md` Directory Structure 섹션에서 `/registry/*` 제거 반영
-
-## 완료 기준
-
-* 검증 시나리오 3건 모두 통과
-* 문서 업데이트 완료
-
-## 선행 조건
-
-24S-172 + 24S-175 완료
+검증: npm run build 성공, 기존 기능 무영향.
 
 ---
 
@@ -38,4 +25,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [docs] 에이전트/스킬 메뉴 정비 e2e 검증 + CLAUDE.md 업데이트 | ✅ 완료 | 코드 분석으로 3개 시나리오 검증, CLAUDE.md registry→admin/registry 이동 반영 |
+| 2026-04-21 | [rebrand] Phase 1 텍스트 치환 | ✅ 완료 | 문서/UI 36개 파일. 디렉토리명 보존. build 성공 |

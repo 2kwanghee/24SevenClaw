@@ -31,7 +31,7 @@ user-invocable: true
 - 디자인-구현 시각적 일치 확인
 - 반응형/다크모드/접근성 검증
 
-## 기술 스택 (24SevenClaw)
+## 기술 스택 (ClickEye)
 
 - **Framework**: Next.js 16, React 19, TypeScript
 - **Styling**: Tailwind CSS v4 + CSS 변수 기반 테마

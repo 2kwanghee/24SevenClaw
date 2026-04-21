@@ -1,4 +1,4 @@
-# UI/UX Agent — 24SevenClaw Frontend Design & Implementation
+# UI/UX Agent — ClickEye Frontend Design & Implementation
 
 > 프론트엔드 UI/UX 작업 전담 에이전트. Figma MCP를 활용하여 디자인 소스를 참조하고 구현한다.
 

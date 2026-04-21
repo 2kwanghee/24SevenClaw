@@ -4,7 +4,7 @@
 
 ## 개요
 
-24SevenClaw CLI는 AI 에이전트 개발 환경을 한 줄 명령으로 구축하는 도구입니다.
+ClickEye CLI는 AI 에이전트 개발 환경을 한 줄 명령으로 구축하는 도구입니다.
 프로젝트 타입과 기술 스택에 맞는 `.claude/` 설정을 자동 생성하며,
 하네스 엔지니어링 품질 게이트를 기본 탑재합니다.
 
@@ -119,7 +119,7 @@ npm install -g @24sevenclaw/cli
 
 ### `24sc doctor`
 
-현재 프로젝트의 24SevenClaw 설정 상태를 진단합니다.
+현재 프로젝트의 ClickEye 설정 상태를 진단합니다.
 
 #### 진단 항목
 
@@ -135,7 +135,7 @@ npm install -g @24sevenclaw/cli
 #### 출력 예시
 
 ```
-🔍 24SevenClaw 설정 진단 중...
+🔍 ClickEye 설정 진단 중...
 
 ✅ .claude/ 디렉토리 존재
 ✅ CLAUDE.md 존재

@@ -1,4 +1,4 @@
-# 24SevenClaw Retouch — 상세 개발 플랜
+# ClickEye Retouch — 상세 개발 플랜
 
 > 작성일: 2026-04-13
 > 기반 문서: `docs/spec/retouch.md`

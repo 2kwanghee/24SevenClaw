@@ -7,7 +7,7 @@ ZIP 다운로드부터 Local Claude Code가 Linear 이슈를 실시간으로 감
 ## 전체 흐름 한눈에 보기
 
 ```
-[24SevenClaw 위저드] → ZIP 다운로드
+[ClickEye 위저드] → ZIP 다운로드
          │
          ▼
 [설정 페이지] Linear 자격증명 저장
@@ -30,7 +30,7 @@ ZIP 다운로드부터 Local Claude Code가 Linear 이슈를 실시간으로 감
 
 ## Step 1. 위저드에서 프로젝트 생성 & ZIP 다운로드
 
-1. 24SevenClaw 웹(<https://app.24sevenclaw.com>)에 로그인합니다.
+1. ClickEye 웹(<https://app.24sevenclaw.com>)에 로그인합니다.
 2. **새 솔루션 만들기** → 7-Step 위저드를 완료합니다.
    - **Step 8 (환경 변수)** 에서 Linear 스킬을 사용할 경우 터널 방식을 선택하세요.
      | 선택지 | 비용 | URL 고정 여부 | 권장 대상 |
@@ -50,14 +50,14 @@ cd my-project
 
 ## Step 2. Linear 자격증명 저장
 
-24SevenClaw가 사용자 본인의 Linear 워크스페이스에 이슈를 등록하려면 API 키가 필요합니다.  
+ClickEye가 사용자 본인의 Linear 워크스페이스에 이슈를 등록하려면 API 키가 필요합니다.  
 키는 **Fernet 암호화**로 서버에 안전하게 저장되며, 사용자가 명시적으로 저장한 경우에만 사용됩니다.
 
 ### 2-1. Linear API 키 발급
 
 1. <https://linear.app/settings/api> 접속
 2. **Personal API keys → Create key** 클릭
-3. 이름 예: `24SevenClaw`, 권한: **Full access** 또는 최소 `issues:write`, `webhooks:write`
+3. 이름 예: `ClickEye`, 권한: **Full access** 또는 최소 `issues:write`, `webhooks:write`
 4. 발급된 키를 복사해 둡니다 (`lin_api_...` 형식).
 
 ### 2-2. Team ID 확인
@@ -65,7 +65,7 @@ cd my-project
 1. Linear 앱 → 좌측 사이드바에서 팀을 우클릭 → **Copy Team ID**  
    또는 URL `https://linear.app/{workspace}/team/{TEAM_ID}/issues`에서 확인
 
-### 2-3. 24SevenClaw 설정 페이지에서 저장
+### 2-3. ClickEye 설정 페이지에서 저장
 
 1. <https://app.24sevenclaw.com/settings/linear> 접속
 2. 다음 항목을 입력합니다.
@@ -86,7 +86,7 @@ cd my-project
 
 ## Step 3. "첫 작업 요청하기" → Linear 이슈 자동 등록
 
-1. 24SevenClaw → 해당 프로젝트 → **AI Team** 탭으로 이동합니다.
+1. ClickEye → 해당 프로젝트 → **AI Team** 탭으로 이동합니다.
 2. **첫 작업 요청하기** 버튼을 클릭해 세션을 생성합니다.
 3. 세션이 `assigned` 상태가 되면 **AI 초안 생성** 버튼이 활성화됩니다.
 4. **AI 초안 생성** 클릭 → 두 가지 작업이 자동으로 순서대로 실행됩니다.
@@ -139,7 +139,7 @@ bash scripts/setup-tunnel.sh
    .env의 WEBHOOK_PUBLIC_URL을 업데이트했습니다.
 ```
 
-**발급된 URL을 24SevenClaw 설정 페이지 → Tunnel URL 필드에 저장하세요.**  
+**발급된 URL을 ClickEye 설정 페이지 → Tunnel URL 필드에 저장하세요.**  
 저장 즉시 서버가 사용자 Linear에 Webhook을 자동 등록합니다.
 
 > ⚠️ 이 터미널 창을 닫으면 터널이 종료됩니다. 별도 터미널에서 유지하거나 `nohup`으로 백그라운드 실행하세요.
@@ -206,8 +206,8 @@ python scripts/linear_watcher.py &
 
 - **Webhook 모드**: `start-webhook.sh` 터미널에서 다음 로그를 확인합니다.
   ```
-  [24SevenClaw] Linear webhook 수신: 이슈 ABC-123 → Queued
-  [24SevenClaw] 자동 개발 파이프라인 트리거
+  [ClickEye] Linear webhook 수신: 이슈 ABC-123 → Queued
+  [ClickEye] 자동 개발 파이프라인 트리거
   ```
 - **폴링 모드**: `linear_watcher.py` 터미널에서 확인합니다.
   ```
@@ -243,5 +243,5 @@ python scripts/linear_watcher.py &
 ## 관련 문서
 
 - [Webhook 상세 설정 가이드](../webhook/WEBHOOK_SETUP.md)
-- [24SevenClaw 아키텍처 개요](../architecture-overview.md)
+- [ClickEye 아키텍처 개요](../architecture-overview.md)
 - [AI 파이프라인 가이드](../pipeline-guide.md)

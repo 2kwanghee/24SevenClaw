@@ -1,4 +1,4 @@
-# 24SevenClaw - Daily TODO
+# ClickEye - Daily TODO
 
 > Claude가 이 파일을 참고하여 순차적으로 개발한다.
 > 작업 완료 시 `[x]` 표시. 하루 마감 시 `/endwork` 명령으로 아카이브.

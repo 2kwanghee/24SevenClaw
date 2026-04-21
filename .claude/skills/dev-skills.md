@@ -1,4 +1,4 @@
-# 24SevenClaw - Development Skills Registry
+# ClickEye - Development Skills Registry
 
 > 프로젝트 개발에 사용되는 스킬(자동화 워크플로) 정의
 

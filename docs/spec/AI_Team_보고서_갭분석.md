@@ -1,7 +1,7 @@
-# AI Team 보고서 vs 24SevenClaw 갭 분석
+# AI Team 보고서 vs ClickEye 갭 분석
 
 **작성일**: 2026-04-10
-**대상**: AI Team 기반 업무자동화 프로젝트 1차 보고서 ↔ 24SevenClaw 현재 구현 상태
+**대상**: AI Team 기반 업무자동화 프로젝트 1차 보고서 ↔ ClickEye 현재 구현 상태
 
 ---
 
