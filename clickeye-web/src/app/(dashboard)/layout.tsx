@@ -17,6 +17,7 @@ import {
   FileText,
   Users,
   BarChart3,
+  BookOpen,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -27,6 +28,7 @@ const navItems = [
   // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
   { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions" },
   { href: "/projects", label: "프로젝트", icon: FolderKanban },
+  { href: "/guide", label: "가이드", icon: BookOpen },
 ];
 
 const adminItems = [
