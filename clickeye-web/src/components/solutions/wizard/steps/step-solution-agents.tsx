@@ -25,10 +25,10 @@ function AgentsSkeleton() {
 function SkillsSkeleton() {
   return (
     <div className="flex flex-wrap gap-2" aria-hidden="true">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse h-8 w-16 rounded-lg bg-white/[0.05]"
+          className="animate-pulse h-8 w-20 rounded-lg bg-white/[0.05]"
           style={{ animationDelay: `${i * 60}ms` }}
         />
       ))}
@@ -61,11 +61,27 @@ export function StepSolutionAgents() {
     isError: skillsError,
   } = useCatalogSkills();
 
+  const ticketSourceSkills = skillsData?.items.filter((s) => s.category === "ticket_source") ?? [];
+  const otherSkills = skillsData?.items.filter((s) => s.category !== "ticket_source") ?? [];
+
   const toggleAgent = (agentId: string) => {
     const selected = agents.selectedAgents.includes(agentId)
       ? agents.selectedAgents.filter((a) => a !== agentId)
       : [...agents.selectedAgents, agentId];
     setAgents({ ...agents, selectedAgents: selected });
+  };
+
+  // XOR: 티켓 소스 선택 시 기존 티켓 소스 자동 해제
+  const selectTicketSource = (skillId: string) => {
+    const ticketSourceIds = ticketSourceSkills.map((s) => s.id);
+    const isCurrentlySelected = agents.selectedSkills.includes(skillId);
+    const withoutTicketSources = agents.selectedSkills.filter(
+      (s) => !ticketSourceIds.includes(s),
+    );
+    const newSkills = isCurrentlySelected
+      ? withoutTicketSources
+      : [...withoutTicketSources, skillId];
+    setAgents({ ...agents, selectedSkills: newSkills });
   };
 
   const toggleSkill = (skillId: string) => {
@@ -123,35 +139,91 @@ export function StepSolutionAgents() {
         )}
       </div>
 
-      {/* 스킬 선택 */}
-      <div className="space-y-3">
+      {/* 연동 스킬 */}
+      <div className="space-y-4">
         <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
           <Wrench className="h-4 w-4 text-emerald-400" />
-          연동 스킬{" "}
-          <span className="text-xs font-normal text-slate-500">(선택)</span>
+          연동 스킬
         </label>
-        {skillsLoading && <SkillsSkeleton />}
-        {skillsError && <FetchError message="스킬 목록을 불러오지 못했습니다." />}
-        {skillsData && (
-          <div className="flex flex-wrap gap-2">
-            {skillsData.items.map(({ id, label }) => {
-              const isSelected = agents.selectedSkills.includes(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => toggleSkill(id)}
-                  aria-pressed={isSelected}
-                  className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
-                    isSelected
-                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
-                      : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+
+        {/* 티켓 소스 (필수, 1개 선택) */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-300">티켓 소스</span>
+            <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
+              필수
+            </span>
+            <span className="text-[11px] text-slate-500">1개 선택</span>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            이슈/티켓을 관리할 플랫폼을 선택하세요.
+          </p>
+          {skillsLoading && <SkillsSkeleton />}
+          {skillsError && <FetchError message="스킬 목록을 불러오지 못했습니다." />}
+          {skillsData && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {ticketSourceSkills.map(({ id, label }) => {
+                  const isSelected = agents.selectedSkills.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => selectTicketSource(id)}
+                      aria-pressed={isSelected}
+                      className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                        isSelected
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {ticketSourceSkills.length > 0 &&
+                !agents.selectedSkills.some((id) =>
+                  ticketSourceSkills.some((s) => s.id === id),
+                ) && (
+                  <p role="alert" className="text-xs text-rose-400">
+                    티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다
+                  </p>
+                )}
+            </>
+          )}
+        </div>
+
+        {/* 추가 스킬 (선택) */}
+        {(skillsLoading || (skillsData && otherSkills.length > 0)) && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-300">추가 스킬</span>
+              <span className="text-[11px] text-slate-500">(선택)</span>
+            </div>
+            {skillsLoading && <SkillsSkeleton />}
+            {skillsData && otherSkills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {otherSkills.map(({ id, label }) => {
+                  const isSelected = agents.selectedSkills.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleSkill(id)}
+                      aria-pressed={isSelected}
+                      className={`rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                        isSelected
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

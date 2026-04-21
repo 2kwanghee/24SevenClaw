@@ -1748,6 +1748,7 @@ export interface CatalogSkill {
   id: string;
   label: string;
   description: string | null;
+  category: string | null;
 }
 
 export interface CatalogListResponse<T> {
