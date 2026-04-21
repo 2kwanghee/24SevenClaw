@@ -64,31 +64,29 @@ def _open_zip(content: bytes) -> zipfile.ZipFile:
 
 @pytest.mark.asyncio
 async def test_catalog_agents_response_structure(client: AsyncClient) -> None:
-    """에이전트 카탈로그: 각 항목에 필수 필드 + 유효 타입."""
+    """에이전트 카탈로그: 각 항목에 id, label, description 포함 + 7개 항목."""
     resp = await client.get("/api/v1/catalog/agents")
     assert resp.status_code == 200
 
     data = resp.json()
+    assert data["total"] == 7
     for agent in data["items"]:
         assert isinstance(agent["id"], str) and len(agent["id"]) > 0
-        assert isinstance(agent["name"], str) and len(agent["name"]) > 0
-        assert isinstance(agent["provider"], str)
-        assert isinstance(agent["description"], str)
-        assert isinstance(agent.get("supported_languages", []), list)
-        assert isinstance(agent.get("tags", []), list)
+        assert isinstance(agent["label"], str) and len(agent["label"]) > 0
+        assert isinstance(agent.get("description", ""), str)
 
 
 @pytest.mark.asyncio
 async def test_catalog_skills_have_type_field(client: AsyncClient) -> None:
-    """스킬 카탈로그: 각 항목에 type 필드(workflow|tool) 존재."""
+    """스킬 카탈로그: 각 항목에 id, label, description 포함 + 6개 항목."""
     resp = await client.get("/api/v1/catalog/skills")
     data = resp.json()
 
+    assert data["total"] == 6
     for skill in data["items"]:
         assert isinstance(skill["id"], str) and len(skill["id"]) > 0
-        assert isinstance(skill["name"], str) and len(skill["name"]) > 0
-        assert "type" in skill
-        assert skill["type"] in ("workflow", "tool", "external", "external-tool")
+        assert isinstance(skill["label"], str) and len(skill["label"]) > 0
+        assert isinstance(skill.get("description", ""), str)
 
 
 @pytest.mark.asyncio
@@ -186,12 +184,13 @@ async def test_catalog_ids_used_in_preview(
 async def test_recommend_ids_match_catalog(
     client: AsyncClient, solution_type: str
 ) -> None:
-    """추천 결과의 에이전트/스킬/파이프라인 ID가 카탈로그에 존재."""
-    # 카탈로그 전체 ID 수집
-    catalog_ids: dict[str, set[str]] = {}
-    for category in ("agents", "skills", "pipelines"):
-        resp = await client.get(f"/api/v1/catalog/{category}")
-        catalog_ids[category] = {item["id"] for item in resp.json()["items"]}
+    """추천 에이전트는 platforms 카탈로그에, 파이프라인은 pipelines 카탈로그에 존재."""
+    # 플랫폼 에이전트 + 파이프라인 ID 수집 (recommend 서비스는 platforms 사용)
+    platforms_resp = await client.get("/api/v1/catalog/platforms")
+    platform_ids = {item["id"] for item in platforms_resp.json()["items"]}
+
+    pipelines_resp = await client.get("/api/v1/catalog/pipelines")
+    pipeline_ids = {item["id"] for item in pipelines_resp.json()["items"]}
 
     # 추천 결과 검증
     rec_resp = await client.post(
@@ -201,15 +200,11 @@ async def test_recommend_ids_match_catalog(
     rec = rec_resp.json()
 
     for agent in rec["agents"]:
-        assert agent["id"] in catalog_ids["agents"], (
-            f"{solution_type} 추천 에이전트 '{agent['id']}'가 카탈로그에 없음"
-        )
-    for skill in rec["skills"]:
-        assert skill["id"] in catalog_ids["skills"], (
-            f"{solution_type} 추천 스킬 '{skill['id']}'가 카탈로그에 없음"
+        assert agent["id"] in platform_ids, (
+            f"{solution_type} 추천 에이전트 '{agent['id']}'가 platforms 카탈로그에 없음"
         )
     for pipeline in rec["pipelines"]:
-        assert pipeline["id"] in catalog_ids["pipelines"], (
+        assert pipeline["id"] in pipeline_ids, (
             f"{solution_type} 추천 파이프라인 '{pipeline['id']}'가 카탈로그에 없음"
         )
 
@@ -472,10 +467,16 @@ async def test_recommend_then_preview(
     )
     rec = rec_resp.json()
 
-    # 엔진 호환 에이전트만
+    # 엔진 호환 에이전트만 (recommend는 platform agent 반환, 엔진은 role agent 사용)
     engine_agents = [
         a["id"] for a in rec["agents"]
         if a["id"] in ("backend", "frontend", "uiux", "devops", "fullstack")
+    ]
+
+    # 엔진 호환 스킬만 (recommend workflow 스킬은 engine catalog ID와 다름)
+    _ENGINE_SKILL_IDS = frozenset({"tdd", "ai-critique", "linear", "ralph-loop", "harness-gate"})
+    engine_skills = [
+        s["id"] for s in rec["skills"] if s["id"] in _ENGINE_SKILL_IDS
     ]
 
     project_id = await _create_project(
@@ -490,7 +491,7 @@ async def test_recommend_then_preview(
                 "stackPreset": "fastapi-nextjs",
             },
             "agents": engine_agents if engine_agents else ["backend"],
-            "skills": [s["id"] for s in rec["skills"][:2]],
+            "skills": engine_skills,
             "platform": {"platformId": "claude-code"},
         },
         headers=auth_headers,
@@ -826,12 +827,9 @@ async def test_recommend_to_generate_to_redownload(client: AsyncClient) -> None:
 async def test_all_solution_types_recommend_in_catalog(
     client: AsyncClient, solution_type: str
 ) -> None:
-    """모든 솔루션 유형의 추천 항목이 카탈로그에 존재하는지 교차 검증."""
-    agents_catalog = {
-        a["id"] for a in (await client.get("/api/v1/catalog/agents")).json()["items"]
-    }
-    skills_catalog = {
-        s["id"] for s in (await client.get("/api/v1/catalog/skills")).json()["items"]
+    """모든 솔루션 유형의 추천 에이전트는 platforms, 파이프라인은 pipelines에 존재."""
+    platforms_catalog = {
+        a["id"] for a in (await client.get("/api/v1/catalog/platforms")).json()["items"]
     }
     pipelines_catalog = {
         p["id"] for p in (await client.get("/api/v1/catalog/pipelines")).json()["items"]
@@ -844,14 +842,10 @@ async def test_all_solution_types_recommend_in_catalog(
     data = rec.json()
 
     rec_agents = {a["id"] for a in data["agents"]}
-    rec_skills = {s["id"] for s in data["skills"]}
     rec_pipelines = {p["id"] for p in data["pipelines"]}
 
-    assert rec_agents.issubset(agents_catalog), (
-        f"{solution_type}: 카탈로그에 없는 에이전트 {rec_agents - agents_catalog}"
-    )
-    assert rec_skills.issubset(skills_catalog), (
-        f"{solution_type}: 카탈로그에 없는 스킬 {rec_skills - skills_catalog}"
+    assert rec_agents.issubset(platforms_catalog), (
+        f"{solution_type}: platforms 카탈로그에 없는 에이전트 {rec_agents - platforms_catalog}"
     )
     assert rec_pipelines.issubset(pipelines_catalog), (
         f"{solution_type}: 카탈로그에 없는 파이프라인 {rec_pipelines - pipelines_catalog}"

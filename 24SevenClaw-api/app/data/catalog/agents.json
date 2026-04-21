@@ -1,42 +1,37 @@
 [
   {
-    "id": "claude-code",
-    "name": "Claude Code",
-    "description": "Anthropic Claude 기반 코드 에이전트",
-    "provider": "anthropic",
-    "category": "code-generation",
-    "supported_languages": ["python", "typescript", "javascript", "go", "rust"],
-    "config_dir": ".claude",
-    "tags": ["ai", "code", "anthropic"]
+    "id": "harness",
+    "label": "Harness",
+    "description": "코드 품질 게이트"
   },
   {
-    "id": "gemini-cli",
-    "name": "Gemini CLI",
-    "description": "Google Gemini 기반 CLI 에이전트",
-    "provider": "google",
-    "category": "code-generation",
-    "supported_languages": ["python", "typescript", "javascript", "java", "kotlin"],
-    "config_dir": ".gemini",
-    "tags": ["ai", "code", "google"]
+    "id": "architect",
+    "label": "Architect",
+    "description": "시스템 설계"
   },
   {
-    "id": "cursor",
-    "name": "Cursor",
-    "description": "Cursor IDE 내장 AI 에이전트",
-    "provider": "cursor",
-    "category": "ide-agent",
-    "supported_languages": ["python", "typescript", "javascript", "go", "rust"],
-    "config_dir": ".cursor",
-    "tags": ["ai", "ide", "cursor"]
+    "id": "frontend",
+    "label": "Frontend",
+    "description": "UI/UX 구현"
   },
   {
-    "id": "codex",
-    "name": "Codex CLI",
-    "description": "OpenAI Codex 기반 CLI 에이전트",
-    "provider": "openai",
-    "category": "code-generation",
-    "supported_languages": ["python", "typescript", "javascript"],
-    "config_dir": ".codex",
-    "tags": ["ai", "code", "openai"]
+    "id": "backend",
+    "label": "Backend",
+    "description": "API/서버"
+  },
+  {
+    "id": "qa",
+    "label": "QA",
+    "description": "테스트 자동화"
+  },
+  {
+    "id": "devops",
+    "label": "DevOps",
+    "description": "인프라/배포"
+  },
+  {
+    "id": "security",
+    "label": "Security",
+    "description": "보안 감사"
   }
 ]

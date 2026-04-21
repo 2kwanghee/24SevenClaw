@@ -8,26 +8,28 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] /registry 데드 링크 + 중복 admin/registry 탭 페이지 제거**
+- [x] **[api] Catalog API 스키마 검증 + 하드코딩 값 seed 주입**
   > 요청사항: ## 목적
 
-사이드바의 에이전트/스킬/MCP 3개 메뉴가 현재 404 데드 링크. UX 신뢰도 저하 방지를 위해 제거하고 중복 레거시 탭 페이지도 함께 정리.
+위저드 Step 6 동적화 전에 기존 하드코딩 값을 DB에 seed 데이터로 주입해 빈 목록 방지.
 
 ## 작업 범위
 
-* `src/app/(dashboard)/layout.tsx` navItems에서 `/registry/agents`, `/registry/skills`, `/registry/mcps` 3개 엔트리 제거
-* 빈 디렉토리 `src/app/(dashboard)/registry/{agents,skills,mcps}/` 삭제
-* 중복 레거시 페이지 `src/app/(dashboard)/admin/registry/page.tsx` 삭제 (사이드바에서 링크 없고 개별 페이지와 기능 동일)
-* 관리자 `/admin/registry/agents|skills|mcps` 3개 메뉴는 그대로 유지
+* `app/api/v1/catalog.py` 응답에 `id`, `label`, `description` 필드 포함 여부 검증, 누락 시 스키마 보강
+* Alembic data migration: 기존 하드코딩 7 agents + 6 skills를 멱등하게 DB 삽입
+  * agents: harness, architect, frontend, backend, qa, devops, security
+  * skills: linear, telegram, github, slack, jira, notion
+* `app/schemas/catalog.py` 필요 시 보강
 
 ## 완료 기준
 
-* 사이드바 클릭 시 404 발생 없음
-* `npm run typecheck && npm run build` 통과
+* `GET /api/v1/catalog/agents` → 7개 항목 JSON 반환
+* `GET /api/v1/catalog/skills` → 6개 항목 JSON 반환
+* Alembic migration 재실행 시 중복 삽입 없음 (멱등)
 
 ## 선행 조건
 
-없음 (독립적으로 배포 가능)
+없음 (24S-172와 병렬 가능이지만 순차 진행)
 
 ---
 
@@ -37,4 +39,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | /registry 데드 링크 제거 + admin/registry/page.tsx 삭제 | ✅ 완료 | pre-existing KPI 타입 누락도 함께 수정 |
+| 2026-04-21 | Catalog API 스키마 검증 + seed 주입 | ✅ 완료 | agents.json 7항목, skills.json 6항목, CatalogItemResponse(id/label/description), 016 Alembic migration, 421/421 tests pass |

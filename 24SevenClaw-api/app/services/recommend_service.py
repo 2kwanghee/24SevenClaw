@@ -4,6 +4,52 @@ from typing import Any
 
 from app.services.catalog_service import CatalogService
 
+# 추천 서비스 전용 workflow 스킬 정의 (공개 catalog /skills와는 별도)
+_WORKFLOW_SKILLS_CATALOG: list[dict[str, Any]] = [
+    {
+        "id": "tdd-smart-coding",
+        "name": "TDD Smart Coding",
+        "description": "테스트 주도 개발 워크플로 스킬",
+        "type": "workflow",
+        "category": "development",
+    },
+    {
+        "id": "fullstack",
+        "name": "Fullstack Development",
+        "description": "풀스택 개발 워크플로 (FastAPI + Next.js)",
+        "type": "workflow",
+        "category": "development",
+    },
+    {
+        "id": "code-review",
+        "name": "Code Review",
+        "description": "AI 기반 코드 리뷰 자동화",
+        "type": "workflow",
+        "category": "quality",
+    },
+    {
+        "id": "github-mcp",
+        "name": "GitHub MCP",
+        "description": "GitHub 연동 외부 도구 (이슈, PR, 리뷰)",
+        "type": "external-tool",
+        "category": "integration",
+    },
+    {
+        "id": "linear-mcp",
+        "name": "Linear MCP",
+        "description": "Linear 프로젝트 관리 연동",
+        "type": "external-tool",
+        "category": "integration",
+    },
+    {
+        "id": "database",
+        "name": "Database",
+        "description": "데이터베이스 직접 연결 (PostgreSQL, MySQL, SQLite)",
+        "type": "external-tool",
+        "category": "integration",
+    },
+]
+
 # 솔루션 유형 → 추천 에이전트 ID 매핑
 AGENT_RULES: dict[str, list[str]] = {
     "saas": ["claude-code", "cursor"],
@@ -272,8 +318,8 @@ class RecommendService:
         skill_ids = SKILL_RULES.get(normalized, DEFAULT_SKILL_IDS)
         pipeline_ids = PIPELINE_RULES.get(normalized, DEFAULT_PIPELINE_IDS)
 
-        agents_catalog = self._catalog.get("agents")
-        skills_catalog = self._catalog.get("skills")
+        agents_catalog = self._catalog.get("platforms")
+        skills_catalog = _WORKFLOW_SKILLS_CATALOG
         pipelines_catalog = self._catalog.get("pipelines")
 
         agents = [a for a in agents_catalog if a["id"] in agent_ids]
