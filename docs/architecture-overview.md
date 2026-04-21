@@ -6,7 +6,7 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 
 - **웹 SaaS (Cloud)**: 회원가입 → 7-Step 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
 - **로컬 (사용자 PC)**: ZIP 해제 → Agent 플랫폼(Claude Code/Gemini CLI/Cursor 등) 실행 → AI 개발
-- **CLI (파워유저)**: `npx @24sevenclaw/cli init`으로 동일한 설정 파일 생성 가능
+- **CLI (파워유저)**: `npx @clickeye/cli init`으로 동일한 설정 파일 생성 가능
 
 비개발자도 브라우저에서 솔루션을 설계하고, ZIP 하나로 AI 개발 환경을 즉시 구축할 수 있다.
 
@@ -117,7 +117,7 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 ### 3.3 컴포넌트 구조
 
 ```
-24SevenClaw-web (Next.js 15)
+clickeye-web (Next.js 15)
 ├── 랜딩 페이지                     (완료)
 ├── 인증 (로그인/회원가입)            (완료)
 ├── 대시보드
@@ -133,7 +133,7 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 │   └── Step 7: 프리뷰 + ZIP 다운로드
 └── 레지스트리 브라우저               (기본 구조)
 
-24SevenClaw-api (FastAPI)
+clickeye-api (FastAPI)
 ├── REST API
 │   ├── 인증 (회원가입/로그인/JWT)     (완료)
 │   ├── Organizations CRUD            (LoadMap_v3)

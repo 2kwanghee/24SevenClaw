@@ -35,16 +35,16 @@ user-invocable: true
 현재 구현 상태를 분석하여 보수/추가 필요 사항을 도출한다:
 
 1. **LoadMap.md의 현재 Week 미완료 항목** 확인
-2. **Backend 분석** (`24SevenClaw-api/`):
+2. **Backend 분석** (`clickeye-api/`):
    - `app/models/` — ERD 대비 미구현 모델 (없으면 스킵)
    - `app/api/v1/` — 미구현 API 엔드포인트
    - `tests/` — 테스트 커버리지 부족 영역
    - 코드 내 TODO/FIXME/HACK 주석
-3. **Frontend 분석** (`24SevenClaw-web/`):
+3. **Frontend 분석** (`clickeye-web/`):
    - `src/app/` — 미구현 페이지/컴포넌트
    - 하드코딩된 값, 임시 구현체
    - 코드 내 TODO/FIXME 주석
-4. **Infra 분석** (`24SevenClaw-infra/`):
+4. **Infra 분석** (`clickeye-infra/`):
    - CI/CD 파이프라인 유무
    - 환경설정 누락 사항
 

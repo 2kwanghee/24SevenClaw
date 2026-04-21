@@ -11,7 +11,7 @@
 1. 우측 상단 프로필 → **Settings** 클릭
 2. 좌측 메뉴 **API** 섹션 클릭
 3. **Personal API keys** → **Create key** 클릭
-4. 이름 입력 (예: `24SevenClaw-agent`)
+4. 이름 입력 (예: `clickeye-agent`)
 5. 생성된 키 복사 — **다시 확인 불가**
 
 발급된 키 형식: `lin_api_...`
@@ -43,7 +43,7 @@ curl -H "Authorization: lin_api_여기에키" \
 
 ## 5. AI Team 연동 설정
 
-24SevenClaw AI Team 화면과 연동하면:
+ClickEye AI Team 화면과 연동하면:
 - 세션 생성 → Linear 이슈 자동 등록 (status: Queued)
 - 서브태스크 완료 → Linear 이슈 상태 자동 업데이트
 - Merge 완료 → Linear 이슈 Done 전환

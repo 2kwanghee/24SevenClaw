@@ -11,6 +11,7 @@ class CatalogItemResponse(BaseModel):
     id: str
     label: str
     description: str | None = None
+    category: str | None = None
 
 
 class CatalogListResponse(BaseModel):

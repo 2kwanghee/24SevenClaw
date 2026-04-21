@@ -47,7 +47,7 @@
 - AI Team 배정 로직 (역할별 에이전트 매칭)
 - 결과 통합 엔진 (다수 AI 출력 병합)
 
-**영향 범위**: `24SevenClaw-api/app/services/`, `.claude/skills/`
+**영향 범위**: `clickeye-api/app/services/`, `.claude/skills/`
 
 ---
 
@@ -70,7 +70,7 @@ Draft → Reviewed → Revised → Approved → In Development → Validated →
 - 전이 규칙 (예: Reviewed→Revised는 리뷰 완료 시에만)
 - 메타정보 자동 기록 (작성 AI, 리뷰 AI, 타임스탬프)
 
-**영향 범위**: `24SevenClaw-api/app/models/`, `24SevenClaw-contracts/protocol/`
+**영향 범위**: `clickeye-api/app/models/`, `clickeye-contracts/protocol/`
 
 ---
 
@@ -91,7 +91,7 @@ Draft → Reviewed → Revised → Approved → In Development → Validated →
 - 리뷰 결과 diff 생성 + 병합 로직
 - 반론/대안 제시 프롬프트 체계
 
-**영향 범위**: `24SevenClaw-api/app/services/`, pipeline 설정
+**영향 범위**: `clickeye-api/app/services/`, pipeline 설정
 
 ---
 
@@ -113,7 +113,7 @@ Draft → Reviewed → Revised → Approved → In Development → Validated →
 - 상태 머신과 연동 (검증 실패 → Revised로 롤백)
 - QA 에이전트 카탈로그 확장
 
-**영향 범위**: `24SevenClaw-api/app/services/`, QA 에이전트 설정
+**영향 범위**: `clickeye-api/app/services/`, QA 에이전트 설정
 
 ---
 
@@ -133,7 +133,7 @@ Draft → Reviewed → Revised → Approved → In Development → Validated →
 - 대시보드 시각화 (상태별 카운트, 타임라인, 품질 메트릭 차트)
 - Linear 데이터 연동 표시
 
-**영향 범위**: `24SevenClaw-web/src/app/dashboard/`, `24SevenClaw-api/app/api/v1/`
+**영향 범위**: `clickeye-web/src/app/dashboard/`, `clickeye-api/app/api/v1/`
 
 ---
 

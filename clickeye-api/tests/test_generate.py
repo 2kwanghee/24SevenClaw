@@ -108,6 +108,45 @@ def test_generate_zip_linear_skill_includes_team_id() -> None:
         assert "LINEAR_TEAM_ID=" in example
 
 
+def test_generate_zip_notion_skill_includes_files() -> None:
+    """notion 스킬 선택 시 notion-sync.md + .env.example에 NOTION 키 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "notion-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["notion"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = generate_zip(request, "notion-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".claude/skills/notion-sync.md" in names
+        assert ".env.example" in names
+        example = zf.read(".env.example").decode()
+        assert "NOTION_API_KEY=" in example
+        assert "NOTION_DATABASE_ID=" in example
+        content = zf.read(".claude/skills/notion-sync.md").decode()
+        assert "Notion" in content
+
+
+def test_generate_zip_linear_not_broken_after_notion_added() -> None:
+    """notion 추가 후 linear 경로 회귀 없음 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "linear-reg", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["linear"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = generate_zip(request, "linear-reg")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".claude/skills/linear-sync.md" in names
+        assert ".claude/skills/notion-sync.md" not in names
+
+
 def test_generate_zip_with_env_vars() -> None:
     """envVars 전달 시 .env + .env.example 포함."""
     request = GenerateRequest(

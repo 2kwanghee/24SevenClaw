@@ -79,6 +79,7 @@ SKILLS: list[dict[str, Any]] = [
         "output_file": "linear-sync.md",
         "dependencies": ["linear"],
         "hooks": [],
+        "category": "ticket_source",
         "env_vars": [
             {
                 "name": "LINEAR_API_KEY",
@@ -89,6 +90,29 @@ SKILLS: list[dict[str, Any]] = [
             {
                 "name": "LINEAR_TEAM_ID",
                 "description": "Linear 팀 UUID (API로 조회 또는 URL에서 확인)",
+                "pattern": "",
+                "required": True,
+            },
+        ],
+    },
+    {
+        "id": "notion",
+        "name": "Notion 연동",
+        "template": "skills/notion.md.j2",
+        "output_file": "notion-sync.md",
+        "dependencies": ["notion"],
+        "hooks": [],
+        "category": "ticket_source",
+        "env_vars": [
+            {
+                "name": "NOTION_API_KEY",
+                "description": "Notion Integration 토큰 (notion.so/my-integrations에서 발급)",
+                "pattern": r"^secret_[A-Za-z0-9]+$",
+                "required": True,
+            },
+            {
+                "name": "NOTION_DATABASE_ID",
+                "description": "Notion 데이터베이스 ID (데이터베이스 URL의 32자리 UUID)",
                 "pattern": "",
                 "required": True,
             },

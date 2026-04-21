@@ -1,0 +1,151 @@
+# Notion 연동
+
+> Notion 데이터베이스를 기반으로 작업을 추적하고 페이지를 자동 생성한다.
+
+## 기본 워크플로
+
+1. Notion 데이터베이스에서 작업 항목 조회 → Claude Code에서 작업 시작
+2. 작업 시작 시 데이터베이스 항목 상태를 "In Progress"로 변경
+3. 코드 구현 + 검증 완료
+4. 커밋 메시지에 Notion 페이지 ID 포함 (예: `[API] 인증 구현 (notion-page-abc123)`)
+5. PR 생성 시 Notion 페이지 링크 첨부
+6. 머지 시 데이터베이스 항목 상태를 "Done"으로 변경
+
+## 연동 설정
+
+`.env`에 아래 값을 설정하세요:
+
+```
+NOTION_API_KEY=secret_...
+NOTION_DATABASE_ID=32자리-UUID
+```
+
+### Notion API 키 발급 방법
+
+1. [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations) 접속
+2. **+ New integration** 클릭
+3. Integration 이름 입력 후 **Submit**
+4. **Internal Integration Token** 복사 → `NOTION_API_KEY`에 설정
+
+### 데이터베이스 ID 획득 방법
+
+1. Notion에서 대상 데이터베이스 페이지 열기
+2. 주소창 URL 확인:
+   ```
+   https://www.notion.so/workspace/32자리-UUID?v=...
+   ```
+3. URL의 32자리 UUID 부분 복사 → `NOTION_DATABASE_ID`에 설정
+
+### Integration을 데이터베이스에 연결
+
+1. 데이터베이스 페이지 우상단 **⋯** 메뉴 클릭
+2. **Add connections** → 생성한 Integration 선택
+
+---
+
+## Notion API 호출 예시
+
+### 데이터베이스 항목 조회
+
+```bash
+curl -X POST https://api.notion.com/v1/databases/$NOTION_DATABASE_ID/query \
+  -H "Authorization: Bearer $NOTION_API_KEY" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filter": {
+      "property": "Status",
+      "status": { "equals": "In Progress" }
+    }
+  }'
+```
+
+### 새 페이지(항목) 생성
+
+```bash
+curl -X POST https://api.notion.com/v1/pages \
+  -H "Authorization: Bearer $NOTION_API_KEY" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "parent": { "database_id": "'"$NOTION_DATABASE_ID"'" },
+    "properties": {
+      "Name": {
+        "title": [{ "text": { "content": "새 작업 항목" } }]
+      },
+      "Status": {
+        "status": { "name": "In Progress" }
+      }
+    }
+  }'
+```
+
+### 페이지 상태 업데이트
+
+```bash
+curl -X PATCH https://api.notion.com/v1/pages/{PAGE_ID} \
+  -H "Authorization: Bearer $NOTION_API_KEY" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "properties": {
+      "Status": {
+        "status": { "name": "Done" }
+      }
+    }
+  }'
+```
+
+---
+
+## AI Team 동기화
+
+ClickEye AI Team 화면에서 생성된 세션/서브태스크를 Notion 데이터베이스 항목으로 자동 등록합니다.
+
+### 동기화 트리거
+
+아래 상황에서 Notion API를 호출하세요:
+
+#### 1. AI Team 세션 생성 시
+
+ClickEye API에서 `notion_sync_hint` 필드가 포함된 응답을 수신하면 Notion 페이지를 생성합니다.
+
+```
+[감지 조건]
+- ClickEye API 응답에 notion_sync_hint.action == "create_page" 포함
+- notion_sync_hint.title, notion_sync_hint.description 필드 존재
+
+[실행 액션]
+Notion API로 데이터베이스 항목 생성:
+  - Name: notion_sync_hint.title
+  - Description: notion_sync_hint.description
+  - Status: "Queued"
+```
+
+#### 2. 서브태스크 생성 시
+
+```
+[감지 조건]
+- notion_sync_hint.action == "create_subpage"
+
+[실행 액션]
+- 부모 페이지 하위에 서브페이지 생성, 또는
+- 부모 페이지 본문에 체크리스트 항목으로 추가
+```
+
+#### 3. Merge/완료 시
+
+```
+[감지 조건]
+- notion_sync_hint.action == "complete_page"
+- notion_sync_hint.page_id 존재
+
+[실행 액션]
+- 해당 페이지 Status를 "Done"으로 업데이트
+```
+
+### 주의사항
+
+- `NOTION_API_KEY`는 **사용자 로컬 .env**에만 저장 (서버에 전송하지 않음)
+- 동기화 실패 시 오류를 기록하되, 주 작업 흐름을 중단하지 않음
+- 이미 생성된 페이지는 중복 생성하지 않도록 page_id를 로컬에 캐시

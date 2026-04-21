@@ -6,35 +6,42 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[guide] 첫 방문 인터랙티브 투어 (react-joyride)**
-  > 요청사항: react-joyride 설치 및 첫 방문 시 자동 실행되는 온보딩 투어 구현.
+- [x] **[api] 카탈로그 Notion 스킬 추가 및 ZIP 템플릿 구현**
+  > 요청사항: ## 배경
 
-신규 패키지: react-joyride (Next.js 15 app router 호환).
+위저드에서 Linear/Notion 중 정확히 하나를 티켓 소스로 필수 선택하도록 변경 예정.
+현재 카탈로그에 Notion 스킬이 없어 백엔드 카탈로그/템플릿 추가가 선행 필요.
 
-신규 파일:
+## 작업 내용
 
-* 24SevenClaw-web/src/stores/onboarding-store.ts (zustand persist, tourCompleted 플래그, theme-store.ts 패턴 복제)
-* 24SevenClaw-web/src/components/onboarding/tour.tsx (react-joyride 래퍼 컴포넌트)
-* 24SevenClaw-web/src/components/onboarding/tour-steps.ts (투어 단계 정의)
+- `clickeye-api/app/engine/catalog.py` `SKILLS`에 `notion` 항목 추가
+  - id, label, description, env_vars: NOTION_API_KEY, NOTION_DATABASE_ID
+  - category 필드 신설 (값: "ticket_source" — Linear/Notion 공통 분류용)
+- 카탈로그 응답 스키마에 category 필드 추가 (`app/schemas/catalog.py`)
+- `clickeye-api/app/engine/templates/skills/notion.md.hbs` 생성
+  - 기존 `skills/linear.md.hbs` 구조 준수
+  - Notion API 사용법 / 데이터베이스 ID 획득 / 페이지 생성 예시
+- `clickeye-api/app/engine/generator.py` 템플릿 로더 검증 (linear와 동일 경로 처리 확인)
+- 카탈로그 API 응답 스냅샷 테스트 업데이트
 
-수정 파일:
+## 검증
 
-* src/app/(dashboard)/layout.tsx — 첫 방문 감지 시 투어 자동 실행
-* src/components/layout/header.tsx — Help 아이콘 드롭다운 확장 ('가이드 보기' / '튜토리얼 다시 시작')
+* `GET /api/v1/catalog/skills` 응답에 notion 포함 확인
+* ZIP 생성 시 `selectedSkills=["notion"]`이면 `skills/notion.md` 파일 포함
+* 기존 Linear 선택 경로 회귀 없음
 
-투어 단계 (4-5단계):
+## 관련 파일
 
-1. 대시보드 개요 (사이드바 네비게이션)
-2. 새 솔루션 만들기 → 위저드 진입
-3. Settings → Linear 연동
-4. Projects → AI Team 화면
-5. Help 아이콘 → /guide 안내
+* `clickeye-api/app/engine/catalog.py:58-113`
+* `clickeye-api/app/engine/generator.py:156,241`
+* `clickeye-api/app/engine/templates/skills/linear.md.hbs` (참고용)
+* `clickeye-api/app/schemas/catalog.py`
 
-의존: CLK-6(24S-185) 완료 후 진행.
+## 다음 작업
 
-검증: localStorage.clear() → 대시보드 진입 → 투어 자동 시작, 완료 후 tourCompleted:true 저장, Help에서 재실행.
+이 이슈 완료 후 → \[web\] 위저드 XOR UI 이슈 착수 가능
 
 ---
 
@@ -44,4 +51,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [guide] 첫 방문 인터랙티브 투어 | 완료 | react-joyride v3, onboarding-store, TourWrapper, HelpDropdown |
+| 2026-04-21 | Notion 스킬 확인 + notion.md.j2 ClickEye 브랜딩 수정 | ✅ | catalog.py/JSON/template 이미 구현, .j2 브랜딩만 교체, 테스트 21개 통과 |
