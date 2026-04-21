@@ -118,6 +118,22 @@ async def preview_project(
     return generate_preview(data)
 
 
+async def _resolve_catalog_entry(
+    db: AsyncSession, slug: str | None
+) -> dict[str, Any] | None:
+    """slug로 카탈로그 엔트리를 조회하여 dict로 반환. 없으면 None."""
+    if not slug:
+        return None
+    from app.services.prototype_catalog_service import PrototypeCatalogService
+
+    svc = PrototypeCatalogService(db)
+    try:
+        entry = await svc.get_entry_by_slug(slug)
+    except Exception:
+        return None
+    return {col.key: getattr(entry, col.key) for col in entry.__table__.columns}
+
+
 async def _resolve_pm(
     db: AsyncSession,
     pm_slug: str | None,
@@ -178,11 +194,15 @@ async def generate_draft(
     pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
         db, pm_slug=data.pm_slug, pm_profile_id=data.pm_profile_id
     )
+    catalog_entry = await _resolve_catalog_entry(
+        db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
+    )
     buffer = generate_zip(
         data, project_name,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
+        catalog_entry=catalog_entry,
     )
 
     filename = f"{project_name}.zip"
@@ -210,18 +230,27 @@ async def generate_project(
     pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
         db, pm_slug=data.pm_slug, pm_profile_id=data.pm_profile_id
     )
+    catalog_entry = await _resolve_catalog_entry(
+        db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
+    )
     buffer = generate_zip(
         data, project_name,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
+        catalog_entry=catalog_entry,
     )
+
+    # catalogEntrySlug 를 solution에 병합하여 재다운로드 시 복원 가능하게 저장
+    persisted_solution = {**data.solution}
+    if data.catalog_entry_slug:
+        persisted_solution["catalogEntrySlug"] = data.catalog_entry_slug
 
     # 위저드 설정 자동 저장 (env_vars 제외)
     wizard_data = WizardConfigSave(
         wizard_data=WizardData(
             organization=data.organization,
-            solution=data.solution,
+            solution=persisted_solution,
             agents=[{"id": a} for a in data.agents],
             skills=[{"id": s} for s in data.skills],
             pipelines=[{"id": p} for p in data.pipelines],
@@ -285,11 +314,16 @@ async def redownload_project(
         db, pm_slug=None, pm_profile_id=stored_pm_id
     )
 
+    # solution에 저장된 catalogEntrySlug로 카탈로그 엔트리 복원
+    catalog_slug = wd.get("solution", {}).get("catalogEntrySlug")
+    catalog_entry = await _resolve_catalog_entry(db, catalog_slug)
+
     buffer = generate_zip(
         gen_request, project_name,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
+        catalog_entry=catalog_entry,
     )
 
     filename = f"{project_name}.zip"

@@ -14,12 +14,14 @@ def generate_zip(
     pm_slug: str | None = None,
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
+    catalog_entry: dict[str, Any] | None = None,
 ) -> io.BytesIO:
     """위저드 설정 기반 프로젝트 파일을 ZIP으로 패키징하여 BytesIO로 반환.
 
     API 키(env_vars)는 메모리에서만 처리되며 DB/로그에 기록하지 않음.
     pm_slug/pm_markdown 이 있으면 플랫폼별 PM 파일을 ZIP에 포함한다.
     pm_compositions 이 있으면 composition 에이전트/스킬을 우선 병합한다.
+    catalog_entry 가 있으면 CLAUDE.md / PM 파일에 설계 철학·에이전트 컨텍스트를 주입한다.
     """
     engine_project_name = request.solution.get("projectName", project_name)
     project_type = request.solution.get("solutionType", "fullstack")
@@ -39,6 +41,7 @@ def generate_zip(
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
+        catalog_entry=catalog_entry,
     )
 
     buffer = io.BytesIO()

@@ -18,6 +18,10 @@ class GenerateRequest(PreviewRequest):
         default=None,
         description="선택된 PM 프로필 ID — pm_slug보다 우선하여 DB에서 조회",
     )
+    catalog_entry_slug: str | None = Field(
+        default=None,
+        description="선택된 카탈로그 엔트리 slug — ZIP에 설계 철학 및 에이전트 컨텍스트 주입",
+    )
 
 
 class RedownloadRequest(BaseModel):

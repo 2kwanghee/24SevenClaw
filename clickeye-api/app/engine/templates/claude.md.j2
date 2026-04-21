@@ -11,6 +11,9 @@
 - **백엔드**: {{ stack.backend }}
 - **프론트엔드**: {{ stack.frontend }}
 {% endif %}
+{% if catalog_entry %}
+- **아키텍처 패턴**: {{ catalog_entry.get('architecture_pattern', '') }}
+{% endif %}
 
 ## Agent Files
 
@@ -19,6 +22,33 @@
 {% for ref in agent_refs %}
 - `{{ ref.file }}` — {{ ref.name }}
 {% endfor %}
+
+{% if catalog_entry and (catalog_entry.get('design_philosophy') or catalog_entry.get('implementation_constraints')) %}
+## 프로젝트 구현 방식
+
+{% if catalog_entry.get('design_philosophy') %}
+**설계 철학**:
+{{ catalog_entry.get('design_philosophy') }}
+
+{% endif %}
+{% if catalog_entry.get('implementation_constraints') %}
+**구현 제약사항**:
+{% for constraint in catalog_entry.get('implementation_constraints', []) %}
+- {{ constraint }}
+{% endfor %}
+
+{% endif %}
+{% if catalog_entry.get('tech_stack_tags') %}
+**권장 기술 스택**: {{ catalog_entry.get('tech_stack_tags', []) | join(', ') }}
+
+{% endif %}
+{% if catalog_entry.get('recommended_agents') %}
+**권장 에이전트**: {{ catalog_entry.get('recommended_agents', []) | join(', ') }}
+{% endif %}
+{% if catalog_entry.get('excluded_agents') %}
+**제외 에이전트** (이 프로젝트에 불필요): {{ catalog_entry.get('excluded_agents', []) | join(', ') }}
+{% endif %}
+{% endif %}
 
 ## 하네스 엔지니어링
 

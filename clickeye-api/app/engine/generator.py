@@ -63,6 +63,7 @@ def generate_all(
     pm_slug: str | None = None,
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
+    catalog_entry: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -91,7 +92,9 @@ def generate_all(
     _generate_skill_files(files, dirs, project_name, project_type, stack, workflow_ids)
 
     # ë£¨í¸ ê°?´ë ?ì± (CLAUDE.md / GEMINI.md ??
-    _generate_root_guide(files, dirs, platform_id, project_name, project_type, stack, agent_ids)
+    _generate_root_guide(
+        files, dirs, platform_id, project_name, project_type, stack, agent_ids, catalog_entry
+    )
 
     # settings.json ?ì±
     _generate_settings(files, dirs, platform_id, workflow_ids)
@@ -111,7 +114,7 @@ def generate_all(
 
     # PM ?ì¼ ì£¼ì
     if pm_slug and pm_markdown:
-        _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown)
+        _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown, catalog_entry)
 
     # ?¨ë³´??docs ë°?/24SeventStart ì»¤ë§¨??ì£¼ì
     _emit_docs(files)
@@ -185,6 +188,7 @@ def _generate_root_guide(
     project_type: str,
     stack: dict[str, Any] | None,
     agent_ids: list[str],
+    catalog_entry: dict[str, Any] | None = None,
 ) -> None:
     """루트 가이드 파일 생성 (CLAUDE.md / GEMINI.md 등)."""
     agents = get_selected_agents(agent_ids)
@@ -201,6 +205,7 @@ def _generate_root_guide(
         stack=stack,
         agent_refs=agent_refs,
         generated_at=datetime.now(UTC).strftime("%Y-%m-%d"),
+        catalog_entry=catalog_entry,
     )
     files[dirs["root_guide"]] = content
 
@@ -423,6 +428,7 @@ def _generate_pm_files(
     platform_id: str,
     pm_slug: str,
     pm_markdown: str,
+    catalog_entry: dict[str, Any] | None = None,
 ) -> None:
     """플랫폼별 PM 파일 생성 — Jinja2 템플릿 기반."""
     template_map: dict[str, tuple[str, str]] = {
@@ -445,7 +451,7 @@ def _generate_pm_files(
     }
     template_name, output_path = template_map.get(platform_id, template_map["claude-code"])
     template = _env.get_template(template_name)
-    content = template.render(pm_slug=pm_slug, pm_markdown=pm_markdown)
+    content = template.render(pm_slug=pm_slug, pm_markdown=pm_markdown, catalog_entry=catalog_entry)
     files[output_path] = content
 
 
