@@ -840,7 +840,22 @@ export const prototypeSessions = {
     authRequest<void>(`/api/v1/prototype-sessions/${sessionId}`, token, {
       method: "DELETE",
     }),
+
+  recommendComponents: (token: string, sessionId: string) =>
+    authRequest<RecommendComponentsResponse>(
+      `/api/v1/prototype-sessions/${sessionId}/recommend-components`,
+      token,
+    ),
 };
+
+/** GET /prototype-sessions/{id}/recommend-components 응답 */
+export interface RecommendComponentsResponse {
+  agents: string[];
+  skills: string[];
+  excluded_agents: string[];
+  catalog_entry_slug: string | null;
+  reasoning: string | null;
+}
 
 // --- Solution Wizard v2: PM Profiles ---
 
@@ -1765,6 +1780,143 @@ export const catalog = {
     list: () =>
       request<CatalogListResponse<CatalogSkill>>("/api/v1/catalog/skills"),
   },
+};
+
+// ─── Prototype Catalog Admin ──────────────────────────────────────────────────
+
+export interface PrototypeCatalogEntry {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  tags: string[];
+  primary_tag: string | null;
+  design_pattern: string | null;
+  architecture_pattern: string | null;
+  tech_stack_tags: string[];
+  pros: string[];
+  cons: string[];
+  ui_structure: Record<string, unknown>;
+  menu_structure: Record<string, unknown>;
+  color_palette: Record<string, unknown>;
+  design_philosophy: string | null;
+  implementation_constraints: string[];
+  recommended_agents: string[];
+  optional_agents: string[];
+  excluded_agents: string[];
+  recommended_skills: string[];
+  agent_strategy: string | null;
+  task_distribution_guide: string | null;
+  is_active: boolean;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PrototypeCatalogEntryCreate = Omit<PrototypeCatalogEntry, "id" | "created_at" | "updated_at">;
+export type PrototypeCatalogEntryUpdate = Partial<Omit<PrototypeCatalogEntry, "id" | "slug" | "created_at" | "updated_at">>;
+
+export interface PrototypeCatalogListResponse {
+  items: PrototypeCatalogEntry[];
+  total: number;
+}
+
+export const prototypeCatalogAdmin = {
+  list: (token: string, params?: { tags?: string; primary_tag?: string; is_active?: boolean; offset?: number; limit?: number }) => {
+    const qs = params ? new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    ).toString() : "";
+    return authRequest<PrototypeCatalogListResponse>(
+      `/api/v1/admin/prototype-catalog${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+  get: (token: string, id: string) =>
+    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/prototype-catalog/${id}`, token),
+  create: (token: string, data: PrototypeCatalogEntryCreate) =>
+    authRequest<PrototypeCatalogEntry>("/api/v1/admin/prototype-catalog", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (token: string, id: string, data: PrototypeCatalogEntryUpdate) =>
+    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/prototype-catalog/${id}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  delete: (token: string, id: string) =>
+    authRequest<void>(`/api/v1/admin/prototype-catalog/${id}`, token, { method: "DELETE" }),
+};
+
+// ─── Prototype Tags Admin ─────────────────────────────────────────────────────
+
+export interface PrototypeTag {
+  id: string;
+  slug: string;
+  label: string;
+  label_ko: string | null;
+  description: string | null;
+  color: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export type PrototypeTagCreate = Omit<PrototypeTag, "id">;
+export type PrototypeTagUpdate = Partial<Omit<PrototypeTag, "id" | "slug">>;
+
+export interface PrototypeTagListResponse {
+  items: PrototypeTag[];
+  total: number;
+}
+
+export const prototypeTagsAdmin = {
+  list: (token: string, params?: { is_active?: boolean }) => {
+    const qs = params ? new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    ).toString() : "";
+    return authRequest<PrototypeTagListResponse>(
+      `/api/v1/admin/prototype-tags${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+  create: (token: string, data: PrototypeTagCreate) =>
+    authRequest<PrototypeTag>("/api/v1/admin/prototype-tags", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (token: string, id: string, data: PrototypeTagUpdate) =>
+    authRequest<PrototypeTag>(`/api/v1/admin/prototype-tags/${id}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  delete: (token: string, id: string) =>
+    authRequest<void>(`/api/v1/admin/prototype-tags/${id}`, token, { method: "DELETE" }),
+};
+
+// ─── App Settings Admin ───────────────────────────────────────────────────────
+
+export interface AppSettingResponse {
+  key: string;
+  value: unknown;
+  description: string | null;
+}
+
+export const appSettingsAdmin = {
+  getAll: (token: string) =>
+    authRequest<AppSettingResponse[]>("/api/v1/admin/settings", token),
+  setVariantCount: (token: string, value: number) =>
+    authRequest<AppSettingResponse>("/api/v1/admin/settings/prototype-variant-count", token, {
+      method: "PUT",
+      body: JSON.stringify({ value }),
+    }),
+  setRagTopK: (token: string, value: number) =>
+    authRequest<AppSettingResponse>("/api/v1/admin/settings/prototype-rag-top-k", token, {
+      method: "PUT",
+      body: JSON.stringify({ value }),
+    }),
 };
 
 export { ApiClientError, NetworkError };
