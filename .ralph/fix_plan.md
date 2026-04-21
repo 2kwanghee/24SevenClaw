@@ -8,14 +8,16 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[rebrand] Phase 1 — 저위험 텍스트 치환 (24SevenClaw → ClickEye)**
-  > 요청사항: 문서·UI 텍스트에서 'ClickEye' 표기로 치환. 디렉토리·DB·패키지명은 손대지 않음.
+- [x] **[rebrand] Phase 2 — 환경변수 prefix 변경 (SEVENCLAW_* → CLICKEYE_*)**
+  > 요청사항: 환경변수 prefix 및 데이터 경로 변경.
 
-범위: [CLAUDE.md](<http://CLAUDE.md>) 6개, LoadMap_v3.md, [TODO.md](<http://TODO.md>), docs/ 17파일, .claude/agents·skills 11파일, web layout.tsx(title metadata), page.tsx(로고/푸터), auth/dashboard/solutions layout 4파일, engine 템플릿 gemini.md.hbs/claude.md.hbs/env.ts.
+범위: SEVENCLAW\_\* → CLICKEYE\_*, /data/sevenclaw → /data/clickeye, 라이센스 키 포맷 24SC-* → CLK-\*.
 
-변경 패턴: '24SevenClaw' → 'ClickEye' (단, 디렉토리명·패키지명·DB명·컨테이너명 등 고유식별자는 제외).
+대상 파일: 24SevenClaw-agent/agent/config.py, .env.example 5개, .env, 에이전트 런타임 코드(SEVENCLAW_AGENT_ID, SEVENCLAW_AGENT_SECRET, SEVENCLAW_LICENSE_KEY, SEVENCLAW_CLOUD_WS_URL 등).
 
-검증: npm run build 성공, 기존 기능 무영향.
+의존: CLK-1(24S-180) 완료 후 진행.
+
+검증: 에이전트 부팅 테스트, .env 샘플 로드 확인.
 
 ---
 
@@ -25,4 +27,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [rebrand] Phase 1 텍스트 치환 | ✅ 완료 | 문서/UI 36개 파일. 디렉토리명 보존. build 성공 |
+| 2026-04-21 | [rebrand] Phase 2 환경변수 prefix 변경 | ✅ 완료 | config.py + .env.example 2개 + docker-compose + license-model. .env는 안전규칙 준수 미변경 |

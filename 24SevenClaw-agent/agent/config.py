@@ -12,13 +12,13 @@ class AgentSettings(BaseSettings):
     heartbeat_interval: int = 30  # 초
 
     # 로컬 저장소
-    data_dir: str = "/data/sevenclaw"
-    local_db_path: str = "/data/sevenclaw/agent.db"
+    data_dir: str = "/data/clickeye"
+    local_db_path: str = "/data/clickeye/agent.db"
 
     # Docker
     docker_socket: str = "unix:///var/run/docker.sock"
 
-    model_config = {"env_file": ".env", "env_prefix": "SEVENCLAW_"}
+    model_config = {"env_file": ".env", "env_prefix": "CLICKEYE_"}
 
 
 agent_settings = AgentSettings()
