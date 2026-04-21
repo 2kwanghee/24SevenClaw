@@ -35,8 +35,8 @@ services:
 
   api:
     build:
-      context: ../../24SevenClaw-api
-      dockerfile: ../24SevenClaw-infra/docker/Dockerfile.api
+      context: ../../clickeye-api
+      dockerfile: ../clickeye-infra/docker/Dockerfile.api
     container_name: clickeye-api
     ports:
       - "8000:8000"

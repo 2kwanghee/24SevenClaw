@@ -64,12 +64,12 @@ for PRIORITY in "P1" "P2" "P3"; do
   fi
 done
 
-# ── 테스트 확인 (24SevenClaw 멀티레포) ──
+# ── 테스트 확인 (clickeye 멀티레포) ──
 FAIL_MSGS=""
 
 # API 테스트
-if [ -d "$PROJECT_DIR/24SevenClaw-api" ]; then
-  cd "$PROJECT_DIR/24SevenClaw-api"
+if [ -d "$PROJECT_DIR/clickeye-api" ]; then
+  cd "$PROJECT_DIR/clickeye-api"
   API_TEST=$(uv run pytest --tb=no -q 2>&1 | tail -1 || true)
   if echo "$API_TEST" | grep -q "failed"; then
     FAIL_MSGS="${FAIL_MSGS}API 테스트 실패: $API_TEST. "
@@ -77,8 +77,8 @@ if [ -d "$PROJECT_DIR/24SevenClaw-api" ]; then
 fi
 
 # Agent 테스트
-if [ -d "$PROJECT_DIR/24SevenClaw-agent" ]; then
-  cd "$PROJECT_DIR/24SevenClaw-agent"
+if [ -d "$PROJECT_DIR/clickeye-agent" ]; then
+  cd "$PROJECT_DIR/clickeye-agent"
   AGENT_TEST=$(uv run pytest --tb=no -q 2>&1 | tail -1 || true)
   if echo "$AGENT_TEST" | grep -q "failed"; then
     FAIL_MSGS="${FAIL_MSGS}Agent 테스트 실패: $AGENT_TEST. "
@@ -90,12 +90,12 @@ if [ -n "$FAIL_MSGS" ]; then
   exit 0
 fi
 
-# ── 린트 확인 (24SevenClaw 멀티레포) ──
+# ── 린트 확인 (clickeye 멀티레포) ──
 LINT_MSGS=""
 
 # API 린트
-if [ -d "$PROJECT_DIR/24SevenClaw-api" ]; then
-  cd "$PROJECT_DIR/24SevenClaw-api"
+if [ -d "$PROJECT_DIR/clickeye-api" ]; then
+  cd "$PROJECT_DIR/clickeye-api"
   API_LINT=$(uv run ruff check . 2>&1 | tail -1 || true)
   if echo "$API_LINT" | grep -qE "[0-9]+ error|Found [0-9]+"; then
     if ! echo "$API_LINT" | grep -q "All checks passed"; then
@@ -105,8 +105,8 @@ if [ -d "$PROJECT_DIR/24SevenClaw-api" ]; then
 fi
 
 # Agent 린트
-if [ -d "$PROJECT_DIR/24SevenClaw-agent" ]; then
-  cd "$PROJECT_DIR/24SevenClaw-agent"
+if [ -d "$PROJECT_DIR/clickeye-agent" ]; then
+  cd "$PROJECT_DIR/clickeye-agent"
   AGENT_LINT=$(uv run ruff check . 2>&1 | tail -1 || true)
   if echo "$AGENT_LINT" | grep -qE "[0-9]+ error|Found [0-9]+"; then
     if ! echo "$AGENT_LINT" | grep -q "All checks passed"; then

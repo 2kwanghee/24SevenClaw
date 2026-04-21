@@ -2,7 +2,7 @@
 import os
 
 dir_path = os.path.join(
-    "/mnt/c/workspace/24SevenClaw/24SevenClaw-web/src/app/(dashboard)/projects/[id]"
+    "/mnt/c/workspace/24SevenClaw/clickeye-web/src/app/(dashboard)/projects/[id]"
 )
 os.makedirs(dir_path, exist_ok=True)
 

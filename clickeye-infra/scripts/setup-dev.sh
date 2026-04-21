@@ -30,7 +30,7 @@ done
 echo "✅ Redis 준비 완료"
 
 # 4. API DB 마이그레이션 (api 레포가 있을 때만)
-API_DIR="$ROOT_DIR/24SevenClaw-api"
+API_DIR="$ROOT_DIR/clickeye-api"
 if [ -d "$API_DIR" ] && [ -f "$API_DIR/alembic.ini" ]; then
   echo ""
   echo "🔄 DB 마이그레이션 실행 중..."
@@ -47,6 +47,6 @@ echo ""
 echo "  PostgreSQL: localhost:5432 (clickeye/devpassword)"
 echo "  Redis:      localhost:6379"
 echo ""
-echo "  API 서버:   cd 24SevenClaw-api && uv run uvicorn app.main:app --reload"
-echo "  Web 서버:   cd 24SevenClaw-web && npm run dev"
+echo "  API 서버:   cd clickeye-api && uv run uvicorn app.main:app --reload"
+echo "  Web 서버:   cd clickeye-web && npm run dev"
 echo ""
