@@ -1,113 +1,32 @@
 [
   {
-    "id": "tdd-smart-coding",
-    "name": "TDD Smart Coding",
-    "description": "테스트 주도 개발 워크플로 스킬",
-    "type": "workflow",
-    "category": "development",
-    "compatible_agents": ["claude-code", "gemini-cli"],
-    "tags": ["tdd", "testing", "workflow"]
-  },
-  {
-    "id": "fullstack",
-    "name": "Fullstack Development",
-    "description": "풀스택 개발 워크플로 (FastAPI + Next.js)",
-    "type": "workflow",
-    "category": "development",
-    "compatible_agents": ["claude-code", "cursor"],
-    "tags": ["fullstack", "backend", "frontend"]
-  },
-  {
-    "id": "code-review",
-    "name": "Code Review",
-    "description": "AI 기반 코드 리뷰 자동화",
-    "type": "workflow",
-    "category": "quality",
-    "compatible_agents": ["claude-code", "gemini-cli", "codex"],
-    "tags": ["review", "quality", "automation"]
-  },
-  {
-    "id": "github-mcp",
-    "name": "GitHub MCP",
-    "description": "GitHub 연동 외부 도구 (이슈, PR, 리뷰)",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "cursor"],
-    "tags": ["github", "mcp", "integration"]
-  },
-  {
-    "id": "linear-mcp",
-    "name": "Linear MCP",
-    "description": "Linear 프로젝트 관리 연동",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code"],
-    "tags": ["linear", "project-management", "mcp"]
-  },
-  {
-    "id": "notion",
-    "name": "Notion",
-    "description": "Notion 워크스페이스 연동 (페이지/DB 읽기·쓰기)",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "cursor"],
-    "tags": ["notion", "documentation", "mcp"],
-    "api_key_field": "notion_api_key",
-    "env_var": "NOTION_API_KEY"
-  },
-  {
-    "id": "slack",
-    "name": "Slack",
-    "description": "Slack 채널 메시지 전송 및 알림 연동",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "gemini-cli", "cursor"],
-    "tags": ["slack", "messaging", "notification"],
-    "api_key_field": "slack_bot_token",
-    "env_var": "SLACK_BOT_TOKEN"
+    "id": "linear",
+    "label": "Linear",
+    "description": "Linear 이슈 트래킹 연동"
   },
   {
     "id": "telegram",
-    "name": "Telegram",
-    "description": "Telegram 봇을 통한 알림 및 상호작용",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "gemini-cli"],
-    "tags": ["telegram", "bot", "notification"],
-    "api_key_field": "telegram_bot_token",
-    "env_var": "TELEGRAM_BOT_TOKEN"
+    "label": "Telegram",
+    "description": "Telegram 봇 알림 연동"
   },
   {
     "id": "github",
-    "name": "GitHub",
-    "description": "GitHub 리포지토리, 이슈, PR 관리 연동",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "gemini-cli", "codex", "cursor"],
-    "tags": ["github", "vcs", "mcp"],
-    "api_key_field": "github_token",
-    "env_var": "GITHUB_TOKEN"
+    "label": "GitHub",
+    "description": "GitHub 리포지토리 연동"
   },
   {
-    "id": "teams",
-    "name": "Microsoft Teams",
-    "description": "Microsoft Teams 채널 메시지 및 알림 연동",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "cursor"],
-    "tags": ["teams", "microsoft", "messaging"],
-    "api_key_field": "teams_webhook_url",
-    "env_var": "TEAMS_WEBHOOK_URL"
+    "id": "slack",
+    "label": "Slack",
+    "description": "Slack 채널 알림 연동"
   },
   {
-    "id": "database",
-    "name": "Database",
-    "description": "데이터베이스 직접 연결 (PostgreSQL, MySQL, SQLite)",
-    "type": "external-tool",
-    "category": "integration",
-    "compatible_agents": ["claude-code", "gemini-cli", "cursor"],
-    "tags": ["database", "sql", "mcp"],
-    "api_key_field": "database_url",
-    "env_var": "DATABASE_URL"
+    "id": "jira",
+    "label": "Jira",
+    "description": "Jira 이슈 트래킹 연동"
+  },
+  {
+    "id": "notion",
+    "label": "Notion",
+    "description": "Notion 워크스페이스 연동"
   }
 ]

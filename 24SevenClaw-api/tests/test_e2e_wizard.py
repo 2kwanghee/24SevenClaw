@@ -684,10 +684,14 @@ async def test_recommend_then_generate_flow(
         if aid in ("backend", "frontend", "uiux", "devops", "fullstack", "harness")
     ]
 
+    # 엔진 호환 스킬만 (recommend workflow 스킬은 engine catalog ID와 다름)
+    _ENGINE_SKILL_IDS = frozenset({"tdd", "ai-critique", "linear", "ralph-loop", "harness-gate"})
+    engine_skill_ids = [sid for sid in rec_skill_ids if sid in _ENGINE_SKILL_IDS]
+
     req = _build_wizard_request(
         solution_type="saas",
         agents=engine_agent_ids if engine_agent_ids else ["backend"],
-        skills=rec_skill_ids,
+        skills=engine_skill_ids,
         pipelines=rec_pipeline_ids,
     )
 

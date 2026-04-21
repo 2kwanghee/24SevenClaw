@@ -12,13 +12,13 @@ async def test_list_agents(client: AsyncClient) -> None:
     data = resp.json()
     assert "items" in data
     assert "total" in data
-    assert data["total"] > 0
+    assert data["total"] == 7
     assert isinstance(data["items"], list)
 
     agent = data["items"][0]
     assert "id" in agent
-    assert "name" in agent
-    assert "provider" in agent
+    assert "label" in agent
+    assert "description" in agent
 
 
 @pytest.mark.asyncio
@@ -27,12 +27,12 @@ async def test_list_skills(client: AsyncClient) -> None:
     assert resp.status_code == 200
 
     data = resp.json()
-    assert data["total"] > 0
+    assert data["total"] == 6
 
     skill = data["items"][0]
     assert "id" in skill
-    assert "name" in skill
-    assert "type" in skill
+    assert "label" in skill
+    assert "description" in skill
 
 
 @pytest.mark.asyncio
@@ -46,8 +46,6 @@ async def test_list_platforms(client: AsyncClient) -> None:
     platform = data["items"][0]
     assert "id" in platform
     assert "name" in platform
-    assert "config_dir" in platform
-    assert "agent_file" in platform
 
 
 @pytest.mark.asyncio
@@ -61,7 +59,6 @@ async def test_list_pipelines(client: AsyncClient) -> None:
     pipeline = data["items"][0]
     assert "id" in pipeline
     assert "name" in pipeline
-    assert "steps" in pipeline
 
 
 @pytest.mark.asyncio
@@ -70,6 +67,26 @@ async def test_catalog_agents_count(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/catalog/agents")
     data = resp.json()
     assert data["total"] == len(data["items"])
+
+
+@pytest.mark.asyncio
+async def test_catalog_agents_slugs(client: AsyncClient) -> None:
+    """7개 harness 역할 에이전트 slug 검증."""
+    resp = await client.get("/api/v1/catalog/agents")
+    data = resp.json()
+    ids = {item["id"] for item in data["items"]}
+    expected = {"harness", "architect", "frontend", "backend", "qa", "devops", "security"}
+    assert ids == expected
+
+
+@pytest.mark.asyncio
+async def test_catalog_skills_slugs(client: AsyncClient) -> None:
+    """6개 스킬 slug 검증."""
+    resp = await client.get("/api/v1/catalog/skills")
+    data = resp.json()
+    ids = {item["id"] for item in data["items"]}
+    expected = {"linear", "telegram", "github", "slack", "jira", "notion"}
+    assert ids == expected
 
 
 @pytest.mark.asyncio

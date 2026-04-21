@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.schemas.catalog import CatalogResponse
+from app.schemas.catalog import CatalogListResponse, CatalogResponse
 from app.services.catalog_service import CatalogService
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
@@ -10,18 +10,18 @@ router = APIRouter(prefix="/catalog", tags=["catalog"])
 _service = CatalogService()
 
 
-@router.get("/agents", response_model=CatalogResponse)
-async def list_agents() -> CatalogResponse:
-    """에이전트 카탈로그 조회."""
+@router.get("/agents", response_model=CatalogListResponse)
+async def list_agents() -> CatalogListResponse:
+    """에이전트 카탈로그 조회 (id, label, description 반환)."""
     items = _service.get("agents")
-    return CatalogResponse(items=items, total=len(items))
+    return CatalogListResponse(items=items, total=len(items))
 
 
-@router.get("/skills", response_model=CatalogResponse)
-async def list_skills() -> CatalogResponse:
-    """스킬 카탈로그 조회 (워크플로우 + 외부 도구)."""
+@router.get("/skills", response_model=CatalogListResponse)
+async def list_skills() -> CatalogListResponse:
+    """스킬 카탈로그 조회 (id, label, description 반환)."""
     items = _service.get("skills")
-    return CatalogResponse(items=items, total=len(items))
+    return CatalogListResponse(items=items, total=len(items))
 
 
 @router.get("/platforms", response_model=CatalogResponse)
