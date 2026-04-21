@@ -45,10 +45,30 @@ const LINEAR_REQUIRED: RequiredKeyConfig[] = [
   },
 ];
 
+const NOTION_REQUIRED: RequiredKeyConfig[] = [
+  {
+    key: "NOTION_API_KEY",
+    label: "Notion API 키",
+    description: "Notion 데이터베이스 연동에 필요한 인증 토큰",
+    guideUrl: "https://www.notion.so/my-integrations",
+    guideLabel: "notion.so/my-integrations",
+  },
+  {
+    key: "NOTION_DATABASE_ID",
+    label: "Notion 데이터베이스 ID",
+    description: "이슈를 생성할 Notion 데이터베이스의 UUID",
+    guideUrl: "https://developers.notion.com/docs/create-a-notion-integration",
+    guideLabel: "developers.notion.com",
+  },
+];
+
 function getRequiredKeys(selectedSkills: string[]): RequiredKeyConfig[] {
   const configs = [...ALWAYS_REQUIRED];
   if (selectedSkills.includes("linear")) {
     configs.push(...LINEAR_REQUIRED);
+  }
+  if (selectedSkills.includes("notion")) {
+    configs.push(...NOTION_REQUIRED);
   }
   return configs;
 }
