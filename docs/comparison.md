@@ -1,8 +1,8 @@
-# 24SevenClaw - Architecture Comparison
+# ClickEye - Architecture Comparison
 
 ## 1. 개요
 
-24SevenClaw의 "클라우드 컨트롤 플레인 + 고객 서버 실행 플레인" 아키텍처를 유사 모델들과 비교 분석한다.
+ClickEye의 "클라우드 컨트롤 플레인 + 고객 서버 실행 플레인" 아키텍처를 유사 모델들과 비교 분석한다.
 
 ---
 
@@ -13,7 +13,7 @@
 | **GitHub Actions (Self-hosted Runner)** | CI/CD 워크플로 실행을 사용자 서버에 위임 | 2019 |
 | **Ansible Tower / AWX** | IT 자동화 플레이북을 원격 서버에서 실행 | 2012/2017 |
 | **GitLab Runner** | CI/CD 파이프라인을 사용자 서버에서 실행 | 2015 |
-| **24SevenClaw** | AI 에이전트 개발 환경 + 프로세스를 고객 서버에서 실행 | 2026 |
+| **ClickEye** | AI 에이전트 개발 환경 + 프로세스를 고객 서버에서 실행 | 2026 |
 
 ---
 
@@ -42,7 +42,7 @@
 4. 실행 로그를 GitHub에 실시간 스트리밍
 5. 결과(성공/실패)를 GitHub에 보고
 
-### 3.3 24SevenClaw와의 유사점
+### 3.3 ClickEye와의 유사점
 | 유사점 | 설명 |
 |--------|------|
 | 연결 방향 | Runner/Agent 모두 클라우드로 **아웃바운드** 연결 |
@@ -51,7 +51,7 @@
 | 상태 보고 | 실행 결과를 클라우드로 보고 |
 
 ### 3.4 차이점
-| 항목 | GitHub Actions Runner | 24SevenClaw Agent |
+| 항목 | GitHub Actions Runner | ClickEye Agent |
 |------|----------------------|-------------------|
 | **용도** | CI/CD 파이프라인 실행 | AI 에이전트 개발 환경 전체 관리 |
 | **상태** | Stateless (Job 단위) | Stateful (환경 지속 유지) |
@@ -92,7 +92,7 @@
 3. Ansible 모듈을 대상 서버에서 실행
 4. 실행 결과를 Tower DB에 저장
 
-### 4.3 24SevenClaw와의 유사점
+### 4.3 ClickEye와의 유사점
 | 유사점 | 설명 |
 |--------|------|
 | 중앙 관리 | 웹 UI에서 원격 서버 관리 |
@@ -102,7 +102,7 @@
 | 감사 로그 | 모든 작업 이력 추적 |
 
 ### 4.4 차이점
-| 항목 | Ansible Tower/AWX | 24SevenClaw Agent |
+| 항목 | Ansible Tower/AWX | ClickEye Agent |
 |------|-------------------|-------------------|
 | **연결 방향** | Tower → 서버 (SSH, 인바운드) | Agent → Cloud (WebSocket, 아웃바운드) |
 | **에이전트** | Agentless (SSH만) | Agent 데몬 필수 설치 |
@@ -137,7 +137,7 @@
 └──────────────┘               └──────────────┘
 ```
 
-### 5.2 24SevenClaw에 참고할 점
+### 5.2 ClickEye에 참고할 점
 - **Executor 개념**: Docker, Shell, Kubernetes 등 다양한 실행 방식 → Agent의 handler 패턴에 적용
 - **캐시/아티팩트**: Runner 간 캐시 공유 → 프로젝트 간 이미지 캐시에 적용
 - **태그 매칭**: Runner 태그로 특정 Job 할당 → Agent 능력 기반 작업 라우팅에 적용
@@ -146,7 +146,7 @@
 
 ## 6. 종합 비교 매트릭스
 
-| 특성 | GitHub Actions Runner | Ansible Tower | GitLab Runner | **24SevenClaw** |
+| 특성 | GitHub Actions Runner | Ansible Tower | GitLab Runner | **ClickEye** |
 |------|----------------------|---------------|---------------|-----------------|
 | 연결 방향 | 아웃바운드 | 인바운드 (SSH) | 아웃바운드 | **아웃바운드** |
 | 에이전트 설치 | 필요 | 불필요 | 필요 | **필요** |
@@ -160,7 +160,7 @@
 
 ---
 
-## 7. 24SevenClaw의 차별점 요약
+## 7. ClickEye의 차별점 요약
 
 ### 7.1 기존 모델 대비 독자적 특성
 
@@ -175,7 +175,7 @@
 ```
 GitHub Actions:  "코드 푸시 → 빌드/테스트/배포 자동화"
 Ansible Tower:   "인프라 구성을 코드로 관리"
-24SevenClaw:     "AI 에이전트에게 개발 작업을 지시하고, 전체 개발 라이프사이클을 오케스트레이션"
+ClickEye:     "AI 에이전트에게 개발 작업을 지시하고, 전체 개발 라이프사이클을 오케스트레이션"
 ```
 
 ---

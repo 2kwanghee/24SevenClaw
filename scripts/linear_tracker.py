@@ -250,8 +250,8 @@ def main():
     p_task.add_argument("--title", required=True)
     p_task.add_argument("--summary", required=True)
     p_task.add_argument("--tags", default="")
-    p_task.add_argument("--status", default="Todo",
-                        choices=["Todo", "In Progress", "Backlog", "DayQueued", "NightQueued"])
+    p_task.add_argument("--status", default="Wait",
+                        choices=["Wait", "Todo", "In Progress", "Backlog", "DayQueued", "NightQueued"])
     p_task.add_argument("--date", default=str(date.today()))
 
     # list
@@ -263,7 +263,7 @@ def main():
     p_update = sub.add_parser("update", help="Update issue state")
     p_update.add_argument("--issue-id", required=True, help="Linear issue UUID")
     p_update.add_argument("--status", required=True,
-                          choices=["Done", "In Progress", "Todo", "Backlog", "DayQueued", "NightQueued", "Confirm"])
+                          choices=["Wait", "Done", "In Progress", "Todo", "Backlog", "DayQueued", "NightQueued", "Confirm"])
 
     args = parser.parse_args()
     api_key, team_id = get_env()

@@ -1,4 +1,4 @@
-# 24SevenClaw - License Model
+# ClickEye - License Model
 
 ## 1. 현재 라이센스 정책 (v1)
 
@@ -136,7 +136,7 @@ Agent 등록 시:
 예시: 24SC-PRO-a1b2c3d4e5f6-x9y8
 
 구성:
-  - 24SC: 24SevenClaw 접두사
+  - 24SC: ClickEye 접두사
   - PRO: 플랜 코드 (FREE, PRO, ENT)
   - a1b2c3d4e5f6: 랜덤 12자리 hex
   - x9y8: CRC16 체크섬 4자리

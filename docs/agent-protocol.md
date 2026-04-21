@@ -1,8 +1,8 @@
-# 24SevenClaw - Communication Protocol
+# ClickEye - Communication Protocol
 
 ## 1. 개요
 
-현재 24SevenClaw의 통신은 **브라우저 ↔ Cloud API** 간 HTTPS 기반이며, ZIP 다운로드 방식으로 사용자에게 파일을 전달한다.
+현재 ClickEye의 통신은 **브라우저 ↔ Cloud API** 간 HTTPS 기반이며, ZIP 다운로드 방식으로 사용자에게 파일을 전달한다.
 
 ```
 Browser ──── HTTPS ────► Cloud API ──── ZIP Stream ────► Browser

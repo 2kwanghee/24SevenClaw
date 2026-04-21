@@ -1,8 +1,8 @@
-# 24SevenClaw - Architecture Overview
+# ClickEye - Architecture Overview
 
 ## 1. 시스템 개요
 
-24SevenClaw는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent 플랫폼 (AI 개발)** 분리 아키텍처를 채택한 AI 개발 자동화 솔루션 빌더 플랫폼이다.
+ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent 플랫폼 (AI 개발)** 분리 아키텍처를 채택한 AI 개발 자동화 솔루션 빌더 플랫폼이다.
 
 - **웹 SaaS (Cloud)**: 회원가입 → 7-Step 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
 - **로컬 (사용자 PC)**: ZIP 해제 → Agent 플랫폼(Claude Code/Gemini CLI/Cursor 등) 실행 → AI 개발
@@ -21,7 +21,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  24SevenClaw Cloud (SaaS — 위저드 + ZIP 생성)            │
+│  ClickEye Cloud (SaaS — 위저드 + ZIP 생성)            │
 │                                                         │
 │  ┌─────────────┐    ┌──────────────┐                    │
 │  │ Next.js     │◄──►│ FastAPI      │                    │

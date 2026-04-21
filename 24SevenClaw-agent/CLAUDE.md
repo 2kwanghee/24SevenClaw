@@ -1,4 +1,4 @@
-# Agent Agent — 24SevenClaw Customer Server Agent Development Guide
+# Agent Agent — ClickEye Customer Server Agent Development Guide
 
 > 이 파일은 24SevenClaw-agent 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
 > 레포 초기화 시 `24SevenClaw-agent/CLAUDE.md`로 복사합니다.

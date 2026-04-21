@@ -1,4 +1,4 @@
-# 24SevenClaw - Development Roadmap v3
+# ClickEye - Development Roadmap v3
 
 > AI 개발 자동화 솔루션 빌더 — 브라우저에서 솔루션 설계 → 인력(Agent) 채용 → 스킬 장착 → ZIP 다운로드 → 즉시 개발 시작
 > 로드맵 기간: 2026-04-07 ~ 2026-04-20 (2주)
@@ -11,8 +11,8 @@
 | 용어 | 의미 |
 |------|------|
 | **유저** | 서비스 이용자 (개발자, PM, 비개발자) |
-| **관리자** | 24SevenClaw 운영팀 (우리) |
-| **웹** | 24SevenClaw 웹 서비스 |
+| **관리자** | ClickEye 운영팀 (우리) |
+| **웹** | ClickEye 웹 서비스 |
 | **Agent 플랫폼** | Claude Code, Gemini CLI, Codex, Cursor 등 AI 코딩 도구 |
 | **에이전트** | 웹에서 채용하는 가상 인력 (백엔드 엔지니어, 프론트엔드 등) |
 | **스킬** | 에이전트가 사용하는 외부 도구 연동 (Notion, Linear, Teams, DB 등) |

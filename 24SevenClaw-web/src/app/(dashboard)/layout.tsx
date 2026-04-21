@@ -116,7 +116,7 @@ export default function DashboardLayout({
           </div>
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
-              24SevenClaw
+              ClickEye
             </span>
           )}
         </div>

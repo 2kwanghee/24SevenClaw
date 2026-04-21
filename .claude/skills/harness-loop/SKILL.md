@@ -89,10 +89,10 @@ user-invocable: false
 | contracts | `npx tsc --noEmit` | (동일) | — | `./scripts/generate-ts.sh` |
 
 **CWD 규칙**: 각 모듈의 명령어는 해당 모듈 디렉토리에서 실행한다.
-- api: `cd /mnt/c/workspace/24SevenClaw/24SevenClaw-api && ...`
-- web: `cd /mnt/c/workspace/24SevenClaw/24SevenClaw-web && ...`
-- agent: `cd /mnt/c/workspace/24SevenClaw/24SevenClaw-agent && ...`
-- contracts: `cd /mnt/c/workspace/24SevenClaw/24SevenClaw-contracts && ...`
+- api: `cd /mnt/c/workspace/ClickEye/24SevenClaw-api && ...`
+- web: `cd /mnt/c/workspace/ClickEye/24SevenClaw-web && ...`
+- agent: `cd /mnt/c/workspace/ClickEye/24SevenClaw-agent && ...`
+- contracts: `cd /mnt/c/workspace/ClickEye/24SevenClaw-contracts && ...`
 
 ## 에러 피드백 프로토콜
 

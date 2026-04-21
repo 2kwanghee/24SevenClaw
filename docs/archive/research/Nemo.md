@@ -1,7 +1,7 @@
-# NVIDIA NeMo Agent Monitoring — 24SevenClaw 접목 검토
+# NVIDIA NeMo Agent Monitoring — ClickEye 접목 검토
 
 > 작성일: 2026-03-24
-> 목적: NeMo Agent Toolkit의 모니터링 기능을 24SevenClaw에 적용할 수 있는 부분 분석
+> 목적: NeMo Agent Toolkit의 모니터링 기능을 ClickEye에 적용할 수 있는 부분 분석
 
 ---
 
@@ -16,7 +16,7 @@ NeMo Agent Toolkit은 AI 에이전트 워크플로의 **전체 실행 과정을 
 
 ---
 
-## 24SevenClaw 접목 가능 영역
+## ClickEye 접목 가능 영역
 
 ### 1. Agent 데몬의 Claude 인스턴스 모니터링 (Phase 3)
 
@@ -117,7 +117,7 @@ NeMo가 **OpenTelemetry 표준**을 사용하므로, 클라우드 쪽에서:
 | **리스크** | NVIDIA 에코시스템 의존성 증가, Agent가 Python 기반이라 통합은 수월 |
 | **대안** | Langfuse나 LangSmith 같은 LLM 전용 옵서버빌리티도 비교 검토 가치 있음 |
 
-**핵심**: 24SevenClaw의 **"블랙박스인 Claude 작업 과정을 투명하게 만드는 것"**이 고객에게 큰 가치이고, NeMo의 모니터링이 정확히 이 문제를 풀어줌. Phase 3 설계 시 본격적으로 검토 권장.
+**핵심**: ClickEye의 **"블랙박스인 Claude 작업 과정을 투명하게 만드는 것"**이 고객에게 큰 가치이고, NeMo의 모니터링이 정확히 이 문제를 풀어줌. Phase 3 설계 시 본격적으로 검토 권장.
 
 ---
 

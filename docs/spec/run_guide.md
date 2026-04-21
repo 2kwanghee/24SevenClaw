@@ -5,7 +5,7 @@
 PostgreSQL, Redis를 Docker로 띄웁니다.
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw/24SevenClaw-infra/docker
+cd /mnt/c/workspace/ClickEye/24SevenClaw-infra/docker
 
 # DB + Redis 컨테이너 실행 (백그라운드)
 docker compose up -d db redis
@@ -25,7 +25,7 @@ docker compose ps
 ## 1단계: API 서버 실행
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw/24SevenClaw-api
+cd /mnt/c/workspace/ClickEye/24SevenClaw-api
 
 # 의존성 설치 (최초 1회)
 uv sync
@@ -47,7 +47,7 @@ uv run uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ## 2단계: 웹 프론트엔드 실행
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw/24SevenClaw-web
+cd /mnt/c/workspace/ClickEye/24SevenClaw-web
 
 # 의존성 설치 (최초 1회)
 npm install
@@ -65,7 +65,7 @@ npm run dev
 ### 3-1. webhook 서버 시작 (Linear 이벤트 수신)
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw
+cd /mnt/c/workspace/ClickEye
 
 # 백그라운드 실행
 nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
@@ -78,7 +78,7 @@ curl -s http://127.0.0.1:9876/health
 ### 3-2. ngrok 터널 시작 (Linear → webhook 연결)
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw
+cd /mnt/c/workspace/ClickEye
 
 # ngrok 실행
 nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &
@@ -130,15 +130,15 @@ crontab -l
 
 ```cron
 # 평일 9-18시 매 5분 큐 폴링 (webhook 죽어도 백업)
-*/5 9-18 * * 1-5 cd /mnt/c/workspace/24SevenClaw && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
+*/5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
 # 자정 야간 배치 (NightQueued 연속 처리)
-0 0 * * * cd /mnt/c/workspace/24SevenClaw && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
+0 0 * * * cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
 # 평일 정오 Confirm → Done 정리
-0 12 * * 1-5 cd /mnt/c/workspace/24SevenClaw && python3 scripts/linear_confirmer.py >> logs/confirmer.log 2>&1
+0 12 * * 1-5 cd /mnt/c/workspace/ClickEye && python3 scripts/linear_confirmer.py >> logs/confirmer.log 2>&1
 # webhook_server watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "webhook_server.py" > /dev/null || (cd /mnt/c/workspace/24SevenClaw && nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &)
+*/10 * * * * pgrep -f "webhook_server.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &)
 # ngrok watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/24SevenClaw && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
 ```
 
 > **WSL2 영구 자동 시작**: `/etc/wsl.conf`에 아래 설정을 추가하면 WSL 부팅 시 cron이 자동 시작됩니다.
@@ -264,7 +264,7 @@ docker logs sevenclaw-redis --tail 50
 ### 진단 체크리스트 (한눈에 보기)
 
 ```bash
-cd /mnt/c/workspace/24SevenClaw
+cd /mnt/c/workspace/ClickEye
 
 # 1. 프로세스 생존 여부
 pgrep -af webhook_server.py        # PID가 출력되면 실행 중
@@ -296,7 +296,7 @@ tail -5  logs/ngrok.log
    ```bash
    pgrep -f webhook_server.py || echo "프로세스 없음"
    # → 없으면 재기동
-   cd /mnt/c/workspace/24SevenClaw
+   cd /mnt/c/workspace/ClickEye
    nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
    ```
 
@@ -334,10 +334,10 @@ tail -5  logs/ngrok.log
 
 ```bash
 # lock 파일 나이 확인
-stat /mnt/c/workspace/24SevenClaw/.git/index.lock 2>/dev/null
+stat /mnt/c/workspace/ClickEye/.git/index.lock 2>/dev/null
 
 # 60초 이상 경과한 stale lock이면 제거
-rm -f /mnt/c/workspace/24SevenClaw/.git/index.lock
+rm -f /mnt/c/workspace/ClickEye/.git/index.lock
 ```
 
 > `safe_git` 래퍼는 모든 git 호출 전에 15초 대기 → 그래도 lock이 있으면 자동 제거합니다.
@@ -394,7 +394,7 @@ timeout 30 codex exec "테스트 프롬프트" 2>&1 | head -10
 
 ```bash
 # 현재 설정 전체 확인
-grep ^FLOWOPS /mnt/c/workspace/24SevenClaw/.env
+grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 
 # 주요 토글
 # FLOWOPS_LINEAR_WATCHER=true   — Linear 이슈 감지 활성화 (false면 파이프라인 전체 스킵)

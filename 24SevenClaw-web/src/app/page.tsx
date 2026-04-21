@@ -144,7 +144,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
               <Sparkles className="h-4 w-4 text-violet-400" />
             </div>
-            <span className="text-lg font-bold tracking-tight">24SevenClaw</span>
+            <span className="text-lg font-bold tracking-tight">ClickEye</span>
           </Link>
           <div className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm text-slate-400 transition-colors hover:text-white">
@@ -307,7 +307,7 @@ export default function Home() {
       <section id="features" className="relative py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">왜 24SevenClaw인가요?</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">왜 ClickEye인가요?</h2>
             <p className="mx-auto mt-4 max-w-2xl text-slate-400">
               웹에서 설계하고, ZIP으로 시작하는 AI 개발 자동화 플랫폼
             </p>
@@ -343,7 +343,7 @@ export default function Home() {
             </div>
             <h2 className="text-3xl font-bold md:text-4xl">숫자로 증명합니다</h2>
             <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-              24SevenClaw를 사용하는 팀의 실제 개발 성과 지표입니다
+              ClickEye를 사용하는 팀의 실제 개발 성과 지표입니다
             </p>
           </div>
 
@@ -415,7 +415,7 @@ export default function Home() {
           <div className="text-center">
             <h2 className="text-3xl font-bold md:text-4xl">지원 플랫폼</h2>
             <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-              어떤 AI 코딩 도구를 사용하시든, 24SevenClaw가 맞춤 설정을 생성합니다
+              어떤 AI 코딩 도구를 사용하시든, ClickEye가 맞춤 설정을 생성합니다
             </p>
           </div>
 
@@ -516,9 +516,9 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
           <div className="flex items-center gap-2.5">
             <Sparkles className="h-4 w-4 text-violet-400" />
-            <span className="text-sm font-semibold">24SevenClaw</span>
+            <span className="text-sm font-semibold">ClickEye</span>
           </div>
-          <p className="text-sm text-slate-500">&copy; 2026 24SevenClaw. All rights reserved.</p>
+          <p className="text-sm text-slate-500">&copy; 2026 ClickEye. All rights reserved.</p>
         </div>
       </footer>
     </div>

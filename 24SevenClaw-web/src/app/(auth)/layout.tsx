@@ -62,7 +62,7 @@ export default function AuthLayout({
               <Sparkles className="h-5 w-5 text-violet-300" />
             </div>
             <span className="text-xl font-bold tracking-tight text-white">
-              24SevenClaw
+              ClickEye
             </span>
           </Link>
 
@@ -104,7 +104,7 @@ export default function AuthLayout({
 
           {/* 하단 */}
           <p className="text-sm text-indigo-300/40">
-            &copy; 2026 24SevenClaw. All rights reserved.
+            &copy; 2026 ClickEye. All rights reserved.
           </p>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function AuthLayout({
             <Sparkles className="h-5 w-5 text-violet-400" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">
-            24SevenClaw
+            ClickEye
           </span>
         </div>
 

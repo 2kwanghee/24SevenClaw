@@ -1,4 +1,4 @@
-# API Agent — 24SevenClaw Backend Development Guide
+# API Agent — ClickEye Backend Development Guide
 
 > 이 파일은 24SevenClaw-api 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
 > 레포 초기화 시 `24SevenClaw-api/CLAUDE.md`로 복사합니다.

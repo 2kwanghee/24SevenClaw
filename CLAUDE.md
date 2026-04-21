@@ -1,4 +1,4 @@
-# 24SevenClaw - Development Guide
+# ClickEye - Development Guide
 
 ## Project Overview
 AI 개발 자동화 솔루션 빌더 플랫폼.
