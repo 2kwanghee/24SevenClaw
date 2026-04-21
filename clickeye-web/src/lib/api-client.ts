@@ -1829,24 +1829,24 @@ export const prototypeCatalogAdmin = {
         .map(([k, v]) => [k, String(v)])
     ).toString() : "";
     return authRequest<PrototypeCatalogListResponse>(
-      `/api/v1/admin/prototype-catalog${qs ? `?${qs}` : ""}`,
+      `/api/v1/admin/registry/prototype-catalog${qs ? `?${qs}` : ""}`,
       token,
     );
   },
   get: (token: string, id: string) =>
-    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/prototype-catalog/${id}`, token),
+    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/registry/prototype-catalog/${id}`, token),
   create: (token: string, data: PrototypeCatalogEntryCreate) =>
-    authRequest<PrototypeCatalogEntry>("/api/v1/admin/prototype-catalog", token, {
+    authRequest<PrototypeCatalogEntry>("/api/v1/admin/registry/prototype-catalog", token, {
       method: "POST",
       body: JSON.stringify(data),
     }),
   update: (token: string, id: string, data: PrototypeCatalogEntryUpdate) =>
-    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/prototype-catalog/${id}`, token, {
-      method: "PATCH",
+    authRequest<PrototypeCatalogEntry>(`/api/v1/admin/registry/prototype-catalog/${id}`, token, {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
   delete: (token: string, id: string) =>
-    authRequest<void>(`/api/v1/admin/prototype-catalog/${id}`, token, { method: "DELETE" }),
+    authRequest<void>(`/api/v1/admin/registry/prototype-catalog/${id}`, token, { method: "DELETE" }),
 };
 
 // ─── Prototype Tags Admin ─────────────────────────────────────────────────────
@@ -1878,22 +1878,22 @@ export const prototypeTagsAdmin = {
         .map(([k, v]) => [k, String(v)])
     ).toString() : "";
     return authRequest<PrototypeTagListResponse>(
-      `/api/v1/admin/prototype-tags${qs ? `?${qs}` : ""}`,
+      `/api/v1/admin/registry/prototype-tags${qs ? `?${qs}` : ""}`,
       token,
     );
   },
   create: (token: string, data: PrototypeTagCreate) =>
-    authRequest<PrototypeTag>("/api/v1/admin/prototype-tags", token, {
+    authRequest<PrototypeTag>("/api/v1/admin/registry/prototype-tags", token, {
       method: "POST",
       body: JSON.stringify(data),
     }),
   update: (token: string, id: string, data: PrototypeTagUpdate) =>
-    authRequest<PrototypeTag>(`/api/v1/admin/prototype-tags/${id}`, token, {
-      method: "PATCH",
+    authRequest<PrototypeTag>(`/api/v1/admin/registry/prototype-tags/${id}`, token, {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
   delete: (token: string, id: string) =>
-    authRequest<void>(`/api/v1/admin/prototype-tags/${id}`, token, { method: "DELETE" }),
+    authRequest<void>(`/api/v1/admin/registry/prototype-tags/${id}`, token, { method: "DELETE" }),
 };
 
 // ─── App Settings Admin ───────────────────────────────────────────────────────
