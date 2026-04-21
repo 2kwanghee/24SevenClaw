@@ -27,9 +27,6 @@ const navItems = [
   // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
   { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions" },
   { href: "/projects", label: "프로젝트", icon: FolderKanban },
-  { href: "/registry/agents", label: "에이전트", icon: Bot },
-  { href: "/registry/skills", label: "스킬", icon: Puzzle },
-  { href: "/registry/mcps", label: "MCP", icon: Blocks },
 ];
 
 const adminItems = [

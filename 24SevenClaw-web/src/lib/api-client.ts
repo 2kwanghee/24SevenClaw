@@ -155,6 +155,26 @@ export interface ProjectListParams {
   status?: string;
 }
 
+export interface ProjectKPIResponse {
+  project_name: string;
+  generated_at: string;
+  automation_rate: number;
+  review_acceptance_rate: number;
+  avg_phase_duration: PhaseDuration[];
+  throughput_per_week: WeeklyThroughput[];
+}
+
+export interface PhaseDuration {
+  phase: string;
+  avg_duration_seconds: number;
+  sample_count: number;
+}
+
+export interface WeeklyThroughput {
+  week_start: string;
+  completed_count: number;
+}
+
 /**
  * 브라우저에서 Auth.js 세션을 조회하여 최신 Access Token을 가져온다.
  * JWT 콜백이 자동 갱신을 처리하므로 반환되는 토큰은 유효하다.
@@ -317,6 +337,13 @@ export const apiClient = {
           method: "POST",
           body: JSON.stringify({ wizard_data: wizardData }),
         },
+      ),
+
+    /** 프로젝트 KPI 조회 */
+    kpi: (token: string, projectId: string) =>
+      authRequest<ProjectKPIResponse>(
+        `/api/v1/projects/${projectId}/kpi`,
+        token,
       ),
 
     /** 프로젝트 리포트 조회 */
