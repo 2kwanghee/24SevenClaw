@@ -22,8 +22,9 @@ src/
 ├── components/
 │   ├── ui/                 # shadcn/ui 원시 컴포넌트 (수정 금지)
 │   ├── layout/             # 레이아웃 컴포넌트 (sidebar, header)
+│   ├── admin/              # 관리자 전용 컴포넌트
+│   │   └── registry/       # 레지스트리 관리 컴포넌트 (Admin only)
 │   ├── projects/           # 프로젝트 관련 컴포넌트
-│   ├── registry/           # 레지스트리 관련 컴포넌트
 │   └── common/             # 공통 컴포넌트
 ├── hooks/                  # 커스텀 훅 (use-*.ts)
 ├── stores/                 # Zustand 스토어

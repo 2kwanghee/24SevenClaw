@@ -6,29 +6,29 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[web] 위저드 Step 6 하드코딩 제거 + 카탈로그 API 동적 렌더링**
+- [x] **[docs] 에이전트/스킬 메뉴 정비 엔드투엔드 검증 + CLAUDE.md 업데이트**
   > 요청사항: ## 목적
 
-관리자가 `/admin/registry/agents|skills`에서 편집한 내용이 사용자 위저드에 즉시 반영되도록 연결.
+전체 정비 작업의 최종 검증 및 문서 동기화.
 
 ## 작업 범위
 
-* `src/components/solutions/wizard/steps/step-solution-agents.tsx`에서 `AGENT_LABELS` / `SKILL_LABELS` 하드코딩 제거
-* `useCatalog` 훅으로 교체
-* 로딩 스켈레톤 + 에러 상태 UI 추가
-* `solutionWizardStore`의 `selectedAgents`/`selectedSkills` 스키마 호환성 유지 (ID 기반 선택)
+* 수동 e2e 시나리오 검증:
+  1. 일반 사용자 사이드바에 에이전트/스킬/MCP 메뉴 사라짐 확인
+  2. 관리자 `/admin/registry/agents`에서 테스트 항목 추가 → 위저드 Step 6 반영 확인
+  3. 테스트 항목 삭제 → 위저드에서 사라짐 확인
+* `24SevenClaw-web/CLAUDE.md` Directory Structure 섹션에서 `/registry/*` 제거 반영
 
 ## 완료 기준
 
-* 관리자가 `/admin/registry/agents`에서 새 항목 추가 → 새 위저드 세션 Step 6에 즉시 노출
-* 관리자가 항목 삭제 → 다음 위저드 세션에서 사라짐
-* `npm run typecheck && npm run build` 통과
+* 검증 시나리오 3건 모두 통과
+* 문서 업데이트 완료
 
 ## 선행 조건
 
-24S-174 완료 (useCatalog 훅)
+24S-172 + 24S-175 완료
 
 ---
 
@@ -38,4 +38,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [web] 위저드 Step 6 하드코딩 제거 + 카탈로그 API 동적 렌더링 | ✅ 완료 | useCatalogAgents/useCatalogSkills 교체, 로딩 스켈레톤+에러 상태 추가, 빌드 통과 |
+| 2026-04-21 | [docs] 에이전트/스킬 메뉴 정비 e2e 검증 + CLAUDE.md 업데이트 | ✅ 완료 | 코드 분석으로 3개 시나리오 검증, CLAUDE.md registry→admin/registry 이동 반영 |
