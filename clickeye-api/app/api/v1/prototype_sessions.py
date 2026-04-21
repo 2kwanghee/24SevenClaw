@@ -32,10 +32,14 @@ _bg_session_factory: Any = async_session
 
 async def _run_generation_bg(session_id: UUID, user_id: UUID) -> None:
     """독립 DB 세션으로 백그라운드 프로토타입 생성을 실행한다."""
-    async with _bg_session_factory() as db:
-        service = PrototypeService(db)
-        with contextlib.suppress(Exception):
-            await service.run_generation(session_id=session_id, user_id=user_id)
+    import traceback  # noqa: PLC0415
+    try:
+        async with _bg_session_factory() as db:
+            service = PrototypeService(db)
+            with contextlib.suppress(Exception):
+                await service.run_generation(session_id=session_id, user_id=user_id)
+    except Exception:
+        print(f"[BG_ERROR] session={session_id}\n{traceback.format_exc()}", flush=True)
 
 router = APIRouter(prefix="/prototype-sessions", tags=["prototype-sessions"])
 
