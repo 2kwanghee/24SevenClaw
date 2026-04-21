@@ -1,11 +1,13 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, Bell, HelpCircle } from "lucide-react";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 
 export function Header() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   if (!session) return null;
 
@@ -29,6 +31,15 @@ export function Header() {
           className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >
           <Bell className="h-4 w-4" />
+        </button>
+
+        {/* 가이드 */}
+        <button
+          aria-label="사용 가이드"
+          onClick={() => router.push("/guide")}
+          className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
+        >
+          <HelpCircle className="h-4 w-4" />
         </button>
 
         {/* 구분선 */}

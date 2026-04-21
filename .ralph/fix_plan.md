@@ -8,25 +8,26 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[rebrand] Phase 5 — 디렉토리 리네임 + CI 업데이트 (HIGH RISK)**
-  > 요청사항: 6개 서브모듈 디렉토리 리네임 및 CI/스크립트 경로 전면 갱신. 가장 높은 리스크 단계.
+- [x] **[guide] 정적 /guide 페이지 + 사이드바/헤더 진입점 신설**
+  > 요청사항: Next.js 15 app router 기준 /guide 라우트 신설. 좌측 TOC + 우측 마크다운 본문 레이아웃.
 
-범위: 24SevenClaw-{api,web,agent,cli,contracts,infra} → clickeye-{api,web,agent,cli,contracts,infra}.
+신규 파일:
 
-대상:
+* 24SevenClaw-web/src/app/(dashboard)/guide/page.tsx (가이드 목록 + TOC)
+* 24SevenClaw-web/src/app/(dashboard)/guide/\[slug\]/page.tsx (세부 가이드)
+* 24SevenClaw-web/public/user-guide/\*.md (마크다운 원본)
+* 24SevenClaw-web/src/lib/guide-loader.ts (gray-matter frontmatter 파싱 유틸)
 
-* git mv 6개 디렉토리
-* .github/workflows/ci.yml (working-directory 6곳, paths-filter 3곳, cache-dependency-path 1곳)
-* Dockerfile.\* 빌드 컨텍스트 경로
-* scripts/ 7개 하드코딩 경로 (daily_docs.sh, create_detail_page.py, generate_spec_docs.py, run_codex_review.sh, [ralph-stop-hook.sh](<http://ralph-stop-hook.sh>), auto_dev_pipeline.sh, generate_plan_with_gemini.sh)
-* .idea/modules.xml + 24SevenClaw.iml 리네임
-* engine 템플릿 파일명 24seven-start.md.j2 → clickeye-start.md.j2
+수정 파일:
 
-의존: CLK-4(24S-183) 완료 후 진행.
+* src/app/(dashboard)/layout.tsx — navItems에 BookOpen 아이콘 '가이드' 추가
+* src/components/layout/header.tsx — Bell 옆에 Help(HelpCircle) 아이콘 추가, 클릭 시 /guide 이동
 
-⚠️ 완료 후 WSL 세션 재시작 필요 (경로 캐시 제거).
+기술 스택: react-markdown@^9(설치됨), remark-gfm@^4(설치됨), gray-matter@^4(설치됨).
 
-검증: npm run build(web), uv run pytest(api), CI dry-run, 모든 스크립트 경로 해결.
+콘텐츠는 골격만 작성 — 상세 내용은 CLK-7(24S-186)에서 채움.
+
+검증: /guide 접근, 사이드바/헤더 진입점 클릭 동작, TOC 네비게이션.
 
 ---
 
@@ -36,4 +37,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | Phase 5 디렉토리 리네임 | ✅ | 6개 dir 리네임, CI/scripts/infra 경로 갱신. .claude/hooks·settings.json은 sensitive 파일로 수동 업데이트 필요. WSL 재시작 후 clickeye-api/web 접근 정상화 예상 |
+| 2026-04-21 | [guide] /guide 페이지 + 사이드바/헤더 진입점 | ✅ 완료 | 빌드 통과, 4개 정적 페이지 생성 |
