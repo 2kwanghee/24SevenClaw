@@ -37,15 +37,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: sevenclaw
-      POSTGRES_USER: sevenclaw
+      POSTGRES_DB: clickeye
+      POSTGRES_USER: clickeye
       POSTGRES_PASSWORD: devpassword
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sevenclaw"]
+      test: ["CMD-SHELL", "pg_isready -U clickeye"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -97,7 +97,7 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: test_sevenclaw
+          POSTGRES_DB: test_clickeye
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
         ports: ["5432:5432"]
@@ -124,7 +124,7 @@ echo "🔄 개발 환경을 시작합니다..."
 docker compose up -d
 
 echo "⏳ PostgreSQL 준비 대기 중..."
-until docker compose exec -T db pg_isready -U sevenclaw; do
+until docker compose exec -T db pg_isready -U clickeye; do
   sleep 1
 done
 

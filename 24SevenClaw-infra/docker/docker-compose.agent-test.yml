@@ -6,7 +6,7 @@ services:
     build:
       context: ../../24SevenClaw-agent
       dockerfile: Dockerfile
-    container_name: sevenclaw-agent-test
+    container_name: clickeye-agent-test
     environment:
       CLOUD_WS_URL: ws://host.docker.internal:8000
       AGENT_ID: test-agent-001

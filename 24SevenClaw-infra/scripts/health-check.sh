@@ -16,7 +16,7 @@ echo ""
 
 # PostgreSQL
 echo -n "🐘 PostgreSQL: "
-if docker compose exec -T db pg_isready -U sevenclaw > /dev/null 2>&1; then
+if docker compose exec -T db pg_isready -U clickeye > /dev/null 2>&1; then
   echo "✅ 정상"
 else
   echo "❌ 연결 불가"
