@@ -8,23 +8,16 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[rebrand] Phase 3 — Docker 컨테이너·DB 리네임 (데이터 마이그레이션 포함)**
-  > 요청사항: Docker 컨테이너명 및 PostgreSQL DB/유저명 변경. 기존 데이터 보존을 위한 마이그레이션 절차 포함.
+- [x] **[rebrand] Phase 4 — 패키지명 + lockfile 재생성**
+  > 요청사항: npm/Python 패키지명 변경 및 lockfile 재생성.
 
-범위: sevenclaw-db/redis/api/web → clickeye-db/redis/api/web, PostgreSQL DB/유저명 sevenclaw → clickeye, DATABASE_URL 갱신.
+범위: @24sevenclaw/cli → @clickeye/cli, @24sevenclaw/contracts → @clickeye/contracts, sevenclaw-api → clickeye-api, sevenclaw-agent → clickeye-agent.
 
-대상: 24SevenClaw-infra/docker/docker-compose.yml 3종, .env 6곳, docs/spec/run_guide.md.
+대상: package.json 3개, pyproject.toml 2개, package-lock.json 3개 재생성, uv.lock 2개 재생성.
 
-데이터 마이그레이션 절차:
+의존: CLK-3(24S-182) 완료 후 진행(env/db 안정화 확인).
 
-1. docker exec sevenclaw-db pg_dump -U sevenclaw sevenclaw > /tmp/clickeye_backup.sql
-2. 새 compose로 clickeye-db 기동
-3. docker exec clickeye-db psql -U clickeye -d clickeye < /tmp/clickeye_backup.sql
-4. alembic 버전 일치 확인
-
-의존: CLK-2(24S-181) 완료 후 진행.
-
-검증: API가 새 DB로 접속, pm_profiles 등 기존 데이터 존재 확인.
+검증: npm install, uv sync 무오류, 임포트 체인 이상 없음.
 
 ---
 
@@ -34,4 +27,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [rebrand] Phase 3 — Docker 컨테이너·DB 리네임 | ✅ 완료 | docker-compose 3종, .env.example 2종, run_guide.md, scripts 2종, CLAUDE.md 수정. 실제 .env는 안전 규칙상 미수정(수동 적용 필요) |
+| 2026-04-21 | Phase 4 패키지명 + lockfile 재생성 | ✅ 완료 | @clickeye/cli, @clickeye/contracts, clickeye-web, clickeye-api, clickeye-agent |

@@ -1,5 +1,5 @@
 [project]
-name = "sevenclaw-agent"
+name = "clickeye-agent"
 version = "0.1.0"
 description = "24SevenClaw Agent - 고객 서버 실행 플레인 데몬"
 requires-python = ">=3.12"
