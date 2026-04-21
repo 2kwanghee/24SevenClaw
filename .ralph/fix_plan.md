@@ -8,26 +8,18 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[guide] 정적 /guide 페이지 + 사이드바/헤더 진입점 신설**
-  > 요청사항: Next.js 15 app router 기준 /guide 라우트 신설. 좌측 TOC + 우측 마크다운 본문 레이아웃.
+- [x] **[guide] 사용자 가이드 콘텐츠 3종 작성**
+  > 요청사항: 사용자가 선택한 3개 주제의 마크다운 가이드 문서 작성.
 
 신규 파일:
 
-* 24SevenClaw-web/src/app/(dashboard)/guide/page.tsx (가이드 목록 + TOC)
-* 24SevenClaw-web/src/app/(dashboard)/guide/\[slug\]/page.tsx (세부 가이드)
-* 24SevenClaw-web/public/user-guide/\*.md (마크다운 원본)
-* 24SevenClaw-web/src/lib/guide-loader.ts (gray-matter frontmatter 파싱 유틸)
+1. docs/user-guide/wizard-7-step.md — 7-Step 솔루션 위저드 사용법 (각 스텝 입력 항목·예시·흔한 실수, 참조: src/components/solutions/wizard/steps/step-\*.tsx)
+2. docs/user-guide/ai-team-management.md — AI Team 관리 (draft 자동 생성, Linear 동기화 힌트, 역할 할당, 참조: src/app/(dashboard)/projects/\[projectId\]/ai-team/page.tsx)
+3. docs/user-guide/linear-integration-setup.md — Linear 연동 설정 (API 키 등록, webhook 설정, DayQueued 플로우, 기존 docs/user-guide/linear-realtime-tracking.md 재활용)
 
-수정 파일:
+의존: CLK-6(24S-185) 완료 후 진행.
 
-* src/app/(dashboard)/layout.tsx — navItems에 BookOpen 아이콘 '가이드' 추가
-* src/components/layout/header.tsx — Bell 옆에 Help(HelpCircle) 아이콘 추가, 클릭 시 /guide 이동
-
-기술 스택: react-markdown@^9(설치됨), remark-gfm@^4(설치됨), gray-matter@^4(설치됨).
-
-콘텐츠는 골격만 작성 — 상세 내용은 CLK-7(24S-186)에서 채움.
-
-검증: /guide 접근, 사이드바/헤더 진입점 클릭 동작, TOC 네비게이션.
+검증: /guide에서 3개 가이드 모두 조회 가능, 내부 링크가 실제 페이지로 연결.
 
 ---
 
@@ -37,4 +29,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [guide] /guide 페이지 + 사이드바/헤더 진입점 | ✅ 완료 | 빌드 통과, 4개 정적 페이지 생성 |
+| 2026-04-21 | [guide] 사용자 가이드 콘텐츠 3종 작성 | ✅ 완료 | wizard-7-step.md, ai-team-management.md, linear-integration-setup.md 신규 작성 |
