@@ -57,13 +57,13 @@ query Team($id: String!) {
 """
 
 
-def _call(api_key: str, query: str, variables: dict | None = None) -> dict:  # type: ignore[type-arg]
+def _call(api_key: str, query: str, variables: dict | None = None, timeout: int = 15) -> dict:  # type: ignore[type-arg]
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
     req = Request(LINEAR_API, data=body, method="POST")
     req.add_header("Authorization", api_key)
     req.add_header("Content-Type", "application/json")
     try:
-        with urlopen(req, timeout=15) as resp:
+        with urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read())
     except HTTPError as exc:
         raise RuntimeError(f"Linear API 오류 {exc.code}: {exc.read().decode()[:200]}") from exc
@@ -72,6 +72,27 @@ def _call(api_key: str, query: str, variables: dict | None = None) -> dict:  # t
         raise RuntimeError(f"Linear GraphQL 오류: {'; '.join(msgs)}")
     result: dict[str, object] = data.get("data", {})
     return result
+
+
+def validate_credentials_v2(
+    api_key: str, team_id: str, timeout: int = 5
+) -> tuple[bool, str | None, str | None]:
+    """Linear API 키와 팀 ID 유효성 검증. Returns (valid, team_name, error_msg).
+
+    5초 타임아웃 기본값. 성공 시 team_name 반환, 실패 시 error 반환.
+    """
+    try:
+        _call(api_key, _VIEWER_QUERY, timeout=timeout)
+    except Exception:
+        return False, None, "API Key가 유효하지 않습니다"
+    try:
+        data = _call(api_key, _TEAM_QUERY, {"id": team_id}, timeout=timeout)
+        team = data.get("team")
+        if not team:
+            return False, None, "팀 ID를 찾을 수 없습니다"
+        return True, str(team.get("name", team_id)), None
+    except Exception:
+        return False, None, "팀 ID를 찾을 수 없습니다"
 
 
 def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
