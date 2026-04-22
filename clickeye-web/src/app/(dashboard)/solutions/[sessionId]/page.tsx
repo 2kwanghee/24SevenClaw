@@ -19,7 +19,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { prototypeSessions } from "@/lib/api-client";
+import { prototypeSessions, integrations } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 import { toast } from "sonner";
 
@@ -182,14 +182,12 @@ export default function SolutionSessionPage() {
         if (data.agents.selectedSkills.includes("linear")) {
           if (!ev["LINEAR_API_KEY"]?.trim()) return false;
           if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
-          if (envValidation.linearStatus === "loading") return false;
-          if (envValidation.linearStatus === "invalid") return false;
+          if (envValidation.linearStatus !== "valid") return false;
         }
         if (data.agents.selectedSkills.includes("notion")) {
           if (!ev["NOTION_API_KEY"]?.trim()) return false;
           if (!ev["NOTION_DATABASE_ID"]?.trim()) return false;
-          if (envValidation.notionStatus === "loading") return false;
-          if (envValidation.notionStatus === "invalid") return false;
+          if (envValidation.notionStatus !== "valid") return false;
         }
         return true;
       }
@@ -260,6 +258,22 @@ export default function SolutionSessionPage() {
 
       if (body.project_id) {
         setCreatedProjectId(body.project_id);
+        const ev = useSolutionWizardStore.getState().data.env.envVars;
+        const hasLinear = !!ev["LINEAR_API_KEY"] && !!ev["LINEAR_TEAM_ID"];
+        const hasNotion = !!ev["NOTION_API_KEY"] && !!ev["NOTION_DATABASE_ID"];
+        if (hasLinear || hasNotion) {
+          void integrations
+            .registerInitialTasks(token, body.project_id, {
+              linear_api_key: hasLinear ? ev["LINEAR_API_KEY"] : null,
+              linear_team_id: hasLinear ? ev["LINEAR_TEAM_ID"] : null,
+              notion_api_key: hasNotion ? ev["NOTION_API_KEY"] : null,
+              notion_database_id: hasNotion ? ev["NOTION_DATABASE_ID"] : null,
+              project_name:
+                data.company.companyName ||
+                `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+            })
+            .catch(() => {});
+        }
       }
     } catch {
       const msg = "네트워크 연결을 확인해 주세요";
