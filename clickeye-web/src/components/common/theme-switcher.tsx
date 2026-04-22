@@ -3,10 +3,12 @@
 import { useThemeStore, THEMES, type Theme } from "@/stores/theme-store";
 
 const THEME_BORDER_COLORS: Record<Theme, string> = {
-  dark: "#334155",
-  light: "#cbd5e1",
-  blue: "#1e40af",
-  gray: "#52525b",
+  dark: "#8b5cf6",
+  light: "#4338ca",
+  blue: "#22d3ee",
+  gray: "#6ee7b7",
+  rose: "#fda4af",
+  amber: "#fcd34d",
 };
 
 export function ThemeSwitcher() {

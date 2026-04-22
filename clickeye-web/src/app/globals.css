@@ -5,7 +5,7 @@
 [data-theme="dark"] {
   --bg-base: #020617;
   --bg-surface: rgba(15, 23, 42, 0.5);
-  --bg-header: rgba(2, 6, 23, 0.5);
+  --bg-header: rgba(2, 6, 23, 0.6);
   --bg-elevated: #1e293b;
   --bg-hover: rgba(255, 255, 255, 0.05);
   --bg-hover-danger: rgba(239, 68, 68, 0.1);
@@ -14,76 +14,123 @@
   --text-muted: #475569;
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-medium: rgba(255, 255, 255, 0.1);
-  --nav-active-bg: rgba(139, 92, 246, 0.1);
+  --nav-active-bg: rgba(139, 92, 246, 0.12);
   --nav-active-text: #c4b5fd;
   --nav-active-icon: #a78bfa;
-  --accent-bg: rgba(139, 92, 246, 0.1);
+  --accent-bg: rgba(139, 92, 246, 0.12);
   --accent-text: #c4b5fd;
-  --logo-bg: rgba(139, 92, 246, 0.1);
+  --logo-bg: rgba(139, 92, 246, 0.12);
   --logo-text: #a78bfa;
 }
 
+/* 라이트: 순백 배경, 강한 텍스트 대비, 인디고 액센트 */
 [data-theme="light"] {
-  --bg-base: #f8fafc;
-  --bg-surface: rgba(255, 255, 255, 0.9);
-  --bg-header: rgba(248, 250, 252, 0.9);
-  --bg-elevated: #ffffff;
-  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-base: #ffffff;
+  --bg-surface: rgba(241, 245, 249, 0.95);
+  --bg-header: rgba(255, 255, 255, 0.95);
+  --bg-elevated: #f1f5f9;
+  --bg-hover: rgba(0, 0, 0, 0.06);
   --bg-hover-danger: rgba(239, 68, 68, 0.08);
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --border-subtle: rgba(0, 0, 0, 0.07);
-  --border-medium: rgba(0, 0, 0, 0.12);
-  --nav-active-bg: rgba(124, 58, 237, 0.08);
-  --nav-active-text: #6d28d9;
-  --nav-active-icon: #7c3aed;
-  --accent-bg: rgba(124, 58, 237, 0.08);
-  --accent-text: #6d28d9;
-  --logo-bg: rgba(124, 58, 237, 0.1);
-  --logo-text: #7c3aed;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --border-subtle: rgba(0, 0, 0, 0.1);
+  --border-medium: rgba(0, 0, 0, 0.18);
+  --nav-active-bg: rgba(67, 56, 202, 0.08);
+  --nav-active-text: #3730a3;
+  --nav-active-icon: #4338ca;
+  --accent-bg: rgba(67, 56, 202, 0.08);
+  --accent-text: #3730a3;
+  --logo-bg: rgba(67, 56, 202, 0.1);
+  --logo-text: #4338ca;
 }
 
+/* 오션: 심해 네이비, 시안 액센트 */
 [data-theme="blue"] {
-  --bg-base: #0a1628;
-  --bg-surface: rgba(13, 31, 60, 0.6);
-  --bg-header: rgba(10, 22, 40, 0.7);
-  --bg-elevated: #0d1f3c;
-  --bg-hover: rgba(59, 130, 246, 0.08);
+  --bg-base: #040d1a;
+  --bg-surface: rgba(6, 18, 40, 0.7);
+  --bg-header: rgba(3, 10, 25, 0.8);
+  --bg-elevated: #081428;
+  --bg-hover: rgba(6, 182, 212, 0.08);
   --bg-hover-danger: rgba(239, 68, 68, 0.12);
-  --text-primary: #e2e8f0;
-  --text-secondary: #93c5fd;
-  --text-muted: #60a5fa;
-  --border-subtle: rgba(59, 130, 246, 0.1);
-  --border-medium: rgba(59, 130, 246, 0.15);
-  --nav-active-bg: rgba(59, 130, 246, 0.15);
-  --nav-active-text: #93c5fd;
-  --nav-active-icon: #60a5fa;
-  --accent-bg: rgba(59, 130, 246, 0.15);
-  --accent-text: #93c5fd;
-  --logo-bg: rgba(59, 130, 246, 0.15);
-  --logo-text: #60a5fa;
+  --text-primary: #e0f7fa;
+  --text-secondary: #7dd3fc;
+  --text-muted: #38bdf8;
+  --border-subtle: rgba(6, 182, 212, 0.12);
+  --border-medium: rgba(6, 182, 212, 0.22);
+  --nav-active-bg: rgba(6, 182, 212, 0.15);
+  --nav-active-text: #67e8f9;
+  --nav-active-icon: #22d3ee;
+  --accent-bg: rgba(6, 182, 212, 0.15);
+  --accent-text: #67e8f9;
+  --logo-bg: rgba(6, 182, 212, 0.15);
+  --logo-text: #22d3ee;
 }
 
+/* 포레스트: 짙은 숲, 에메랄드 액센트 */
 [data-theme="gray"] {
-  --bg-base: #18181b;
-  --bg-surface: rgba(39, 39, 42, 0.5);
-  --bg-header: rgba(24, 24, 27, 0.7);
-  --bg-elevated: #27272a;
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --bg-hover-danger: rgba(239, 68, 68, 0.1);
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-medium: rgba(255, 255, 255, 0.12);
-  --nav-active-bg: rgba(161, 161, 170, 0.12);
-  --nav-active-text: #e4e4e7;
-  --nav-active-icon: #d4d4d8;
-  --accent-bg: rgba(161, 161, 170, 0.12);
-  --accent-text: #e4e4e7;
-  --logo-bg: rgba(161, 161, 170, 0.1);
-  --logo-text: #d4d4d8;
+  --bg-base: #030f08;
+  --bg-surface: rgba(5, 20, 12, 0.7);
+  --bg-header: rgba(3, 12, 7, 0.8);
+  --bg-elevated: #071a0e;
+  --bg-hover: rgba(16, 185, 129, 0.08);
+  --bg-hover-danger: rgba(239, 68, 68, 0.12);
+  --text-primary: #dcfce7;
+  --text-secondary: #86efac;
+  --text-muted: #4ade80;
+  --border-subtle: rgba(16, 185, 129, 0.12);
+  --border-medium: rgba(16, 185, 129, 0.22);
+  --nav-active-bg: rgba(16, 185, 129, 0.15);
+  --nav-active-text: #a7f3d0;
+  --nav-active-icon: #6ee7b7;
+  --accent-bg: rgba(16, 185, 129, 0.15);
+  --accent-text: #a7f3d0;
+  --logo-bg: rgba(16, 185, 129, 0.15);
+  --logo-text: #6ee7b7;
+}
+
+/* 로즈: 짙은 와인, 로즈 액센트 */
+[data-theme="rose"] {
+  --bg-base: #1a0309;
+  --bg-surface: rgba(35, 5, 15, 0.7);
+  --bg-header: rgba(20, 3, 9, 0.8);
+  --bg-elevated: #2d0715;
+  --bg-hover: rgba(244, 63, 94, 0.08);
+  --bg-hover-danger: rgba(239, 68, 68, 0.15);
+  --text-primary: #ffe4e6;
+  --text-secondary: #fda4af;
+  --text-muted: #fb7185;
+  --border-subtle: rgba(244, 63, 94, 0.12);
+  --border-medium: rgba(244, 63, 94, 0.22);
+  --nav-active-bg: rgba(244, 63, 94, 0.15);
+  --nav-active-text: #fecdd3;
+  --nav-active-icon: #fda4af;
+  --accent-bg: rgba(244, 63, 94, 0.15);
+  --accent-text: #fecdd3;
+  --logo-bg: rgba(244, 63, 94, 0.15);
+  --logo-text: #fda4af;
+}
+
+/* 앰버: 짙은 원목, 황금 액센트 */
+[data-theme="amber"] {
+  --bg-base: #1a0f03;
+  --bg-surface: rgba(35, 20, 5, 0.7);
+  --bg-header: rgba(20, 11, 3, 0.8);
+  --bg-elevated: #2d1a05;
+  --bg-hover: rgba(245, 158, 11, 0.08);
+  --bg-hover-danger: rgba(239, 68, 68, 0.12);
+  --text-primary: #fef3c7;
+  --text-secondary: #fcd34d;
+  --text-muted: #fbbf24;
+  --border-subtle: rgba(245, 158, 11, 0.12);
+  --border-medium: rgba(245, 158, 11, 0.22);
+  --nav-active-bg: rgba(245, 158, 11, 0.15);
+  --nav-active-text: #fde68a;
+  --nav-active-icon: #fcd34d;
+  --accent-bg: rgba(245, 158, 11, 0.15);
+  --accent-text: #fde68a;
+  --logo-bg: rgba(245, 158, 11, 0.15);
+  --logo-text: #fcd34d;
 }
 
 body {
