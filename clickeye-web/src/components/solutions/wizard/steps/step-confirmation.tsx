@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -19,6 +19,10 @@ import {
   Terminal,
   FolderOpen,
   Sparkles,
+  Globe,
+  KeyRound,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -173,10 +177,19 @@ function CompositionCountBadge({
 
 interface SetupGuideModalProps {
   projectId: string;
+  hasLinear: boolean;
 }
 
-function SetupGuideModal({ projectId }: SetupGuideModalProps) {
-  const STEPS = [
+interface StepItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  desc: string;
+  command?: string;
+  link?: { href: string; label: string };
+}
+
+function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
+  const SIMPLE_STEPS: StepItem[] = [
     {
       icon: Download,
       label: "ZIP 다운로드",
@@ -197,81 +210,161 @@ function SetupGuideModal({ projectId }: SetupGuideModalProps) {
       label: "/ClickEyeStart 실행",
       desc: "Claude Code에서 /ClickEyeStart 커맨드를 입력하면 자동 셋업이 시작됩니다",
     },
-  ] as const;
+  ];
+
+  const LINEAR_STEPS: StepItem[] = [
+    {
+      icon: Download,
+      label: "ZIP 다운로드",
+      desc: '프로젝트 페이지에서 "ZIP 다운로드" 버튼 클릭',
+      link: { href: `/projects/${projectId}`, label: "프로젝트 페이지 열기" },
+    },
+    {
+      icon: FolderOpen,
+      label: "압축 해제",
+      desc: "원하는 폴더에 ZIP 파일을 압축 해제합니다",
+    },
+    {
+      icon: KeyRound,
+      label: ".env 작성",
+      desc: "ANTHROPIC_API_KEY · LINEAR_API_KEY · LINEAR_TEAM_ID · WEBHOOK_SECRET 설정",
+      command: "cp .env.example .env",
+    },
+    {
+      icon: Globe,
+      label: "터널 생성",
+      desc: "Cloudflare 터널을 기동해 외부 접속 URL을 발급받습니다",
+      command: "bash scripts/setup-tunnel.sh",
+    },
+    {
+      icon: ExternalLink,
+      label: "Linear 연동 등록",
+      desc: "발급된 터널 URL을 ClickEye에 저장하면 Linear webhook이 자동 등록됩니다",
+      link: { href: "/settings/linear", label: "Linear 설정 열기" },
+    },
+    {
+      icon: Server,
+      label: "Webhook 서버 기동",
+      desc: "로컬 포트 9876에서 Linear 이벤트 수신을 시작합니다",
+      command: "bash scripts/start-webhook.sh",
+    },
+    {
+      icon: Terminal,
+      label: "Claude Code 실행",
+      desc: "ZIP 폴더에서 터미널을 열고 claude → /ClickEyeStart 실행",
+    },
+    {
+      icon: Sparkles,
+      label: "AI Team 초안 생성",
+      desc: '"새 작업 요청" → "AI 초안 생성" 클릭 → Linear에 이슈가 자동 등록됩니다',
+      link: {
+        href: `/projects/${projectId}/ai-team`,
+        label: "AI Team 열기",
+      },
+    },
+    {
+      icon: Zap,
+      label: "Linear 이슈 → Queued",
+      desc: '이슈 상태를 "Queued"로 변경하면 로컬 Claude가 자동으로 작업을 시작합니다',
+    },
+  ];
+
+  const STEPS = hasLinear ? LINEAR_STEPS : SIMPLE_STEPS;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="mx-4 w-full max-w-md rounded-2xl border border-emerald-500/20 bg-slate-900 p-6 shadow-2xl"
+        className="mx-4 flex w-full max-w-md flex-col rounded-2xl border border-emerald-500/20 bg-slate-900 shadow-2xl"
+        style={{ maxHeight: "90vh" }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="guide-modal-title"
       >
-        {/* 헤더 */}
-        <div className="mb-5 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
-            <CheckCircle2
-              className="h-7 w-7 text-emerald-400"
-              aria-hidden="true"
-            />
+        <div className="overflow-y-auto p-6">
+          {/* 헤더 */}
+          <div className="mb-5 flex flex-col items-center text-center">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
+              <CheckCircle2
+                className="h-7 w-7 text-emerald-400"
+                aria-hidden="true"
+              />
+            </div>
+            <h2
+              id="guide-modal-title"
+              className="text-lg font-bold text-white"
+            >
+              솔루션이 생성되었습니다!
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              {hasLinear
+                ? "아래 절차로 AI Team → Linear → Claude 자동화를 완성하세요"
+                : "아래 절차로 로컬 개발 환경을 셋업하세요"}
+            </p>
           </div>
-          <h2
-            id="guide-modal-title"
-            className="text-lg font-bold text-white"
-          >
-            솔루션이 생성되었습니다!
-          </h2>
-          <p className="mt-1 text-sm text-slate-400">
-            아래 절차로 로컬 개발 환경을 셋업하세요
-          </p>
-        </div>
 
-        {/* 단계별 가이드 */}
-        <ol className="mb-5 space-y-3" aria-label="셋업 절차">
-          {STEPS.map(({ icon: Icon, label, desc }, i) => (
-            <li key={label} className="flex items-start gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
-                {i + 1}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <Icon
-                    className="h-3.5 w-3.5 shrink-0 text-emerald-400"
-                    aria-hidden="true"
-                  />
-                  <span className="text-sm font-medium text-slate-200">
-                    {label}
-                  </span>
+          {/* 단계별 가이드 */}
+          <ol className="mb-5 space-y-3" aria-label="셋업 절차">
+            {STEPS.map(({ icon: Icon, label, desc, command, link }, i) => (
+              <li key={label} className="flex items-start gap-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
+                  {i + 1}
                 </div>
-                <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <Icon
+                      className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium text-slate-200">
+                      {label}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                  {command && (
+                    <code className="mt-1.5 block rounded-lg bg-black/40 px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
+                      {command}
+                    </code>
+                  )}
+                  {link && (
+                    <Link
+                      href={link.href}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-sky-400 transition-colors hover:text-sky-300"
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
+                      {link.label}
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
 
-        {/* 커맨드 강조 */}
-        <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            Claude Code에서 실행
-          </p>
-          <code className="text-sm font-semibold text-emerald-300">
-            /ClickEyeStart
-          </code>
-          <p className="mt-1 text-[11px] text-slate-500">
-            API 키 자동 검증 + 누락 키 대화형 입력 안내
+          {/* 커맨드 강조 (단순 경로만) */}
+          {!hasLinear && (
+            <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                Claude Code에서 실행
+              </p>
+              <code className="text-sm font-semibold text-emerald-300">
+                /ClickEyeStart
+              </code>
+              <p className="mt-1 text-[11px] text-slate-500">
+                API 키 자동 검증 + 누락 키 대화형 입력 안내
+              </p>
+            </div>
+          )}
+
+          {/* 액션 버튼 */}
+          <Link
+            href={`/projects/${projectId}`}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-colors hover:bg-emerald-500"
+          >
+            프로젝트 페이지로 이동
+          </Link>
+          <p className="mt-2 text-center text-[11px] text-slate-600">
+            프로젝트 페이지에서 ZIP 다운로드 및 Linear 연동 상태를 확인할 수 있습니다
           </p>
         </div>
-
-        {/* 액션 버튼 */}
-        <Link
-          href={`/projects/${projectId}`}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-colors hover:bg-emerald-500"
-        >
-          프로젝트 페이지로 이동
-        </Link>
-        <p className="mt-2 text-center text-[11px] text-slate-600">
-          프로젝트 페이지에서 ZIP 다운로드 및 설정을 관리할 수 있습니다
-        </p>
       </div>
     </div>
   );
@@ -288,6 +381,7 @@ export function StepConfirmation() {
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
   const { company, prototypes, pm } = data;
+  const hasLinear = data.agents.selectedSkills.includes("linear");
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -306,7 +400,7 @@ export function StepConfirmation() {
   const compositionCounts = pmProfile ? deriveCompositionCounts(pmProfile) : null;
 
   if (createdProjectId) {
-    return <SetupGuideModal projectId={createdProjectId} />;
+    return <SetupGuideModal projectId={createdProjectId} hasLinear={hasLinear} />;
   }
 
   return (

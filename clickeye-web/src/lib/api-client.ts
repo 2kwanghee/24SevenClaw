@@ -1686,6 +1686,14 @@ export interface PushToLinearResponse {
   count: number;
 }
 
+export interface LinearConnectionStatus {
+  credentials_saved: boolean;
+  webhook_registered: boolean;
+  tunnel_url: string | null;
+  tunnel_reachable: boolean | null;
+  team_name: string | null;
+}
+
 export const linearCredentials = {
   save: (token: string, data: LinearCredentialsSave) =>
     authRequest<LinearCredentialsResponse>("/api/v1/me/linear-credentials/", token, {
@@ -1695,6 +1703,9 @@ export const linearCredentials = {
 
   get: (token: string) =>
     authRequest<LinearCredentialsResponse>("/api/v1/me/linear-credentials/", token),
+
+  status: (token: string) =>
+    authRequest<LinearConnectionStatus>("/api/v1/me/linear-credentials/status", token),
 
   delete: (token: string) =>
     authRequest<void>("/api/v1/me/linear-credentials/", token, { method: "DELETE" }),

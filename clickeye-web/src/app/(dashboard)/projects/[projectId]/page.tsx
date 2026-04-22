@@ -22,7 +22,14 @@ import {
   Monitor,
   Layers,
   Building2,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
+
+import { useQuery } from "@tanstack/react-query";
 
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -31,7 +38,7 @@ import {
   useProject,
   useUpdateProject,
 } from "@/hooks/use-projects";
-import { apiClient, ApiClientError } from "@/lib/api-client";
+import { apiClient, ApiClientError, linearCredentials, type LinearConnectionStatus } from "@/lib/api-client";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
@@ -63,6 +70,13 @@ export default function ProjectDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const { data: linearStatus, refetch: refetchLinearStatus, isFetching: linearFetching } = useQuery({
+    queryKey: ["linear-connection-status"],
+    queryFn: () => linearCredentials.status(token),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleRedownload = useCallback(async () => {
     if (!token || !projectId) return;
@@ -366,6 +380,14 @@ export default function ProjectDetailPage() {
             )}
           </div>
         )}
+
+        {/* Linear 연동 프리플라이트 카드 */}
+        <LinearPreflightCard
+          projectId={projectId}
+          status={linearStatus ?? null}
+          isFetching={linearFetching}
+          onRefresh={() => void refetchLinearStatus()}
+        />
         </>
       )}
 
@@ -400,6 +422,132 @@ function ConfigBadge({ icon: Icon, label, value }: ConfigBadgeProps) {
       <div className="min-w-0">
         <p className="text-[10px] text-slate-600">{label}</p>
         <p className="truncate text-xs font-medium text-slate-300">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/* -- Linear 연동 프리플라이트 카드 -- */
+
+interface LinearPreflightCardProps {
+  projectId: string;
+  status: LinearConnectionStatus | null;
+  isFetching: boolean;
+  onRefresh: () => void;
+}
+
+interface CheckItemProps {
+  ok: boolean | null;
+  label: string;
+  description?: string;
+}
+
+function CheckItem({ ok, label, description }: CheckItemProps) {
+  return (
+    <div className="flex items-start gap-3">
+      {ok === null ? (
+        <div className="mt-0.5 h-4 w-4 shrink-0 animate-pulse rounded-full bg-slate-700" />
+      ) : ok ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+      ) : (
+        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+      )}
+      <div>
+        <p className="text-sm font-medium text-slate-300">{label}</p>
+        {description && <p className="text-xs text-slate-500">{description}</p>}
+      </div>
+    </div>
+  );
+}
+
+function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: LinearPreflightCardProps) {
+  const allReady =
+    status?.credentials_saved &&
+    status?.tunnel_url != null &&
+    status?.tunnel_reachable === true &&
+    status?.webhook_registered;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-violet-400" />
+          <h2 className="text-lg font-semibold text-white">Linear 연동 준비 상태</h2>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={isFetching}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 transition-all hover:bg-white/10 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          새로고침
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <CheckItem
+          ok={status ? status.credentials_saved : null}
+          label="자격증명 저장됨"
+          description={
+            status?.credentials_saved
+              ? status.team_name ? `팀: ${status.team_name}` : "Linear API 키가 등록되어 있습니다"
+              : "Linear API 키와 팀 ID를 등록해 주세요"
+          }
+        />
+        <CheckItem
+          ok={status ? status.tunnel_url != null : null}
+          label="터널 URL 등록됨"
+          description={
+            status?.tunnel_url
+              ? status.tunnel_url
+              : "cloudflared 터널 URL을 설정에서 등록해 주세요"
+          }
+        />
+        <CheckItem
+          ok={status ? status.tunnel_reachable === true : null}
+          label="터널 응답 확인됨"
+          description={
+            status?.tunnel_reachable === true
+              ? "webhook 서버가 외부에서 접근 가능합니다"
+              : status?.tunnel_url
+              ? "터널이 응답하지 않습니다. start-webhook.sh를 실행해 주세요"
+              : "터널 URL 등록 후 확인 가능합니다"
+          }
+        />
+        <CheckItem
+          ok={status ? status.webhook_registered : null}
+          label="Linear Webhook 등록됨"
+          description={
+            status?.webhook_registered
+              ? "Linear에서 이벤트를 수신할 준비가 되었습니다"
+              : "설정에서 터널 URL 저장 시 자동으로 등록됩니다"
+          }
+        />
+      </div>
+
+      <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-6">
+        {allReady ? (
+          <a
+            href={`/projects/${projectId}/ai-team`}
+            className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500"
+          >
+            <Zap className="h-4 w-4" />
+            AI Team 시작하기
+          </a>
+        ) : (
+          <a
+            href="/settings/linear"
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Linear 설정 바로가기
+          </a>
+        )}
+        <span className="text-xs text-slate-500">
+          {allReady
+            ? "모든 준비가 완료되었습니다. AI Team에서 Linear 이슈를 자동으로 생성할 수 있습니다."
+            : "4가지 항목을 모두 완료하면 Linear 자동화가 활성화됩니다."}
+        </span>
       </div>
     </div>
   );

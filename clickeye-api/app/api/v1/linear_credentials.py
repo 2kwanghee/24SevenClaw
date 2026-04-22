@@ -10,7 +10,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.user_linear_credentials import UserLinearCredentials
-from app.schemas.linear_credentials import LinearCredentialsSave, LinearCredentialsResponse
+from app.schemas.linear_credentials import LinearConnectionStatus, LinearCredentialsSave, LinearCredentialsResponse
 
 router = APIRouter(prefix="/me/linear-credentials", tags=["linear-credentials"])
 
@@ -109,6 +109,61 @@ async def get_linear_credentials(
         tunnel_url=creds.tunnel_url,
         linear_webhook_id=creds.linear_webhook_id,
         updated_at=creds.updated_at or creds.created_at,
+    )
+
+
+@router.get("/status", response_model=LinearConnectionStatus)
+async def get_linear_connection_status(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LinearConnectionStatus:
+    """Linear 연동 준비 상태 조회 — 자격증명/webhook/tunnel 가용성 한 번에 확인."""
+    import asyncio
+    from urllib.error import URLError
+    from urllib.request import Request, urlopen
+
+    from app.core.crypto import decrypt as _decrypt
+    from app.services.linear_service import _TEAM_QUERY, _call
+
+    creds = await _get_creds(user.id, db)  # type: ignore[arg-type]
+    if creds is None:
+        return LinearConnectionStatus(
+            credentials_saved=False,
+            webhook_registered=False,
+            tunnel_url=None,
+            tunnel_reachable=None,
+            team_name=None,
+        )
+
+    # tunnel 응답 확인 (5초 타임아웃, 동기 → 스레드)
+    tunnel_reachable: bool | None = None
+    if creds.tunnel_url:
+        def _check_tunnel(url: str) -> bool:
+            try:
+                req = Request(f"{url.rstrip('/')}/health", method="HEAD")
+                with urlopen(req, timeout=5):
+                    return True
+            except (URLError, OSError, Exception):
+                return False
+
+        tunnel_reachable = await asyncio.to_thread(_check_tunnel, str(creds.tunnel_url))
+
+    # Linear 팀 이름 조회 (실패해도 None 반환)
+    team_name: str | None = None
+    try:
+        api_key = _decrypt(str(creds.encrypted_api_key))
+        data = await asyncio.to_thread(_call, api_key, _TEAM_QUERY, {"id": str(creds.team_id)})
+        team = data.get("team") or {}
+        team_name = team.get("name") or None
+    except Exception:
+        pass
+
+    return LinearConnectionStatus(
+        credentials_saved=True,
+        webhook_registered=bool(creds.linear_webhook_id),
+        tunnel_url=creds.tunnel_url,
+        tunnel_reachable=tunnel_reachable,
+        team_name=team_name,
     )
 
 

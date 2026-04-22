@@ -19,3 +19,11 @@ class LinearCredentialsResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class LinearConnectionStatus(BaseModel):
+    credentials_saved: bool
+    webhook_registered: bool
+    tunnel_url: str | None
+    tunnel_reachable: bool | None
+    team_name: str | None

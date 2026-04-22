@@ -20,7 +20,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { organizations, prototypeSessions, integrations, ApiClientError, NetworkError } from "@/lib/api-client";
+import { organizations, prototypeSessions, integrations, linearCredentials, ApiClientError, NetworkError } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 
 // 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
@@ -206,6 +206,20 @@ export default function NewSolutionPage() {
       const ev = useSolutionWizardStore.getState().data.env.envVars;
       const hasLinear = !!ev["LINEAR_API_KEY"] && !!ev["LINEAR_TEAM_ID"];
       const hasNotion = !!ev["NOTION_API_KEY"] && !!ev["NOTION_DATABASE_ID"];
+
+      // Linear validation이 통과된 경우 자격증명을 서버에 자동 저장 (tunnel_url은 나중에 설정)
+      if (hasLinear && useSolutionWizardStore.getState().envValidation.linearStatus === "valid") {
+        void linearCredentials
+          .save(token, {
+            api_key: ev["LINEAR_API_KEY"]!,
+            team_id: ev["LINEAR_TEAM_ID"]!,
+            webhook_secret: null,
+            tunnel_url: null,
+          })
+          .catch(() => {
+            // 자격증명 자동 저장 실패는 무시 (프로젝트 생성은 성공)
+          });
+      }
       if (hasLinear || hasNotion) {
         void integrations
           .registerInitialTasks(token, result.project_id, {
