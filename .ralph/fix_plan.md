@@ -8,80 +8,83 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] Notion API Key 유효성 검증 엔드포인트 구현**
+- [x] **[api] 프로젝트 finalize 시 Linear/Notion 초기 태스크 자동 등록**
   > 요청사항: ## 작업 목적
 
-Step 8에서 사용자가 Notion API Key + Database ID를 입력하면, 실제로 유효한 자격증명인지 서버 측에서 검증한다.
+`POST /prototype-sessions/{session_id}/finalize` 호출로 프로젝트가 최초 생성되면, 위저드에서 선택한 Linear 또는 Notion에 **"프로젝트 생성 완료"** 태스크를 자동으로 등록한다. 이 태스크는 AI Team이 첫 연동이 정상 동작함을 사용자가 확인할 수 있는 기준점이 된다.
 
 ## 구현 명세
 
-### 엔드포인트
+### finalize 엔드포인트 수정 위치
+
+`app/api/v1/prototype_sessions.py` → `finalize_session` 함수 마지막 단계에서 실행
+
+### 처리 순서 (finalize 기존 로직 이후 추가)
 
 ```
-POST /api/v1/integrations/notion/validate
+1. 기존: 세션 검증 + Project DB 생성
+2. [신규] 위저드 데이터에서 선택된 스킬 목록 확인
+3. [신규] Linear 선택 시:
+   - wizard_data에서 LINEAR_API_KEY, LINEAR_TEAM_ID 추출
+   - linear_service.create_issue() 호출 → 이슈 생성
+4. [신규] Notion 선택 시:
+   - wizard_data에서 NOTION_API_KEY, NOTION_DATABASE_ID 추출
+   - notion_service.create_page() 호출 → 페이지 생성
+5. [신규] 생성된 이슈/페이지 URL을 project에 저장 (initial_task_url 컬럼)
+6. 기존: project_id 반환 (실패해도 프로젝트 생성은 성공으로 처리)
 ```
 
-### 요청 바디
+### Linear 초기 이슈 내용
 
-```json
-{
-  "api_key": "secret_xxxxxxxxxxxxxxxx",
-  "database_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-}
+```
+제목: 🚀 ClickEye 프로젝트 생성 완료 — {project_name}
+설명:
+  ClickEye 위저드를 통해 AI 개발 자동화 솔루션이 성공적으로 구성되었습니다.
+
+  ## 다음 단계
+  1. ZIP 파일 다운로드
+  2. 압축 해제 후 디렉토리 진입
+  3. Claude Code에서 /ClickEyeStart 실행
+
+  ## 연동 정보
+  - 생성 일시: {created_at}
+  - 플랫폼: {platform}
+  - 에이전트: {agent_list}
 ```
 
-### 처리 로직
+### Notion 초기 페이지 내용
 
-1. Notion REST API 호출: `GET https://api.notion.com/v1/databases/{database_id}`
-   * Header: `Authorization: Bearer {api_key}`, `Notion-Version: 2022-06-28`
-2. 응답 분기:
-   * HTTP 401 → `{"valid": false, "error": "Notion API Key가 유효하지 않습니다"}`
-   * HTTP 404 → `{"valid": false, "error": "데이터베이스를 찾을 수 없습니다. 데이터베이스 ID를 확인하거나 Integration을 공유했는지 확인하세요"}`
-   * HTTP 400 (Invalid UUID) → `{"valid": false, "error": "데이터베이스 ID 형식이 올바르지 않습니다"}`
-   * HTTP 200 → `{"valid": true, "database_title": "DB 제목"}`
-3. `database_title`: 응답 JSON의 `title[0].plain_text` 또는 빈 문자열
+동일한 내용으로 Notion Page 생성 (Title 프로퍼티 + 본문 블록)
 
-### 응답 스키마
+### 실패 처리
 
-```json
-{
-  "valid": true,
-  "database_title": "My Tasks DB"
-}
+* Linear/Notion 초기 이슈 생성 실패는 **경고 로그만 남기고 finalize 전체를 실패시키지 않는다**
+* failure-safe: 프로젝트 생성 자체는 무조건 성공으로 응답
+
+### DB 스키마 변경
+
+`projects` 테이블에 컬럼 추가:
+
+```sql
+ALTER TABLE projects ADD COLUMN initial_task_url VARCHAR(500);
 ```
 
-또는
-
-```json
-{
-  "valid": false,
-  "error": "..."
-}
-```
-
-### 보안
-
-* 인증 필요 (`get_current_user` 의존성)
-* 타임아웃: 5초
-
-## 추가 고려사항
-
-Notion Integration이 해당 데이터베이스에 **공유**되지 않으면 403이 반환될 수 있음.
-→ HTTP 403 → `{"valid": false, "error": "Integration이 해당 데이터베이스에 공유되지 않았습니다. Notion에서 데이터베이스 공유 설정을 확인하세요"}`
+→ Alembic 마이그레이션 필요 (019_add_initial_task_url.py)
 
 ## 참조 파일
 
-* `app/api/v1/linear_credentials.py` — 구조 참조
-* `app/api/v1/router.py` — 라우터 등록 필요
+* `app/api/v1/prototype_sessions.py` — finalize_session 함수
+* `app/services/linear_service.py` — create_issues 함수
+* `app/services/notion_service.py` — 신규 생성 필요 ([24S-211](https://linear.app/flow-ops/issue/24S-211/api-notion-api-key-유효성-검증-엔드포인트-구현)과 연계)
+* `app/models/project.py` — initial_task_url 컬럼 추가
 
 ## 완료 기준
 
-- `POST /api/v1/integrations/notion/validate` 엔드포인트 동작
-- 유효한 key + database_id → `valid: true` + database_title
-- 잘못된 API Key → `valid: false` + 에러
-- 공유 안 된 DB → `valid: false` + 가이드 에러
-- 잘못된 database_id → `valid: false` + 에러
-- 5초 타임아웃 처리
+- finalize 완료 후 Linear에 이슈 자동 생성 확인 (실제 Linear 워크스페이스에서 확인)
+- finalize 완료 후 Notion에 페이지 자동 생성 확인
+- Linear/Notion 생성 실패 시에도 프로젝트 생성은 정상 완료
+- initial_task_url이 DB에 저장됨
+- Alembic 마이그레이션 019 적용 완료
 
 ---
 
@@ -91,4 +94,4 @@ Notion Integration이 해당 데이터베이스에 **공유**되지 않으면 40
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-22 | [api] Notion API Key 유효성 검증 엔드포인트 구현 | ✅ 완료 | POST /integrations/notion/validate, HTTP 상태코드별 분기 |
+| 2026-04-22 | [api] finalize 시 Linear/Notion 초기 태스크 자동 등록 | ✅ 완료 | 019 마이그레이션, FinalizeRequest 확장, _register_initial_tasks 메서드, 테스트 5개 |
