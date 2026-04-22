@@ -8,83 +8,114 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[api] 프로젝트 finalize 시 Linear/Notion 초기 태스크 자동 등록**
+- [x] **[web] Step 8 API Key 실시간 유효성 검증 UI 구현**
   > 요청사항: ## 작업 목적
 
-`POST /prototype-sessions/{session_id}/finalize` 호출로 프로젝트가 최초 생성되면, 위저드에서 선택한 Linear 또는 Notion에 **"프로젝트 생성 완료"** 태스크를 자동으로 등록한다. 이 태스크는 AI Team이 첫 연동이 정상 동작함을 사용자가 확인할 수 있는 기준점이 된다.
+Step 8 환경변수 입력 UI에서 Linear/Notion API Key 입력 필드에 **실시간 유효성 검증** 피드백을 추가한다. 사용자가 잘못된 키를 입력한 채로 다음 단계로 진행하는 것을 사전에 차단한다.
+
+## UX 흐름
+
+```
+사용자가 API Key + Team ID/DB ID 입력
+  → [검증하기] 버튼 클릭 (또는 두 필드 모두 입력 완료 시 자동 트리거)
+  → 로딩 스피너 표시
+  → 성공: ✅ 초록 뱃지 + "Linear 연결 완료: {team_name}"
+  → 실패: ❌ 빨간 뱃지 + 에러 메시지
+  → 다음 버튼: 검증 성공 시에만 활성화
+```
 
 ## 구현 명세
 
-### finalize 엔드포인트 수정 위치
+### 검증 상태 타입
 
-`app/api/v1/prototype_sessions.py` → `finalize_session` 함수 마지막 단계에서 실행
+```typescript
+type ValidationState = "idle" | "loading" | "success" | "error";
 
-### 처리 순서 (finalize 기존 로직 이후 추가)
-
-```
-1. 기존: 세션 검증 + Project DB 생성
-2. [신규] 위저드 데이터에서 선택된 스킬 목록 확인
-3. [신규] Linear 선택 시:
-   - wizard_data에서 LINEAR_API_KEY, LINEAR_TEAM_ID 추출
-   - linear_service.create_issue() 호출 → 이슈 생성
-4. [신규] Notion 선택 시:
-   - wizard_data에서 NOTION_API_KEY, NOTION_DATABASE_ID 추출
-   - notion_service.create_page() 호출 → 페이지 생성
-5. [신규] 생성된 이슈/페이지 URL을 project에 저장 (initial_task_url 컬럼)
-6. 기존: project_id 반환 (실패해도 프로젝트 생성은 성공으로 처리)
+interface ValidationResult {
+  state: ValidationState;
+  message?: string;  // 성공: "팀명" or "DB명", 실패: 에러 설명
+}
 ```
 
-### Linear 초기 이슈 내용
+### 검증 트리거 조건
 
-```
-제목: 🚀 ClickEye 프로젝트 생성 완료 — {project_name}
-설명:
-  ClickEye 위저드를 통해 AI 개발 자동화 솔루션이 성공적으로 구성되었습니다.
+* Linear: `LINEAR_API_KEY` AND `LINEAR_TEAM_ID` 모두 입력 완료 시 자동 트리거 (debounce 1초)
+* Notion: `NOTION_API_KEY` AND `NOTION_DATABASE_ID` 모두 입력 완료 시 자동 트리거 (debounce 1초)
 
-  ## 다음 단계
-  1. ZIP 파일 다운로드
-  2. 압축 해제 후 디렉토리 진입
-  3. Claude Code에서 /ClickEyeStart 실행
+### API 호출
 
-  ## 연동 정보
-  - 생성 일시: {created_at}
-  - 플랫폼: {platform}
-  - 에이전트: {agent_list}
+```typescript
+// lib/api-client.ts에 추가
+const validateLinear = async (apiKey: string, teamId: string) =>
+  POST("/api/v1/integrations/linear/validate", { api_key: apiKey, team_id: teamId });
+
+const validateNotion = async (apiKey: string, databaseId: string) =>
+  POST("/api/v1/integrations/notion/validate", { api_key: apiKey, database_id: databaseId });
 ```
 
-### Notion 초기 페이지 내용
+### canProceed 변경
 
-동일한 내용으로 Notion Page 생성 (Title 프로퍼티 + 본문 블록)
+기존: 빈 문자열만 체크
+변경: 빈 문자열 + **검증 상태가 "success"** 인 경우에만 true
 
-### 실패 처리
+```typescript
+case 8: {
+  const ev = data.env.envVars;
+  if (!ev["ANTHROPIC_API_KEY"]?.trim()) return false;
 
-* Linear/Notion 초기 이슈 생성 실패는 **경고 로그만 남기고 finalize 전체를 실패시키지 않는다**
-* failure-safe: 프로젝트 생성 자체는 무조건 성공으로 응답
+  if (data.agents.selectedSkills.includes("linear")) {
+    if (!ev["LINEAR_API_KEY"]?.trim() || !ev["LINEAR_TEAM_ID"]?.trim()) return false;
+    if (linearValidation.state !== "success") return false;  // 추가
+  }
 
-### DB 스키마 변경
+  if (data.agents.selectedSkills.includes("notion")) {
+    if (!ev["NOTION_API_KEY"]?.trim() || !ev["NOTION_DATABASE_ID"]?.trim()) return false;
+    if (notionValidation.state !== "success") return false;  // 추가
+  }
 
-`projects` 테이블에 컬럼 추가:
-
-```sql
-ALTER TABLE projects ADD COLUMN initial_task_url VARCHAR(500);
+  return true;
+}
 ```
 
-→ Alembic 마이그레이션 필요 (019_add_initial_task_url.py)
+### UI 컴포넌트 구조
+
+각 통합 섹션(Linear/Notion) 하단에 검증 상태 표시 영역 추가:
+
+```tsx
+{/* 검증 중 */}
+<div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+  <Loader2 className="h-4 w-4 animate-spin" />
+  <span>연결 확인 중...</span>
+</div>
+
+{/* 성공 */}
+<div className="flex items-center gap-2 text-sm text-emerald-400">
+  <CheckCircle2 className="h-4 w-4" />
+  <span>Linear 연결 완료: {teamName}</span>
+</div>
+
+{/* 실패 */}
+<div className="flex items-center gap-2 text-sm text-red-400">
+  <AlertCircle className="h-4 w-4" />
+  <span>{errorMessage}</span>
+</div>
+```
 
 ## 참조 파일
 
-* `app/api/v1/prototype_sessions.py` — finalize_session 함수
-* `app/services/linear_service.py` — create_issues 함수
-* `app/services/notion_service.py` — 신규 생성 필요 ([24S-211](https://linear.app/flow-ops/issue/24S-211/api-notion-api-key-유효성-검증-엔드포인트-구현)과 연계)
-* `app/models/project.py` — initial_task_url 컬럼 추가
+* `src/components/solutions/wizard/steps/step-solution-env.tsx` — 수정 대상
+* `src/app/(dashboard)/solutions/new/page.tsx` — canProceed Step 8 로직 수정
+* `src/app/(dashboard)/solutions/[sessionId]/page.tsx` — 동일하게 수정
 
 ## 완료 기준
 
-- finalize 완료 후 Linear에 이슈 자동 생성 확인 (실제 Linear 워크스페이스에서 확인)
-- finalize 완료 후 Notion에 페이지 자동 생성 확인
-- Linear/Notion 생성 실패 시에도 프로젝트 생성은 정상 완료
-- initial_task_url이 DB에 저장됨
-- Alembic 마이그레이션 019 적용 완료
+- Linear 필드 입력 완료 시 자동 검증 실행 (debounce 1초)
+- Notion 필드 입력 완료 시 자동 검증 실행
+- 검증 중 로딩 스피너 표시
+- 검증 성공 시 ✅ + 팀명/DB명 표시
+- 검증 실패 시 ❌ + 구체적 에러 메시지 표시
+- 검증 미완료/실패 시 다음 버튼 비활성화
+- API Key 변경 시 검증 상태 초기화 (idle로 리셋)
 
 ---
 
@@ -94,4 +125,3 @@ ALTER TABLE projects ADD COLUMN initial_task_url VARCHAR(500);
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-22 | [api] finalize 시 Linear/Notion 초기 태스크 자동 등록 | ✅ 완료 | 019 마이그레이션, FinalizeRequest 확장, _register_initial_tasks 메서드, 테스트 5개 |

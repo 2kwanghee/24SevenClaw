@@ -50,6 +50,7 @@ export default function SolutionSessionPage() {
     data,
     step1Done,
     step3Done,
+    envValidation,
     setSessionId,
     setOrganizationId,
     setCompany,
@@ -181,10 +182,14 @@ export default function SolutionSessionPage() {
         if (data.agents.selectedSkills.includes("linear")) {
           if (!ev["LINEAR_API_KEY"]?.trim()) return false;
           if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
+          if (envValidation.linearStatus === "loading") return false;
+          if (envValidation.linearStatus === "invalid") return false;
         }
         if (data.agents.selectedSkills.includes("notion")) {
           if (!ev["NOTION_API_KEY"]?.trim()) return false;
           if (!ev["NOTION_DATABASE_ID"]?.trim()) return false;
+          if (envValidation.notionStatus === "loading") return false;
+          if (envValidation.notionStatus === "invalid") return false;
         }
         return true;
       }
