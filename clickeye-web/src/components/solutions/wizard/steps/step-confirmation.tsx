@@ -194,21 +194,25 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
       icon: Download,
       label: "ZIP 다운로드",
       desc: '프로젝트 페이지에서 "ZIP 다운로드" 버튼 클릭',
+      link: { href: `/projects/${projectId}`, label: "프로젝트 페이지 열기" },
     },
     {
       icon: FolderOpen,
       label: "압축 해제",
       desc: "원하는 폴더에 ZIP 파일을 압축 해제합니다",
+      command: "unzip <project>.zip -d my-project && cd my-project",
     },
     {
       icon: Terminal,
       label: "Claude Code 실행",
-      desc: "압축 해제한 폴더에서 터미널을 열고 claude 실행",
+      desc: "압축 해제한 폴더에서 터미널을 열고 아래 명령어를 실행합니다",
+      command: "claude",
     },
     {
       icon: Sparkles,
       label: "/ClickEyeStart 실행",
-      desc: "Claude Code에서 /ClickEyeStart 커맨드를 입력하면 자동 셋업이 시작됩니다",
+      desc: "Claude Code 프롬프트 안에서 커맨드를 입력하면 .env 검증 → API 키 안내 → 셋업 완료까지 자동으로 진행됩니다",
+      command: "/ClickEyeStart",
     },
   ];
 
@@ -251,7 +255,8 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
     {
       icon: Terminal,
       label: "Claude Code 실행",
-      desc: "ZIP 폴더에서 터미널을 열고 claude → /ClickEyeStart 실행",
+      desc: "ZIP 폴더에서 터미널을 열고 아래 명령어로 Claude Code를 시작합니다",
+      command: "claude",
     },
     {
       icon: Sparkles,
@@ -274,7 +279,7 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="mx-4 flex w-full max-w-md flex-col rounded-2xl border border-emerald-500/20 bg-slate-900 shadow-2xl"
+        className="setup-guide-modal mx-4 flex w-full max-w-md flex-col rounded-2xl border border-emerald-500/20 shadow-2xl"
         style={{ maxHeight: "90vh" }}
         role="dialog"
         aria-modal="true"
@@ -321,7 +326,7 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
                   </div>
                   <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
                   {command && (
-                    <code className="mt-1.5 block rounded-lg bg-black/40 px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
+                    <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
                       {command}
                     </code>
                   )}
@@ -339,20 +344,18 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
             ))}
           </ol>
 
-          {/* 커맨드 강조 (단순 경로만) */}
-          {!hasLinear && (
-            <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-                Claude Code에서 실행
-              </p>
-              <code className="text-sm font-semibold text-emerald-300">
-                /ClickEyeStart
-              </code>
-              <p className="mt-1 text-[11px] text-slate-500">
-                API 키 자동 검증 + 누락 키 대화형 입력 안내
-              </p>
+          {/* /ClickEyeStart 흐름 안내 */}
+          <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              /ClickEyeStart 실행 흐름
+            </p>
+            <div className="space-y-1 text-[11px] text-slate-500">
+              <p>① <code className="text-emerald-300">claude</code> 실행 → Claude Code 프롬프트 진입</p>
+              <p>② <code className="text-emerald-300">/ClickEyeStart</code> 입력 → 자동 셋업 시작</p>
+              <p>③ <code className="text-slate-400">.env</code> 검증 → 누락 키 대화형 입력 안내</p>
+              <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
             </div>
-          )}
+          </div>
 
           {/* 액션 버튼 */}
           <Link

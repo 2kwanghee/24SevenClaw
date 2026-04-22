@@ -208,3 +208,15 @@ body {
 [data-theme="light"] .text-amber-400  { color: #d97706; }
 [data-theme="light"] .text-yellow-300 { color: #a16207; }
 [data-theme="light"] .text-rose-300   { color: #e11d48; }
+
+/* ===== SetupGuideModal — 테마 적응형 ===== */
+.setup-guide-modal {
+  background-color: var(--bg-elevated);
+}
+.setup-guide-modal-code {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+[data-theme="light"] .setup-guide-modal-code {
+  background-color: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
