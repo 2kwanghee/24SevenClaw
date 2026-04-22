@@ -1,5 +1,6 @@
 """프로토타입 세션 서비스 — 세션 생성, 프로토타입 생성/조회/선택/확정."""
 
+import asyncio
 import logging
 import re
 import time
@@ -715,7 +716,51 @@ class PrototypeService:
 
         await self.db.commit()
         await self.db.refresh(project)
+
+        # Linear/Notion 초기 태스크 자동 등록 (실패해도 프로젝트 생성은 성공으로 처리)
+        initial_task_url = await self._register_initial_tasks(data)
+        if initial_task_url:
+            await self.db.execute(
+                update(Project)
+                .where(Project.id == project.id)
+                .values(initial_task_url=initial_task_url)
+            )
+            await self.db.commit()
+            await self.db.refresh(project)
+
         return project
+
+    async def _register_initial_tasks(self, data: FinalizeRequest) -> str | None:
+        """Linear/Notion 초기 태스크를 생성하고 URL을 반환한다. 실패 시 None 반환."""
+        from app.services import linear_service, notion_service
+
+        if data.linear_api_key and data.linear_team_id:
+            try:
+                url = await asyncio.to_thread(
+                    linear_service.create_initial_task,
+                    data.linear_api_key,
+                    data.linear_team_id,
+                    data.project_name,
+                )
+                if url:
+                    return url
+            except Exception as exc:
+                logger.warning("Linear 초기 태스크 생성 실패: %s", exc)
+
+        if data.notion_api_key and data.notion_database_id:
+            try:
+                url = await asyncio.to_thread(
+                    notion_service.create_initial_task,
+                    data.notion_api_key,
+                    data.notion_database_id,
+                    data.project_name,
+                )
+                if url:
+                    return url
+            except Exception as exc:
+                logger.warning("Notion 초기 태스크 생성 실패: %s", exc)
+
+        return None
 
 
 # ── 헬퍼 함수 ────────────────────────────────────────────────────────────────

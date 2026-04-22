@@ -235,6 +235,7 @@ async def finalize_session(
         project_name=str(project.name),
         session_id=session_id,
         message="프로젝트가 생성되었습니다",
+        initial_task_url=project.initial_task_url,
     )
 
 

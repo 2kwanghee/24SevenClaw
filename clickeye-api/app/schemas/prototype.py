@@ -156,6 +156,10 @@ class FinalizeRequest(BaseModel):
 
     project_name: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
+    linear_api_key: str | None = Field(None, description="Linear API 키 (선택)")
+    linear_team_id: str | None = Field(None, description="Linear 팀 UUID (선택)")
+    notion_api_key: str | None = Field(None, description="Notion API 키 (선택)")
+    notion_database_id: str | None = Field(None, description="Notion 데이터베이스 UUID (선택)")
 
 
 class FinalizeResponse(BaseModel):
@@ -165,3 +169,4 @@ class FinalizeResponse(BaseModel):
     project_name: str
     session_id: UUID
     message: str
+    initial_task_url: str | None = None
