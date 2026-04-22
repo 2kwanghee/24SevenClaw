@@ -1665,7 +1665,7 @@ export const orchestrator = {
 // --- Linear Credentials ---
 
 export interface LinearCredentialsSave {
-  api_key: string;
+  api_key?: string | null;
   team_id: string;
   webhook_secret?: string | null;
   tunnel_url?: string | null;

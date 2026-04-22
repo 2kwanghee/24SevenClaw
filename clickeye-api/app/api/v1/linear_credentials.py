@@ -38,14 +38,27 @@ async def save_linear_credentials(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LinearCredentialsResponse:
-    """Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화. tunnel_url 제공 시 Linear webhook 자동 등록."""
+    """Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화. tunnel_url 제공 시 Linear webhook 자동 등록.
+    api_key 미입력 시 기존 키 유지 (tunnel_url·webhook_secret만 갱신 가능).
+    """
     from app.core.crypto import decrypt as _decrypt
     from app.services.linear_service import ensure_webhook
 
-    encrypted_key = encrypt(data.api_key)
     now = datetime.now(UTC)
 
     creds = await _get_creds(user.id, db)  # type: ignore[arg-type]
+
+    # API 키 처리: 신규 api_key가 있으면 암호화, 없으면 기존 키 유지
+    if data.api_key is not None:
+        encrypted_key = encrypt(data.api_key)
+    elif creds is not None:
+        encrypted_key = str(creds.encrypted_api_key)  # 기존 키 유지
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="신규 등록 시 api_key가 필요합니다.",
+        )
+
     if creds is None:
         creds = UserLinearCredentials(
             user_id=user.id,
