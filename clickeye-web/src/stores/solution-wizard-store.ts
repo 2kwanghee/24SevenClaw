@@ -16,6 +16,15 @@ import {
 
 export { SOLUTION_WIZARD_STEPS, type SolutionWizardStepId } from "@/types/solution-wizard";
 
+type ValidationStatus = "idle" | "loading" | "valid" | "invalid";
+
+export interface EnvValidationState {
+  linearStatus: ValidationStatus;
+  linearMessage: string;
+  notionStatus: ValidationStatus;
+  notionMessage: string;
+}
+
 interface SolutionWizardState {
   currentStep: number;
   data: SolutionWizardData;
@@ -28,6 +37,8 @@ interface SolutionWizardState {
   step3Done: boolean;
   /** 프로젝트 생성 완료 후 설정 — StepConfirmation에서 가이드 모달 트리거에 사용 */
   createdProjectId: string | null;
+  /** Step 8 (환경변수) Linear/Notion API 키 검증 상태 */
+  envValidation: EnvValidationState;
 }
 
 interface SolutionWizardActions {
@@ -50,6 +61,7 @@ interface SolutionWizardActions {
   setEnv: (data: Partial<EnvStep>) => void;
   setIsGenerating: (v: boolean) => void;
   setCreatedProjectId: (id: string) => void;
+  setEnvValidation: (data: Partial<EnvValidationState>) => void;
   reset: () => void;
 }
 
@@ -61,6 +73,12 @@ const initialState: SolutionWizardState = {
   step1Done: false,
   step3Done: false,
   createdProjectId: null,
+  envValidation: {
+    linearStatus: "idle",
+    linearMessage: "",
+    notionStatus: "idle",
+    notionMessage: "",
+  },
 };
 
 export const useSolutionWizardStore = create<
@@ -170,6 +188,11 @@ export const useSolutionWizardStore = create<
   setIsGenerating: (isGenerating) => set({ isGenerating }),
 
   setCreatedProjectId: (createdProjectId) => set({ createdProjectId }),
+
+  setEnvValidation: (data) =>
+    set((state) => ({
+      envValidation: { ...state.envValidation, ...data },
+    })),
 
   reset: () => set(initialState),
 }));

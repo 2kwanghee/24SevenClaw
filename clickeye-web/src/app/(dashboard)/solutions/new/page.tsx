@@ -20,7 +20,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { organizations, prototypeSessions, ApiClientError, NetworkError } from "@/lib/api-client";
+import { organizations, prototypeSessions, integrations, ApiClientError, NetworkError } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 
 // 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
@@ -48,6 +48,7 @@ export default function NewSolutionPage() {
     step0Valid,
     step1Done,
     step3Done,
+    envValidation,
     nextStep,
     setSessionId,
     setOrganizationId,
@@ -109,10 +110,16 @@ export default function NewSolutionPage() {
         if (data.agents.selectedSkills.includes("linear")) {
           if (!ev["LINEAR_API_KEY"]?.trim()) return false;
           if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
+          // 검증 중이거나 실패 시 진행 불가
+          if (envValidation.linearStatus === "loading") return false;
+          if (envValidation.linearStatus === "invalid") return false;
         }
         if (data.agents.selectedSkills.includes("notion")) {
           if (!ev["NOTION_API_KEY"]?.trim()) return false;
           if (!ev["NOTION_DATABASE_ID"]?.trim()) return false;
+          // 검증 중이거나 실패 시 진행 불가
+          if (envValidation.notionStatus === "loading") return false;
+          if (envValidation.notionStatus === "invalid") return false;
         }
         return true;
       }
@@ -198,6 +205,26 @@ export default function NewSolutionPage() {
 
       // 가이드 모달 표시를 위해 projectId를 store에 설정 (즉시 라우팅 대신 StepConfirmation이 모달을 보여줌)
       setCreatedProjectId(result.project_id);
+
+      // Linear/Notion 초기 태스크 자동 등록 (실패해도 프로젝트 생성은 완료된 상태)
+      const ev = useSolutionWizardStore.getState().data.env.envVars;
+      const hasLinear = !!ev["LINEAR_API_KEY"] && !!ev["LINEAR_TEAM_ID"];
+      const hasNotion = !!ev["NOTION_API_KEY"] && !!ev["NOTION_DATABASE_ID"];
+      if (hasLinear || hasNotion) {
+        void integrations
+          .registerInitialTasks(token, result.project_id, {
+            linear_api_key: hasLinear ? ev["LINEAR_API_KEY"] : null,
+            linear_team_id: hasLinear ? ev["LINEAR_TEAM_ID"] : null,
+            notion_api_key: hasNotion ? ev["NOTION_API_KEY"] : null,
+            notion_database_id: hasNotion ? ev["NOTION_DATABASE_ID"] : null,
+            project_name:
+              data.company.companyName ||
+              `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+          })
+          .catch(() => {
+            // 초기 태스크 등록 실패는 무시 (프로젝트 생성은 성공)
+          });
+      }
     } catch (err) {
       if (err instanceof NetworkError) {
         toast.error(err.message);

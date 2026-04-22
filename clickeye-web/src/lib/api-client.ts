@@ -1919,4 +1919,60 @@ export const appSettingsAdmin = {
     }),
 };
 
+// ─── Integrations ─────────────────────────────────────────────────────────────
+
+export interface IntegrationValidateResponse {
+  valid: boolean;
+  message: string;
+}
+
+export interface RegisterInitialTasksRequest {
+  linear_api_key?: string | null;
+  linear_team_id?: string | null;
+  notion_api_key?: string | null;
+  notion_database_id?: string | null;
+  project_name: string;
+}
+
+export interface RegisterInitialTasksResponse {
+  linear_created: boolean;
+  linear_issue_url: string | null;
+  notion_created: boolean;
+  notion_page_url: string | null;
+  errors: string[];
+}
+
+export const integrations = {
+  validateLinear: (
+    token: string,
+    data: { api_key: string; team_id: string },
+  ) =>
+    authRequest<IntegrationValidateResponse>(
+      "/api/v1/integrations/validate/linear",
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  validateNotion: (
+    token: string,
+    data: { api_key: string; database_id: string },
+  ) =>
+    authRequest<IntegrationValidateResponse>(
+      "/api/v1/integrations/validate/notion",
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  registerInitialTasks: (
+    token: string,
+    projectId: string,
+    data: RegisterInitialTasksRequest,
+  ) =>
+    authRequest<RegisterInitialTasksResponse>(
+      `/api/v1/integrations/projects/${projectId}/initial-tasks`,
+      token,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+};
+
 export { ApiClientError, NetworkError };

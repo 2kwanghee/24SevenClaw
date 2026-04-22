@@ -8,61 +8,36 @@
 
 ## P1: 기능 요구사항
 
-- [x] **[web] 위저드 티켓 소스(Linear/Notion) XOR 필수 선택 구현**
+- [x] **[web+api] Linear/Notion API Key 유효성 검증 및 초기 태스크 자동 등록**
   > 요청사항: ## 배경
 
-모든 솔루션은 단일 티켓 소스를 가져야 하므로 위저드에서 Linear/Notion 중 정확히 하나를 강제 선택하게 변경.
+위저드 Step 8에서 사용자가 Linear/Notion API Key를 입력하지만, 현재는 **빈 문자열 여부만 체크**한다. 잘못된 Key를 입력해도 다음 단계로 넘어갈 수 있고, AI Team이 실제 이슈를 생성하려 할 때 비로소 오류가 발생하는 구조다.
 
-## 선행 조건
+또한 프로젝트가 최초 생성될 때 연동된 Linear/Notion에 **성공 확인 태스크**가 자동으로 등록되어야 하지만 해당 프로세스가 없다.
 
-[24S-195](https://linear.app/flow-ops/issue/24S-195/api-카탈로그-notion-스킬-추가-및-zip-템플릿-구현) **완료 후 착수** (카탈로그 API에서 notion + category 응답 필요)
+## 목표
 
-## 작업 내용
+1. **API Key 유효성 실시간 검증** — 입력 즉시 백엔드를 통해 실제 API를 호출해 key가 유효한지 확인
+2. **초기 태스크 자동 등록** — 프로젝트 finalize 완료 시 연동된 Linear/Notion에 "프로젝트 생성 완료" 태스크를 자동 등록
 
-### UI (`step-solution-agents.tsx:126-157`)
+## 범위
 
-- "연동 스킬" 섹션을 2개 서브섹션으로 분리
-  - 상단: "티켓 소스 (필수, 1개 선택)" — Linear/Notion 라디오 그룹
-  - 하단: "추가 스킬 (선택)" — 나머지 카탈로그 스킬 기존 토글 유지
-- 카탈로그 `category === "ticket_source"` 항목만 라디오에 노출 (하드코딩 금지)
-- 라디오 선택 시 Zustand `selectedSkills`에서 반대편 자동 제거 (XOR 강제)
-- 라벨 `(선택)` → `(필수)` 변경 및 안내 문구 추가
+* clickeye-api: 유효성 검증 엔드포인트 2개 + finalize 후 초기 태스크 등록 로직
+* clickeye-web: Step 8 UI에 실시간 검증 피드백 (로딩 → 성공/실패 뱃지)
 
-### 검증 로직 (`solutions/new/page.tsx:86`)
+## 하위 티켓
 
-- agents 케이스 `canProceed`에 조건 추가:
-  `selectedSkills.some(s => TICKET_SOURCE_IDS.includes(s))`
-- `TICKET_SOURCE_IDS`는 카탈로그 응답에서 동적 도출 (하드코딩 금지)
-- 미선택 시 안내 메시지: "티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다"
+* \[api\] Linear API Key 유효성 검증 엔드포인트
+* \[api\] Notion API Key 유효성 검증 엔드포인트
+* \[api\] 프로젝트 finalize 시 초기 태스크 자동 등록
+* \[web\] Step 8 실시간 Key 유효성 검증 UI
 
-### 환경변수 스텝 (`step-solution-env.tsx:31`)
+## 완료 기준
 
-- `NOTION_REQUIRED = ["NOTION_API_KEY", "NOTION_DATABASE_ID"]` 추가
-- `getRequiredKeys(selectedSkills)` (`:48-54`)에 notion 분기 추가 — linear와 동일 패턴
-- `solutions/new/page.tsx:93-97` env 검증 블록에 notion 분기 추가
-
-### 테스트
-
-- Linear만 선택 → 통과
-- Notion만 선택 → 통과
-- 미선택 → 다음 스텝 차단
-- 둘 다 선택 시도 → 반대편 자동 해제(XOR)
-- env 스텝에서 선택 소스에 맞는 키만 필수 표시
-
-## 재사용 가능 코드
-
-* `RequiredKeyRow` (`step-solution-env.tsx:66-171`) — Notion 키 입력 그대로 사용
-* `useCatalogSkills` 훅 — 카탈로그에서 자동 로드
-* 기존 Zustand `setSkills` 액션
-
-## 관련 파일
-
-* `clickeye-web/src/app/(dashboard)/solutions/new/page.tsx:26-102,172`
-* `clickeye-web/src/components/solutions/wizard/steps/step-solution-agents.tsx:126-157`
-* `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx:21-54`
-* `clickeye-web/src/stores/solution-wizard-store.ts`
-* `clickeye-web/src/types/solution-wizard.ts`
-* `clickeye-web/src/hooks/use-catalog.ts:17-23`
+- 잘못된 Linear API Key 입력 시 Step 8에서 즉시 에러 표시, 다음 버튼 비활성
+- 잘못된 Notion API Key / DB ID 입력 시 동일하게 에러 표시
+- 프로젝트 생성 완료 후 Linear에 "프로젝트 생성 완료" 이슈가 자동 등록됨을 확인
+- 프로젝트 생성 완료 후 Notion에 동일한 페이지가 자동 등록됨을 확인
 
 ---
 
@@ -72,4 +47,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-04-21 | [web] 위저드 티켓 소스 XOR 필수 선택 | ✅ 완료 | 4개 파일 수정, 빌드 통과 |
+| 2026-04-22 | Linear/Notion API Key 유효성 검증 + 초기 태스크 자동 등록 | ✅ 완료 | api: integrations.py, notion_service.py / web: step-solution-env.tsx, wizard-store |
