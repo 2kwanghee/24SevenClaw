@@ -15,6 +15,7 @@ from app.engine.catalog import (
 )
 from app.engine.env_generator import generate_env_files
 from app.engine.platforms import PlatformDirs, get_platform_dirs
+from app.engine.pptx_generator import build_setup_guide_pptx
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -64,11 +65,11 @@ def generate_all(
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
     catalog_entry: dict[str, Any] | None = None,
-) -> dict[str, str]:
+) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
     dirs = get_platform_dirs(platform_id)
-    files: dict[str, str] = {}
+    files: dict[str, str | bytes] = {}
 
     # PM compositions ?°ì  ë³í© ??composition???ì´?í¸/?¤í¬???°ì ?¼ë¡ ?¬í¨
     if pm_compositions:
@@ -119,12 +120,14 @@ def generate_all(
     # 온보딩 docs 및 /ClickEyeStart 커맨드 주입
     _emit_docs(files)
     _emit_start_command(files, platform_id, project_name, workflow_ids)
+    _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
+
 
     return files
 
 
 def _generate_agent_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     dirs: PlatformDirs,
     project_name: str,
     project_type: str,
@@ -146,7 +149,7 @@ def _generate_agent_files(
 
 
 def _generate_skill_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     dirs: PlatformDirs,
     project_name: str,
     project_type: str,
@@ -181,7 +184,7 @@ def _get_root_guide_template(platform_id: str) -> str:
 
 
 def _generate_root_guide(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     dirs: PlatformDirs,
     platform_id: str,
     project_name: str,
@@ -211,7 +214,7 @@ def _generate_root_guide(
 
 
 def _generate_settings(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     dirs: PlatformDirs,
     platform_id: str,
     workflow_ids: list[str],
@@ -336,7 +339,7 @@ def _build_codex_settings(workflow_ids: list[str]) -> dict[str, Any]:
 
 
 def _generate_hook_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     stack: dict[str, Any] | None,
     workflow_ids: list[str],
 ) -> None:
@@ -350,7 +353,7 @@ def _generate_hook_files(
 
 
 def _generate_webhook_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     project_name: str,
 ) -> None:
     """Linear webhook 수신 서버 + 이링 이백 스크립트 생성."""
@@ -372,7 +375,7 @@ def _generate_webhook_files(
 
 
 def _generate_script_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     stack: dict[str, Any] | None,
     workflow_ids: list[str],
 ) -> None:
@@ -423,7 +426,7 @@ def _generate_script_files(
 
 
 def _generate_pm_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     dirs: PlatformDirs,
     platform_id: str,
     pm_slug: str,
@@ -459,7 +462,7 @@ def generate_pm_files(
     pm_slug: str,
     pm_markdown: str,
     platform_id: str = "claude-code",
-) -> dict[str, str]:
+) -> dict[str, str | bytes]:
     """? í??PM ?ë¡?ì ?ë«?¼ë³ ?ì¼ë¡?ì£¼ì?ë¤. (?ì ?¸í??? ì?)
 
     ?ì± ê²½ë¡:
@@ -470,13 +473,13 @@ def generate_pm_files(
         ê¸°í?         ??.claude/pm/{slug}.md (claude-code ê¸°ë³¸)
     """
     dirs = get_platform_dirs(platform_id)
-    files: dict[str, str] = {}
+    files: dict[str, str | bytes] = {}
     _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown)
     return files
 
 
 def _generate_env_files(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     workflow_ids: list[str],
     env_vars: dict[str, str],
 ) -> None:
@@ -494,7 +497,27 @@ def _generate_env_files(
     files.update(env_files)
 
 
-def _emit_docs(files: dict[str, str]) -> None:
+def _emit_setup_guide_pptx(
+    files: dict[str, str | bytes],
+    project_name: str,
+    pm_slug: str,
+    workflow_ids: list[str],
+    platform_id: str,
+) -> None:
+    """가이드 PPTX를 생성해 docs/setup-guide.pptx 로 ZIP에 포함."""
+    try:
+        pptx_bytes = build_setup_guide_pptx(
+            project_name=project_name,
+            pm_slug=pm_slug,
+            has_linear="linear" in workflow_ids,
+            platform=platform_id,
+        )
+        files["docs/setup-guide.pptx"] = pptx_bytes
+    except Exception:
+        pass  # PPTX 생성 실패 시 ZIP은 정상 반환
+
+
+def _emit_docs(files: dict[str, str | bytes]) -> None:
     """docs/api-keys/*.md 정적 가이드 문서를 ZIP에 포함."""
     docs_src = TEMPLATES_DIR / "docs" / "api-keys"
     for doc_file in sorted(docs_src.glob("*.md")):
@@ -502,7 +525,7 @@ def _emit_docs(files: dict[str, str]) -> None:
 
 
 def _emit_start_command(
-    files: dict[str, str],
+    files: dict[str, str | bytes],
     platform_id: str,
     project_name: str,
     workflow_ids: list[str],

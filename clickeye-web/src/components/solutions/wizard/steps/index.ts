@@ -1,6 +1,5 @@
 export { StepCompanySolution } from "./step-company-solution";
 export { StepPrototypeGeneration } from "./step-prototype-generation";
-export { StepPrototypes } from "./step-prototypes";
 export { StepPrototypeSelection } from "./step-prototype-selection";
 export { StepPMSelect } from "./step-pm-select";
 export { StepPMRecommendation } from "./step-pm-recommendation";

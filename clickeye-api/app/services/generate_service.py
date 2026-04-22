@@ -47,7 +47,7 @@ def generate_zip(
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for path, content in sorted(files.items()):
-            zf.writestr(path, content)
+            zf.writestr(path, content)  # type: ignore[arg-type]  # str | bytes 모두 허용
 
     buffer.seek(0)
     return buffer

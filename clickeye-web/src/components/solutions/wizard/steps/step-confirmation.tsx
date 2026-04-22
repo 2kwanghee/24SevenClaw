@@ -279,13 +279,13 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="setup-guide-modal mx-4 flex w-full max-w-md flex-col rounded-2xl border border-emerald-500/20 shadow-2xl"
+        className="setup-guide-modal mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-emerald-500/20 shadow-2xl"
         style={{ maxHeight: "90vh" }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="guide-modal-title"
       >
-        <div className="overflow-y-auto p-6">
+        <div className="setup-guide-scroll overflow-y-auto p-6">
           {/* 헤더 */}
           <div className="mb-5 flex flex-col items-center text-center">
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
@@ -355,6 +355,10 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
               <p>③ <code className="text-slate-400">.env</code> 검증 → 누락 키 대화형 입력 안내</p>
               <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
             </div>
+            <p className="mt-2 border-t border-emerald-500/10 pt-2 text-[11px] text-slate-600">
+              팀 공유용 슬라이드 가이드: ZIP 내{" "}
+              <code className="text-slate-400">docs/setup-guide.pptx</code>
+            </p>
           </div>
 
           {/* 액션 버튼 */}

@@ -193,7 +193,10 @@ export function StepPrototypeGeneration() {
           );
           if (cancelledRef.current) return;
 
-          const fetched: PrototypeCardItem[] = protoList.items.map((p) => ({
+          const uniqueItems = Array.from(
+            new Map(protoList.items.map((p) => [p.id, p])).values()
+          );
+          const fetched: PrototypeCardItem[] = uniqueItems.map((p) => ({
             id: p.id,
             name: p.title,
             description: p.description,
@@ -205,7 +208,7 @@ export function StepPrototypeGeneration() {
 
           // 스토어에 저장
           setGeneratedPrototypes(
-            protoList.items.map((p) => ({
+            uniqueItems.map((p) => ({
               id: p.id,
               name: p.title,
               solutionType: p.design_pattern ?? "custom",
@@ -274,6 +277,11 @@ export function StepPrototypeGeneration() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* -- sessionId 변경 시에만 hasStartedRef 리셋 (StrictMode 이중 실행 보호) -- */
+  useEffect(() => {
+    hasStartedRef.current = false;
+  }, [sessionId]);
+
   /* -- 마운트 시 생성 시작 -- */
   useEffect(() => {
     // 이미 생성된 프로토타입이 있으면 실행 안 함 (첫 번째 effect가 처리)
@@ -286,8 +294,6 @@ export function StepPrototypeGeneration() {
     void startGeneration();
     return () => {
       cancelledRef.current = true;
-      // strict mode 이중 실행 시 재시작 허용 (hasStartedRef 리셋)
-      hasStartedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startGeneration]);

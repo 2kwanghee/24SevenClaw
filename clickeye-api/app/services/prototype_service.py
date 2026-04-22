@@ -8,7 +8,7 @@ import uuid as _uuid_mod
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
@@ -137,6 +137,12 @@ class PrototypeService:
             return
 
         prompt = str(session.solution_prompt or "")
+
+        # 재진입(race condition) 방어: 기존 프로토타입을 모두 제거하고 새로 생성
+        await self.db.execute(
+            delete(Prototype).where(Prototype.session_id == session_id)
+        )
+        await self.db.commit()
 
         try:
             extra: dict[str, Any] = session.extra or {}  # type: ignore[assignment]

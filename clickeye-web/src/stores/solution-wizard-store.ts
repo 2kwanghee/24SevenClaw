@@ -156,7 +156,9 @@ export const useSolutionWizardStore = create<
         ...state.data,
         prototypes: {
           ...state.data.prototypes,
-          generatedPrototypes: prototypes,
+          generatedPrototypes: Array.from(
+            new Map(prototypes.map((p) => [p.id, p])).values()
+          ),
         },
       },
     })),
