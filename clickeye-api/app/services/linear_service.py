@@ -74,27 +74,6 @@ def _call(api_key: str, query: str, variables: dict | None = None, timeout: int 
     return result
 
 
-def validate_credentials_v2(
-    api_key: str, team_id: str, timeout: int = 5
-) -> tuple[bool, str | None, str | None]:
-    """Linear API 키와 팀 ID 유효성 검증. Returns (valid, team_name, error_msg).
-
-    5초 타임아웃 기본값. 성공 시 team_name 반환, 실패 시 error 반환.
-    """
-    try:
-        _call(api_key, _VIEWER_QUERY, timeout=timeout)
-    except Exception:
-        return False, None, "API Key가 유효하지 않습니다"
-    try:
-        data = _call(api_key, _TEAM_QUERY, {"id": team_id}, timeout=timeout)
-        team = data.get("team")
-        if not team:
-            return False, None, "팀 ID를 찾을 수 없습니다"
-        return True, str(team.get("name", team_id)), None
-    except Exception:
-        return False, None, "팀 ID를 찾을 수 없습니다"
-
-
 def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
     """Linear API 키와 팀 ID 유효성 검증. 실제 API 호출로 인증 확인."""
     try:

@@ -16,18 +16,6 @@ class IntegrationValidateResponse(BaseModel):
     message: str
 
 
-class LinearValidateResponse(BaseModel):
-    valid: bool
-    team_name: str | None = None
-    error: str | None = None
-
-
-class NotionValidateResponse(BaseModel):
-    valid: bool
-    database_title: str | None = None
-    error: str | None = None
-
-
 class RegisterInitialTasksRequest(BaseModel):
     linear_api_key: str | None = Field(None, description="Linear API 키")
     linear_team_id: str | None = Field(None, description="Linear 팀 UUID")

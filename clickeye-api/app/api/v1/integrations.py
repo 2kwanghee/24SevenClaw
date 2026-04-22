@@ -14,9 +14,7 @@ from app.models.user import User
 from app.schemas.integrations import (
     IntegrationValidateResponse,
     LinearValidateRequest,
-    LinearValidateResponse,
     NotionValidateRequest,
-    NotionValidateResponse,
     RegisterInitialTasksRequest,
     RegisterInitialTasksResponse,
 )
@@ -30,27 +28,6 @@ async def _run_sync(func: Callable[..., Any], *args: Any) -> Any:
     """동기 함수를 별도 스레드에서 실행하는 헬퍼."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(_executor, func, *args)
-
-
-@router.post(
-    "/linear/validate",
-    response_model=LinearValidateResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def validate_linear_credentials(
-    data: LinearValidateRequest,
-    user: User = Depends(get_current_user),
-) -> LinearValidateResponse:
-    """Linear API 키와 팀 ID를 실제 API 호출로 검증한다 (5초 타임아웃).
-
-    성공 시 team_name 반환, 실패 시 error 반환.
-    """
-    from app.services import linear_service
-
-    valid, team_name, error = await _run_sync(
-        linear_service.validate_credentials_v2, data.api_key, data.team_id
-    )
-    return LinearValidateResponse(valid=valid, team_name=team_name, error=error)
 
 
 @router.post(
@@ -69,27 +46,6 @@ async def validate_linear(
         linear_service.validate_credentials, data.api_key, data.team_id
     )
     return IntegrationValidateResponse(valid=valid, message=message)
-
-
-@router.post(
-    "/notion/validate",
-    response_model=NotionValidateResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def validate_notion_credentials(
-    data: NotionValidateRequest,
-    user: User = Depends(get_current_user),
-) -> NotionValidateResponse:
-    """Notion API 키와 데이터베이스 ID를 실제 API 호출로 검증한다 (5초 타임아웃).
-
-    성공 시 database_title 반환, 실패 시 HTTP 상태코드에 따른 한국어 에러 반환.
-    """
-    from app.services import notion_service
-
-    valid, database_title, error = await _run_sync(
-        notion_service.validate_credentials_v2, data.api_key, data.database_id
-    )
-    return NotionValidateResponse(valid=valid, database_title=database_title, error=error)
 
 
 @router.post(

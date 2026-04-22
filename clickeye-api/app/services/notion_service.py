@@ -31,56 +31,6 @@ def _call(
         ) from exc
 
 
-def _call_with_status(
-    api_key: str,
-    method: str,
-    path: str,
-    timeout: int = 5,
-) -> tuple[int, dict]:  # type: ignore[type-arg]
-    """HTTP 상태코드와 응답 바디를 함께 반환한다."""
-    url = f"{NOTION_API}{path}"
-    req = Request(url, method=method)
-    req.add_header("Authorization", f"Bearer {api_key}")
-    req.add_header("Notion-Version", NOTION_VERSION)
-    req.add_header("Content-Type", "application/json")
-    try:
-        with urlopen(req, timeout=timeout) as resp:
-            return resp.status, json.loads(resp.read())
-    except HTTPError as exc:
-        return exc.code, {}
-
-
-def validate_credentials_v2(
-    api_key: str, database_id: str, timeout: int = 5
-) -> tuple[bool, str | None, str | None]:
-    """Notion API 키와 데이터베이스 ID 유효성 검증. Returns (valid, database_title, error_msg).
-
-    HTTP 상태코드별 한국어 에러 메시지 반환.
-    """
-    status, body = _call_with_status(api_key, "GET", f"/databases/{database_id}", timeout=timeout)
-    if status == 200:
-        title_arr = body.get("title", [])
-        db_title = title_arr[0].get("plain_text", "") if title_arr else ""
-        return True, db_title, None
-    if status == 401:
-        return False, None, "Notion API Key가 유효하지 않습니다"
-    if status == 403:
-        msg = (
-            "Integration이 해당 데이터베이스에 공유되지 않았습니다."
-            " Notion에서 데이터베이스 공유 설정을 확인하세요"
-        )
-        return False, None, msg
-    if status == 404:
-        msg = (
-            "데이터베이스를 찾을 수 없습니다."
-            " 데이터베이스 ID를 확인하거나 Integration을 공유했는지 확인하세요"
-        )
-        return False, None, msg
-    if status == 400:
-        return False, None, "데이터베이스 ID 형식이 올바르지 않습니다"
-    return False, None, f"Notion API 오류 (HTTP {status})"
-
-
 def validate_credentials(api_key: str, database_id: str) -> tuple[bool, str]:
     """Notion API 키와 데이터베이스 ID 유효성 검증. 실제 API 호출로 인증 확인."""
     try:
