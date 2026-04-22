@@ -16,6 +16,7 @@ from app.schemas.integrations import (
     LinearValidateRequest,
     LinearValidateResponse,
     NotionValidateRequest,
+    NotionValidateResponse,
     RegisterInitialTasksRequest,
     RegisterInitialTasksResponse,
 )
@@ -68,6 +69,27 @@ async def validate_linear(
         linear_service.validate_credentials, data.api_key, data.team_id
     )
     return IntegrationValidateResponse(valid=valid, message=message)
+
+
+@router.post(
+    "/notion/validate",
+    response_model=NotionValidateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def validate_notion_credentials(
+    data: NotionValidateRequest,
+    user: User = Depends(get_current_user),
+) -> NotionValidateResponse:
+    """Notion API 키와 데이터베이스 ID를 실제 API 호출로 검증한다 (5초 타임아웃).
+
+    성공 시 database_title 반환, 실패 시 HTTP 상태코드에 따른 한국어 에러 반환.
+    """
+    from app.services import notion_service
+
+    valid, database_title, error = await _run_sync(
+        notion_service.validate_credentials_v2, data.api_key, data.database_id
+    )
+    return NotionValidateResponse(valid=valid, database_title=database_title, error=error)
 
 
 @router.post(
