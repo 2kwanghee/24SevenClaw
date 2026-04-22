@@ -9,6 +9,7 @@ from app.api.v1.contracts import project_contracts_router
 from app.api.v1.contracts import router as contracts_router
 from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.health import router as health_router
+from app.api.v1.integrations import router as integrations_router
 from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.maturity import router as maturity_router
 from app.api.v1.orchestrator import router as orchestrator_router
@@ -52,3 +53,4 @@ api_v1_router.include_router(contracts_router)
 api_v1_router.include_router(project_contracts_router)
 api_v1_router.include_router(contracts_sync_router)
 api_v1_router.include_router(linear_credentials_router)
+api_v1_router.include_router(integrations_router)

@@ -1,8 +1,10 @@
 "use client";
 
-import { ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 
+import { integrations } from "@/lib/api-client";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { cn } from "@/lib/utils";
 
@@ -191,15 +193,67 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
 }
 
 /* ------------------------------------------------------------------
+  통합 검증 뱃지 컴포넌트 (Linear / Notion 쌍 검증)
+------------------------------------------------------------------ */
+
+type ValidationStatus = "idle" | "loading" | "valid" | "invalid";
+
+interface IntegrationValidationBadgeProps {
+  name: string;
+  status: ValidationStatus;
+  message: string;
+}
+
+function IntegrationValidationBadge({
+  name,
+  status,
+  message,
+}: IntegrationValidationBadgeProps) {
+  if (status === "idle") return null;
+
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex items-center gap-2 rounded-lg px-3 py-2 text-xs",
+        status === "loading" && "border border-slate-500/20 bg-slate-500/5 text-slate-400",
+        status === "valid" && "border border-emerald-500/20 bg-emerald-500/5 text-emerald-400",
+        status === "invalid" && "border border-red-500/20 bg-red-500/5 text-red-400",
+      )}
+    >
+      {status === "loading" && (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+      )}
+      {status === "valid" && (
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      )}
+      {status === "invalid" && (
+        <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      )}
+      <span>
+        <strong>{name}</strong> {message}
+      </span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
   StepSolutionEnv 메인 컴포넌트
 ------------------------------------------------------------------ */
 
+const DEBOUNCE_MS = 800;
+
 export function StepSolutionEnv() {
+  const { data: session } = useSession();
+  const token = (session as { accessToken?: string } | null)?.accessToken ?? null;
+
   const envVars = useSolutionWizardStore((s) => s.data.env.envVars);
   const selectedSkills = useSolutionWizardStore(
     (s) => s.data.agents.selectedSkills,
   );
   const setEnv = useSolutionWizardStore((s) => s.setEnv);
+  const envValidation = useSolutionWizardStore((s) => s.envValidation);
+  const setEnvValidation = useSolutionWizardStore((s) => s.setEnvValidation);
 
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -212,6 +266,93 @@ export function StepSolutionEnv() {
   const handleRequiredKeyChange = (key: string, value: string) => {
     setEnv({ envVars: { ...envVars, [key]: value } });
   };
+
+  /* ----------------------------------------------------------------
+    Linear/Notion 검증 — 두 키가 모두 입력되면 debounce 후 검증
+  ---------------------------------------------------------------- */
+  const linearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerLinearValidation = useCallback(
+    (apiKey: string, teamId: string) => {
+      if (linearTimerRef.current) clearTimeout(linearTimerRef.current);
+      if (!apiKey.trim() || !teamId.trim()) {
+        setEnvValidation({ linearStatus: "idle", linearMessage: "" });
+        return;
+      }
+      setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
+      linearTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateLinear(token, {
+            api_key: apiKey,
+            team_id: teamId,
+          });
+          setEnvValidation({
+            linearStatus: res.valid ? "valid" : "invalid",
+            linearMessage: res.message,
+          });
+        } catch {
+          setEnvValidation({
+            linearStatus: "invalid",
+            linearMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+          });
+        }
+      }, DEBOUNCE_MS);
+    },
+    [token, setEnvValidation],
+  );
+
+  const triggerNotionValidation = useCallback(
+    (apiKey: string, databaseId: string) => {
+      if (notionTimerRef.current) clearTimeout(notionTimerRef.current);
+      if (!apiKey.trim() || !databaseId.trim()) {
+        setEnvValidation({ notionStatus: "idle", notionMessage: "" });
+        return;
+      }
+      setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
+      notionTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateNotion(token, {
+            api_key: apiKey,
+            database_id: databaseId,
+          });
+          setEnvValidation({
+            notionStatus: res.valid ? "valid" : "invalid",
+            notionMessage: res.message,
+          });
+        } catch {
+          setEnvValidation({
+            notionStatus: "invalid",
+            notionMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+          });
+        }
+      }, DEBOUNCE_MS);
+    },
+    [token, setEnvValidation],
+  );
+
+  // envVars 변경 시 linear/notion 쌍 재검증 트리거
+  useEffect(() => {
+    if (selectedSkills.includes("linear")) {
+      triggerLinearValidation(
+        envVars["LINEAR_API_KEY"] ?? "",
+        envVars["LINEAR_TEAM_ID"] ?? "",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVars["LINEAR_API_KEY"], envVars["LINEAR_TEAM_ID"]]);
+
+  useEffect(() => {
+    if (selectedSkills.includes("notion")) {
+      triggerNotionValidation(
+        envVars["NOTION_API_KEY"] ?? "",
+        envVars["NOTION_DATABASE_ID"] ?? "",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVars["NOTION_API_KEY"], envVars["NOTION_DATABASE_ID"]]);
 
   const handleAdd = () => {
     const key = newKey.trim().toUpperCase().replace(/\s/g, "_");
@@ -259,6 +400,24 @@ export function StepSolutionEnv() {
             onChange={handleRequiredKeyChange}
           />
         ))}
+
+        {/* Linear 검증 결과 */}
+        {selectedSkills.includes("linear") && (
+          <IntegrationValidationBadge
+            name="Linear"
+            status={envValidation.linearStatus}
+            message={envValidation.linearMessage}
+          />
+        )}
+
+        {/* Notion 검증 결과 */}
+        {selectedSkills.includes("notion") && (
+          <IntegrationValidationBadge
+            name="Notion"
+            status={envValidation.notionStatus}
+            message={envValidation.notionMessage}
+          />
+        )}
 
         {missingKeys.length > 0 && (
           <p

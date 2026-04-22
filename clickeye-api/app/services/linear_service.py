@@ -44,6 +44,18 @@ query Webhooks {
 }
 """
 
+_VIEWER_QUERY = """
+query Viewer {
+  viewer { id name email }
+}
+"""
+
+_TEAM_QUERY = """
+query Team($id: String!) {
+  team(id: $id) { id name }
+}
+"""
+
 
 def _call(api_key: str, query: str, variables: dict | None = None) -> dict:  # type: ignore[type-arg]
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
@@ -58,7 +70,41 @@ def _call(api_key: str, query: str, variables: dict | None = None) -> dict:  # t
     if "errors" in data:
         msgs = [e.get("message", "") for e in data["errors"]]
         raise RuntimeError(f"Linear GraphQL 오류: {'; '.join(msgs)}")
-    return data.get("data", {})
+    result: dict[str, object] = data.get("data", {})
+    return result
+
+
+def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
+    """Linear API 키와 팀 ID 유효성 검증. 실제 API 호출로 인증 확인."""
+    try:
+        _call(api_key, _VIEWER_QUERY)
+    except RuntimeError as exc:
+        return False, f"API 키 인증 실패: {exc}"
+    try:
+        data = _call(api_key, _TEAM_QUERY, {"id": team_id})
+        team = data.get("team")
+        if not team:
+            return False, "팀 ID를 찾을 수 없습니다. UUID 형식인지 확인하세요."
+        return True, f"인증 성공 ({team.get('name', team_id)})"
+    except RuntimeError as exc:
+        return False, f"팀 ID 조회 실패: {exc}"
+
+
+def create_initial_task(api_key: str, team_id: str, project_name: str) -> str | None:
+    """프로젝트 생성 완료 알림 이슈를 생성하고 URL을 반환한다."""
+    variables = {
+        "input": {
+            "teamId": team_id,
+            "title": f"[{project_name}] 프로젝트 생성 완료",
+            "description": (
+                f"ClickEye 위저드에서 **{project_name}** 프로젝트가 성공적으로 생성되었습니다.\n\n"
+                "ZIP 파일을 다운로드하고 README의 안내에 따라 로컬 환경을 설정하세요."
+            ),
+        }
+    }
+    data = _call(api_key, _ISSUE_CREATE, variables)
+    issue = data.get("issueCreate", {}).get("issue") or {}
+    return issue.get("url") or None
 
 
 def create_issues(
@@ -80,7 +126,7 @@ def create_issues(
             }
         }
         if labels:
-            variables["input"]["labelNames"] = labels
+            variables["input"]["labelNames"] = labels  # type: ignore[assignment]
 
         data = _call(api_key, _ISSUE_CREATE, variables)
         issue = data.get("issueCreate", {}).get("issue") or {}
