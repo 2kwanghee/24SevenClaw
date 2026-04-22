@@ -112,14 +112,6 @@ function ProjectsContent() {
             AI 에이전트가 작업할 프로젝트를 관리하세요
           </p>
         </div>
-        <Link
-          href="/solutions/new"
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/[0.06] hover:text-white"
-          aria-label="빠른 시작 (레거시) 프로젝트 생성"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          빠른 시작 (레거시)
-        </Link>
       </div>
 
       {/* 검색 + 필터 */}
