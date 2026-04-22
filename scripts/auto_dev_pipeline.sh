@@ -412,7 +412,8 @@ log "═════════════════════════
 log "  파이프라인 결과: 완료 ${COMPLETED}건, 실패 ${FAILED}건"
 log "══════════════════════════════════════"
 
-if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
+# 처리된 작업이 있을 때만 Telegram 알림 발송
+if [ $((COMPLETED + FAILED)) -gt 0 ] && is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
   ITER_COUNT=$(cat .ralph/.iteration_count 2>/dev/null || echo "N/A")
   python3 scripts/telegram_notify.py \
     --pipeline-report --iterations "$ITER_COUNT" 2>/dev/null || true
