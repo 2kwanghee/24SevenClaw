@@ -5,12 +5,12 @@ import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, AlertCircle, Heart, Frown, MessageSquare, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RoleGuard } from "@/components/common/role-guard";
-import { pmProfiles, pmMarkdown, type PMProfileUpdateRequest } from "@/lib/api-client";
+import { pmProfiles, pmMarkdown, type PMProfileUpdateRequest, type PMRatingResponse } from "@/lib/api-client";
 import { pmProfileSchema, type PMProfileFormData } from "@/lib/validations/pm";
 import { CollapsibleSection } from "@/components/admin/markdown/collapsible-section";
 import { PMMarkdownPane } from "@/components/admin/pm/pm-markdown-pane";
@@ -356,7 +356,160 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       <CollapsibleSection title="구성 컴포넌트" defaultOpen={false}>
         <CompositionPanel profileId={profileId} />
       </CollapsibleSection>
+
+      {/* 블록 8: 사용자 피드백 */}
+      <CollapsibleSection title="사용자 피드백" defaultOpen={false}>
+        <PMFeedbackPanel profileId={profileId} />
+      </CollapsibleSection>
     </form>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   PMFeedbackPanel — PM 피드백 요약 + 목록
+--------------------------------------------------------------------------- */
+
+function PMFeedbackPanel({ profileId }: { profileId: string }) {
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
+
+  const { data: metrics } = useQuery({
+    queryKey: ["pm-profiles", profileId, "metrics"],
+    queryFn: () => pmProfiles.getMetrics(token, profileId),
+    enabled: !!token,
+  });
+
+  const { data: ratingsData, isLoading } = useQuery({
+    queryKey: ["pm-profiles", profileId, "ratings", { offset: page * PAGE_SIZE }],
+    queryFn: () =>
+      pmProfiles.listRatings(token, profileId, {
+        offset: page * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      }),
+    enabled: !!token,
+  });
+
+  const totalPages = ratingsData ? Math.ceil(ratingsData.total / PAGE_SIZE) : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* 요약 카드 */}
+      <div className="grid grid-cols-4 gap-3">
+        <SummaryTile
+          icon={<Heart className="h-4 w-4 fill-rose-400 text-rose-400" />}
+          label="좋아요"
+          value={metrics?.like_count ?? 0}
+          color="text-rose-300"
+        />
+        <SummaryTile
+          icon={<Frown className="h-4 w-4 text-sky-400" />}
+          label="별루예요"
+          value={metrics?.dislike_count ?? 0}
+          color="text-sky-300"
+        />
+        <SummaryTile
+          icon={<MessageSquare className="h-4 w-4 text-violet-400" />}
+          label="총 피드백"
+          value={metrics?.total_ratings ?? 0}
+          color="text-violet-300"
+        />
+        <SummaryTile
+          icon={<BarChart3 className="h-4 w-4 text-emerald-400" />}
+          label="사용횟수"
+          value={metrics?.usage_count ?? 0}
+          color="text-emerald-300"
+        />
+      </div>
+
+      {/* 피드백 목록 */}
+      {isLoading ? (
+        <p className="py-6 text-center text-sm text-slate-500">불러오는 중...</p>
+      ) : ratingsData && ratingsData.items.length > 0 ? (
+        <div className="space-y-2">
+          {ratingsData.items.map((r: PMRatingResponse) => (
+            <FeedbackEntry key={r.id} rating={r} />
+          ))}
+        </div>
+      ) : (
+        <p className="py-6 text-center text-sm text-slate-600">
+          아직 피드백이 없습니다
+        </p>
+      )}
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="rounded-lg border border-white/10 px-3 py-1 text-xs text-slate-400 disabled:opacity-40 hover:bg-white/5"
+          >
+            이전
+          </button>
+          <span className="text-xs text-slate-500">
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="rounded-lg border border-white/10 px-3 py-1 text-xs text-slate-400 disabled:opacity-40 hover:bg-white/5"
+          >
+            다음
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SummaryTileProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  color: string;
+}
+
+function SummaryTile({ icon, label, value, color }: SummaryTileProps) {
+  return (
+    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] py-4">
+      {icon}
+      <span className={`text-xl font-bold ${color}`}>{value}</span>
+      <span className="text-[11px] text-slate-500">{label}</span>
+    </div>
+  );
+}
+
+function FeedbackEntry({ rating }: { rating: PMRatingResponse }) {
+  const date = new Date(rating.created_at).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="flex gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+      <div className="mt-0.5 shrink-0">
+        {rating.reaction === "like" ? (
+          <Heart className="h-4 w-4 fill-rose-400 text-rose-400" aria-label="좋아요" />
+        ) : rating.reaction === "dislike" ? (
+          <Frown className="h-4 w-4 text-sky-400" aria-label="별루예요" />
+        ) : (
+          <MessageSquare className="h-4 w-4 text-slate-500" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        {rating.comment ? (
+          <p className="text-sm text-slate-300">{rating.comment}</p>
+        ) : (
+          <p className="text-sm italic text-slate-600">코멘트 없음</p>
+        )}
+        <p className="mt-1 text-[11px] text-slate-600">{date}</p>
+      </div>
+    </div>
   );
 }
 

@@ -35,6 +35,8 @@ function toMetricResponse(p: PMProfileWithMetrics): PMMetricResponse {
     total_ratings: p.total_ratings,
     success_rate: p.success_rate,
     avg_completion_days: p.avg_completion_days,
+    like_count: p.like_count,
+    dislike_count: p.dislike_count,
   };
 }
 

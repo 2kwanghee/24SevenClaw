@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Plus, Users, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Users, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle, Heart, Frown } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RoleGuard } from "@/components/common/role-guard";
 import {
   pmProfiles,
-  type PMProfileResponse,
+  type PMProfileWithMetrics,
   type PMProfileCreateRequest,
 } from "@/lib/api-client";
 
@@ -37,7 +37,13 @@ function PMListPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-pm-profiles"],
-    queryFn: () => pmProfiles.list(token, { limit: 100 }),
+    queryFn: async () => {
+      const list = await pmProfiles.list(token, { limit: 100 });
+      const withMetrics = await Promise.all(
+        list.items.map((p) => pmProfiles.get(token, p.id)),
+      );
+      return { items: withMetrics, total: list.total };
+    },
     enabled: !!token,
   });
 
@@ -73,7 +79,7 @@ function PMListPage() {
     createMutation.mutate(createForm);
   };
 
-  const handleDelete = (pm: PMProfileResponse) => {
+  const handleDelete = (pm: PMProfileWithMetrics) => {
     if (!confirm(`"${pm.name}" PM을 삭제하시겠습니까?`)) return;
     deleteMutation.mutate(pm.id);
   };
@@ -192,6 +198,8 @@ function PMListPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">이름</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">도메인</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">전문분야</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">사용횟수</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">피드백</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">상태</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-400">액션</th>
               </tr>
@@ -218,6 +226,24 @@ function PMListPage() {
                       {pm.specialties.length > 3 && (
                         <span className="text-[10px] text-slate-600">+{pm.specialties.length - 3}</span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-medium text-violet-300">
+                      {pm.usage_count}
+                    </span>
+                    <span className="ml-1 text-[10px] text-slate-600">회</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-xs text-rose-400">
+                        <Heart className="h-3 w-3 fill-rose-400" aria-hidden="true" />
+                        {pm.like_count}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-sky-400">
+                        <Frown className="h-3 w-3" aria-hidden="true" />
+                        {pm.dislike_count}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -255,7 +281,7 @@ function PMListPage() {
               ))}
               {data.items.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-600">
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-600">
                     PM 프로필이 없습니다. 위 버튼으로 추가하세요.
                   </td>
                 </tr>

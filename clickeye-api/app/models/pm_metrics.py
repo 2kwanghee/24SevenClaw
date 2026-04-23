@@ -20,5 +20,7 @@ class PMMetrics(Base):
     completed_projects = Column(Integer, nullable=False, default=0)
     avg_rating = Column(Float, nullable=False, default=0.0)
     total_ratings = Column(Integer, nullable=False, default=0)
+    like_count = Column(Integer, nullable=False, default=0)
+    dislike_count = Column(Integer, nullable=False, default=0)
     success_rate = Column(Float, nullable=False, default=0.0)
     avg_completion_days = Column(Float, nullable=False, default=0.0)

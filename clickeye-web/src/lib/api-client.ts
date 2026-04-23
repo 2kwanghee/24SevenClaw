@@ -942,6 +942,8 @@ export interface PMProfileWithMetrics extends PMProfileResponse {
   completed_projects: number;
   avg_rating: number;
   total_ratings: number;
+  like_count: number;
+  dislike_count: number;
   success_rate: number;
   avg_completion_days: number;
 }
@@ -973,6 +975,8 @@ export interface PMMetricResponse {
   completed_projects: number;
   avg_rating: number;
   total_ratings: number;
+  like_count: number;
+  dislike_count: number;
   success_rate: number;
   avg_completion_days: number;
 }

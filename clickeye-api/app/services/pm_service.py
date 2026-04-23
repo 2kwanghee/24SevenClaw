@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import String as SAString
-from sqlalchemy import cast, func, select
+from sqlalchemy import case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
@@ -111,6 +111,8 @@ class PMService:
             completed_projects=int(metric.completed_projects) if metric else 0,
             avg_rating=float(metric.avg_rating) if metric else 0.0,
             total_ratings=int(metric.total_ratings) if metric else 0,
+            like_count=int(metric.like_count) if metric else 0,
+            dislike_count=int(metric.dislike_count) if metric else 0,
             success_rate=float(metric.success_rate) if metric else 0.0,
             avg_completion_days=float(metric.avg_completion_days) if metric else 0.0,
         )
@@ -433,12 +435,20 @@ class PMService:
         stmt = select(
             func.count().label("total"),
             func.avg(PMRating.rating).label("avg_rating"),
+            func.coalesce(
+                func.sum(case((PMRating.reaction == "like", 1), else_=0)), 0
+            ).label("like_count"),
+            func.coalesce(
+                func.sum(case((PMRating.reaction == "dislike", 1), else_=0)), 0
+            ).label("dislike_count"),
         ).where(PMRating.pm_id == pm_profile_id)
         result = await self.db.execute(stmt)
         row = result.one()
 
         total_ratings = int(row.total)
         avg_rating = float(row.avg_rating) if row.avg_rating else 0.0
+        like_count = int(row.like_count or 0)
+        dislike_count = int(row.dislike_count or 0)
 
         stmt_metric = select(PMMetrics).where(
             PMMetrics.pm_id == pm_profile_id
@@ -451,12 +461,16 @@ class PMService:
                 pm_id=pm_profile_id,
                 total_ratings=total_ratings,
                 avg_rating=avg_rating,
+                like_count=like_count,
+                dislike_count=dislike_count,
                 success_rate=min(avg_rating / 5.0 * 100, 100.0),
             )
             self.db.add(metric)
         else:
             metric.total_ratings = total_ratings  # type: ignore[assignment]
             metric.avg_rating = avg_rating  # type: ignore[assignment]
+            metric.like_count = like_count  # type: ignore[assignment]
+            metric.dislike_count = dislike_count  # type: ignore[assignment]
             success = avg_rating / 5.0 * 100
             metric.success_rate = success if success <= 100.0 else 100.0  # type: ignore[assignment]
 

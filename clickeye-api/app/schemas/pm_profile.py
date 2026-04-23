@@ -94,6 +94,8 @@ class PMProfileWithMetrics(BaseModel):
     completed_projects: int = 0
     avg_rating: float = 0.0
     total_ratings: int = 0
+    like_count: int = 0
+    dislike_count: int = 0
     success_rate: float = 0.0
     avg_completion_days: float = 0.0
 
@@ -178,6 +180,8 @@ class PMMetricsResponse(BaseModel):
     completed_projects: int
     avg_rating: float
     total_ratings: int
+    like_count: int = 0
+    dislike_count: int = 0
     success_rate: float
     avg_completion_days: float
 
