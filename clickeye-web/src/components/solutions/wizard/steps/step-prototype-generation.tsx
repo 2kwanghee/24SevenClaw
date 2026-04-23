@@ -138,13 +138,15 @@ export function StepPrototypeGeneration() {
 
   const cancelledRef = useRef(false);
   const pollCountRef = useRef(0);
-  const hasStartedRef = useRef(false);
+  // StrictMode에서 동일 sessionId에 대해 중복 호출을 막기 위해 ref에 sessionId를 저장
+  const startedSessionRef = useRef<string | null>(null);
 
   /* -- 생성 실행 -- */
   const startGeneration = useCallback(async () => {
     if (!sessionId || !token) return;
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
+    // 동일 sessionId로 이미 시작한 경우 StrictMode 이중 실행 방지
+    if (startedSessionRef.current === sessionId) return;
+    startedSessionRef.current = sessionId;
 
     cancelledRef.current = false;
     pollCountRef.current = 0;
@@ -193,8 +195,9 @@ export function StepPrototypeGeneration() {
           );
           if (cancelledRef.current) return;
 
+          // variant_index 기준 dedup: race condition으로 동일 variant_index의 중복 행이 생길 수 있음
           const uniqueItems = Array.from(
-            new Map(protoList.items.map((p) => [p.id, p])).values()
+            new Map(protoList.items.map((p) => [p.variant_index, p])).values()
           );
           const fetched: PrototypeCardItem[] = uniqueItems.map((p) => ({
             id: p.id,
@@ -277,11 +280,6 @@ export function StepPrototypeGeneration() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* -- sessionId 변경 시에만 hasStartedRef 리셋 (StrictMode 이중 실행 보호) -- */
-  useEffect(() => {
-    hasStartedRef.current = false;
-  }, [sessionId]);
-
   /* -- 마운트 시 생성 시작 -- */
   useEffect(() => {
     // 이미 생성된 프로토타입이 있으면 실행 안 함 (첫 번째 effect가 처리)
@@ -300,7 +298,7 @@ export function StepPrototypeGeneration() {
 
   /* -- 재시도 -- */
   const handleRetry = () => {
-    hasStartedRef.current = false;
+    startedSessionRef.current = null; // 동일 sessionId라도 재시작 허용
     pollCountRef.current = 0;
     void startGeneration();
   };
