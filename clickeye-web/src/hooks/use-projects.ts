@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 
 import {
   apiClient,
@@ -9,11 +8,7 @@ import {
   type ProjectListParams,
   type ProjectUpdateRequest,
 } from "@/lib/api-client";
-
-function useAccessToken() {
-  const { data: session } = useSession();
-  return session?.accessToken ?? "";
-}
+import { useAccessToken } from "@/hooks/use-access-token";
 
 export function useProjects(params?: ProjectListParams) {
   const token = useAccessToken();

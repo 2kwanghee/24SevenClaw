@@ -5,10 +5,11 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppError
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectUpdate
 from app.schemas.wizard_config import WizardConfigSave
+from app.services.base import BaseService
+from app.utils.db import get_or_404
 
 
 def _slugify(text: str) -> str:
@@ -19,9 +20,9 @@ def _slugify(text: str) -> str:
     return re.sub(r"-+", "-", slug).strip("-")
 
 
-class ProjectService:
+class ProjectService(BaseService):
     def __init__(self, db: AsyncSession):
-        self.db = db
+        super().__init__(db)
 
     async def create(self, owner_id: UUID, data: ProjectCreate) -> Project:
         slug = _slugify(data.name)
@@ -51,14 +52,14 @@ class ProjectService:
         return project
 
     async def get_by_id(self, project_id: UUID, owner_id: UUID) -> Project:
-        stmt = select(Project).where(
-            Project.id == project_id, Project.owner_id == owner_id
+        return await get_or_404(
+            self.db,
+            Project,
+            Project.id == project_id,
+            Project.owner_id == owner_id,
+            code="PROJECT_NOT_FOUND",
+            message="프로젝트를 찾을 수 없습니다",
         )
-        result = await self.db.execute(stmt)
-        project = result.scalar_one_or_none()
-        if project is None:
-            raise AppError("PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다", 404)
-        return project
 
     async def list_by_owner(
         self,
@@ -106,11 +107,11 @@ class ProjectService:
         project = await self.get_by_id(project_id, owner_id)
 
         update_data = data.model_dump(exclude_unset=True)
+        if "name" in update_data:
+            update_data["slug"] = _slugify(str(update_data["name"]))
+
         for key, value in update_data.items():
             setattr(project, key, value)
-
-        if "name" in update_data:
-            project.slug = _slugify(update_data["name"])  # type: ignore[assignment]
 
         project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()

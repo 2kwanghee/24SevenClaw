@@ -1,15 +1,12 @@
-import uuid
-from datetime import UTC, datetime
-
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text, Uuid, text
+from sqlalchemy import JSON, Column, ForeignKey, String, Text, Uuid, text
 
 from app.database import Base
+from app.models.mixins import TimestampMixin, UUIDPKMixin
 
 
-class Project(Base):
+class Project(UUIDPKMixin, TimestampMixin, Base):
     __tablename__ = "projects"
 
-    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id = Column(
         Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -35,5 +32,3 @@ class Project(Base):
         String(30), nullable=True, default="legacy", server_default=text("'legacy'")
     )
     initial_task_url = Column(String(500), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
