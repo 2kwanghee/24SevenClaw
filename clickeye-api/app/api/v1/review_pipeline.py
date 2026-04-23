@@ -151,8 +151,8 @@ async def push_to_linear(
     from app.core.crypto import decrypt
     from app.models.orchestrator import OrchestratorSession, SubTask
     from app.models.user_linear_credentials import UserLinearCredentials
-    from app.services.linear_service import create_issues
     from app.schemas.review_pipeline import LinearSyncHintSubtask as HintSubtask
+    from app.services.linear_service import create_issues
 
     # 사용자 Linear 자격증명 조회
     creds_result = await db.execute(
@@ -199,7 +199,7 @@ async def push_to_linear(
         for st in subtasks
     ]
 
-    created = create_issues(api_key, team_id, hint_subtasks, labels=["ai-team"])
+    created = create_issues(api_key, team_id, hint_subtasks)
 
     return PushToLinearResponse(
         created_identifiers=[c["identifier"] for c in created],

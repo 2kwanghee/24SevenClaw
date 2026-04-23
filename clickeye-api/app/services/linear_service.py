@@ -111,22 +111,22 @@ def create_issues(
     api_key: str,
     team_id: str,
     subtasks: list[LinearSyncHintSubtask],
-    labels: list[str] | None = None,
+    label_ids: list[str] | None = None,
 ) -> list[dict]:  # type: ignore[type-arg]
     """subtasks 목록을 Linear 이슈로 생성. 생성된 이슈 정보 반환."""
     created = []
     for st in subtasks:
         title = f"[{st.role}] {st.title}"
         description = st.draft_summary
-        variables = {
+        variables: dict = {
             "input": {
                 "teamId": team_id,
                 "title": title,
                 "description": description,
             }
         }
-        if labels:
-            variables["input"]["labelNames"] = labels  # type: ignore[assignment]
+        if label_ids:
+            variables["input"]["labelIds"] = label_ids
 
         data = _call(api_key, _ISSUE_CREATE, variables)
         issue = data.get("issueCreate", {}).get("issue") or {}

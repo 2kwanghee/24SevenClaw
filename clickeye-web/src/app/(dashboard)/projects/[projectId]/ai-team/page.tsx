@@ -109,17 +109,6 @@ export default function AITeamDashboardPage() {
         onSuccess: (data) => {
           setLinearHint(data.linear_sync_hint);
           void refetchSummary();
-          // generate-drafts 성공 후 자동으로 Linear 이슈 등록 시도
-          pushToLinear.mutate(
-            { sessionId: session.id },
-            {
-              onSuccess: (result) => setLinearPushResult(result),
-              onError: (err) => {
-                const msg = err instanceof Error ? err.message : "Linear 이슈 생성 실패";
-                setLinearPushError(msg);
-              },
-            },
-          );
         },
       },
     );

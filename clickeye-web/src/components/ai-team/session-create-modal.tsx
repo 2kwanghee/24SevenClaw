@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Sparkles, Check } from "lucide-react";
+import { X, Loader2, Sparkles, Check, Link2, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
-import { useCreateSession, useDecompose, useAssign } from "@/hooks/use-orchestrator";
-import type { SubTaskResponse, SubTaskRole } from "@/lib/api-client";
+import { useCreateSession, useDecompose, useAssign, usePushToLinear } from "@/hooks/use-orchestrator";
+import type { SubTaskResponse, SubTaskRole, PushToLinearResponse } from "@/lib/api-client";
 
-type ModalStep = "form" | "decomposing" | "review" | "assigning" | "done";
+type ModalStep = "form" | "decomposing" | "review" | "assigning" | "pushing" | "done";
 
 interface SessionCreateModalProps {
   projectId: string;
@@ -27,10 +28,13 @@ export function SessionCreateModal({
   const [sessionId, setSessionId] = useState("");
   const [subtasks, setSubtasks] = useState<SubTaskResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [linearResult, setLinearResult] = useState<PushToLinearResponse | null>(null);
+  const [linearError, setLinearError] = useState<string | null>(null);
 
   const create = useCreateSession(projectId);
   const decompose = useDecompose();
   const assign = useAssign();
+  const pushToLinear = usePushToLinear();
 
   const reset = () => {
     setStep("form");
@@ -39,6 +43,8 @@ export function SessionCreateModal({
     setSessionId("");
     setSubtasks([]);
     setError(null);
+    setLinearResult(null);
+    setLinearError(null);
   };
 
   const handleClose = () => {
@@ -51,14 +57,12 @@ export function SessionCreateModal({
     setError(null);
 
     try {
-      // 1. 세션 생성
       const session = await create.mutateAsync({
         title: title.trim(),
         description: description.trim() || undefined,
       });
       setSessionId(session.id);
 
-      // 2. Decompose
       setStep("decomposing");
       const decomposeResult = await decompose.mutateAsync({
         sessionId: session.id,
@@ -77,6 +81,17 @@ export function SessionCreateModal({
     try {
       const result = await assign.mutateAsync({ sessionId });
       setSubtasks(result.subtasks);
+
+      // 배정 완료 후 자동으로 Linear 이슈 등록
+      setStep("pushing");
+      try {
+        const pushed = await pushToLinear.mutateAsync({ sessionId });
+        setLinearResult(pushed);
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : "Linear 이슈 생성 실패";
+        setLinearError(msg);
+      }
+
       setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "배정에 실패했습니다");
@@ -204,7 +219,7 @@ export function SessionCreateModal({
               서브태스크 확인
             </h2>
             <p className="mb-4 text-xs text-slate-500">
-              {subtasks.length}개의 태스크가 생성되었습니다. 배정을 확정하세요.
+              {subtasks.length}개의 태스크가 생성되었습니다. 배정을 확정하면 Linear 이슈가 자동 등록됩니다.
             </p>
 
             {error && (
@@ -267,6 +282,15 @@ export function SessionCreateModal({
           </div>
         )}
 
+        {/* Step: Pushing to Linear */}
+        {step === "pushing" && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+            <p className="text-sm text-slate-300">Linear에 이슈를 등록하는 중...</p>
+            <p className="text-xs text-slate-500">서브태스크를 Linear 이슈로 변환합니다</p>
+          </div>
+        )}
+
         {/* Step: Done */}
         {step === "done" && (
           <>
@@ -281,6 +305,53 @@ export function SessionCreateModal({
                 {subtasks.length}개 서브태스크가 배정되었습니다
               </p>
             </div>
+
+            {/* Linear 결과 */}
+            {linearResult && linearResult.count > 0 && (
+              <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <p className="text-xs font-medium text-emerald-300">
+                    Linear 이슈 등록 완료 ({linearResult.count}개)
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {linearResult.created_urls.map((url, i) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-400 underline hover:text-emerald-300"
+                    >
+                      {linearResult.created_identifiers[i] ?? url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {linearError && (
+              <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                  <p className="text-xs font-medium text-amber-300">Linear 이슈 등록 실패</p>
+                </div>
+                <p className="text-xs text-amber-400/80">
+                  {linearError.includes("자격증명") ? (
+                    <>
+                      Linear API 키가 설정되지 않았습니다.{" "}
+                      <Link href="/settings/linear" className="underline hover:text-amber-300">
+                        설정 → Linear에서 연결하세요 →
+                      </Link>
+                    </>
+                  ) : (
+                    linearError
+                  )}
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-center">
               <button
                 type="button"
