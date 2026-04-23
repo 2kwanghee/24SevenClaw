@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   Sparkles,
   Link2,
+  Trash2,
+  X,
 } from "lucide-react";
 
 import { PipelineStepper } from "@/components/ai-team/pipeline-stepper";
@@ -29,6 +31,7 @@ import {
   useTransition,
   useGenerateDrafts,
   usePushToLinear,
+  useDeleteSession,
 } from "@/hooks/use-orchestrator";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
@@ -53,6 +56,7 @@ export default function AITeamDashboardPage() {
   const [linearHint, setLinearHint] = useState<LinearSyncHint | null>(null);
   const [linearPushResult, setLinearPushResult] = useState<PushToLinearResponse | null>(null);
   const [linearPushError, setLinearPushError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   const {
     data: sessions,
@@ -71,6 +75,7 @@ export default function AITeamDashboardPage() {
   const transition = useTransition();
   const generateDrafts = useGenerateDrafts();
   const pushToLinear = usePushToLinear();
+  const deleteSession = useDeleteSession(projectId);
 
   // 세션이 로드되면 첫 세션 자동 선택
   const activeSessionId = selectedSessionId || sessions?.items[0]?.id || "";
@@ -86,6 +91,21 @@ export default function AITeamDashboardPage() {
   const handleRefresh = () => {
     refetchSessions();
     refetchSummary();
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    deleteSession.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        if (selectedSessionId === deleteTarget.id) {
+          setSelectedSessionId("");
+          setLinearHint(null);
+          setLinearPushResult(null);
+          setLinearPushError(null);
+        }
+        setDeleteTarget(null);
+      },
+    });
   };
 
   const handleApprove = () => {
@@ -161,21 +181,33 @@ export default function AITeamDashboardPage() {
       {sessions && sessions.items.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {sessions.items.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSelectedSessionId(s.id)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                s.id === activeSessionId
-                  ? "bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/30"
-                  : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
-              }`}
-            >
-              {s.title}
-              <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 text-[10px] text-slate-500">
-                {PHASE_LABELS[s.phase] ?? s.phase}
-              </span>
-            </button>
+            <div key={s.id} className="group relative flex shrink-0 items-center">
+              <button
+                type="button"
+                onClick={() => setSelectedSessionId(s.id)}
+                className={`rounded-lg py-1.5 pl-3 pr-2 text-xs font-medium transition-colors ${
+                  s.id === activeSessionId
+                    ? "bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/30"
+                    : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
+                }`}
+              >
+                {s.title}
+                <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 text-[10px] text-slate-500">
+                  {PHASE_LABELS[s.phase] ?? s.phase}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget({ id: s.id, title: s.title });
+                }}
+                className="ml-0.5 rounded p-0.5 text-slate-600 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                aria-label={`${s.title} 삭제`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -472,6 +504,64 @@ export default function AITeamDashboardPage() {
         onClose={() => setModalOpen(false)}
         onCreated={(id) => setSelectedSessionId(id)}
       />
+
+      {/* 세션 삭제 확인 다이얼로그 */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
+                <Trash2 className="h-4 w-4 text-red-400" />
+              </div>
+              <h2 className="text-sm font-semibold text-slate-200">
+                작업 요청 삭제
+              </h2>
+            </div>
+
+            <p className="mb-2 text-sm text-slate-300">
+              <span className="font-medium text-white">
+                &ldquo;{deleteTarget.title}&rdquo;
+              </span>{" "}
+              을(를) 삭제하시겠습니까?
+            </p>
+            <p className="mb-1 text-xs text-slate-500">
+              서브태스크·리뷰 데이터가 모두 삭제됩니다.
+            </p>
+            <p className="mb-6 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              ⚠ Linear에 등록된 이슈는 삭제되지 않습니다. Linear에서 직접
+              취소 또는 삭제해 주세요.
+            </p>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleteSession.isPending}
+                className="rounded-lg border border-white/10 px-4 py-2 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleteSession.isPending}
+                className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+              >
+                {deleteSession.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3" />
+                )}
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

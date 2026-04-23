@@ -1638,6 +1638,13 @@ export const orchestrator = {
       token,
     ),
 
+  deleteSession: (token: string, sessionId: string) =>
+    authRequest<void>(
+      `/api/v1/orchestrator/sessions/${sessionId}`,
+      token,
+      { method: "DELETE" },
+    ),
+
   decompose: (token: string, sessionId: string, hints?: string[]) =>
     authRequest<{ session: OrchestratorSessionResponse; subtasks: SubTaskResponse[] }>(
       `/api/v1/orchestrator/sessions/${sessionId}/decompose`,

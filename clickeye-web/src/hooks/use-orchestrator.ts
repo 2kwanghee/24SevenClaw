@@ -51,6 +51,20 @@ export function useCreateSession(projectId: string) {
   });
 }
 
+export function useDeleteSession(projectId: string) {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      orchestrator.deleteSession(token, sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["orchestrator-sessions", projectId],
+      });
+    },
+  });
+}
+
 export function useDecompose() {
   const token = useAccessToken();
   const queryClient = useQueryClient();

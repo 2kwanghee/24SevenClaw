@@ -113,6 +113,11 @@ class OrchestratorService:
         await self.db.refresh(session)
         return session
 
+    async def delete_session(self, session_id: UUID) -> None:
+        session = await self.get_session(session_id)
+        await self.db.delete(session)
+        await self.db.commit()
+
     async def get_session(self, session_id: UUID) -> OrchestratorSession:
         session = await self.db.get(OrchestratorSession, session_id)
         if session is None:

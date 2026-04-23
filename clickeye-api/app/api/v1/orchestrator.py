@@ -71,6 +71,17 @@ async def list_sessions(
     )
 
 
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_session(
+    session_id: UUID,
+    user: User = Depends(get_current_user),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """오케스트레이션 세션과 관련 데이터(서브태스크, 이력, 리뷰)를 삭제한다."""
+    service = OrchestratorService(db)
+    await service.delete_session(session_id)
+
+
 @router.get("/sessions/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: UUID,
