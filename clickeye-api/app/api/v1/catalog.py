@@ -1,38 +1,56 @@
-"""카탈로그 조회 엔드포인트 (agents, skills, platforms, pipelines)."""
+"""카탈로그 조회 엔드포인트 (agents, skills, hooks, platforms, pipelines)."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
 from app.schemas.catalog import CatalogListResponse, CatalogResponse
-from app.services.catalog_service import CatalogService
+from app.services.catalog_service import get_catalog_service
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
-_service = CatalogService()
-
 
 @router.get("/agents", response_model=CatalogListResponse)
-async def list_agents() -> CatalogListResponse:
+async def list_agents(
+    db: AsyncSession = Depends(get_db),
+) -> CatalogListResponse:
     """에이전트 카탈로그 조회 (id, label, description 반환)."""
-    items = _service.get("agents")
+    svc = get_catalog_service()
+    items = await svc.list_agents(db)
     return CatalogListResponse(items=items, total=len(items))
 
 
 @router.get("/skills", response_model=CatalogListResponse)
-async def list_skills() -> CatalogListResponse:
+async def list_skills(
+    db: AsyncSession = Depends(get_db),
+) -> CatalogListResponse:
     """스킬 카탈로그 조회 (id, label, description 반환)."""
-    items = _service.get("skills")
+    svc = get_catalog_service()
+    items = await svc.list_skills(db)
+    return CatalogListResponse(items=items, total=len(items))
+
+
+@router.get("/hooks", response_model=CatalogListResponse)
+async def list_hooks(
+    db: AsyncSession = Depends(get_db),
+) -> CatalogListResponse:
+    """훅 카탈로그 조회 (id, label, description 반환)."""
+    svc = get_catalog_service()
+    items = await svc.list_hooks(db)
     return CatalogListResponse(items=items, total=len(items))
 
 
 @router.get("/platforms", response_model=CatalogResponse)
 async def list_platforms() -> CatalogResponse:
-    """플랫폼 카탈로그 조회."""
-    items = _service.get("platforms")
+    """플랫폼 카탈로그 조회 (JSON)."""
+    svc = get_catalog_service()
+    items = svc.get_json("platforms")
     return CatalogResponse(items=items, total=len(items))
 
 
 @router.get("/pipelines", response_model=CatalogResponse)
 async def list_pipelines() -> CatalogResponse:
-    """파이프라인 카탈로그 조회."""
-    items = _service.get("pipelines")
+    """파이프라인 카탈로그 조회 (JSON)."""
+    svc = get_catalog_service()
+    items = svc.get_json("pipelines")
     return CatalogResponse(items=items, total=len(items))

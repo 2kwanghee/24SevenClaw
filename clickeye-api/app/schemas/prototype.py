@@ -163,6 +163,7 @@ class FinalizeRequest(BaseModel):
     linear_team_id: str | None = Field(None, description="Linear 팀 UUID (선택)")
     notion_api_key: str | None = Field(None, description="Notion API 키 (선택)")
     notion_database_id: str | None = Field(None, description="Notion 데이터베이스 UUID (선택)")
+    hook_ids: list[str] = Field(default_factory=list, description="선택된 훅 ID 목록")
 
 
 class FinalizeResponse(BaseModel):

@@ -21,3 +21,11 @@ export function useCatalogSkills() {
     staleTime: CATALOG_STALE_TIME,
   });
 }
+
+export function useCatalogHooks() {
+  return useQuery({
+    queryKey: ["catalog", "hooks"],
+    queryFn: () => catalog.hooks.list(),
+    staleTime: CATALOG_STALE_TIME,
+  });
+}

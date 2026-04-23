@@ -183,14 +183,20 @@ export default function SolutionSessionPage() {
       case 9: {
         const ev = data.env.envVars;
         if (!ev["ANTHROPIC_API_KEY"]?.trim()) return false;
+        // 선택된 스킬의 required env_vars 전체 검증
+        if (skillsData?.items) {
+          for (const skill of skillsData.items) {
+            if (!data.agents.selectedSkills.includes(skill.id)) continue;
+            for (const v of skill.env_vars) {
+              if (v.required && !ev[v.name]?.trim()) return false;
+            }
+          }
+        }
+        // 라이브 검증 (linear / notion)
         if (data.agents.selectedSkills.includes("linear")) {
-          if (!ev["LINEAR_API_KEY"]?.trim()) return false;
-          if (!ev["LINEAR_TEAM_ID"]?.trim()) return false;
           if (envValidation.linearStatus !== "valid") return false;
         }
         if (data.agents.selectedSkills.includes("notion")) {
-          if (!ev["NOTION_API_KEY"]?.trim()) return false;
-          if (!ev["NOTION_DATABASE_ID"]?.trim()) return false;
           if (envValidation.notionStatus !== "valid") return false;
         }
         return true;
@@ -232,6 +238,7 @@ export default function SolutionSessionPage() {
             },
             agents: data.agents.selectedAgents.map((id) => ({ id })),
             skills: data.agents.selectedSkills.map((id) => ({ id })),
+            hooks: (data.agents.selectedHooks ?? []).map((id) => ({ id })),
             pipelines: [],
             platform: { platformId: data.platform.platformId ?? null },
           },

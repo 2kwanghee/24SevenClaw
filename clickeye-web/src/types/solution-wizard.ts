@@ -211,6 +211,7 @@ export interface PMStep {
 export interface AgentsStep {
   selectedAgents: string[];
   selectedSkills: string[];
+  selectedHooks: string[];
 }
 
 /** Step 5: 플랫폼 선택 */
@@ -273,6 +274,7 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   agents: {
     selectedAgents: [],
     selectedSkills: [],
+    selectedHooks: [],
   },
   platform: {
     platformId: null,

@@ -1,23 +1,27 @@
 "use client";
 
-import { ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useSession } from "next-auth/react";
 
 import { integrations } from "@/lib/api-client";
+import { useCatalogHooks, useCatalogSkills } from "@/hooks/use-catalog";
+import { collectEnvVars } from "@/lib/catalog-helpers";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------
-  필수 키 설정 — 항상 필요한 키 + 스킬별 필요 키
+  Anthropic 기본 키 — DB에 없는 고정 필수 키
 ------------------------------------------------------------------ */
 
 interface RequiredKeyConfig {
   key: string;
   label: string;
   description: string;
-  guideUrl: string;
-  guideLabel: string;
+  guideUrl?: string;
+  guideLabel?: string;
 }
 
 const ALWAYS_REQUIRED: RequiredKeyConfig[] = [
@@ -29,51 +33,6 @@ const ALWAYS_REQUIRED: RequiredKeyConfig[] = [
     guideLabel: "console.anthropic.com",
   },
 ];
-
-const LINEAR_REQUIRED: RequiredKeyConfig[] = [
-  {
-    key: "LINEAR_API_KEY",
-    label: "Linear API 키",
-    description: "Linear 이슈 추적 연동에 필요한 API 토큰",
-    guideUrl: "https://linear.app/settings/api",
-    guideLabel: "linear.app/settings/api",
-  },
-  {
-    key: "LINEAR_TEAM_ID",
-    label: "Linear 팀 ID",
-    description: "이슈를 생성할 Linear 팀의 UUID",
-    guideUrl: "https://linear.app/settings/api",
-    guideLabel: "linear.app/settings/api",
-  },
-];
-
-const NOTION_REQUIRED: RequiredKeyConfig[] = [
-  {
-    key: "NOTION_API_KEY",
-    label: "Notion API 키",
-    description: "Notion 데이터베이스 연동에 필요한 인증 토큰",
-    guideUrl: "https://www.notion.so/my-integrations",
-    guideLabel: "notion.so/my-integrations",
-  },
-  {
-    key: "NOTION_DATABASE_ID",
-    label: "Notion 데이터베이스 ID",
-    description: "이슈를 생성할 Notion 데이터베이스의 UUID",
-    guideUrl: "https://developers.notion.com/docs/create-a-notion-integration",
-    guideLabel: "developers.notion.com",
-  },
-];
-
-function getRequiredKeys(selectedSkills: string[]): RequiredKeyConfig[] {
-  const configs = [...ALWAYS_REQUIRED];
-  if (selectedSkills.includes("linear")) {
-    configs.push(...LINEAR_REQUIRED);
-  }
-  if (selectedSkills.includes("notion")) {
-    configs.push(...NOTION_REQUIRED);
-  }
-  return configs;
-}
 
 /* ------------------------------------------------------------------
   필수 키 행 컴포넌트
@@ -140,16 +99,18 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <a
-            href={config.guideUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
-            aria-label={`${config.label} 발급 가이드 열기`}
-          >
-            <ExternalLink className="h-3 w-3" aria-hidden="true" />
-            발급 가이드
-          </a>
+          {config.guideUrl && (
+            <a
+              href={config.guideUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
+              aria-label={`${config.label} 발급 가이드 열기`}
+            >
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+              발급 가이드
+            </a>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -248,20 +209,39 @@ export function StepSolutionEnv() {
   const token = (session as { accessToken?: string } | null)?.accessToken ?? null;
 
   const envVars = useSolutionWizardStore((s) => s.data.env.envVars);
-  const selectedSkills = useSolutionWizardStore(
-    (s) => s.data.agents.selectedSkills,
-  );
+  const selectedSkills = useSolutionWizardStore((s) => s.data.agents.selectedSkills);
+  const selectedHooks = useSolutionWizardStore((s) => s.data.agents.selectedHooks ?? []);
   const setEnv = useSolutionWizardStore((s) => s.setEnv);
   const envValidation = useSolutionWizardStore((s) => s.envValidation);
   const setEnvValidation = useSolutionWizardStore((s) => s.setEnvValidation);
 
+  const { data: skillsData } = useCatalogSkills();
+  const { data: hooksData } = useCatalogHooks();
+
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
+  const [expandedGuides, setExpandedGuides] = useState<Set<string>>(new Set());
 
-  const requiredKeys = getRequiredKeys(selectedSkills);
-  const missingKeys = requiredKeys.filter(
-    (c) => !envVars[c.key]?.trim(),
-  );
+  const toggleGuide = (skillId: string) => {
+    setExpandedGuides((prev) => {
+      const next = new Set(prev);
+      if (next.has(skillId)) next.delete(skillId);
+      else next.add(skillId);
+      return next;
+    });
+  };
+
+  // 선택된 스킬/훅에서 env_vars 그룹별 수집
+  const envGroups = collectEnvVars(skillsData?.items, hooksData?.items, selectedSkills, selectedHooks);
+
+  // 전체 필수 키 = Anthropic + 동적 수집된 required vars
+  const allRequiredKeys = [
+    ...ALWAYS_REQUIRED,
+    ...envGroups.flatMap((g) =>
+      g.vars.filter((v) => v.required).map((v) => ({ key: v.name, label: v.name, description: v.description ?? "" }))
+    ),
+  ];
+  const missingKeys = allRequiredKeys.filter((c) => !envVars[c.key]?.trim());
 
   const handleRequiredKeyChange = (key: string, value: string) => {
     setEnv({ envVars: { ...envVars, [key]: value } });
@@ -375,24 +355,23 @@ export function StepSolutionEnv() {
     }
   };
 
-  const extraEnvVars = Object.entries(envVars).filter(
-    ([key]) => !requiredKeys.some((c) => c.key === key),
-  );
+  const allTrackedKeys = new Set([
+    ...ALWAYS_REQUIRED.map((c) => c.key),
+    ...envGroups.flatMap((g) => g.vars.map((v) => v.name)),
+  ]);
+  const extraEnvVars = Object.entries(envVars).filter(([key]) => !allTrackedKeys.has(key));
 
   return (
     <div className="space-y-6">
-      {/* 필수 키 섹션 */}
+      {/* Anthropic 기본 키 */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-slate-300">
-            필수 API 키
-            <span className="ml-1.5 text-[11px] font-normal text-slate-500">
-              ({requiredKeys.length - missingKeys.length}/{requiredKeys.length} 설정됨)
-            </span>
-          </h3>
-        </div>
-
-        {requiredKeys.map((config) => (
+        <h3 className="text-sm font-medium text-slate-300">
+          필수 API 키
+          <span className="ml-1.5 text-[11px] font-normal text-slate-500">
+            ({allRequiredKeys.length - missingKeys.length}/{allRequiredKeys.length} 설정됨)
+          </span>
+        </h3>
+        {ALWAYS_REQUIRED.map((config) => (
           <RequiredKeyRow
             key={config.key}
             config={config}
@@ -400,34 +379,100 @@ export function StepSolutionEnv() {
             onChange={handleRequiredKeyChange}
           />
         ))}
-
-        {/* Linear 검증 결과 */}
-        {selectedSkills.includes("linear") && (
-          <IntegrationValidationBadge
-            name="Linear"
-            status={envValidation.linearStatus}
-            message={envValidation.linearMessage}
-          />
-        )}
-
-        {/* Notion 검증 결과 */}
-        {selectedSkills.includes("notion") && (
-          <IntegrationValidationBadge
-            name="Notion"
-            status={envValidation.notionStatus}
-            message={envValidation.notionMessage}
-          />
-        )}
-
-        {missingKeys.length > 0 && (
-          <p
-            role="alert"
-            className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400"
-          >
-            필수 키 {missingKeys.length}개가 미설정 상태입니다. 설정 후 다음 단계로 진행하세요.
-          </p>
-        )}
       </div>
+
+      {/* 선택된 스킬별 API 키 그룹 */}
+      {envGroups.map((group) => {
+        const isExpanded = expandedGuides.has(group.skillId);
+        const hasGuide = !!group.bodyMd;
+        return (
+          <div key={group.skillId} className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                <span className="text-sm font-medium text-slate-200">{group.skillLabel}</span>
+                <span className="rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                  API 키 필요
+                </span>
+              </div>
+              {hasGuide && (
+                <button
+                  type="button"
+                  onClick={() => toggleGuide(group.skillId)}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-sky-400 hover:bg-sky-500/10"
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  설정 가이드
+                </button>
+              )}
+            </div>
+
+            {/* 접이식 body_md 가이드 */}
+            {hasGuide && isExpanded && (
+              <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => <h1 className="mb-2 text-sm font-semibold text-white">{children}</h1>,
+                    h2: ({ children }) => <h2 className="mb-1.5 mt-3 text-xs font-semibold text-slate-200">{children}</h2>,
+                    h3: ({ children }) => <h3 className="mb-1 mt-2 text-xs font-medium text-slate-300">{children}</h3>,
+                    p: ({ children }) => <p className="mb-1.5 text-xs text-slate-400">{children}</p>,
+                    ol: ({ children }) => <ol className="mb-1.5 list-decimal pl-4 text-xs text-slate-400 space-y-0.5">{children}</ol>,
+                    ul: ({ children }) => <ul className="mb-1.5 list-disc pl-4 text-xs text-slate-400 space-y-0.5">{children}</ul>,
+                    li: ({ children }) => <li>{children}</li>,
+                    code: ({ children }) => <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-slate-300">{children}</code>,
+                    pre: ({ children }) => <pre className="mb-2 overflow-auto rounded-lg bg-black/40 px-3 py-2 font-mono text-[11px] text-slate-300">{children}</pre>,
+                    a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300">{children}</a>,
+                    strong: ({ children }) => <strong className="font-semibold text-slate-200">{children}</strong>,
+                  }}
+                >
+                  {group.bodyMd!}
+                </ReactMarkdown>
+              </div>
+            )}
+
+            {/* env_var 입력 필드 */}
+            <div className="space-y-2 pt-1">
+              {group.vars.map((envVar) => (
+                <RequiredKeyRow
+                  key={envVar.name}
+                  config={{ key: envVar.name, label: envVar.name, description: envVar.description ?? "" }}
+                  value={envVars[envVar.name] ?? ""}
+                  onChange={handleRequiredKeyChange}
+                />
+              ))}
+            </div>
+
+            {/* Linear 검증 뱃지 */}
+            {group.skillId === "linear" && (
+              <IntegrationValidationBadge
+                name="Linear"
+                status={envValidation.linearStatus}
+                message={envValidation.linearMessage}
+              />
+            )}
+
+            {/* Notion 검증 뱃지 */}
+            {group.skillId === "notion" && (
+              <IntegrationValidationBadge
+                name="Notion"
+                status={envValidation.notionStatus}
+                message={envValidation.notionMessage}
+              />
+            )}
+          </div>
+        );
+      })}
+
+      {missingKeys.length > 0 && (
+        <p
+          role="alert"
+          className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400"
+        >
+          필수 키 {missingKeys.length}개가 미설정 상태입니다. 설정 후 다음 단계로 진행하세요.
+        </p>
+      )}
 
       {/* Webhook 터널 설정 (linear 선택 시) */}
       {selectedSkills.includes("linear") && (

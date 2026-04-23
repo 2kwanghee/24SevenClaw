@@ -15,6 +15,7 @@ import { useCreateRegistryItem, useUpdateRegistryItem } from "@/hooks/use-regist
 const TYPE_LABELS: Record<RegistryAdminType, string> = {
   agents: "에이전트",
   skills: "스킬",
+  hooks: "훅",
   mcps: "MCP 서버",
 };
 

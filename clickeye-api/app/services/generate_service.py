@@ -4,13 +4,17 @@ import io
 import zipfile
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.engine.catalog import prefetch_for_generator
 from app.engine.generator import generate_all
 from app.schemas.generate import GenerateRequest
 
 
-def generate_zip(
+async def generate_zip(
     request: GenerateRequest,
     project_name: str,
+    db: AsyncSession | None = None,
     pm_slug: str | None = None,
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
@@ -28,7 +32,14 @@ def generate_zip(
     stack_id = request.solution.get("stackPreset", "custom")
     agent_ids = request.agents
     workflow_ids = request.skills + request.pipelines
+    hook_ids: list[str] = getattr(request, "hook_ids", []) or []
     platform_id = str(request.platform.get("platformId", "claude-code"))
+
+    catalog_prefetch = None
+    if db is not None:
+        catalog_prefetch = await prefetch_for_generator(
+            db, agent_ids=agent_ids, skill_ids=workflow_ids, hook_ids=hook_ids
+        )
 
     files = generate_all(
         project_name=engine_project_name,
@@ -43,6 +54,8 @@ def generate_zip(
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
         catalog_entry=catalog_entry,
+        catalog_prefetch=catalog_prefetch,
+        hook_ids=hook_ids or None,
     )
 
     buffer = io.BytesIO()

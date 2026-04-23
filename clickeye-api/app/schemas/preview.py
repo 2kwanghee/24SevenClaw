@@ -4,21 +4,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.engine.catalog import AGENTS, SKILLS
-
-# 유효한 카탈로그 ID 집합 (엔진 카탈로그 + 데이터 카탈로그 합집합)
-_VALID_AGENT_IDS = frozenset(a["id"] for a in AGENTS)
-_VALID_SKILL_IDS = frozenset(s["id"] for s in SKILLS)
 _VALID_PIPELINE_IDS: frozenset[str] | None = None
-_VALID_DATA_AGENT_IDS: frozenset[str] | None = None
-_VALID_DATA_SKILL_IDS: frozenset[str] | None = None
 
 
-def _load_data_catalog() -> (
-    tuple[frozenset[str], frozenset[str], frozenset[str]]
-):
-    """데이터 카탈로그 JSON에서 유효 ID 로드 (지연 로드)."""
-    global _VALID_PIPELINE_IDS, _VALID_DATA_AGENT_IDS, _VALID_DATA_SKILL_IDS  # noqa: PLW0603
+def _load_pipelines() -> frozenset[str]:
+    """파이프라인 JSON에서 유효 ID 로드 (지연 로드)."""
+    global _VALID_PIPELINE_IDS  # noqa: PLW0603
     if _VALID_PIPELINE_IDS is None:
         import json
         from pathlib import Path
@@ -26,11 +17,7 @@ def _load_data_catalog() -> (
         base = Path(__file__).resolve().parent.parent / "data" / "catalog"
         with (base / "pipelines.json").open() as f:
             _VALID_PIPELINE_IDS = frozenset(p["id"] for p in json.load(f))
-        with (base / "agents.json").open() as f:
-            _VALID_DATA_AGENT_IDS = frozenset(a["id"] for a in json.load(f))
-        with (base / "skills.json").open() as f:
-            _VALID_DATA_SKILL_IDS = frozenset(s["id"] for s in json.load(f))
-    return _VALID_DATA_AGENT_IDS, _VALID_DATA_SKILL_IDS, _VALID_PIPELINE_IDS
+    return _VALID_PIPELINE_IDS
 
 
 class PreviewRequest(BaseModel):
@@ -59,36 +46,10 @@ class PreviewRequest(BaseModel):
         description="선택된 PM 프로필 slug — ZIP에 플랫폼별 PM 파일 주입",
     )
 
-    @field_validator("agents")
-    @classmethod
-    def validate_agent_ids(cls, v: list[str]) -> list[str]:
-        data_agents, _, _ = _load_data_catalog()
-        all_valid = _VALID_AGENT_IDS | data_agents
-        invalid = [aid for aid in v if aid not in all_valid]
-        if invalid:
-            raise ValueError(
-                f"유효하지 않은 에이전트 ID: {invalid}. "
-                f"허용: {sorted(all_valid)}"
-            )
-        return v
-
-    @field_validator("skills")
-    @classmethod
-    def validate_skill_ids(cls, v: list[str]) -> list[str]:
-        _, data_skills, _ = _load_data_catalog()
-        all_valid = _VALID_SKILL_IDS | data_skills
-        invalid = [sid for sid in v if sid not in all_valid]
-        if invalid:
-            raise ValueError(
-                f"유효하지 않은 스킬 ID: {invalid}. "
-                f"허용: {sorted(all_valid)}"
-            )
-        return v
-
     @field_validator("pipelines")
     @classmethod
     def validate_pipeline_ids(cls, v: list[str]) -> list[str]:
-        _, _, valid_pipelines = _load_data_catalog()
+        valid_pipelines = _load_pipelines()
         invalid = [pid for pid in v if pid not in valid_pipelines]
         if invalid:
             raise ValueError(

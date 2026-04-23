@@ -19,17 +19,20 @@ import {
   Terminal,
   FolderOpen,
   Sparkles,
-  Globe,
   KeyRound,
   ExternalLink,
-  Zap,
 } from "lucide-react";
+
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { pmProfiles, type PMProfileWithMetrics } from "@/lib/api-client";
 import { PMRatingStars } from "../pm-rating-stars";
 import { PrototypePreview } from "../prototype-preview";
+import { useCatalogSkills, useCatalogHooks } from "@/hooks/use-catalog";
+import { collectEnvVars } from "@/lib/catalog-helpers";
 
 // ---------------------------------------------------------------------------
 // 레이블 맵
@@ -177,7 +180,6 @@ function CompositionCountBadge({
 
 interface SetupGuideModalProps {
   projectId: string;
-  hasLinear: boolean;
   osId: string | null;
 }
 
@@ -190,10 +192,23 @@ interface StepItem {
   note?: string;
 }
 
-function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
+function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
   const isWsl = osId === "wsl2" || osId === null;
+  const data = useSolutionWizardStore((s) => s.data);
+  const { selectedSkills, selectedHooks } = data.agents;
+  const envVars = data.env.envVars;
 
-  const SIMPLE_STEPS: StepItem[] = [
+  const { data: skillsData } = useCatalogSkills();
+  const { data: hooksData } = useCatalogHooks();
+  const envGroups = collectEnvVars(
+    skillsData?.items,
+    hooksData?.items,
+    selectedSkills,
+    selectedHooks ?? [],
+  );
+  const guideGroups = envGroups.filter((g) => g.vars.length > 0);
+
+  const COMMON_STEPS: StepItem[] = [
     {
       icon: Download,
       label: "ZIP 다운로드",
@@ -227,66 +242,6 @@ function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
     },
   ];
 
-  const LINEAR_STEPS: StepItem[] = [
-    {
-      icon: Download,
-      label: "ZIP 다운로드",
-      desc: '프로젝트 페이지에서 "ZIP 다운로드" 버튼 클릭',
-      link: { href: `/projects/${projectId}`, label: "프로젝트 페이지 열기" },
-    },
-    {
-      icon: FolderOpen,
-      label: "압축 해제",
-      desc: "원하는 폴더에 ZIP 파일을 압축 해제합니다",
-    },
-    {
-      icon: KeyRound,
-      label: ".env 작성",
-      desc: "ANTHROPIC_API_KEY · LINEAR_API_KEY · LINEAR_TEAM_ID · WEBHOOK_SECRET 설정",
-      command: "cp .env.example .env",
-    },
-    {
-      icon: Globe,
-      label: "터널 생성",
-      desc: "Cloudflare 터널을 기동해 외부 접속 URL을 발급받습니다",
-      command: "bash scripts/setup-tunnel.sh",
-    },
-    {
-      icon: ExternalLink,
-      label: "Linear 연동 등록",
-      desc: "발급된 터널 URL을 ClickEye에 저장하면 Linear webhook이 자동 등록됩니다",
-      link: { href: "/settings/linear", label: "Linear 설정 열기" },
-    },
-    {
-      icon: Server,
-      label: "Webhook 서버 기동",
-      desc: "로컬 포트 9876에서 Linear 이벤트 수신을 시작합니다",
-      command: "bash scripts/start-webhook.sh",
-    },
-    {
-      icon: Terminal,
-      label: "런처 스크립트 실행",
-      desc: "ZIP 폴더에서 터미널을 열고 런처를 실행하면 환경 점검 후 Claude Code가 시작됩니다",
-      command: "bash start.sh",
-    },
-    {
-      icon: Sparkles,
-      label: "AI Team 초안 생성",
-      desc: '"새 작업 요청" → "AI 초안 생성" 클릭 → Linear에 이슈가 자동 등록됩니다',
-      link: {
-        href: `/projects/${projectId}/ai-team`,
-        label: "AI Team 열기",
-      },
-    },
-    {
-      icon: Zap,
-      label: "Linear 이슈 → Queued",
-      desc: '이슈 상태를 "Queued"로 변경하면 로컬 Claude가 자동으로 작업을 시작합니다',
-    },
-  ];
-
-  const STEPS = hasLinear ? LINEAR_STEPS : SIMPLE_STEPS;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
@@ -312,64 +267,133 @@ function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
               솔루션이 생성되었습니다!
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              {hasLinear
-                ? "아래 절차로 AI Team → Linear → Claude 자동화를 완성하세요"
-                : "아래 절차로 로컬 개발 환경을 셋업하세요"}
+              아래 절차로 로컬 개발 환경을 셋업하세요
             </p>
           </div>
 
-          {/* 단계별 가이드 */}
+          {/* 공통 단계별 가이드 */}
           <ol className="mb-5 space-y-3" aria-label="셋업 절차">
-            {STEPS.map((step, i) => {
+            {COMMON_STEPS.map((step, i) => {
               const Icon = step.icon;
               return (
-              <li key={step.label} className="flex items-start gap-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
-                  {i + 1}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <Icon
-                      className="h-3.5 w-3.5 shrink-0 text-emerald-400"
-                      aria-hidden="true"
-                    />
-                    <span className="text-sm font-medium text-slate-200">
-                      {step.label}
-                    </span>
+                <li key={step.label} className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
+                    {i + 1}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">{step.desc}</p>
-                  {step.command && (
-                    <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
-                      {step.command}
-                    </code>
-                  )}
-                  {step.note && (
-                    <p className="mt-1 text-[11px] text-amber-400/80">{step.note}</p>
-                  )}
-                  {step.link && (
-                    <Link
-                      href={step.link.href}
-                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-sky-400 transition-colors hover:text-sky-300"
-                    >
-                      <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
-                      {step.link.label}
-                    </Link>
-                  )}
-                </div>
-              </li>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <Icon
+                        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        aria-hidden="true"
+                      />
+                      <span className="text-sm font-medium text-slate-200">
+                        {step.label}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">{step.desc}</p>
+                    {step.command && (
+                      <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
+                        {step.command}
+                      </code>
+                    )}
+                    {step.note && (
+                      <p className="mt-1 text-[11px] text-amber-400/80">
+                        {step.note}
+                      </p>
+                    )}
+                    {step.link && (
+                      <Link
+                        href={step.link.href}
+                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-sky-400 transition-colors hover:text-sky-300"
+                      >
+                        <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
+                        {step.link.label}
+                      </Link>
+                    )}
+                  </div>
+                </li>
               );
             })}
           </ol>
 
+          {/* 연동 설정 가이드 (선택 자산별 동적 렌더링) */}
+          {guideGroups.length > 0 && (
+            <div className="mb-5 space-y-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                연동 설정 가이드
+              </p>
+              {guideGroups.map((group) => (
+                <div
+                  key={group.skillId}
+                  className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+                >
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <KeyRound
+                      className="h-3 w-3 text-amber-400"
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs font-semibold text-slate-200">
+                      {group.skillLabel}
+                    </span>
+                  </div>
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {group.vars.map((v) => {
+                      const filled = !!envVars[v.name]?.trim();
+                      return (
+                        <span
+                          key={v.name}
+                          className={cn(
+                            "flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-mono text-[10px]",
+                            filled
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-white/5 text-slate-400",
+                          )}
+                        >
+                          {filled ? (
+                            <CheckCircle2
+                              className="h-2.5 w-2.5"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <span className="inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
+                          )}
+                          {v.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {group.bodyMd && (
+                    <div className="prose prose-xs prose-invert max-w-none text-[11px] text-slate-400 [&_a]:text-sky-400 [&_code]:rounded [&_code]:bg-white/5 [&_code]:px-1 [&_code]:text-emerald-300 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-xs [&_li]:mb-0.5 [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:pl-4">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {group.bodyMd}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* /ClickEyeStart 흐름 안내 */}
-          <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 space-y-2">
+          <div className="mb-5 space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
               /ClickEyeStart 실행 흐름
             </p>
             <div className="space-y-1 text-[11px] text-slate-500">
-              <p>① <code className="text-emerald-300">bash start.sh</code> 실행 → Node·Claude Code 점검 후 자동 진입</p>
-              <p>② <code className="text-emerald-300">/ClickEyeStart</code> 입력 → 자동 셋업 시작</p>
-              <p>③ <code className="text-slate-400">.env</code> 검증 → 누락 키 대화형 입력 안내</p>
+              <p>
+                ①{" "}
+                <code className="text-emerald-300">bash start.sh</code> 실행 →
+                Node·Claude Code 점검 후 자동 진입
+              </p>
+              <p>
+                ②{" "}
+                <code className="text-emerald-300">/ClickEyeStart</code> 입력 →
+                자동 셋업 시작
+              </p>
+              <p>
+                ③ <code className="text-slate-400">.env</code> 검증 → 누락 키
+                대화형 입력 안내
+              </p>
               <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
             </div>
             <p className="mt-2 border-t border-emerald-500/10 pt-2 text-[11px] text-slate-600">
@@ -386,7 +410,7 @@ function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
             프로젝트 페이지로 이동
           </Link>
           <p className="mt-2 text-center text-[11px] text-slate-600">
-            프로젝트 페이지에서 ZIP 다운로드 및 Linear 연동 상태를 확인할 수 있습니다
+            프로젝트 페이지에서 ZIP 다운로드 및 연동 상태를 확인할 수 있습니다
           </p>
         </div>
       </div>
@@ -405,7 +429,6 @@ export function StepConfirmation() {
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
   const { company, prototypes, pm } = data;
-  const hasLinear = data.agents.selectedSkills.includes("linear");
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -427,7 +450,6 @@ export function StepConfirmation() {
     return (
       <SetupGuideModal
         projectId={createdProjectId}
-        hasLinear={hasLinear}
         osId={data.os.osId}
       />
     );

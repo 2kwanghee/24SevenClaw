@@ -12,10 +12,19 @@ class CatalogItemResponse(BaseModel):
     label: str
     description: str | None = None
     category: str | None = None
+    required: bool = False
+    output_file: str | None = None
+    dependencies: list[str] = []
+    # skill 전용
+    hook_events: list[str] = []
+    env_vars: list[dict[str, Any]] = []
+    body_md: str | None = None
+    # hook 전용
+    event: str | None = None
 
 
 class CatalogListResponse(BaseModel):
-    """에이전트/스킬 카탈로그 목록 응답 (스키마 검증 포함)."""
+    """에이전트/스킬/훅 카탈로그 목록 응답."""
 
     items: list[CatalogItemResponse]
     total: int
