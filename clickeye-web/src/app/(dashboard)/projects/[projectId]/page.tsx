@@ -33,6 +33,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ProjectForm } from "@/components/projects/project-form";
+import { PMFeedbackCard } from "@/components/projects/pm-feedback-card";
 import {
   useDeleteProject,
   useProject,
@@ -434,6 +435,15 @@ export default function ProjectDetailPage() {
               );
             })()}
           </div>
+        )}
+
+        {/* PM 피드백 카드 (wizard 프로젝트이고 PM이 배정된 경우) */}
+        {project.pm_profile_id && project.prototype_session_id && (
+          <PMFeedbackCard
+            projectId={projectId}
+            pmProfileId={project.pm_profile_id}
+            sessionId={project.prototype_session_id}
+          />
         )}
 
         {/* Linear 연동 프리플라이트 카드 */}
