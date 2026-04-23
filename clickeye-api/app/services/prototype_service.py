@@ -49,7 +49,10 @@ class PrototypeService:
             user_id=user_id,
             solution_prompt=data.solution_prompt,
             status="pending",
-            extra={"user_tech_stack": list(data.tech_stack)},
+            extra={
+                "user_tech_stack": list(data.tech_stack),
+                "user_industry": data.industry or "",
+            },
         )
         self.db.add(session)
         await self.db.commit()
@@ -371,8 +374,9 @@ class PrototypeService:
         design_pattern: str,
         context_text: str,
         metrics_by_pm: dict[Any, PMMetrics],
+        user_industry: str = "",
     ) -> dict[Any, dict[str, float]]:
-        """규칙 기반 점수 계산. {pm_id: {domain, specialty, metric, rule_score}} 반환."""
+        """규칙 기반 점수 계산. {pm_id: {domain, specialty, metric, industry, rule_score}} 반환."""
         domains = [str(p.domain or "") for p in profiles]
         domain_scores_map = self._claude.recommend_pm_scores(design_pattern, domains)
 
@@ -401,11 +405,29 @@ class PrototypeService:
             else:
                 metric_score = 50.0
 
-            rule_score = domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3
+            # 업종 매칭 점수: PM의 industry_tags에 user_industry가 포함되면 100, 없으면 30
+            _industry_tags: Any = getattr(profile, "industry_tags", None) or []
+            pm_industries = [str(t).lower() for t in _industry_tags]
+            if user_industry and pm_industries:
+                industry_score = 100.0 if user_industry.lower() in pm_industries else 30.0
+            elif not pm_industries:
+                # industry_tags 미설정 PM은 중립(50)으로 처리
+                industry_score = 50.0
+            else:
+                industry_score = 50.0
+
+            # 가중치: domain 35% + specialty 25% + metric 25% + industry 15%
+            rule_score = (
+                domain_score * 0.35
+                + specialty_score * 0.25
+                + metric_score * 0.25
+                + industry_score * 0.15
+            )
             result[_pid] = {
                 "domain": domain_score,
                 "specialty": specialty_score,
                 "metric": metric_score,
+                "industry": industry_score,
                 "rule_score": rule_score,
             }
         return result
@@ -436,13 +458,35 @@ class PrototypeService:
         context_text = str(session.solution_prompt or "")
         design_pattern = str(prototype.design_pattern or "")
 
-        # 활성 PM 프로필 조회
+        # 세션 extra에서 업종 정보 추출
+        _extra: Any = session.extra or {}
+        user_industry = str(_extra.get("user_industry", "") or "")
+
+        # 활성 PM 프로필 조회 — 업종 필터링 적용
+        # 1) user_industry가 있으면 해당 업종 태그를 포함한 PM 우선 조회
+        # 2) industry_tags가 비어있는 PM은 범용으로 항상 포함
         stmt = select(PMProfile).where(PMProfile.is_active.is_(True))
         result = await self.db.execute(stmt)
-        profiles = list(result.scalars().all())
+        all_profiles = list(result.scalars().all())
 
-        if not profiles:
+        if not all_profiles:
             return []
+
+        # 업종 필터: industry_tags가 설정된 PM 중 매칭되지 않는 PM은 후보에서 제외
+        # (단, 설정되지 않은 PM은 포함)
+        if user_industry:
+            profiles = [
+                p for p in all_profiles
+                if not getattr(p, "industry_tags", None)  # 범용 PM
+                or user_industry.lower() in [
+                    str(t).lower() for t in (getattr(p, "industry_tags", None) or [])
+                ]
+            ]
+            # 필터 후 PM이 2명 미만이면 전체 포함 (추천 최소 수 보장)
+            if len(profiles) < 2:
+                profiles = all_profiles
+        else:
+            profiles = all_profiles
 
         # 메트릭 일괄 로드 (N+1 방지)
         pm_ids = [p.id for p in profiles]
@@ -450,9 +494,9 @@ class PrototypeService:
         metrics_result = await self.db.execute(metrics_stmt)
         metrics_by_pm: dict[Any, PMMetrics] = {m.pm_id: m for m in metrics_result.scalars().all()}
 
-        # 규칙 기반 점수 계산
+        # 규칙 기반 점수 계산 (업종 가중치 포함)
         rule_detail = self._compute_rule_scores(
-            profiles, design_pattern, context_text, metrics_by_pm
+            profiles, design_pattern, context_text, metrics_by_pm, user_industry=user_industry
         )
 
         # Claude 하이브리드 추천 시도
@@ -481,6 +525,7 @@ class PrototypeService:
             "tech_stack": ui_structure.get("tech_stack_tags", []),
             "pros": ui_structure.get("pros", []),
             "cons": ui_structure.get("cons", []),
+            "user_industry": user_industry,
         }
 
         claude_raw: dict[str, Any] | None = None

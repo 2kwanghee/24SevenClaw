@@ -154,6 +154,7 @@ export default function NewSolutionPage() {
         organization_id: org.id,
         solution_prompt: company.solutionRequest,
         tech_stack: company.techStack,
+        industry: company.industry ?? null,
       });
       setSessionId(ps.id);
 

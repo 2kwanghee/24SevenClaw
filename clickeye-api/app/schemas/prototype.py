@@ -11,6 +11,9 @@ class PrototypeSessionCreate(BaseModel):
     organization_id: UUID
     solution_prompt: str = Field(..., description="솔루션을 설명하는 자연어 프롬프트")
     tech_stack: list[str] = Field(default_factory=list, description="사용자 선호 기술 스택")
+    industry: str | None = Field(
+        None, description="업종 코드 (it, fintech, ecommerce, healthcare, ...)"
+    )
 
 
 class PrototypeSessionResponse(BaseModel):

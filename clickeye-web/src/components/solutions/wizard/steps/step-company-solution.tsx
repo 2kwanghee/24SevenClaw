@@ -52,24 +52,36 @@ const INDUSTRY_OPTIONS: { value: IndustryType; label: string }[] = [
   { value: "other", label: "기타" },
 ];
 
-const TECH_STACK_OPTIONS = [
-  "Python",
-  "TypeScript",
-  "JavaScript",
-  "React",
-  "Next.js",
-  "FastAPI",
-  "Django",
-  "Node.js",
-  "PostgreSQL",
-  "MySQL",
-  "MongoDB",
-  "Redis",
-  "AWS",
-  "GCP",
-  "Azure",
-  "Docker",
-  "Kubernetes",
+const TECH_STACK_CATEGORIES: {
+  label: string;
+  key: string;
+  options: string[];
+}[] = [
+  {
+    key: "language",
+    label: "언어",
+    options: ["Python", "TypeScript", "JavaScript", "Java", "Kotlin", "Go", "Rust", "C#"],
+  },
+  {
+    key: "framework",
+    label: "프레임워크 / 라이브러리",
+    options: [
+      "React", "Next.js", "Vue", "Angular",
+      "FastAPI", "Django", "Spring Boot",
+      "Node.js", "NestJS", "Express",
+      "Flutter",
+    ],
+  },
+  {
+    key: "database",
+    label: "데이터베이스",
+    options: ["PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite", "Elasticsearch", "DynamoDB"],
+  },
+  {
+    key: "cloud",
+    label: "클라우드 / 인프라",
+    options: ["AWS", "GCP", "Azure", "Docker", "Kubernetes", "Terraform"],
+  },
 ];
 
 /* -- Zod 스키마 -- */
@@ -282,43 +294,63 @@ export function StepCompanySolution() {
       </div>
 
       {/* 기술 스택 */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-300">
-          기술 스택{" "}
-          <span className="text-xs font-normal text-slate-500">(선택, 복수 가능)</span>
-        </label>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-slate-300">
+            기술 스택{" "}
+            <span className="text-xs font-normal text-slate-500">(선택, 복수 가능)</span>
+          </label>
+          <Controller
+            name="techStack"
+            control={control}
+            render={({ field }) => (
+              <span className="text-xs text-emerald-400">
+                {field.value.length > 0 ? `${field.value.length}개 선택됨` : ""}
+              </span>
+            )}
+          />
+        </div>
         <Controller
           name="techStack"
           control={control}
           render={({ field }) => (
-            <div className="flex flex-wrap gap-2">
-              {TECH_STACK_OPTIONS.map((tech) => {
-                const selected = field.value.includes(tech);
-                return (
-                  <button
-                    key={tech}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      if (selected) {
-                        field.onChange(field.value.filter((t) => t !== tech));
-                      } else {
-                        field.onChange([...field.value, tech]);
-                      }
-                    }}
-                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      selected
-                        ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
-                        : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-slate-300"
-                    }`}
-                  >
-                    {selected && (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-400" aria-hidden="true" />
-                    )}
-                    {tech}
-                  </button>
-                );
-              })}
+            <div className="space-y-4 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              {TECH_STACK_CATEGORIES.map((category) => (
+                <div key={category.key}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {category.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {category.options.map((tech) => {
+                      const selected = field.value.includes(tech);
+                      return (
+                        <button
+                          key={tech}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => {
+                            if (selected) {
+                              field.onChange(field.value.filter((t) => t !== tech));
+                            } else {
+                              field.onChange([...field.value, tech]);
+                            }
+                          }}
+                          className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                            selected
+                              ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
+                              : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-slate-300"
+                          }`}
+                        >
+                          {selected && (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400" aria-hidden="true" />
+                          )}
+                          {tech}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         />

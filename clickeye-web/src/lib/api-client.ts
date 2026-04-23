@@ -681,6 +681,7 @@ export interface PrototypeSessionCreateRequest {
   organization_id: string;
   solution_prompt: string;
   tech_stack?: string[];
+  industry?: string | null;
 }
 
 export interface PrototypeSessionResponse {
