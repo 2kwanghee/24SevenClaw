@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bot, Info, Link, Sparkles, Wrench } from "lucide-react";
+import { AlertCircle, Bot, Info, KeyRound, Link, Sparkles, Wrench } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { prototypeSessions } from "@/lib/api-client";
@@ -232,9 +232,10 @@ export function StepSolutionAgents() {
           {skillsData && (
             <>
               <div className="flex flex-wrap gap-2">
-                {ticketSourceSkills.map(({ id, label }) => {
+                {ticketSourceSkills.map(({ id, label, env_vars }) => {
                   const isSelected = agents.selectedSkills.includes(id);
                   const isRecommended = catalogRecommended.skills.includes(id);
+                  const needsApiKey = env_vars && env_vars.length > 0;
                   return (
                     <button
                       key={id}
@@ -251,6 +252,11 @@ export function StepSolutionAgents() {
                       {isRecommended && (
                         <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
                           <Sparkles className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                      {needsApiKey && (
+                        <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-400/10 px-1 py-0.5 text-[10px] font-medium text-amber-400">
+                          <KeyRound className="h-2.5 w-2.5" />
                         </span>
                       )}
                     </button>
@@ -279,9 +285,10 @@ export function StepSolutionAgents() {
             {skillsLoading && <SkillsSkeleton />}
             {skillsData && otherSkills.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {otherSkills.map(({ id, label }) => {
+                {otherSkills.map(({ id, label, env_vars }) => {
                   const isSelected = agents.selectedSkills.includes(id);
                   const isRecommended = catalogRecommended.skills.includes(id);
+                  const needsApiKey = env_vars && env_vars.length > 0;
                   return (
                     <button
                       key={id}
@@ -298,6 +305,11 @@ export function StepSolutionAgents() {
                       {isRecommended && (
                         <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
                           <Sparkles className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+                      {needsApiKey && (
+                        <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-400/10 px-1 py-0.5 text-[10px] font-medium text-amber-400">
+                          <KeyRound className="h-2.5 w-2.5" />
                         </span>
                       )}
                     </button>

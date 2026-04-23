@@ -1797,6 +1797,7 @@ export interface CatalogSkill {
   required: boolean;
   env_vars: { name: string; required: boolean; description?: string }[];
   hook_events: string[];
+  body_md: string | null;
 }
 
 export interface CatalogHook {

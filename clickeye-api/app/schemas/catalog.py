@@ -18,6 +18,7 @@ class CatalogItemResponse(BaseModel):
     # skill 전용
     hook_events: list[str] = []
     env_vars: list[dict[str, Any]] = []
+    body_md: str | None = None
     # hook 전용
     event: str | None = None
 
