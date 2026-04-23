@@ -48,7 +48,9 @@ def _build_file_tree(file_paths: list[str]) -> list[FileTreeNode]:
     return [_build_node(p) for p in sorted(root_paths)]
 
 
-async def generate_preview(request: PreviewRequest, db: AsyncSession | None = None) -> PreviewResponse:
+async def generate_preview(
+    request: PreviewRequest, db: AsyncSession | None = None
+) -> PreviewResponse:
     """위저드 설정 기반 프리뷰 생성."""
     project_name = request.solution.get("projectName", "my-project")
     project_type = request.solution.get("solutionType", "fullstack")

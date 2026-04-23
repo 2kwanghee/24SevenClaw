@@ -98,7 +98,11 @@ class CatalogService:
         agents = result.scalars().all()
         # body_md 포함 반환
         return [
-            {**_agent_to_dict(a), "body_md": a.body_md, "template": f"agents/{a.output_file}.j2" if a.output_file else None}
+            {
+                **_agent_to_dict(a),
+                "body_md": a.body_md,
+                "template": f"agents/{a.output_file}.j2" if a.output_file else None,
+            }
             for a in agents
         ]
 
@@ -108,7 +112,11 @@ class CatalogService:
         result = await db.execute(stmt)
         skills = result.scalars().all()
         return [
-            {**_skill_to_dict(s), "body_md": s.body_md, "template": f"skills/{s.output_file}.j2" if s.output_file else None}
+            {
+                **_skill_to_dict(s),
+                "body_md": s.body_md,
+                "template": f"skills/{s.output_file}.j2" if s.output_file else None,
+            }
             for s in skills
         ]
 
@@ -118,7 +126,11 @@ class CatalogService:
         result = await db.execute(stmt)
         hooks = result.scalars().all()
         return [
-            {**_hook_to_dict(h), "body_md": h.body_md, "template": f"hooks/{h.output_file}.j2" if h.output_file else None}
+            {
+                **_hook_to_dict(h),
+                "body_md": h.body_md,
+                "template": f"hooks/{h.output_file}.j2" if h.output_file else None,
+            }
             for h in hooks
         ]
 

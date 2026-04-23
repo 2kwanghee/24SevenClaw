@@ -98,7 +98,9 @@ async def prefetch_for_generator(
     return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks)
 
 
-def get_selected_agents(agent_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+def get_selected_agents(
+    agent_ids: list[str], prefetch: CatalogPrefetch | None = None
+) -> list[dict[str, Any]]:
     """선택된 에이전트 + required 에이전트 반환.
 
     prefetch 가 있으면 사전 로드 데이터를 사용하고 (slug 필터 이미 적용됨),
@@ -109,14 +111,18 @@ def get_selected_agents(agent_ids: list[str], prefetch: CatalogPrefetch | None =
     return []
 
 
-def get_selected_skills(workflow_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+def get_selected_skills(
+    workflow_ids: list[str], prefetch: CatalogPrefetch | None = None
+) -> list[dict[str, Any]]:
     """선택된 워크플로우에 해당하는 스킬 반환."""
     if prefetch is not None:
         return prefetch.skills
     return []
 
 
-def get_selected_hooks(hook_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+def get_selected_hooks(
+    hook_ids: list[str], prefetch: CatalogPrefetch | None = None
+) -> list[dict[str, Any]]:
     """선택된 훅 반환."""
     if prefetch is not None:
         return prefetch.hooks
@@ -134,7 +140,11 @@ def get_env_var_definitions(
         for var in skill.get("env_vars", []):
             var_name = var.get("name", "")
             if var_name and var_name not in seen:
-                env_vars.append({**var, "skill_id": skill["id"], "skill_name": skill.get("label", skill["id"])})
+                env_vars.append({
+                    **var,
+                    "skill_id": skill["id"],
+                    "skill_name": skill.get("label", skill["id"]),
+                })
                 seen.add(var_name)
     return env_vars
 
