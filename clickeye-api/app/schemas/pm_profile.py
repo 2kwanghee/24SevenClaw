@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # --- PMProfile ---
 
@@ -189,8 +189,17 @@ class PMMetricsResponse(BaseModel):
 
 class PMRatingCreate(BaseModel):
     session_id: UUID
-    rating: int = Field(..., ge=1, le=5)
+    reaction: Literal["like", "dislike"] | None = None
+    rating: int | None = Field(None, ge=1, le=5)
     comment: str | None = None
+
+    @model_validator(mode="after")
+    def rating_or_reaction_required(self) -> "PMRatingCreate":
+        if self.reaction is None and self.rating is None:
+            raise ValueError("reaction 또는 rating 중 하나는 반드시 입력해야 합니다")
+        if self.rating is None:
+            self.rating = 5 if self.reaction == "like" else 2
+        return self
 
 
 class PMRatingResponse(BaseModel):
@@ -199,6 +208,7 @@ class PMRatingResponse(BaseModel):
     user_id: UUID
     session_id: UUID
     rating: int
+    reaction: str | None
     comment: str | None
     created_at: datetime
 

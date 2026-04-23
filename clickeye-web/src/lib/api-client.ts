@@ -996,7 +996,8 @@ export interface PMCompositionGroupedResponse {
 
 export interface PMRatingCreateRequest {
   session_id: string;
-  rating: number;
+  reaction?: "like" | "dislike";
+  rating?: number;
   comment?: string;
 }
 
@@ -1006,6 +1007,7 @@ export interface PMRatingResponse {
   user_id: string;
   session_id: string;
   rating: number;
+  reaction: string | null;
   comment: string | null;
   created_at: string;
 }

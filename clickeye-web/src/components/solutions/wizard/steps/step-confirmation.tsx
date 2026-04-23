@@ -23,6 +23,9 @@ import {
   KeyRound,
   ExternalLink,
   Zap,
+  Heart,
+  Frown,
+  SendHorizontal,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -179,6 +182,8 @@ interface SetupGuideModalProps {
   projectId: string;
   hasLinear: boolean;
   osId: string | null;
+  pmProfileId: string | null;
+  sessionId: string | null;
 }
 
 interface StepItem {
@@ -190,7 +195,39 @@ interface StepItem {
   note?: string;
 }
 
-function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
+function SetupGuideModal({
+  projectId,
+  hasLinear,
+  osId,
+  pmProfileId,
+  sessionId,
+}: SetupGuideModalProps) {
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
+
+  const [reaction, setReaction] = useState<"like" | "dislike" | null>(null);
+  const [comment, setComment] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+
+  const handleFeedback = async () => {
+    if (!pmProfileId || !sessionId || !reaction) return;
+    setFeedbackLoading(true);
+    try {
+      await pmProfiles.createRating(token, pmProfileId, {
+        session_id: sessionId,
+        reaction,
+        comment: comment.trim() || undefined,
+      });
+      setFeedbackSubmitted(true);
+    } catch {
+      // 실패해도 계속 진행
+      setFeedbackSubmitted(true);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   const isWsl = osId === "wsl2" || osId === null;
 
   const SIMPLE_STEPS: StepItem[] = [
@@ -378,6 +415,74 @@ function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
             </p>
           </div>
 
+          {/* PM 피드백 */}
+          {pmProfileId && sessionId && (
+            <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <p className="mb-2.5 text-[11px] font-medium text-slate-400">
+                선택한 PM에 대한 피드백을 주세요
+              </p>
+              {feedbackSubmitted ? (
+                <p className="text-xs text-emerald-400">피드백을 보내주셔서 감사합니다 ✓</p>
+              ) : (
+                <>
+                  <div className="mb-2.5 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReaction("like")}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all",
+                        reaction === "like"
+                          ? "border-rose-500/50 bg-rose-500/15 text-rose-300"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20",
+                      )}
+                    >
+                      <Heart className="h-3.5 w-3.5" aria-hidden="true" />
+                      좋아요
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReaction("dislike")}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all",
+                        reaction === "dislike"
+                          ? "border-sky-500/50 bg-sky-500/15 text-sky-300"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20",
+                      )}
+                    >
+                      <Frown className="h-3.5 w-3.5" aria-hidden="true" />
+                      별루예요
+                    </button>
+                  </div>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="어떤 업무를 잘한다, 어떤 점이 아쉬웠다 등 자유롭게 적어주세요"
+                    rows={2}
+                    className="mb-2 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 placeholder-slate-600 focus:border-emerald-500/50 focus:outline-none"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackSubmitted(true)}
+                      className="text-[11px] text-slate-600 hover:text-slate-400"
+                    >
+                      건너뛰기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleFeedback()}
+                      disabled={!reaction || feedbackLoading}
+                      className="flex items-center gap-1 rounded-lg bg-emerald-600/80 px-3 py-1.5 text-[11px] font-medium text-white disabled:opacity-40 hover:bg-emerald-600 transition-colors"
+                    >
+                      <SendHorizontal className="h-3 w-3" aria-hidden="true" />
+                      {feedbackLoading ? "전송 중..." : "피드백 보내기"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* 액션 버튼 */}
           <Link
             href={`/projects/${projectId}`}
@@ -429,6 +534,8 @@ export function StepConfirmation() {
         projectId={createdProjectId}
         hasLinear={hasLinear}
         osId={data.os.osId}
+        pmProfileId={pm.selectedPmProfileId ?? null}
+        sessionId={data.sessionId ?? null}
       />
     );
   }

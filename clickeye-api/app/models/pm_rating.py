@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text, Uuid
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Uuid
 
 from app.database import Base
 
@@ -23,5 +23,6 @@ class PMRating(Base):
         index=True,
     )
     rating = Column(Integer, nullable=False)  # 1~5
+    reaction = Column(String(10), nullable=True)  # "like" | "dislike"
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

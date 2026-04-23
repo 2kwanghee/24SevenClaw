@@ -768,6 +768,12 @@ class PrototypeService:
         await self.db.commit()
         await self.db.refresh(project)
 
+        # PM 사용 횟수 증가 (실패해도 프로젝트 생성은 성공으로 처리)
+        try:
+            await self._increment_pm_usage_count(session.selected_pm_id)
+        except Exception as exc:
+            logger.warning("PM 사용 횟수 증가 실패: %s", exc)
+
         # Linear/Notion 초기 태스크 자동 등록 (실패해도 프로젝트 생성은 성공으로 처리)
         initial_task_url = await self._register_initial_tasks(data)
         if initial_task_url:
@@ -780,6 +786,18 @@ class PrototypeService:
             await self.db.refresh(project)
 
         return project
+
+    async def _increment_pm_usage_count(self, pm_id: UUID) -> None:
+        """PM 사용 횟수를 1 증가시킨다. PMMetrics 행이 없으면 신규 생성한다."""
+        stmt = select(PMMetrics).where(PMMetrics.pm_id == pm_id)
+        result = await self.db.execute(stmt)
+        metric = result.scalar_one_or_none()
+        if metric is None:
+            metric = PMMetrics(pm_id=pm_id, usage_count=1)
+            self.db.add(metric)
+        else:
+            metric.usage_count = (metric.usage_count or 0) + 1  # type: ignore[operator]
+        await self.db.commit()
 
     async def _register_initial_tasks(self, data: FinalizeRequest) -> str | None:
         """Linear/Notion 초기 태스크를 생성하고 URL을 반환한다. 실패 시 None 반환."""

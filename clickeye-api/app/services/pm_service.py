@@ -381,6 +381,7 @@ class PMService:
             session_id=data.session_id,
             user_id=user_id,
             rating=data.rating,
+            reaction=data.reaction,
             comment=data.comment,
         )
         self.db.add(rating)
