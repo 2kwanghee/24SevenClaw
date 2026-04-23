@@ -39,6 +39,7 @@ import {
   useUpdateProject,
 } from "@/hooks/use-projects";
 import { apiClient, ApiClientError, linearCredentials, type LinearConnectionStatus } from "@/lib/api-client";
+import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
@@ -70,6 +71,11 @@ export default function ProjectDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  // API 키 — 위저드 스토어에서 초기값 로드 (보안상 DB 저장 안 함)
+  const [envVars, setEnvVars] = useState<Record<string, string>>(() => {
+    const stored = useSolutionWizardStore.getState().data.env.envVars;
+    return { ...stored };
+  });
 
   const { data: linearStatus, refetch: refetchLinearStatus, isFetching: linearFetching } = useQuery({
     queryKey: ["linear-connection-status"],
@@ -84,7 +90,9 @@ export default function ProjectDetailPage() {
     setDownloadError(null);
     try {
       const blob = await apiClient.projects.redownload(token, projectId, {
-        env_vars: {},
+        env_vars: Object.fromEntries(
+          Object.entries(envVars).filter(([, v]) => v.trim() !== "")
+        ),
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -103,7 +111,7 @@ export default function ProjectDetailPage() {
     } finally {
       setDownloading(false);
     }
-  }, [token, projectId, project?.name]);
+  }, [token, projectId, project?.name, envVars]);
 
   if (isLoading) {
     return (
@@ -347,37 +355,84 @@ export default function ProjectDetailPage() {
               </p>
             )}
 
-            {/* ZIP 재다운로드 */}
-            <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-6">
-              <button
-                onClick={handleRedownload}
-                disabled={downloading || !project.wizard_data}
-                className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {downloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    다운로드 중...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    ZIP 다운로드
-                  </>
-                )}
-              </button>
-              <span className="text-xs text-slate-500">
-                {project.wizard_data
-                  ? "저장된 설정으로 ZIP을 생성합니다"
-                  : "위저드를 다시 진행하면 ZIP 다운로드가 활성화됩니다"}
-              </span>
-            </div>
-            {downloadError && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                <AlertCircle className="h-3.5 w-3.5 text-red-400" />
-                <p className="text-xs text-red-300">{downloadError}</p>
-              </div>
-            )}
+            {/* ZIP 재다운로드 — API 키 입력 + 다운로드 */}
+            {project.wizard_data && (() => {
+              const skillIds: string[] = (project.wizard_data.skills ?? []).map(
+                (s: { id: string }) => s.id
+              );
+              const hasLinear = skillIds.includes("linear");
+              const hasNotion = skillIds.includes("notion");
+
+              const ENV_FIELDS: { key: string; label: string; placeholder: string }[] = [
+                { key: "ANTHROPIC_API_KEY", label: "Anthropic API Key", placeholder: "sk-ant-..." },
+                ...(hasLinear
+                  ? [
+                      { key: "LINEAR_API_KEY", label: "Linear API Key", placeholder: "lin_api_..." },
+                      { key: "LINEAR_TEAM_ID", label: "Linear Team ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+                    ]
+                  : []),
+                ...(hasNotion
+                  ? [
+                      { key: "NOTION_API_KEY", label: "Notion API Key", placeholder: "secret_..." },
+                      { key: "NOTION_DATABASE_ID", label: "Notion Database ID", placeholder: "xxxxxxxx-xxxx-..." },
+                    ]
+                  : []),
+              ];
+
+              return (
+                <div className="mt-6 border-t border-white/5 pt-6 space-y-4">
+                  <p className="text-xs text-slate-400">
+                    API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-slate-300">.env</code>에 직접 작성됩니다.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {ENV_FIELDS.map(({ key, label, placeholder }) => (
+                      <div key={key}>
+                        <label className="mb-1 block text-[11px] font-medium text-slate-400">
+                          {label}
+                        </label>
+                        <input
+                          type="text"
+                          value={envVars[key] ?? ""}
+                          onChange={(e) =>
+                            setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                          placeholder={placeholder}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-slate-200 placeholder-slate-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleRedownload}
+                      disabled={downloading || !envVars["ANTHROPIC_API_KEY"]?.trim()}
+                      className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {downloading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          다운로드 중...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          ZIP 다운로드
+                        </>
+                      )}
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      저장된 설정 + 입력한 API 키로 ZIP을 생성합니다
+                    </span>
+                  </div>
+                  {downloadError && (
+                    <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
+                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                      <p className="text-xs text-red-300">{downloadError}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
