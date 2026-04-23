@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# {{ project_name }} — First-Run 시작 스크립트
+# 사용법: bash start.sh
+set -euo pipefail
+
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo ""
+echo -e "${BOLD}🚀 {{ project_name }} — 환경 초기화${NC}"
+echo "============================================"
+
+# ── 1. 실행 환경 확인 ──────────────────────────────────────────────────────────
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo -e "${RED}❌ 오류: 이 스크립트는 Linux / WSL2 환경에서만 실행 가능합니다.${NC}"
+  echo ""
+  echo "   Windows 사용자는 WSL2 Ubuntu 터미널에서 실행하세요."
+  echo "   WSL2 설치 가이드:"
+  echo "   https://learn.microsoft.com/ko-kr/windows/wsl/install"
+  echo ""
+  exit 1
+fi
+
+# ── 2. Node.js 확인 ────────────────────────────────────────────────────────────
+if ! command -v node >/dev/null 2>&1; then
+  echo -e "${YELLOW}⚠️  Node.js가 설치되어 있지 않습니다.${NC}"
+  read -rp "   지금 설치할까요? (y/N): " yn
+  case "$yn" in
+    [Yy]*)
+      echo "📦 Node.js LTS 설치 중 (nodesource)..."
+      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - 2>/dev/null
+      sudo apt-get install -y nodejs 2>/dev/null
+      echo -e "${GREEN}✅ Node.js $(node -v) 설치 완료${NC}"
+      ;;
+    *)
+      echo ""
+      echo "   수동 설치 후 다시 실행하세요:"
+      echo "   https://nodejs.org/ko/download"
+      exit 1
+      ;;
+  esac
+fi
+
+# ── 3. Claude Code CLI 확인 ────────────────────────────────────────────────────
+if ! command -v claude >/dev/null 2>&1; then
+  echo -e "${YELLOW}⚠️  Claude Code CLI가 설치되어 있지 않습니다.${NC}"
+  read -rp "   지금 설치할까요? (y/N): " yn
+  case "$yn" in
+    [Yy]*)
+      echo "📦 Claude Code 설치 중..."
+      npm install -g @anthropic-ai/claude-code
+      echo -e "${GREEN}✅ Claude Code $(claude --version) 설치 완료${NC}"
+      ;;
+    *)
+      echo ""
+      echo "   수동 설치 후 다시 실행하세요:"
+      echo "   npm install -g @anthropic-ai/claude-code"
+      exit 1
+      ;;
+  esac
+fi
+
+# ── 4. .env 파일 확인 ──────────────────────────────────────────────────────────
+if [[ ! -f .env ]]; then
+  if [[ -f .env.example ]]; then
+    cp .env.example .env
+    echo ""
+    echo -e "${YELLOW}📋 .env 파일이 생성되었습니다.${NC}"
+    echo "   아래 파일에 API 키를 입력한 뒤 다시 실행하세요:"
+    echo "   $(pwd)/.env"
+    echo ""
+    echo "   필수 설정:"
+    echo "   - ANTHROPIC_API_KEY: https://console.anthropic.com"
+{% if has_linear %}    echo "   - LINEAR_API_KEY · LINEAR_TEAM_ID:"
+    echo "     docs/api-keys/linear-api-key-guide.md 참고"
+{% endif %}    echo ""
+    echo "   설정 완료 후: bash start.sh"
+    exit 0
+  fi
+fi
+
+# ── 5. 모든 점검 통과 → 실행 ──────────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}✅ 모든 사전 요구사항 확인 완료${NC}"
+echo ""
+{% if platform_id == 'claude-code' -%}
+echo "   Claude Code를 시작합니다."
+echo "   진입 후 /ClickEyeStart 커맨드를 실행하면 AI 팀 온보딩이 시작됩니다."
+echo ""
+exec claude
+{% else -%}
+echo "   플랫폼: {{ platform_id }}"
+echo "   이제 {{ platform_id }} 에이전트를 직접 실행하세요."
+echo ""
+{% endif -%}

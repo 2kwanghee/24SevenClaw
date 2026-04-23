@@ -37,6 +37,7 @@ def generate_zip(
         agent_ids=agent_ids,
         workflow_ids=workflow_ids,
         platform_id=platform_id,
+        os_id=getattr(request, "os_id", "wsl2"),
         env_vars=request.env_vars if request.env_vars else None,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
@@ -47,7 +48,7 @@ def generate_zip(
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for path, content in sorted(files.items()):
-            zf.writestr(path, content)  # type: ignore[arg-type]  # str | bytes 모두 허용
+            zf.writestr(path, content)  # str | bytes 모두 허용
 
     buffer.seek(0)
     return buffer

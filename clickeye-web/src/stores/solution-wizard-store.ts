@@ -10,6 +10,7 @@ import {
   type PMRecommendedItem,
   type AgentsStep,
   type PlatformStep,
+  type OsStep,
   type EnvStep,
   type PrototypeOption,
 } from "@/types/solution-wizard";
@@ -58,6 +59,7 @@ interface SolutionWizardActions {
   setRecommendedPMItems: (items: PMRecommendedItem[]) => void;
   setAgents: (data: AgentsStep) => void;
   setPlatform: (data: PlatformStep) => void;
+  setOs: (data: OsStep) => void;
   setEnv: (data: Partial<EnvStep>) => void;
   setIsGenerating: (v: boolean) => void;
   setCreatedProjectId: (id: string) => void;
@@ -181,6 +183,9 @@ export const useSolutionWizardStore = create<
 
   setPlatform: (platform) =>
     set((state) => ({ data: { ...state.data, platform } })),
+
+  setOs: (os) =>
+    set((state) => ({ data: { ...state.data, os } })),
 
   setEnv: (env) =>
     set((state) => ({

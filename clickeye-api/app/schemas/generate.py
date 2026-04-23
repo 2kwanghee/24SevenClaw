@@ -1,5 +1,6 @@
 """ZIP 생성 API 스키마."""
 
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -21,6 +22,10 @@ class GenerateRequest(PreviewRequest):
     catalog_entry_slug: str | None = Field(
         default=None,
         description="선택된 카탈로그 엔트리 slug — ZIP에 설계 철학 및 에이전트 컨텍스트 주입",
+    )
+    os_id: Literal["wsl2"] = Field(
+        default="wsl2",
+        description="사용자 실행 환경 OS (현재 wsl2만 지원)",
     )
 
 

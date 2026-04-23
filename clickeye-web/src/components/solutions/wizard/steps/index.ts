@@ -7,6 +7,7 @@ export { StepPMSelection } from "./step-pm-selection";
 export { StepPMComposition } from "./step-pm-composition";
 export { StepSolutionAgents } from "./step-solution-agents";
 export { StepSolutionPlatform } from "./step-solution-platform";
+export { StepSolutionOS } from "./step-solution-os";
 export { StepSolutionEnv } from "./step-solution-env";
 export { StepSolutionConfirm } from "./step-solution-confirm";
 export { StepConfirmation } from "./step-confirmation";

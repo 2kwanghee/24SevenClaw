@@ -15,6 +15,7 @@ import {
   StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
+  StepSolutionOS,
   StepSolutionEnv,
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
@@ -23,7 +24,7 @@ import { prototypeSessions, integrations } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 import { toast } from "sonner";
 
-// 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=환경변수, 9=최종확인
+// 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=최종확인
 const STEP_COMPONENTS = [
   StepCompanySolution,
   StepPrototypeGeneration,
@@ -33,6 +34,7 @@ const STEP_COMPONENTS = [
   StepPMComposition,
   StepSolutionAgents,
   StepSolutionPlatform,
+  StepSolutionOS,
   StepSolutionEnv,
   StepConfirmation,
 ];
@@ -176,7 +178,9 @@ export default function SolutionSessionPage() {
       }
       case 7:
         return !!data.platform.platformId;
-      case 8: {
+      case 8:
+        return !!data.os.osId;
+      case 9: {
         const ev = data.env.envVars;
         if (!ev["ANTHROPIC_API_KEY"]?.trim()) return false;
         if (data.agents.selectedSkills.includes("linear")) {

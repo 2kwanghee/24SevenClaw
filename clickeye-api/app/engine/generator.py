@@ -60,6 +60,7 @@ def generate_all(
     agent_ids: list[str],
     workflow_ids: list[str],
     platform_id: str = "claude-code",
+    os_id: str = "wsl2",
     env_vars: dict[str, str] | None = None,
     pm_slug: str | None = None,
     pm_markdown: str | None = None,
@@ -121,7 +122,7 @@ def generate_all(
     _emit_docs(files)
     _emit_start_command(files, platform_id, project_name, workflow_ids)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
-
+    _emit_first_run_artifacts(files, platform_id, os_id, workflow_ids, project_name)
 
     return files
 
@@ -554,3 +555,31 @@ def _emit_start_command(
         has_linear="linear" in workflow_ids,
     )
     files[output_path] = content
+
+
+def _emit_first_run_artifacts(
+    files: dict[str, str | bytes],
+    platform_id: str,
+    os_id: str,
+    workflow_ids: list[str],
+    project_name: str,
+) -> None:
+    """first-run 런처(start.sh)와 README.md를 ZIP에 포함.
+
+    WSL2/Linux 환경에서 자동 감지·설치를 지원한다.
+    pptx 생성과 동일하게 예외 발생 시 ZIP 반환은 정상 처리된다.
+    """
+    try:
+        ctx = {
+            "project_name": project_name,
+            "platform_id": platform_id,
+            "os_id": os_id,
+            "has_linear": "linear" in workflow_ids,
+        }
+        launcher = _env.get_template("start.sh.j2")
+        files["start.sh"] = launcher.render(**ctx)
+
+        readme = _env.get_template("README.md.j2")
+        files["README.md"] = readme.render(**ctx)
+    except Exception:
+        pass

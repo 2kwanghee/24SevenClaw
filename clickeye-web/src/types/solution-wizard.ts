@@ -9,6 +9,7 @@ export const SOLUTION_WIZARD_STEPS = [
   { id: "pm-composition", label: "PM 구성", description: "선택한 PM의 구성 요소 확인" },
   { id: "agents", label: "에이전트", description: "AI 에이전트 구성 확인" },
   { id: "platform", label: "플랫폼", description: "Agent 플랫폼 선택" },
+  { id: "os", label: "실행 환경", description: "솔루션을 실행할 OS 환경 선택" },
   { id: "env", label: "환경변수", description: "API 키 및 환경변수 입력" },
   { id: "confirm", label: "최종 확인", description: "설정 확인 및 프로젝트 생성" },
 ] as const;
@@ -217,7 +218,14 @@ export interface PlatformStep {
   platformId: string | null;
 }
 
-/** Step 6: 환경변수 */
+/** Step 6: OS 실행 환경 선택 */
+export type OsId = "wsl2";
+
+export interface OsStep {
+  osId: OsId | null;
+}
+
+/** Step 7: 환경변수 */
 export interface EnvStep {
   envVars: Record<string, string>;
 }
@@ -237,6 +245,7 @@ export interface SolutionWizardData {
   pm: PMStep;
   agents: AgentsStep;
   platform: PlatformStep;
+  os: OsStep;
   env: EnvStep;
 }
 
@@ -267,6 +276,9 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   },
   platform: {
     platformId: null,
+  },
+  os: {
+    osId: null,
   },
   env: {
     envVars: {},

@@ -1,0 +1,69 @@
+# {{ project_name }}
+
+> ClickEye AI 솔루션 — 생성 플랫폼: `{{ platform_id }}`
+
+## 빠른 시작 (1줄)
+
+```bash
+bash start.sh
+```
+
+`start.sh`가 Node.js · Claude Code CLI · `.env` 파일을 자동으로 확인하고 안내합니다.
+
+---
+
+## 수동 설치 (런처 실패 시)
+
+### 1) 사전 요구사항
+
+| 항목 | 설치 방법 |
+|------|-----------|
+| **WSL2** | [WSL 공식 가이드](https://learn.microsoft.com/ko-kr/windows/wsl/install) (Windows만) |
+| **Node.js** | `curl -fsSL https://deb.nodesource.com/setup_lts.x \| sudo -E bash - && sudo apt-get install -y nodejs` |
+| **Claude Code** | `npm install -g @anthropic-ai/claude-code` |
+
+### 2) 환경변수 설정
+
+```bash
+cp .env.example .env
+# .env 파일을 열어 API 키 입력
+```
+
+필수 항목:
+- `ANTHROPIC_API_KEY` — [Anthropic Console](https://console.anthropic.com)
+{% if has_linear %}- `LINEAR_API_KEY` / `LINEAR_TEAM_ID` — `docs/api-keys/linear-api-key-guide.md` 참고
+{% endif %}
+### 3) 실행
+
+```bash
+{% if platform_id == 'claude-code' %}claude
+# 진입 후:
+/ClickEyeStart
+{% else %}# {{ platform_id }} 에이전트를 직접 실행하세요
+{% endif %}```
+
+{% if has_linear %}---
+
+## Linear 연동 (Webhook 자동화)
+
+```bash
+bash scripts/setup-tunnel.sh      # Cloudflare 터널 생성 → URL 발급
+# ClickEye 설정 > Linear에서 터널 URL 등록
+bash scripts/start-webhook.sh     # 로컬 webhook 서버 기동 (포트 9876)
+```
+
+자세한 내용: `docs/WEBHOOK_SETUP.md`
+
+{% endif %}---
+
+## 문제 해결
+
+| 증상 | 해결 방법 |
+|------|-----------|
+| `claude: command not found` | `npm install -g @anthropic-ai/claude-code` 재실행 |
+| `node: command not found` | Node.js 설치 후 터미널 재시작 |
+| `permission denied` | `chmod +x start.sh` 실행 후 재시도 |
+| `.env 파일이 없습니다` | `cp .env.example .env` 후 API 키 입력 |
+| Windows PowerShell에서 실행 불가 | WSL2 Ubuntu 터미널에서 실행 필요 |
+
+도움말: `docs/setup-guide.pptx` · `docs/api-keys/`

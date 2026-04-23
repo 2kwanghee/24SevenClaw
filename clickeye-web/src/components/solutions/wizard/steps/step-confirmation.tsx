@@ -178,6 +178,7 @@ function CompositionCountBadge({
 interface SetupGuideModalProps {
   projectId: string;
   hasLinear: boolean;
+  osId: string | null;
 }
 
 interface StepItem {
@@ -186,9 +187,12 @@ interface StepItem {
   desc: string;
   command?: string;
   link?: { href: string; label: string };
+  note?: string;
 }
 
-function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
+function SetupGuideModal({ projectId, hasLinear, osId }: SetupGuideModalProps) {
+  const isWsl = osId === "wsl2" || osId === null;
+
   const SIMPLE_STEPS: StepItem[] = [
     {
       icon: Download,
@@ -199,14 +203,21 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
     {
       icon: FolderOpen,
       label: "압축 해제",
-      desc: "원하는 폴더에 ZIP 파일을 압축 해제합니다",
-      command: "unzip <project>.zip -d my-project && cd my-project",
+      desc: isWsl
+        ? "WSL2 Ubuntu 터미널에서 원하는 폴더에 압축 해제합니다"
+        : "원하는 폴더에 ZIP 파일을 압축 해제합니다",
+      command: isWsl
+        ? "unzip <project>.zip -d ~/projects/my-project && cd ~/projects/my-project"
+        : "unzip <project>.zip -d my-project && cd my-project",
+      ...(isWsl
+        ? { note: "Windows 탐색기에서 ZIP 더블클릭 대신 WSL 터미널에서 실행하세요" }
+        : {}),
     },
     {
       icon: Terminal,
-      label: "Claude Code 실행",
-      desc: "압축 해제한 폴더에서 터미널을 열고 아래 명령어를 실행합니다",
-      command: "claude",
+      label: "런처 스크립트 실행",
+      desc: "런처가 Node.js · Claude Code CLI · .env를 자동으로 확인하고 설치를 안내합니다",
+      command: "bash start.sh",
     },
     {
       icon: Sparkles,
@@ -254,9 +265,9 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
     },
     {
       icon: Terminal,
-      label: "Claude Code 실행",
-      desc: "ZIP 폴더에서 터미널을 열고 아래 명령어로 Claude Code를 시작합니다",
-      command: "claude",
+      label: "런처 스크립트 실행",
+      desc: "ZIP 폴더에서 터미널을 열고 런처를 실행하면 환경 점검 후 Claude Code가 시작됩니다",
+      command: "bash start.sh",
     },
     {
       icon: Sparkles,
@@ -309,8 +320,10 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
 
           {/* 단계별 가이드 */}
           <ol className="mb-5 space-y-3" aria-label="셋업 절차">
-            {STEPS.map(({ icon: Icon, label, desc, command, link }, i) => (
-              <li key={label} className="flex items-start gap-3">
+            {STEPS.map((step, i) => {
+              const Icon = step.icon;
+              return (
+              <li key={step.label} className="flex items-start gap-3">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
                   {i + 1}
                 </div>
@@ -321,27 +334,31 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
                       aria-hidden="true"
                     />
                     <span className="text-sm font-medium text-slate-200">
-                      {label}
+                      {step.label}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
-                  {command && (
+                  <p className="mt-0.5 text-xs text-slate-500">{step.desc}</p>
+                  {step.command && (
                     <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
-                      {command}
+                      {step.command}
                     </code>
                   )}
-                  {link && (
+                  {step.note && (
+                    <p className="mt-1 text-[11px] text-amber-400/80">{step.note}</p>
+                  )}
+                  {step.link && (
                     <Link
-                      href={link.href}
+                      href={step.link.href}
                       className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-sky-400 transition-colors hover:text-sky-300"
                     >
                       <ExternalLink className="h-2.5 w-2.5" aria-hidden="true" />
-                      {link.label}
+                      {step.link.label}
                     </Link>
                   )}
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ol>
 
           {/* /ClickEyeStart 흐름 안내 */}
@@ -350,7 +367,7 @@ function SetupGuideModal({ projectId, hasLinear }: SetupGuideModalProps) {
               /ClickEyeStart 실행 흐름
             </p>
             <div className="space-y-1 text-[11px] text-slate-500">
-              <p>① <code className="text-emerald-300">claude</code> 실행 → Claude Code 프롬프트 진입</p>
+              <p>① <code className="text-emerald-300">bash start.sh</code> 실행 → Node·Claude Code 점검 후 자동 진입</p>
               <p>② <code className="text-emerald-300">/ClickEyeStart</code> 입력 → 자동 셋업 시작</p>
               <p>③ <code className="text-slate-400">.env</code> 검증 → 누락 키 대화형 입력 안내</p>
               <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
@@ -407,7 +424,13 @@ export function StepConfirmation() {
   const compositionCounts = pmProfile ? deriveCompositionCounts(pmProfile) : null;
 
   if (createdProjectId) {
-    return <SetupGuideModal projectId={createdProjectId} hasLinear={hasLinear} />;
+    return (
+      <SetupGuideModal
+        projectId={createdProjectId}
+        hasLinear={hasLinear}
+        osId={data.os.osId}
+      />
+    );
   }
 
   return (

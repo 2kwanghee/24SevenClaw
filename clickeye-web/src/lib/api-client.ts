@@ -101,6 +101,7 @@ export interface PreviewResponse {
 
 export interface GenerateRequest extends PreviewRequest {
   env_vars: Record<string, string>;
+  os_id?: "wsl2";
 }
 
 // --- Projects ---
