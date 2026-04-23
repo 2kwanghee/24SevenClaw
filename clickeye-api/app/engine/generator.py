@@ -8,9 +8,11 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from app.engine.catalog import (
+    CatalogPrefetch,
     find_stack,
     get_env_var_definitions,
     get_selected_agents,
+    get_selected_hooks,
     get_selected_skills,
 )
 from app.engine.env_generator import generate_env_files
@@ -66,6 +68,8 @@ def generate_all(
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
     catalog_entry: dict[str, Any] | None = None,
+    catalog_prefetch: CatalogPrefetch | None = None,
+    hook_ids: list[str] | None = None,
 ) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -88,21 +92,21 @@ def generate_all(
         workflow_ids = _merge_unique(comp_skills, workflow_ids)
 
     # ?ì´?í¸ ?ì¼ ?ì±
-    _generate_agent_files(files, dirs, project_name, project_type, stack, agent_ids)
+    _generate_agent_files(files, dirs, project_name, project_type, stack, agent_ids, catalog_prefetch)
 
     # ?¤í¬ ?ì¼ ?ì±
-    _generate_skill_files(files, dirs, project_name, project_type, stack, workflow_ids)
+    _generate_skill_files(files, dirs, project_name, project_type, stack, workflow_ids, catalog_prefetch)
 
     # ë£¨í¸ ê°?´ë ?ì± (CLAUDE.md / GEMINI.md ??
     _generate_root_guide(
-        files, dirs, platform_id, project_name, project_type, stack, agent_ids, catalog_entry
+        files, dirs, platform_id, project_name, project_type, stack, agent_ids, catalog_entry, catalog_prefetch
     )
 
     # settings.json ?ì±
-    _generate_settings(files, dirs, platform_id, workflow_ids)
+    _generate_settings(files, dirs, platform_id, workflow_ids, catalog_prefetch)
 
     # Hook ?¤í¬ë¦½í¸ ?ì±
-    _generate_hook_files(files, stack, workflow_ids)
+    _generate_hook_files(files, stack, workflow_ids, catalog_prefetch, hook_ids)
 
     # ?ë???¤í¬ë¦½í¸ ?ì±
     _generate_script_files(files, stack, workflow_ids)
@@ -112,7 +116,7 @@ def generate_all(
         _generate_webhook_files(files, project_name)
 
     # .env / .env.example ?ì±
-    _generate_env_files(files, workflow_ids, env_vars or {})
+    _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch)
 
     # PM ?ì¼ ì£¼ì
     if pm_slug and pm_markdown:
@@ -120,7 +124,7 @@ def generate_all(
 
     # 온보딩 docs 및 /ClickEyeStart 커맨드 주입
     _emit_docs(files)
-    _emit_start_command(files, platform_id, project_name, workflow_ids)
+    _emit_start_command(files, platform_id, project_name, workflow_ids, catalog_prefetch)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
     _emit_first_run_artifacts(files, platform_id, os_id, workflow_ids, project_name)
 
@@ -134,19 +138,25 @@ def _generate_agent_files(
     project_type: str,
     stack: dict[str, Any] | None,
     agent_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """에이전트 .md 파일 생성."""
-    agents = get_selected_agents(agent_ids)
+    agents = get_selected_agents(agent_ids, catalog_prefetch)
     for agent in agents:
-        template = _env.get_template(agent["template"])
-        content = template.render(
-            project_name=project_name,
-            project_type=project_type,
-            stack=stack,
-            agent=agent,
-        )
+        if not agent.get("output_file"):
+            continue
+        ctx = dict(project_name=project_name, project_type=project_type, stack=stack, agent=agent)
+        if agent.get("body_md"):
+            rendered = _env.from_string(agent["body_md"]).render(**ctx)
+        elif agent.get("template"):
+            try:
+                rendered = _env.get_template(agent["template"]).render(**ctx)
+            except Exception:
+                continue
+        else:
+            continue
         path = f"{dirs['agent_dir']}/{agent['output_file']}"
-        files[path] = content
+        files[path] = rendered
 
 
 def _generate_skill_files(
@@ -156,21 +166,28 @@ def _generate_skill_files(
     project_type: str,
     stack: dict[str, Any] | None,
     workflow_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """스킬 .md 파일 생성."""
     if not workflow_ids:
         return
-    skills = get_selected_skills(workflow_ids)
+    skills = get_selected_skills(workflow_ids, catalog_prefetch)
     skills_dir = f"{dirs['config_dir']}/skills"
     for skill in skills:
-        template = _env.get_template(skill["template"])
-        content = template.render(
-            project_name=project_name,
-            project_type=project_type,
-            stack=stack,
-        )
+        if not skill.get("output_file"):
+            continue
+        ctx = dict(project_name=project_name, project_type=project_type, stack=stack)
+        if skill.get("body_md"):
+            rendered = _env.from_string(skill["body_md"]).render(**ctx)
+        elif skill.get("template"):
+            try:
+                rendered = _env.get_template(skill["template"]).render(**ctx)
+            except Exception:
+                continue
+        else:
+            continue
         path = f"{skills_dir}/{skill['output_file']}"
-        files[path] = content
+        files[path] = rendered
 
 
 def _get_root_guide_template(platform_id: str) -> str:
@@ -193,12 +210,13 @@ def _generate_root_guide(
     stack: dict[str, Any] | None,
     agent_ids: list[str],
     catalog_entry: dict[str, Any] | None = None,
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """루트 가이드 파일 생성 (CLAUDE.md / GEMINI.md 등)."""
-    agents = get_selected_agents(agent_ids)
+    agents = get_selected_agents(agent_ids, catalog_prefetch)
     agent_refs = [
-        {"file": f"{dirs['agent_dir']}/{a['output_file']}", "name": a["name"]}
-        for a in agents
+        {"file": f"{dirs['agent_dir']}/{a['output_file']}", "name": a.get("label", a.get("name", a["id"]))}
+        for a in agents if a.get("output_file")
     ]
 
     template_name = _get_root_guide_template(platform_id)
@@ -219,6 +237,7 @@ def _generate_settings(
     dirs: PlatformDirs,
     platform_id: str,
     workflow_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """settings.json 생성 — 플랫폼별 설정 형식 분기."""
     if platform_id == "gemini-cli":
@@ -228,12 +247,15 @@ def _generate_settings(
     elif platform_id == "codex":
         settings = _build_codex_settings(workflow_ids)
     else:
-        settings = _build_claude_settings(workflow_ids)
+        settings = _build_claude_settings(workflow_ids, catalog_prefetch)
 
     files[dirs["settings_file"]] = json.dumps(settings, indent=2, ensure_ascii=False) + "\n"
 
 
-def _build_claude_settings(workflow_ids: list[str]) -> dict[str, Any]:
+def _build_claude_settings(
+    workflow_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
+) -> dict[str, Any]:
     """Claude Code용 settings.json 빌드."""
     hooks: dict[str, list[dict[str, str]]] = {
         "UserPromptSubmit": [],
@@ -247,9 +269,9 @@ def _build_claude_settings(workflow_ids: list[str]) -> dict[str, Any]:
             {"type": "command", "command": "bash scripts/harness-gate.sh"}
         )
 
-    skills = get_selected_skills(workflow_ids)
+    skills = get_selected_skills(workflow_ids, catalog_prefetch)
     for skill in skills:
-        for hook_name in skill["hooks"]:
+        for hook_name in skill.get("hook_events", skill.get("hooks", [])):
             if hook_name == "PostToolUse":
                 hooks["PostToolUse"].append(
                     {
@@ -343,14 +365,22 @@ def _generate_hook_files(
     files: dict[str, str | bytes],
     stack: dict[str, Any] | None,
     workflow_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
+    hook_ids: list[str] | None = None,
 ) -> None:
-    """harness-gate.sh Hook 스크립트 생성."""
-    if "harness-gate" not in workflow_ids:
-        return
+    """Hook 스크립트 생성 — harness-gate.sh 및 DB 훅."""
+    if "harness-gate" in workflow_ids:
+        template = _env.get_template("hooks/harness-gate.sh.j2")
+        content = template.render(stack=stack)
+        files["scripts/harness-gate.sh"] = content
 
-    template = _env.get_template("hooks/harness-gate.sh.j2")
-    content = template.render(stack=stack)
-    files["scripts/harness-gate.sh"] = content
+    if hook_ids and catalog_prefetch:
+        hooks = get_selected_hooks(hook_ids, catalog_prefetch)
+        for hook in hooks:
+            if hook.get("output_file") and hook.get("body_md"):
+                ctx = dict(stack=stack)
+                rendered = _env.from_string(hook["body_md"]).render(**ctx)
+                files[f"scripts/{hook['output_file']}"] = rendered
 
 
 def _generate_webhook_files(
@@ -483,9 +513,10 @@ def _generate_env_files(
     files: dict[str, str | bytes],
     workflow_ids: list[str],
     env_vars: dict[str, str],
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """스킬별 API 키 매핑 기반 .env / .env.example 생성."""
-    env_var_definitions = get_env_var_definitions(workflow_ids)
+    env_var_definitions = get_env_var_definitions(workflow_ids, catalog_prefetch)
 
     # ì¹´íë¡ê·¸ ?ìê° ?ê³  ?¬ì©???ë ¥???ì¼ë©??¤íµ
     if not env_var_definitions and not env_vars:
@@ -530,13 +561,14 @@ def _emit_start_command(
     platform_id: str,
     project_name: str,
     workflow_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
 ) -> None:
     """/ClickEyeStart 온보딩 커맨드 파일을 플랫폼별 경로로 생성."""
     output_path = _PLATFORM_COMMANDS_PATH.get(platform_id)
     if output_path is None:
         return
 
-    env_var_definitions = get_env_var_definitions(workflow_ids)
+    env_var_definitions = get_env_var_definitions(workflow_ids, catalog_prefetch)
     required_vars = [
         {
             "name": v["name"],

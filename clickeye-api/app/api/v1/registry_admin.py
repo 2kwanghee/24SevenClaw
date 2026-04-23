@@ -10,13 +10,19 @@ from app.dependencies import require_permission
 from app.models.user import User
 from app.schemas.registry import (
     AgentCreate,
+    AgentListResponse,
     AgentResponse,
     AgentUpdate,
+    HookCreate,
+    HookListResponse,
+    HookResponse,
+    HookUpdate,
     MCPServerCreate,
     MCPServerResponse,
     MCPServerUpdate,
     RegistryItemListResponse,
     SkillCreate,
+    SkillListResponse,
     SkillResponse,
     SkillUpdate,
 )
@@ -27,7 +33,7 @@ router = APIRouter(prefix="/admin/registry", tags=["admin-registry"])
 
 # ─── Agents ───
 
-@router.get("/agents", response_model=RegistryItemListResponse)
+@router.get("/agents", response_model=AgentListResponse)
 async def list_agents(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
@@ -35,12 +41,12 @@ async def list_agents(
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
     db: AsyncSession = Depends(get_db),
-) -> RegistryItemListResponse:
+) -> AgentListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_agents(
         category=category, is_public=is_public, offset=offset, limit=limit
     )
-    return RegistryItemListResponse(
+    return AgentListResponse(
         items=[AgentResponse.model_validate(i) for i in items],
         total=total,
     )
@@ -92,7 +98,7 @@ async def delete_agent(
 
 # ─── Skills ───
 
-@router.get("/skills", response_model=RegistryItemListResponse)
+@router.get("/skills", response_model=SkillListResponse)
 async def list_skills(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
@@ -100,12 +106,12 @@ async def list_skills(
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
     db: AsyncSession = Depends(get_db),
-) -> RegistryItemListResponse:
+) -> SkillListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_skills(
         category=category, is_public=is_public, offset=offset, limit=limit
     )
-    return RegistryItemListResponse(
+    return SkillListResponse(
         items=[SkillResponse.model_validate(i) for i in items],
         total=total,
     )
@@ -153,6 +159,72 @@ async def delete_skill(
 ) -> None:
     svc = RegistryService(db)
     await svc.delete_skill(skill_id)
+
+
+# ─── Hooks ───
+
+@router.get("/hooks", response_model=HookListResponse)
+async def list_hooks(
+    category: str | None = Query(None),
+    is_public: bool | None = Query(None),
+    event: str | None = Query(None),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    user: User = Depends(require_permission("registry:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> HookListResponse:
+    svc = RegistryService(db)
+    items, total = await svc.list_hooks(
+        category=category, is_public=is_public, event=event, offset=offset, limit=limit
+    )
+    return HookListResponse(
+        items=[HookResponse.model_validate(i) for i in items],
+        total=total,
+    )
+
+
+@router.post("/hooks", response_model=HookResponse, status_code=status.HTTP_201_CREATED)
+async def create_hook(
+    data: HookCreate,
+    user: User = Depends(require_permission("registry:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> HookResponse:
+    svc = RegistryService(db)
+    item = await svc.create_hook(data)
+    return HookResponse.model_validate(item)
+
+
+@router.get("/hooks/{hook_id}", response_model=HookResponse)
+async def get_hook(
+    hook_id: UUID,
+    user: User = Depends(require_permission("registry:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> HookResponse:
+    svc = RegistryService(db)
+    item = await svc.get_hook(hook_id)
+    return HookResponse.model_validate(item)
+
+
+@router.put("/hooks/{hook_id}", response_model=HookResponse)
+async def update_hook(
+    hook_id: UUID,
+    data: HookUpdate,
+    user: User = Depends(require_permission("registry:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> HookResponse:
+    svc = RegistryService(db)
+    item = await svc.update_hook(hook_id, data)
+    return HookResponse.model_validate(item)
+
+
+@router.delete("/hooks/{hook_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_hook(
+    hook_id: UUID,
+    user: User = Depends(require_permission("registry:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    svc = RegistryService(db)
+    await svc.delete_hook(hook_id)
 
 
 # ─── MCP Servers ───

@@ -99,9 +99,10 @@ async def delete_project(
 async def preview_draft(
     data: PreviewRequest,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> PreviewResponse:
     """프로젝트 생성 전 위저드 프리뷰 (인증만 필요, 프로젝트 ID 불필요)."""
-    return generate_preview(data)
+    return await generate_preview(data, db=db)
 
 
 @router.post("/{project_id}/preview", response_model=PreviewResponse)
@@ -115,7 +116,7 @@ async def preview_project(
     service = ProjectService(db)
     await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
-    return generate_preview(data)
+    return await generate_preview(data, db=db)
 
 
 async def _resolve_catalog_entry(
@@ -197,8 +198,9 @@ async def generate_draft(
     catalog_entry = await _resolve_catalog_entry(
         db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
     )
-    buffer = generate_zip(
+    buffer = await generate_zip(
         data, project_name,
+        db=db,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
@@ -233,8 +235,9 @@ async def generate_project(
     catalog_entry = await _resolve_catalog_entry(
         db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
     )
-    buffer = generate_zip(
+    buffer = await generate_zip(
         data, project_name,
+        db=db,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
@@ -302,6 +305,7 @@ async def redownload_project(
         agents=[a["id"] for a in wd.get("agents", []) if "id" in a],
         skills=[s["id"] for s in wd.get("skills", []) if "id" in s],
         pipelines=[p["id"] for p in wd.get("pipelines", []) if "id" in p],
+        hook_ids=[h["id"] for h in wd.get("hooks", []) if "id" in h],
         platform=wd.get("platform", {}),
         env_vars=data.env_vars,
     )
@@ -318,8 +322,9 @@ async def redownload_project(
     catalog_slug = wd.get("solution", {}).get("catalogEntrySlug")
     catalog_entry = await _resolve_catalog_entry(db, catalog_slug)
 
-    buffer = generate_zip(
+    buffer = await generate_zip(
         gen_request, project_name,
+        db=db,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,

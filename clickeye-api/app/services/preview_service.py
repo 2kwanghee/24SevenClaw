@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.engine.catalog import prefetch_for_generator
 from app.engine.generator import generate_all
 from app.schemas.preview import FileTreeNode, PreviewRequest, PreviewResponse
 
@@ -45,9 +48,8 @@ def _build_file_tree(file_paths: list[str]) -> list[FileTreeNode]:
     return [_build_node(p) for p in sorted(root_paths)]
 
 
-def generate_preview(request: PreviewRequest) -> PreviewResponse:
+async def generate_preview(request: PreviewRequest, db: AsyncSession | None = None) -> PreviewResponse:
     """위저드 설정 기반 프리뷰 생성."""
-    # 위저드 데이터에서 생성 엔진 파라미터 추출
     project_name = request.solution.get("projectName", "my-project")
     project_type = request.solution.get("solutionType", "fullstack")
     stack_id = request.solution.get("stackPreset", "custom")
@@ -55,7 +57,12 @@ def generate_preview(request: PreviewRequest) -> PreviewResponse:
     workflow_ids = request.skills + request.pipelines
     platform_id = request.platform.get("platformId", "claude-code")
 
-    # 생성 엔진 호출
+    catalog_prefetch = None
+    if db is not None:
+        catalog_prefetch = await prefetch_for_generator(
+            db, agent_ids=agent_ids, skill_ids=workflow_ids, hook_ids=[]
+        )
+
     files = generate_all(
         project_name=project_name,
         project_type=project_type,
@@ -63,6 +70,7 @@ def generate_preview(request: PreviewRequest) -> PreviewResponse:
         agent_ids=agent_ids,
         workflow_ids=workflow_ids,
         platform_id=platform_id,
+        catalog_prefetch=catalog_prefetch,
     )
 
     # 파일 트리 구축

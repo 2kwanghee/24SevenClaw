@@ -1,4 +1,4 @@
-"""Registry(Agent/Skill/MCPServer) Admin CRUD 스키마."""
+"""Registry(Agent/Skill/Hook/MCPServer) Admin CRUD 스키마."""
 
 from datetime import datetime
 from typing import Any
@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 # --- 공통 베이스 ---
+
 
 class RegistryItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
@@ -55,33 +56,98 @@ class RegistryItemListResponse(BaseModel):
 
 # --- Agent ---
 
+
 class AgentCreate(RegistryItemBase):
-    pass
+    required: bool = False
+    output_file: str | None = Field(None, max_length=200)
+    dependencies: list[str] = Field(default_factory=list)
 
 
 class AgentUpdate(RegistryItemUpdate):
-    pass
+    required: bool | None = None
+    output_file: str | None = Field(None, max_length=200)
+    dependencies: list[str] | None = None
 
 
 class AgentResponse(RegistryItemResponse):
-    pass
+    required: bool
+    output_file: str | None
+    dependencies: list[str]
+
+
+class AgentListResponse(BaseModel):
+    items: list[AgentResponse]
+    total: int
 
 
 # --- Skill ---
 
+
+class EnvVarDef(BaseModel):
+    name: str
+    description: str = ""
+    pattern: str = ""
+    required: bool = True
+
+
 class SkillCreate(RegistryItemBase):
-    pass
+    required: bool = False
+    output_file: str | None = Field(None, max_length=200)
+    dependencies: list[str] = Field(default_factory=list)
+    hook_events: list[str] = Field(default_factory=list)
+    env_vars: list[EnvVarDef] = Field(default_factory=list)
 
 
 class SkillUpdate(RegistryItemUpdate):
-    pass
+    required: bool | None = None
+    output_file: str | None = Field(None, max_length=200)
+    dependencies: list[str] | None = None
+    hook_events: list[str] | None = None
+    env_vars: list[EnvVarDef] | None = None
 
 
 class SkillResponse(RegistryItemResponse):
-    pass
+    required: bool
+    output_file: str | None
+    dependencies: list[str]
+    hook_events: list[str]
+    env_vars: list[dict[str, Any]]
+
+
+class SkillListResponse(BaseModel):
+    items: list[SkillResponse]
+    total: int
+
+
+# --- Hook ---
+
+
+class HookCreate(RegistryItemBase):
+    # UserPromptSubmit | PreToolUse | PostToolUse | Stop
+    event: str = Field(default="PostToolUse", max_length=50)
+    required: bool = False
+    output_file: str | None = Field(None, max_length=200)
+
+
+class HookUpdate(RegistryItemUpdate):
+    event: str | None = Field(None, max_length=50)
+    required: bool | None = None
+    output_file: str | None = Field(None, max_length=200)
+
+
+class HookResponse(RegistryItemResponse):
+    event: str
+    required: bool
+    output_file: str | None
+
+
+class HookListResponse(BaseModel):
+    items: list[HookResponse]
+    total: int
 
 
 # --- MCPServer ---
+
 
 class MCPServerCreate(RegistryItemBase):
     pass

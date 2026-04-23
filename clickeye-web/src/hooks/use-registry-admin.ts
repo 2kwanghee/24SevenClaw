@@ -5,18 +5,20 @@ import { useSession } from "next-auth/react";
 
 import {
   registryAgents,
-  registrySkills,
+  registryHooks,
   registryMcpServers,
+  registrySkills,
   type RegistryItemCreateRequest,
   type RegistryItemUpdateRequest,
   type RegistryListParams,
 } from "@/lib/api-client";
 
-export type RegistryAdminType = "agents" | "skills" | "mcps";
+export type RegistryAdminType = "agents" | "skills" | "hooks" | "mcps";
 
 const clientMap = {
   agents: registryAgents,
   skills: registrySkills,
+  hooks: registryHooks,
   mcps: registryMcpServers,
 } as const;
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bot, Info, Sparkles, Wrench } from "lucide-react";
+import { AlertCircle, Bot, Info, Link, Sparkles, Wrench } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { prototypeSessions } from "@/lib/api-client";
-import { useCatalogAgents, useCatalogSkills } from "@/hooks/use-catalog";
+import { useCatalogAgents, useCatalogHooks, useCatalogSkills } from "@/hooks/use-catalog";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
 function AgentsSkeleton() {
@@ -97,6 +97,12 @@ export function StepSolutionAgents() {
     isError: skillsError,
   } = useCatalogSkills();
 
+  const {
+    data: hooksData,
+    isLoading: hooksLoading,
+    isError: hooksError,
+  } = useCatalogHooks();
+
   const ticketSourceSkills = skillsData?.items.filter((s) => s.category === "ticket_source") ?? [];
   const otherSkills = skillsData?.items.filter((s) => s.category !== "ticket_source") ?? [];
 
@@ -125,6 +131,13 @@ export function StepSolutionAgents() {
       ? agents.selectedSkills.filter((s) => s !== skillId)
       : [...agents.selectedSkills, skillId];
     setAgents({ ...agents, selectedSkills: selected });
+  };
+
+  const toggleHook = (hookId: string) => {
+    const selected = (agents.selectedHooks ?? []).includes(hookId)
+      ? (agents.selectedHooks ?? []).filter((h) => h !== hookId)
+      : [...(agents.selectedHooks ?? []), hookId];
+    setAgents({ ...agents, selectedHooks: selected });
   };
 
   const hasCatalogRecs = catalogRecommended.agents.length > 0 || catalogRecommended.skills.length > 0;
@@ -295,6 +308,59 @@ export function StepSolutionAgents() {
           </div>
         )}
       </div>
+
+      {/* 훅 선택 */}
+      {(hooksLoading || hooksError || (hooksData && hooksData.items.length > 0)) && (
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
+            <Link className="h-4 w-4 text-emerald-400" />
+            훅 (Hooks)
+            <span className="text-[11px] text-slate-500">(선택)</span>
+          </label>
+          {hooksLoading && <SkillsSkeleton />}
+          {hooksError && <FetchError message="훅 목록을 불러오지 못했습니다." />}
+          {hooksData && hooksData.items.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {hooksData.items.map(({ id, label, description, event, required }) => {
+                const isSelected = (agents.selectedHooks ?? []).includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => !required && toggleHook(id)}
+                    aria-pressed={isSelected || required}
+                    disabled={required}
+                    className={`flex flex-col gap-0.5 rounded-xl border px-3 py-2 text-left transition-all duration-200 ${
+                      isSelected || required
+                        ? "border-purple-500/50 bg-purple-500/10 ring-2 ring-purple-500/20"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    } ${required ? "cursor-default opacity-80" : ""}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-medium ${isSelected || required ? "text-white" : "text-slate-300"}`}>
+                        {label}
+                      </span>
+                      {required && (
+                        <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
+                          필수
+                        </span>
+                      )}
+                      {event && (
+                        <span className="rounded-full bg-slate-700/50 px-1.5 py-0.5 text-[10px] text-slate-400">
+                          {event}
+                        </span>
+                      )}
+                    </div>
+                    {description && (
+                      <span className="text-xs text-slate-500">{description}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

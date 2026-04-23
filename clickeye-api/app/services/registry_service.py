@@ -8,19 +8,22 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
-from app.models.registry import Agent, MCPServer, Skill
+from app.models.registry import Agent, Hook, MCPServer, Skill
 from app.schemas.registry import (
     AgentCreate,
     AgentUpdate,
+    HookCreate,
+    HookUpdate,
     MCPServerCreate,
     MCPServerUpdate,
     SkillCreate,
     SkillUpdate,
 )
 
-_MODEL_MAP: dict[str, type[Agent | Skill | MCPServer]] = {
+_MODEL_MAP: dict[str, type[Agent | Skill | Hook | MCPServer]] = {
     "agent": Agent,
     "skill": Skill,
+    "hook": Hook,
     "mcp_server": MCPServer,
 }
 
@@ -142,6 +145,45 @@ class RegistryService:
 
     async def delete_skill(self, skill_id: UUID) -> None:
         await self._delete(Skill, skill_id)
+
+    # ─── Hook ───
+
+    async def list_hooks(
+        self, *, category: str | None = None, is_public: bool | None = None,
+        event: str | None = None, offset: int = 0, limit: int = 50,
+    ) -> tuple[list[Hook], int]:
+        conditions: list[Any] = []
+        if category:
+            conditions.append(Hook.category == category)
+        if is_public is not None:
+            conditions.append(Hook.is_public == is_public)
+        if event:
+            conditions.append(Hook.event == event)
+
+        count_stmt = select(func.count()).select_from(Hook).where(*conditions)
+        total = int((await self.db.execute(count_stmt)).scalar_one())
+
+        stmt = (
+            select(Hook)
+            .where(*conditions)
+            .order_by(Hook.name.asc())
+            .offset(offset)
+            .limit(limit)
+        )
+        items = list((await self.db.execute(stmt)).scalars().all())
+        return items, total  # type: ignore[return-value]
+
+    async def get_hook(self, hook_id: UUID) -> Hook:
+        return await self._get(Hook, hook_id)  # type: ignore[return-value]
+
+    async def create_hook(self, data: HookCreate) -> Hook:
+        return await self._create(Hook, data)  # type: ignore[return-value]
+
+    async def update_hook(self, hook_id: UUID, data: HookUpdate) -> Hook:
+        return await self._update(Hook, hook_id, data)  # type: ignore[return-value]
+
+    async def delete_hook(self, hook_id: UUID) -> None:
+        await self._delete(Hook, hook_id)
 
     # ─── MCPServer ───
 

@@ -101,6 +101,7 @@ export interface PreviewResponse {
 
 export interface GenerateRequest extends PreviewRequest {
   env_vars: Record<string, string>;
+  hook_ids?: string[];
   os_id?: "wsl2";
 }
 
@@ -1255,6 +1256,7 @@ function makeRegistryClient(resourcePath: string) {
 export const registryAgents = makeRegistryClient("agents");
 export const registrySkills = makeRegistryClient("skills");
 export const registryMcpServers = makeRegistryClient("mcp-servers");
+export const registryHooks = makeRegistryClient("hooks");
 
 export const adminPMRecommendations = {
   list: (
@@ -1792,6 +1794,18 @@ export interface CatalogSkill {
   label: string;
   description: string | null;
   category: string | null;
+  required: boolean;
+  env_vars: { name: string; required: boolean; description?: string }[];
+  hook_events: string[];
+}
+
+export interface CatalogHook {
+  id: string;
+  label: string;
+  description: string | null;
+  category: string | null;
+  event: string | null;
+  required: boolean;
 }
 
 export interface CatalogListResponse<T> {
@@ -1807,6 +1821,10 @@ export const catalog = {
   skills: {
     list: () =>
       request<CatalogListResponse<CatalogSkill>>("/api/v1/catalog/skills"),
+  },
+  hooks: {
+    list: () =>
+      request<CatalogListResponse<CatalogHook>>("/api/v1/catalog/hooks"),
   },
 };
 

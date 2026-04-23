@@ -643,8 +643,8 @@ class PrototypeService:
           2. prototype.ui_structure.primary_tag == catalog.primary_tag
           3. 폴백: design_pattern 키워드 기반 기본값
         """
-        from app.engine.catalog import AGENTS, SKILLS
         from app.models.prototype_catalog import PrototypeCatalogEntry
+        from app.services.catalog_service import get_catalog_service
 
         session = await self.get_session(session_id, user_id)
         if session.selected_prototype_id is None:
@@ -658,8 +658,11 @@ class PrototypeService:
         if prototype is None:
             raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
 
-        valid_agent_ids = {a["id"] for a in AGENTS}
-        valid_skill_ids = {s["id"] for s in SKILLS}
+        catalog_svc = get_catalog_service()
+        agent_list = await catalog_svc.list_agents(self.db)
+        skill_list = await catalog_svc.list_skills(self.db)
+        valid_agent_ids = {a["id"] for a in agent_list}
+        valid_skill_ids = {s["id"] for s in skill_list}
 
         # 1차 매칭: design_pattern 일치
         catalog_entry = None

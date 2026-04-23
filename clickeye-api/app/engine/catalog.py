@@ -1,142 +1,22 @@
-"""생성 엔진용 카탈로그 데이터."""
+"""생성 엔진용 카탈로그 어댑터.
 
+공개 함수:
+- prefetch_for_generator(db, agent_ids, skill_ids, hook_ids) → CatalogPrefetch
+- get_selected_agents(prefetch) / get_selected_skills(prefetch) / get_selected_hooks(prefetch)
+- get_env_var_definitions(prefetch) / find_stack(stack_id)
+
+기존 하드코딩 AGENTS/SKILLS 상수는 DB로 대체됐으므로 제거됨.
+STACKS 는 로컬 JSON 이나 config 로 이동 예정이며 이번엔 그대로 유지.
+"""
+
+from dataclasses import dataclass, field
 from typing import Any
 
-# 에이전트 카탈로그 (web 엔진과 동일 구조)
-AGENTS: list[dict[str, Any]] = [
-    {
-        "id": "backend",
-        "name": "시니어 백엔드 엔지니어",
-        "description": "API 설계, DB, 서버 로직 전담",
-        "output_file": "api-agent.md",
-        "template": "agents/api-agent.md.j2",
-        "required": False,
-    },
-    {
-        "id": "frontend",
-        "name": "프론트엔드 전문가",
-        "description": "컴포넌트, 상태관리, 라우팅 전담",
-        "output_file": "web-agent.md",
-        "template": "agents/web-agent.md.j2",
-        "required": False,
-    },
-    {
-        "id": "uiux",
-        "name": "UI/UX 디자이너",
-        "description": "접근성, 반응형, 디자인 시스템 전담",
-        "output_file": "uiux-agent.md",
-        "template": "agents/uiux-agent.md.j2",
-        "required": False,
-    },
-    {
-        "id": "devops",
-        "name": "DevOps 엔지니어",
-        "description": "Docker, CI/CD, 배포 전담",
-        "output_file": "infra-agent.md",
-        "template": "agents/infra-agent.md.j2",
-        "required": False,
-    },
-    {
-        "id": "fullstack",
-        "name": "풀스택 시니어",
-        "description": "백엔드+프론트 통합 개발",
-        "output_file": "fullstack-agent.md",
-        "template": "agents/fullstack-agent.md.j2",
-        "required": False,
-    },
-    {
-        "id": "harness",
-        "name": "하네스 엔지니어 (필수)",
-        "description": "4단계 품질 통제 — Router→Context→Loop→Worker",
-        "output_file": "harness-guide.md",
-        "template": "agents/harness-guide.md.j2",
-        "required": True,
-    },
-]
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# 스킬/워크플로우 카탈로그
-SKILLS: list[dict[str, Any]] = [
-    {
-        "id": "tdd",
-        "name": "TDD 스마트 코딩",
-        "template": "skills/tdd.md.j2",
-        "output_file": "tdd-smart-coding.md",
-        "dependencies": [],
-        "hooks": [],
-    },
-    {
-        "id": "ai-critique",
-        "name": "AI 코드 리뷰",
-        "template": "skills/ai-critique.md.j2",
-        "output_file": "ai-critique.md",
-        "dependencies": [],
-        "hooks": ["PostToolUse"],
-    },
-    {
-        "id": "linear",
-        "name": "Linear 연동",
-        "template": "skills/linear.md.j2",
-        "output_file": "linear-sync.md",
-        "dependencies": ["linear"],
-        "hooks": [],
-        "category": "ticket_source",
-        "env_vars": [
-            {
-                "name": "LINEAR_API_KEY",
-                "description": "Linear API 토큰 (Settings → API → Personal API keys)",
-                "pattern": r"^lin_api_[A-Za-z0-9]+$",
-                "required": True,
-            },
-            {
-                "name": "LINEAR_TEAM_ID",
-                "description": "Linear 팀 UUID (API로 조회 또는 URL에서 확인)",
-                "pattern": "",
-                "required": True,
-            },
-        ],
-    },
-    {
-        "id": "notion",
-        "name": "Notion 연동",
-        "template": "skills/notion.md.j2",
-        "output_file": "notion-sync.md",
-        "dependencies": ["notion"],
-        "hooks": [],
-        "category": "ticket_source",
-        "env_vars": [
-            {
-                "name": "NOTION_API_KEY",
-                "description": "Notion Integration 토큰 (notion.so/my-integrations에서 발급)",
-                "pattern": r"^secret_[A-Za-z0-9]+$",
-                "required": True,
-            },
-            {
-                "name": "NOTION_DATABASE_ID",
-                "description": "Notion 데이터베이스 ID (데이터베이스 URL의 32자리 UUID)",
-                "pattern": "",
-                "required": True,
-            },
-        ],
-    },
-    {
-        "id": "ralph-loop",
-        "name": "Ralph 자율 루프",
-        "template": "skills/ralph-loop.md.j2",
-        "output_file": "ralph-loop.md",
-        "dependencies": [],
-        "hooks": [],
-    },
-    {
-        "id": "harness-gate",
-        "name": "하네스 Gate",
-        "template": "skills/harness-gate.md.j2",
-        "output_file": "harness-gate.md",
-        "dependencies": [],
-        "hooks": ["UserPromptSubmit"],
-    },
-]
+from app.services.catalog_service import get_catalog_service
 
-# 기술 스택 카탈로그
+# 기술 스택 카탈로그 (DB 이관 대상 아님 — 위저드 step 3)
 STACKS: list[dict[str, Any]] = [
     {
         "id": "fastapi-nextjs",
@@ -195,29 +75,70 @@ STACKS: list[dict[str, Any]] = [
 ]
 
 
-def get_env_var_definitions(workflow_ids: list[str]) -> list[dict[str, Any]]:
+@dataclass
+class CatalogPrefetch:
+    """generate_all() 에 전달하는 사전 로드된 카탈로그 데이터."""
+
+    agents: list[dict[str, Any]] = field(default_factory=list)
+    skills: list[dict[str, Any]] = field(default_factory=list)
+    hooks: list[dict[str, Any]] = field(default_factory=list)
+
+
+async def prefetch_for_generator(
+    db: AsyncSession,
+    agent_ids: list[str],
+    skill_ids: list[str],
+    hook_ids: list[str] | None = None,
+) -> CatalogPrefetch:
+    """DB에서 카탈로그를 미리 로드하여 sync generate_all 에 주입할 수 있게 반환."""
+    svc = get_catalog_service()
+    agents = await svc.get_agents_by_slugs(db, agent_ids)
+    skills = await svc.get_skills_by_slugs(db, skill_ids)
+    hooks = await svc.get_hooks_by_slugs(db, hook_ids or [])
+    return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks)
+
+
+def get_selected_agents(agent_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+    """선택된 에이전트 + required 에이전트 반환.
+
+    prefetch 가 있으면 사전 로드 데이터를 사용하고 (slug 필터 이미 적용됨),
+    없으면 빈 리스트를 반환한다 (caller 가 prefetch 없이 호출하는 경우 방지).
+    """
+    if prefetch is not None:
+        return prefetch.agents
+    return []
+
+
+def get_selected_skills(workflow_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+    """선택된 워크플로우에 해당하는 스킬 반환."""
+    if prefetch is not None:
+        return prefetch.skills
+    return []
+
+
+def get_selected_hooks(hook_ids: list[str], prefetch: CatalogPrefetch | None = None) -> list[dict[str, Any]]:
+    """선택된 훅 반환."""
+    if prefetch is not None:
+        return prefetch.hooks
+    return []
+
+
+def get_env_var_definitions(
+    workflow_ids: list[str], prefetch: CatalogPrefetch | None = None
+) -> list[dict[str, Any]]:
     """선택된 워크플로우에서 필요한 환경 변수 정의를 수집."""
-    skills = get_selected_skills(workflow_ids)
+    skills = get_selected_skills(workflow_ids, prefetch)
     env_vars: list[dict[str, Any]] = []
     seen: set[str] = set()
     for skill in skills:
         for var in skill.get("env_vars", []):
-            if var["name"] not in seen:
-                env_vars.append({**var, "skill_id": skill["id"], "skill_name": skill["name"]})
-                seen.add(var["name"])
+            var_name = var.get("name", "")
+            if var_name and var_name not in seen:
+                env_vars.append({**var, "skill_id": skill["id"], "skill_name": skill.get("label", skill["id"])})
+                seen.add(var_name)
     return env_vars
 
 
 def find_stack(stack_id: str) -> dict[str, Any] | None:
     """스택 ID로 카탈로그 항목 검색."""
     return next((s for s in STACKS if s["id"] == stack_id), None)
-
-
-def get_selected_agents(agent_ids: list[str]) -> list[dict[str, Any]]:
-    """선택된 에이전트 + required 에이전트 반환."""
-    return [a for a in AGENTS if a["id"] in agent_ids or a.get("required")]
-
-
-def get_selected_skills(workflow_ids: list[str]) -> list[dict[str, Any]]:
-    """선택된 워크플로우에 해당하는 스킬 반환."""
-    return [s for s in SKILLS if s["id"] in workflow_ids]

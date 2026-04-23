@@ -232,6 +232,7 @@ export default function SolutionSessionPage() {
             },
             agents: data.agents.selectedAgents.map((id) => ({ id })),
             skills: data.agents.selectedSkills.map((id) => ({ id })),
+            hooks: (data.agents.selectedHooks ?? []).map((id) => ({ id })),
             pipelines: [],
             platform: { platformId: data.platform.platformId ?? null },
           },

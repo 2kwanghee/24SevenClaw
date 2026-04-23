@@ -15,6 +15,10 @@ class GenerateRequest(PreviewRequest):
         default_factory=dict,
         description="환경 변수 맵 (키: 변수명, 값: API 키 등). 서버에 저장되지 않음.",
     )
+    hook_ids: list[str] = Field(
+        default_factory=list,
+        description="선택된 훅 ID 목록",
+    )
     pm_profile_id: UUID | None = Field(
         default=None,
         description="선택된 PM 프로필 ID — pm_slug보다 우선하여 DB에서 조회",
