@@ -11,6 +11,8 @@ _BG = RGBColor(0x10, 0x18, 0x1A)
 _ACCENT = RGBColor(0x10, 0xB9, 0x81)
 _WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 _GRAY = RGBColor(0x94, 0xA3, 0xB8)
+_AMBER = RGBColor(0xFB, 0xBF, 0x24)
+_SKY = RGBColor(0x38, 0xBD, 0xF8)
 
 
 def _set_bg(slide: object) -> None:
@@ -44,6 +46,30 @@ def _add_text(
     run.font.color.rgb = color if color is not None else _WHITE
 
 
+def _slide_header(slide: object, title: str, slide_w: float) -> None:
+    _add_text(slide, title, Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
+              bold=True, size=22, color=_ACCENT)
+
+
+def _numbered_items(
+    slide: object,
+    items: list[tuple[str, str | None]],
+    start_y: float = 1.5,
+    body_w: float = Inches(8.5),
+) -> None:
+    """(label, command_or_None) 리스트를 번호 목록으로 추가."""
+    y = start_y
+    for label, cmd in items:
+        _add_text(slide, label, Inches(0.8), Inches(y), body_w, Inches(0.55),
+                  size=14, color=_WHITE)
+        y += 0.55
+        if cmd:
+            _add_text(slide, cmd, Inches(1.2), Inches(y), Inches(7.0), Inches(0.5),
+                      bold=True, size=13, color=_ACCENT)
+            y += 0.6
+        y += 0.1
+
+
 def build_setup_guide_pptx(
     project_name: str,
     pm_slug: str,
@@ -70,100 +96,151 @@ def build_setup_guide_pptx(
               size=20, color=_GRAY)
     _add_text(s, f"플랫폼: {platform}", Inches(0.8), Inches(4.2), slide_w, Inches(0.6),
               size=14, color=_GRAY)
+    if has_linear:
+        _add_text(s, "Linear 연동 포함", Inches(0.8), Inches(4.9), slide_w, Inches(0.6),
+                  size=13, color=_SKY)
 
     # ── 슬라이드 2: 다운로드 & 압축 해제 ─────────────────────────────────────
     s = prs.slides.add_slide(blank)
     _set_bg(s)
-    _add_text(s, "Step 1 — 다운로드 & 압축 해제",
-              Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
-              bold=True, size=22, color=_ACCENT)
-    items = [
-        f"① 프로젝트 대시보드에서  {project_name}.zip  다운로드",
-        "② 원하는 경로에 압축 해제",
-        f"    예시: ~/projects/{project_name}/",
-        "③ 터미널에서 해당 디렉토리로 이동",
-    ]
-    for i, line in enumerate(items):
-        c = _GRAY if line.startswith("    ") else _WHITE
-        _add_text(s, line, Inches(0.8), Inches(1.5 + i * 1.0), body_w, Inches(0.85),
-                  size=16, color=c)
+    _slide_header(s, "Step 1 — 다운로드 & 압축 해제", slide_w)
+    unzip_cmd = f"unzip {project_name}.zip -d ~/projects/{project_name}"
+    _numbered_items(s, [
+        (f"① 프로젝트 대시보드에서  {project_name}.zip  다운로드", None),
+        ("② WSL2 Ubuntu 터미널에서 압축 해제", unzip_cmd),
+        ("③ 프로젝트 폴더로 이동", f"cd ~/projects/{project_name}"),
+    ])
+    _add_text(s, "💡  Windows 사용자: WSL2 Ubuntu 터미널에서 실행하세요 (탐색기 더블클릭 X)",
+              Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_AMBER)
 
     # ── 슬라이드 3: .env 설정 ─────────────────────────────────────────────────
     s = prs.slides.add_slide(blank)
     _set_bg(s)
-    _add_text(s, "Step 2 — .env API 키 설정",
-              Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
-              bold=True, size=22, color=_ACCENT)
-    _add_text(s, "프로젝트 루트의 .env 파일에 아래 키를 입력하세요",
-              Inches(0.8), Inches(1.35), body_w, Inches(0.6), size=15, color=_GRAY)
-    env_keys = ["ANTHROPIC_API_KEY=sk-ant-..."]
+    _slide_header(s, "Step 2 — .env API 키 설정", slide_w)
+    _add_text(s, ".env.example → .env 로 복사 후 아래 키를 입력하세요",
+              Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
+    _add_text(s, "cp .env.example .env", Inches(0.8), Inches(1.95), Inches(6), Inches(0.5),
+              bold=True, size=13, color=_ACCENT)
+    env_keys: list[str] = ["ANTHROPIC_API_KEY=sk-ant-..."]
     if has_linear:
-        env_keys += ["LINEAR_API_KEY=lin_api_...", "LINEAR_TEAM_ID=<team-id>"]
-    for i, kv in enumerate(env_keys):
-        _add_text(s, kv, Inches(0.8), Inches(2.0 + i * 0.75), Inches(7), Inches(0.65),
-                  bold=True, size=14, color=_ACCENT)
-    tip_y = 2.0 + len(env_keys) * 0.75 + 0.3
+        env_keys += [
+            "LINEAR_API_KEY=lin_api_...",
+            "LINEAR_TEAM_ID=<팀 UUID>",
+            "WEBHOOK_SECRET=<openssl rand -hex 32>",
+        ]
+    y = 2.6
+    for kv in env_keys:
+        _add_text(s, kv, Inches(0.8), Inches(y), Inches(7), Inches(0.55),
+                  bold=True, size=13, color=_ACCENT)
+        y += 0.65
     _add_text(s, "📁  docs/api-keys/ 폴더에서 각 키 발급 방법을 확인하세요.",
-              Inches(0.8), Inches(tip_y), body_w, Inches(0.65), size=14, color=_GRAY)
+              Inches(0.8), Inches(y + 0.2), body_w, Inches(0.6), size=12, color=_GRAY)
 
-    # ── 슬라이드 4: claude + /ClickEyeStart ──────────────────────────────────
-    s = prs.slides.add_slide(blank)
-    _set_bg(s)
-    _add_text(s, "Step 3 — Claude Code 실행 & 시작 명령",
-              Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
-              bold=True, size=22, color=_ACCENT)
-    flow = [
-        ("① 터미널에서 입력:", "claude"),
-        ("② Claude Code 프롬프트에서 입력:", "/ClickEyeStart"),
-        ("③ .env 검증 → 누락 키를 대화형으로 안내", None),
-        ("④ 셋업 완료 → AI 개발 준비 완료!", None),
-    ]
-    y = 1.5
-    for label, cmd in flow:
-        _add_text(s, label, Inches(0.8), Inches(y), body_w, Inches(0.6), size=15, color=_WHITE)
-        if cmd:
-            _add_text(s, cmd, Inches(1.3), Inches(y + 0.6), Inches(5), Inches(0.6),
-                      bold=True, size=18, color=_ACCENT)
-            y += 1.4
-        else:
-            y += 0.85
-
-    # ── 슬라이드 5: Linear 연동 (조건부) ─────────────────────────────────────
     if has_linear:
+        # ── 슬라이드 4 (Linear): 터널 설정 ───────────────────────────────────
         s = prs.slides.add_slide(blank)
         _set_bg(s)
-        _add_text(s, "Linear 연동 설정",
-                  Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
-                  bold=True, size=22, color=_ACCENT)
-        linear_steps = [
-            "① Linear API 키 발급 → .env 파일에 입력",
-            "② LINEAR_TEAM_ID 설정",
-            "③ /ClickEyeStart → Linear 연동 상태 자동 확인",
-            "④ Webhook URL 발급 → Linear 프로젝트에 등록",
-            "⑤ 이슈 생성 → Claude가 자동으로 브랜치 생성 & 개발 시작",
-        ]
-        for i, step in enumerate(linear_steps):
-            _add_text(s, step, Inches(0.8), Inches(1.5 + i * 1.0), body_w, Inches(0.85),
-                      size=15, color=_WHITE)
+        _slide_header(s, "Step 3 — 터널 설정 (Linear Webhook용)", slide_w)
+        _add_text(s, "Linear Webhook을 받으려면 외부 접속 가능한 URL이 필요합니다.",
+                  Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
+        _numbered_items(s, [
+            ("① 새 터미널을 열고 터널 스크립트 실행 (Cloudflare Tunnel 자동 설치)",
+             "bash scripts/setup-tunnel.sh"),
+            ("② 출력된 https://xxxx.trycloudflare.com URL 복사", None),
+            ("③ ClickEye 웹 → 설정 → Linear → Tunnel URL 붙여넣기 후 저장",
+             "→ Linear Webhook이 자동으로 등록됩니다"),
+        ], start_y=2.0)
+        _add_text(s, "⚠️  이 터미널을 열어둔 상태를 유지하세요. 닫으면 터널이 종료됩니다.",
+                  Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_AMBER)
 
-    # ── 슬라이드 6: 참고 문서 & 다음 단계 ───────────────────────────────────
+        # ── 슬라이드 5 (Linear): Webhook 서버 기동 ───────────────────────────
+        s = prs.slides.add_slide(blank)
+        _set_bg(s)
+        _slide_header(s, "Step 4 — Webhook 서버 기동", slide_w)
+        _add_text(s, "또 다른 터미널을 열어 Webhook 수신 서버를 시작합니다.",
+                  Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
+        _numbered_items(s, [
+            ("① 새 터미널 → 프로젝트 폴더로 이동", f"cd ~/projects/{project_name}"),
+            ("② Webhook 서버 시작 (포트 9876)", "bash scripts/start-webhook.sh"),
+            ("③ 'Listening on :9876' 메시지 확인 → 준비 완료", None),
+        ], start_y=2.0)
+        _add_text(
+            s,
+            "💡  터널(setup-tunnel.sh) + Webhook 서버(start-webhook.sh)"
+            " 두 개 모두 실행 중이어야 합니다.",
+            Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_GRAY,
+        )
+
+        # ── 슬라이드 6 (Linear): 런처 & /ClickEyeStart ───────────────────────
+        s = prs.slides.add_slide(blank)
+        _set_bg(s)
+        _slide_header(s, "Step 5 — 런처 실행 & /ClickEyeStart", slide_w)
+        _numbered_items(s, [
+            ("① 세 번째 터미널 → 프로젝트 폴더에서 런처 실행",
+             "bash start.sh"),
+            ("② Node.js · Claude Code 자동 점검 → Claude Code 자동 진입", None),
+            ("③ Claude Code 프롬프트에서 시작 명령 입력",
+             "/ClickEyeStart"),
+            ("④ .env 검증 → 누락 키 대화형 안내 → 셋업 완료 메시지 출력", None),
+        ], start_y=1.5)
+
+        # ── 슬라이드 7 (Linear): AI Team → Linear 자동화 ─────────────────────
+        s = prs.slides.add_slide(blank)
+        _set_bg(s)
+        _slide_header(s, "Step 6 — AI Team → Linear 자동화", slide_w)
+        _add_text(s, "셋업 완료 후 AI Team 메뉴에서 작업 요청을 등록하세요.",
+                  Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
+        _numbered_items(s, [
+            ("① ClickEye 웹 → 프로젝트 → AI Team 메뉴 진입", None),
+            ("② '새 작업 요청' 클릭 → 제목·설명 입력 → '생성 & 분해'", None),
+            ("③ 서브태스크 확인 → '배정 확정' 클릭", None),
+            ("④ 배정 완료 → Linear 이슈 자동 등록 (서브태스크별 1개)",
+             "예: [backend] 인증 API, [frontend] 로그인 UI, [qa] 테스트"),
+            ("⑤ Linear에서 이슈 상태를 'Queued'로 변경 → 로컬 Claude가 자동으로 작업 시작", None),
+        ], start_y=2.0)
+
+    else:
+        # ── 슬라이드 4 (No-Linear): 런처 & /ClickEyeStart ────────────────────
+        s = prs.slides.add_slide(blank)
+        _set_bg(s)
+        _slide_header(s, "Step 3 — 런처 실행 & /ClickEyeStart", slide_w)
+        _numbered_items(s, [
+            ("① 터미널에서 런처 스크립트 실행",
+             "bash start.sh"),
+            ("② Node.js · Claude Code 자동 점검 → Claude Code 자동 진입", None),
+            ("③ Claude Code 프롬프트에서 시작 명령 입력",
+             "/ClickEyeStart"),
+            ("④ .env 검증 → 누락 키 대화형 안내", None),
+            ("⑤ 셋업 완료 메시지 출력 → AI 개발 파이프라인 준비 완료!", None),
+        ], start_y=1.5)
+
+    # ── 마지막 슬라이드: 참고 문서 & 다음 단계 ───────────────────────────────
     s = prs.slides.add_slide(blank)
     _set_bg(s)
-    _add_text(s, "참고 문서 & 다음 단계",
-              Inches(0.8), Inches(0.5), slide_w, Inches(0.8),
-              bold=True, size=22, color=_ACCENT)
-    refs = [
-        ("docs/api-keys/", "각 API 키 발급 상세 가이드"),
-        ("docs/WEBHOOK_SETUP.md", "Webhook 서버 설정 (Linear 연동)"),
-        ("프로젝트 대시보드", "설정 변경 / ZIP 재다운로드"),
-    ]
+    _slide_header(s, "참고 문서 & 다음 단계", slide_w)
+    if has_linear:
+        refs = [
+            ("docs/api-keys/", "각 API 키 발급 상세 가이드"),
+            ("scripts/setup-tunnel.sh", "터널 설정 (Cloudflare / ngrok / polling)"),
+            ("ClickEye 웹 → 설정 → Linear", "API 키 · Tunnel URL · Webhook 등록"),
+            ("ClickEye 웹 → AI Team", "작업 요청 등록 → Linear 이슈 자동 생성"),
+        ]
+    else:
+        refs = [
+            ("docs/api-keys/", "각 API 키 발급 상세 가이드"),
+            ("docs/WEBHOOK_SETUP.md", "Webhook 서버 설정"),
+            ("프로젝트 대시보드", "설정 변경 / ZIP 재다운로드"),
+        ]
+
     for i, (path, desc) in enumerate(refs):
-        _add_text(s, f"📄  {path}", Inches(0.8), Inches(1.5 + i * 1.1), Inches(3.5), Inches(0.6),
-                  bold=True, size=14, color=_ACCENT)
-        _add_text(s, desc, Inches(4.5), Inches(1.5 + i * 1.1), Inches(4.5), Inches(0.6),
-                  size=14, color=_GRAY)
+        _add_text(s, f"📄  {path}",
+                  Inches(0.8), Inches(1.5 + i * 1.1), Inches(3.8), Inches(0.6),
+                  bold=True, size=13, color=_ACCENT)
+        _add_text(s, desc,
+                  Inches(4.8), Inches(1.5 + i * 1.1), Inches(4.8), Inches(0.6),
+                  size=13, color=_GRAY)
     _add_text(s, "문의 / 피드백: 대시보드 내 Contact 페이지",
-              Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=13, color=_GRAY)
+              Inches(0.8), Inches(6.3), body_w, Inches(0.6), size=12, color=_GRAY)
 
     buf = io.BytesIO()
     prs.save(buf)
