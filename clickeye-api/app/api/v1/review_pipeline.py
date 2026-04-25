@@ -150,25 +150,36 @@ async def push_to_linear(
 
     from app.core.crypto import decrypt
     from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.project_linear_credentials import ProjectLinearCredentials
     from app.models.user_linear_credentials import UserLinearCredentials
     from app.schemas.review_pipeline import LinearSyncHintSubtask as HintSubtask
     from app.services.linear_service import create_issues
 
-    # 사용자 Linear 자격증명 조회
-    creds_result = await db.execute(
-        sa_select(UserLinearCredentials).where(
-            UserLinearCredentials.user_id == user.id
+    # 프로젝트별 자격증명 우선, 없으면 유저 전역 자격증명 폴백
+    proj_creds_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session_id
         )
     )
-    creds = creds_result.scalar_one_or_none()
-    if creds is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키를 저장하세요.",
-        )
+    proj_creds = proj_creds_result.scalar_one_or_none()
 
-    api_key = decrypt(str(creds.encrypted_api_key))
-    team_id = str(creds.team_id)
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == user.id
+            )
+        )
+        creds = creds_result.scalar_one_or_none()
+        if creds is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Linear 자격증명 미설정. 설정 → Linear에서 API 키를 저장하세요.",
+            )
+        api_key = decrypt(str(creds.encrypted_api_key))
+        team_id = str(creds.team_id)
 
     # 세션 및 서브태스크 조회
     session_result = await db.execute(

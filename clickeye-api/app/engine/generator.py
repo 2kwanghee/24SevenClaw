@@ -35,6 +35,13 @@ _PLATFORM_COMMANDS_PATH: dict[str, str | None] = {
     "codex": None,
 }
 
+_PLATFORM_REMOVE_COMMANDS_PATH: dict[str, str | None] = {
+    "claude-code": ".claude/commands/ClickEyeRemove.md",
+    "gemini-cli": ".gemini/commands/ClickEyeRemove.md",
+    "cursor": ".cursor/commands/ClickEyeRemove.md",
+    "codex": None,
+}
+
 _env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     keep_trailing_newline=True,
@@ -125,6 +132,7 @@ def generate_all(
     # 온보딩 docs 및 /ClickEyeStart 커맨드 주입
     _emit_docs(files)
     _emit_start_command(files, platform_id, project_name, workflow_ids, catalog_prefetch)
+    _emit_remove_command(files, platform_id, project_name)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
     _emit_first_run_artifacts(files, platform_id, os_id, workflow_ids, project_name)
 
@@ -589,6 +597,21 @@ def _emit_start_command(
     files[output_path] = content
 
 
+def _emit_remove_command(
+    files: dict[str, str | bytes],
+    platform_id: str,
+    project_name: str,
+) -> None:
+    """/ClickEyeRemove 커맨드 파일을 플랫폼별 경로로 생성."""
+    output_path = _PLATFORM_REMOVE_COMMANDS_PATH.get(platform_id)
+    if output_path is None:
+        return
+
+    template = _env.get_template("commands/clickeye-remove.md.j2")
+    content = template.render(project_name=project_name)
+    files[output_path] = content
+
+
 def _emit_first_run_artifacts(
     files: dict[str, str | bytes],
     platform_id: str,
@@ -611,7 +634,13 @@ def _emit_first_run_artifacts(
         launcher = _env.get_template("start.sh.j2")
         files["start.sh"] = launcher.render(**ctx)
 
+        remover = _env.get_template("remove.sh.j2")
+        files["remove.sh"] = remover.render(**ctx)
+
         readme = _env.get_template("README.md.j2")
         files["README.md"] = readme.render(**ctx)
+
+        # log/ 디렉토리 자리 확보 (.gitkeep)
+        files["log/.gitkeep"] = ""
     except Exception:
         pass

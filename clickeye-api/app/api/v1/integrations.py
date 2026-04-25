@@ -4,11 +4,15 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.integrations import (
@@ -75,8 +79,9 @@ async def register_initial_tasks(
     project_id: UUID,
     data: RegisterInitialTasksRequest,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> RegisterInitialTasksResponse:
-    """프로젝트 생성 완료 시 Linear/Notion에 초기 태스크를 등록한다.
+    """프로젝트 생성 완료 시 Linear/Notion에 초기 태스크를 등록하고 프로젝트별 자격증명을 저장한다.
 
     실패해도 200을 반환하며, errors 필드에 오류 내용을 포함한다.
     """
@@ -100,6 +105,37 @@ async def register_initial_tasks(
             linear_issue_url = url
         except Exception as exc:
             errors.append(f"Linear 태스크 등록 실패: {exc}")
+
+        # 프로젝트별 Linear 자격증명 저장 (upsert)
+        if data.save_credentials:
+            try:
+                from app.core.crypto import encrypt
+                from app.models.project_linear_credentials import ProjectLinearCredentials
+
+                result = await db.execute(
+                    select(ProjectLinearCredentials).where(
+                        ProjectLinearCredentials.project_id == project_id
+                    )
+                )
+                creds = result.scalar_one_or_none()
+                encrypted_key = encrypt(data.linear_api_key)
+                now = datetime.now(UTC)
+
+                if creds is None:
+                    creds = ProjectLinearCredentials(
+                        project_id=project_id,
+                        encrypted_api_key=encrypted_key,
+                        team_id=data.linear_team_id,
+                    )
+                    db.add(creds)
+                else:
+                    creds.encrypted_api_key = encrypted_key  # type: ignore[assignment]
+                    creds.team_id = data.linear_team_id  # type: ignore[assignment]
+                    creds.updated_at = now  # type: ignore[assignment]
+
+                await db.commit()
+            except Exception as exc:
+                errors.append(f"Linear 자격증명 저장 실패: {exc}")
 
     if data.notion_api_key and data.notion_database_id:
         try:

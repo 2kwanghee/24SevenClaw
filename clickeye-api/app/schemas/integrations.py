@@ -22,6 +22,7 @@ class RegisterInitialTasksRequest(BaseModel):
     notion_api_key: str | None = Field(None, description="Notion API 키")
     notion_database_id: str | None = Field(None, description="Notion 데이터베이스 UUID")
     project_name: str = Field(..., min_length=1, description="프로젝트 이름")
+    save_credentials: bool = Field(True, description="프로젝트별 자격증명 저장 여부")
 
 
 class RegisterInitialTasksResponse(BaseModel):

@@ -19,6 +19,7 @@ from app.models.pm_rating import PMRating  # noqa: F401
 from app.models.preset import Preset  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
+from app.models.project_linear_credentials import ProjectLinearCredentials  # noqa: F401
 from app.models.prototype_catalog import PrototypeCatalogEntry, PrototypeTag  # noqa: F401
 from app.models.prototype_session import Prototype, PrototypeSession  # noqa: F401
 from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateRun  # noqa: F401
@@ -54,6 +55,7 @@ __all__ = [
     "Preset",
     "Project",
     "ProjectConfig",
+    "ProjectLinearCredentials",
     "Prototype",
     "PrototypeSession",
     "QualityCheck",

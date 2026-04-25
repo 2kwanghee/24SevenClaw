@@ -16,12 +16,14 @@ Linear에서 이슈 상태가 Queued/DayQueued/NightQueued로 변경되면
 import hashlib
 import hmac
 import json
+import logging
 import os
 import subprocess
 import sys
 import threading
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 DEFAULT_PORT = 9876
 DRY_RUN = False
@@ -29,10 +31,34 @@ WEBHOOK_SECRET: str | None = None
 
 _trigger_lock = threading.Lock()
 
+# ── 로거 초기화 ─────────────────────────────────────────────────────────────────
+
+def _setup_logger() -> logging.Logger:
+    log_dir = Path(__file__).parent.parent / "log"
+    log_dir.mkdir(exist_ok=True)
+
+    logger = logging.getLogger("webhook")
+    logger.setLevel(logging.DEBUG)
+
+    fmt = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    # 파일 핸들러 (log/webhook.log)
+    fh = logging.FileHandler(log_dir / "webhook.log", encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    # 콘솔 핸들러
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+
+    return logger
+
+_logger = _setup_logger()
+
 
 def _log(msg: str) -> None:
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts}] {msg}", flush=True)
+    _logger.info(msg)
 
 
 def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
