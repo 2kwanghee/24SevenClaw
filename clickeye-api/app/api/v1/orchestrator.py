@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import async_session as db_session_factory
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -25,6 +26,30 @@ from app.services.orchestrator_service import OrchestratorService
 from app.services.project_service import ProjectService
 
 router = APIRouter(prefix="/orchestrator", tags=["orchestrator"])
+
+
+async def _auto_complete_pipeline(session_id: UUID) -> None:
+    """approved → transitioning → completed 자동 전이."""
+    import logging  # noqa: PLC0415
+
+    from app.schemas.orchestrator import PhaseTransitionRequest  # noqa: PLC0415
+
+    logger = logging.getLogger(__name__)
+    async with db_session_factory() as db:
+        service = OrchestratorService(db)
+        try:
+            await service.transition(
+                session_id=session_id,
+                data=PhaseTransitionRequest(target_phase="transitioning", message="자동 전환 시작"),
+                actor_type="system",
+            )
+            await service.transition(
+                session_id=session_id,
+                data=PhaseTransitionRequest(target_phase="completed", message="파이프라인 완료"),
+                actor_type="system",
+            )
+        except Exception as exc:
+            logger.error("_auto_complete_pipeline 실패 session=%s: %s", session_id, exc)
 
 
 # === 세션 CRUD ===
@@ -177,6 +202,7 @@ async def assign_team(
 async def transition_session(
     session_id: UUID,
     data: PhaseTransitionRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SessionResponse:
@@ -188,6 +214,9 @@ async def transition_session(
         actor_type="user",
         actor_id=user.id,
     )
+    # approved 전이 시 → transitioning → completed 자동 진행
+    if data.target_phase == "approved":
+        background_tasks.add_task(_auto_complete_pipeline, session_id)
     return SessionResponse.model_validate(session)
 
 

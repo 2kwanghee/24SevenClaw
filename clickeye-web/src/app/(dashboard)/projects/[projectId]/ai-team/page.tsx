@@ -73,7 +73,7 @@ export default function AITeamDashboardPage() {
     refetch: refetchSummary,
   } = useSessionSummary(selectedSessionId);
 
-  const isAutoProgressPhase = ["drafting", "reviewing", "integrating"].includes(
+  const isAutoProgressPhase = ["drafting", "reviewing", "integrating", "approved", "transitioning"].includes(
     summary?.session?.phase ?? "",
   );
 

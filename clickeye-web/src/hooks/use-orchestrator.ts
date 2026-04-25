@@ -27,7 +27,7 @@ export function useSessionList(projectId: string) {
   });
 }
 
-const AUTO_PROGRESS_PHASES = new Set(["drafting", "reviewing", "integrating"]);
+const AUTO_PROGRESS_PHASES = new Set(["drafting", "reviewing", "integrating", "approved", "transitioning"]);
 
 export function useSessionSummary(sessionId: string) {
   const token = useAccessToken();
