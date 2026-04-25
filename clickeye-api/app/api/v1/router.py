@@ -25,6 +25,7 @@ from app.api.v1.rbac import router as rbac_router
 from app.api.v1.recommend import router as recommend_router
 from app.api.v1.registry_admin import router as registry_admin_router
 from app.api.v1.reports import router as reports_router
+from app.api.v1.control_tower import router as control_tower_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
 
 api_v1_router = APIRouter()
@@ -54,3 +55,4 @@ api_v1_router.include_router(project_contracts_router)
 api_v1_router.include_router(contracts_sync_router)
 api_v1_router.include_router(linear_credentials_router)
 api_v1_router.include_router(integrations_router)
+api_v1_router.include_router(control_tower_router)

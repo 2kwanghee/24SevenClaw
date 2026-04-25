@@ -32,3 +32,7 @@ class Project(UUIDPKMixin, TimestampMixin, Base):
         String(30), nullable=True, default="legacy", server_default=text("'legacy'")
     )
     initial_task_url = Column(String(500), nullable=True)
+    # 컨트롤 타워: 고객사 직접 연결 (SET NULL on org delete)
+    organization_id = Column(
+        Uuid, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
+    )

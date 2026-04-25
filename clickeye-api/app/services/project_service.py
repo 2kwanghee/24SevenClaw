@@ -136,3 +136,14 @@ class ProjectService(BaseService):
 
     async def get_wizard_config(self, project_id: UUID, owner_id: UUID) -> Project:
         return await self.get_by_id(project_id, owner_id)
+
+    async def get_for_admin(self, project_id: UUID) -> Project:
+        """관리자 전용 — owner 체크 없이 프로젝트 조회."""
+        return await get_or_404(
+            self.db,
+            Project,
+            Project.id == project_id,
+            Project.status != "deleted",
+            code="PROJECT_NOT_FOUND",
+            message="프로젝트를 찾을 수 없습니다",
+        )

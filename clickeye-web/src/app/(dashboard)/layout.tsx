@@ -10,6 +10,7 @@ import {
   Bot,
   Puzzle,
   Blocks,
+  Building2,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -39,6 +40,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { href: "/admin/control-tower", label: "컨트롤 타워", icon: Building2 },
   { href: "/admin/users", label: "사용자 관리", icon: Shield },
   { href: "/admin/contracts", label: "계약 관리", icon: FileText },
   { href: "/admin/pm", label: "PM 관리", icon: Users },

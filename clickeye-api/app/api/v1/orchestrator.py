@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -22,6 +22,7 @@ from app.schemas.orchestrator import (
     SubTaskUpdate,
 )
 from app.services.orchestrator_service import OrchestratorService
+from app.services.project_service import ProjectService
 
 router = APIRouter(prefix="/orchestrator", tags=["orchestrator"])
 
@@ -57,10 +58,17 @@ async def list_sessions(
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     phase: str | None = Query(None),
-    user: User = Depends(get_current_user),  # noqa: ARG001
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SessionListResponse:
     """프로젝트의 오케스트레이션 세션 목록을 조회한다."""
+    is_admin = getattr(user, "system_role", "member") in {"admin", "superadmin"}
+    proj_service = ProjectService(db)
+    if is_admin:
+        await proj_service.get_for_admin(project_id)
+    else:
+        await proj_service.get_by_id(project_id, user.id)
+
     service = OrchestratorService(db)
     sessions, total = await service.list_sessions(
         project_id=project_id, offset=offset, limit=limit, phase_filter=phase
@@ -74,12 +82,20 @@ async def list_sessions(
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_session(
     session_id: UUID,
-    user: User = Depends(get_current_user),  # noqa: ARG001
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """오케스트레이션 세션과 관련 데이터(서브태스크, 이력, 리뷰)를 삭제한다."""
-    service = OrchestratorService(db)
-    await service.delete_session(session_id)
+    is_admin = getattr(user, "system_role", "member") in {"admin", "superadmin"}
+    orch_service = OrchestratorService(db)
+    session = await orch_service.get_session(session_id)
+
+    if not is_admin and session.created_by != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="이 세션을 삭제할 권한이 없습니다",
+        )
+    await orch_service.delete_session(session_id)
 
 
 @router.get("/sessions/{session_id}", response_model=SessionResponse)

@@ -2022,4 +2022,108 @@ export const integrations = {
     ),
 };
 
+// --- Control Tower ---
+
+export interface CustomerSummary {
+  id: string;
+  company_name: string;
+  org_type: string;
+  customer_status: string;
+  account_manager_id: string | null;
+  account_manager_name: string | null;
+  project_count: number;
+  active_session_count: number;
+  created_at: string | null;
+}
+
+export interface CustomerDetail extends CustomerSummary {
+  size: string | null;
+  industry: string | null;
+  main_product: string | null;
+  business_type: string | null;
+  company_description: string | null;
+  updated_at: string | null;
+}
+
+export interface CustomerListResponse {
+  items: CustomerSummary[];
+  total: number;
+}
+
+export interface CtProjectOverview {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  project_type: string | null;
+  owner_id: string;
+  owner_name: string | null;
+  organization_id: string | null;
+  session_count: number;
+  active_session_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CtProjectListResponse {
+  items: CtProjectOverview[];
+  total: number;
+}
+
+export const controlTower = {
+  listCustomers: (
+    token: string,
+    params?: { offset?: number; limit?: number; search?: string; status?: string },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.search) query.set("search", params.search);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString();
+    return authRequest<CustomerListResponse>(
+      `/api/v1/control-tower/customers${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getCustomer: (token: string, orgId: string) =>
+    authRequest<CustomerDetail>(`/api/v1/control-tower/customers/${orgId}`, token),
+
+  listCustomerProjects: (
+    token: string,
+    orgId: string,
+    params?: { offset?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return authRequest<CtProjectListResponse>(
+      `/api/v1/control-tower/customers/${orgId}/projects${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getProjectOverview: (token: string, projectId: string) =>
+    authRequest<CtProjectOverview>(
+      `/api/v1/control-tower/projects/${projectId}/overview`,
+      token,
+    ),
+
+  setCustomerStatus: (token: string, orgId: string, status: string) =>
+    authRequest<CustomerDetail>(
+      `/api/v1/control-tower/customers/${orgId}/status`,
+      token,
+      { method: "POST", body: JSON.stringify({ status }) },
+    ),
+
+  transferProject: (token: string, projectId: string, toOrganizationId: string) =>
+    authRequest<CtProjectOverview>(
+      `/api/v1/control-tower/projects/${projectId}/transfer`,
+      token,
+      { method: "POST", body: JSON.stringify({ to_organization_id: toOrganizationId }) },
+    ),
+};
+
 export { ApiClientError, NetworkError };
