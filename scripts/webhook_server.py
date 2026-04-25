@@ -223,8 +223,8 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         log(f"EVENT: {action} {identifier} '{title}' → {state_name}")
 
-        # 상태별 트리거
-        if state_name in ("DayQueued", "NightQueued") and action in ("update", "create"):
+        # 상태별 트리거 (DayQueued / NightQueued / Queued 모두 처리)
+        if state_name in ("DayQueued", "NightQueued", "Queued") and action in ("update", "create"):
             log(f"{state_name.upper()}: {identifier} — 파이프라인 트리거")
             thread = threading.Thread(target=trigger_pipeline, daemon=True)
             thread.start()

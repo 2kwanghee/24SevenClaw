@@ -83,13 +83,19 @@ def _call(api_key: str, query: str, variables: dict | None = None, timeout: int 
 
 
 def get_queued_state_id(api_key: str, team_id: str) -> str | None:
-    """팀의 워크플로 상태 중 이름이 정확히 'queued'인 것의 ID를 반환한다."""
+    """팀의 워크플로 상태 중 로컬 파이프라인이 감지하는 상태 ID를 반환한다.
+
+    우선순위: DayQueued > NightQueued > Queued
+    로컬 webhook_server.py / linear_watcher.py는 DayQueued|NightQueued를 트리거로 사용한다.
+    """
     try:
         data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
         nodes = data.get("team", {}).get("states", {}).get("nodes", [])
-        for state in nodes:
-            if str(state.get("name", "")).lower() == "queued":
-                return str(state["id"])
+        priority = ["dayqueued", "nightqueued", "queued"]
+        by_name = {str(s.get("name", "")).lower(): str(s["id"]) for s in nodes}
+        for name in priority:
+            if name in by_name:
+                return by_name[name]
     except RuntimeError:
         pass
     return None

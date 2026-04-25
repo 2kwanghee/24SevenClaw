@@ -32,13 +32,13 @@ TASKS_DIR = os.path.join(PROJECT_DIR, ".ralph", "tasks")
 
 
 def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
-    """Fetch all issues with state 'DayQueued' or 'NightQueued', sorted by priority."""
+    """Fetch all issues with state 'DayQueued', 'NightQueued', or 'Queued', sorted by priority."""
     query = """
     query($teamId: ID!) {
         issues(
             filter: {
                 team: { id: { eq: $teamId } }
-                state: { name: { in: ["DayQueued", "NightQueued"] } }
+                state: { name: { in: ["DayQueued", "NightQueued", "Queued"] } }
             }
             orderBy: createdAt
         ) {
@@ -79,6 +79,7 @@ def extract_task_info(issue: dict) -> dict:
     labels = [l["name"] for l in issue.get("labels", {}).get("nodes", [])]
     state_name = issue.get("state", {}).get("name", "")
     mode = "night" if state_name == "NightQueued" else "day"
+    # "Queued" → DayQueued 동작과 동일 처리
 
     return {
         "issue_id": issue["id"],
