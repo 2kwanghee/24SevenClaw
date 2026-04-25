@@ -36,18 +36,18 @@ export function PMProfileCard({
       className={cn(
         "group relative w-full rounded-xl border p-4 text-left transition-all duration-200",
         isSelected
-          ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]",
+          ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+          : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100",
       )}
     >
       {/* 우상단: 일치율 배지 (추천 모드) 또는 선택 아이콘 */}
       <div className="absolute right-3 top-3">
         {isSelected ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
         ) : matchScore !== undefined ? (
-          <div className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5">
-            <Sparkles className="h-2.5 w-2.5 text-emerald-400" />
-            <span className="text-[10px] font-medium text-emerald-300">
+          <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5">
+            <Sparkles className="h-2.5 w-2.5 text-emerald-600" />
+            <span className="text-[10px] font-medium text-emerald-600">
               {Math.round(matchScore)}% 일치
             </span>
           </div>
@@ -59,21 +59,21 @@ export function PMProfileCard({
         <div
           className={cn(
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
-            isSelected ? "bg-emerald-500/20" : "bg-white/5",
+            isSelected ? "bg-emerald-100" : "bg-zinc-50",
           )}
         >
           <UserCircle2
             className={cn(
               "h-6 w-6",
-              isSelected ? "text-emerald-300" : "text-slate-400",
+              isSelected ? "text-emerald-600" : "text-zinc-500",
             )}
           />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">
+          <p className="truncate text-sm font-semibold text-zinc-950">
             {profile.name}
           </p>
-          <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-400">
+          <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600">
             {profile.specialties?.[0] ?? profile.domain ?? profile.title ?? ""}
           </span>
         </div>
@@ -88,42 +88,42 @@ export function PMProfileCard({
 
       {/* 설명 */}
       {profile.description && (
-        <p className="mb-3 text-xs leading-relaxed text-slate-400">
+        <p className="mb-3 text-xs leading-relaxed text-zinc-500">
           {profile.description}
         </p>
       )}
 
       {/* 추천 근거 (인용구 스타일) */}
       {reasoning && (
-        <p className="mb-3 rounded-lg bg-white/[0.03] px-3 py-2 text-xs italic leading-relaxed text-slate-500">
+        <p className="mb-3 rounded-lg bg-zinc-50 px-3 py-2 text-xs italic leading-relaxed text-zinc-500">
           &ldquo;{reasoning}&rdquo;
         </p>
       )}
 
       {/* 지표 4개 */}
       {metrics && (
-        <div className="mb-3 grid grid-cols-4 divide-x divide-white/5 rounded-lg bg-white/[0.03] px-2 py-2">
+        <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-200 rounded-lg bg-zinc-50 px-2 py-2">
           <div className="px-1.5 text-center">
-            <p className="text-sm font-semibold text-white">{totalProjects}</p>
-            <p className="text-[10px] text-slate-500">완료건수</p>
+            <p className="text-sm font-semibold text-zinc-950">{totalProjects}</p>
+            <p className="text-[10px] text-zinc-500">완료건수</p>
           </div>
           <div className="px-1.5 text-center">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-zinc-950">
               {metrics.usage_count}
             </p>
-            <p className="text-[10px] text-slate-500">사용빈도</p>
+            <p className="text-[10px] text-zinc-500">사용빈도</p>
           </div>
           <div className="px-1.5 text-center">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-zinc-950">
               {(successRate * 100).toFixed(0)}%
             </p>
-            <p className="text-[10px] text-slate-500">성공률</p>
+            <p className="text-[10px] text-zinc-500">성공률</p>
           </div>
           <div className="px-1.5 text-center">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-zinc-950">
               {metrics.avg_completion_days.toFixed(0)}일
             </p>
-            <p className="text-[10px] text-slate-500">평균완료일</p>
+            <p className="text-[10px] text-zinc-500">평균완료일</p>
           </div>
         </div>
       )}
@@ -134,13 +134,13 @@ export function PMProfileCard({
           {profile.specialties.slice(0, 4).map((specialty) => (
             <span
               key={specialty}
-              className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-500"
+              className="rounded-md bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-500"
             >
               {specialty}
             </span>
           ))}
           {profile.specialties.length > 4 && (
-            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-600">
+            <span className="rounded-md bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-500">
               +{profile.specialties.length - 4}
             </span>
           )}

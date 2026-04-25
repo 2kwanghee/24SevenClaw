@@ -45,17 +45,17 @@ export function ProjectForm({
       <div className="space-y-2">
         <label
           htmlFor="name"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           프로젝트 이름 <span className="text-red-400">*</span>
         </label>
         <div className="relative">
-          <FolderKanban className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <FolderKanban className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             id="name"
             type="text"
             {...register("name")}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-violet-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-violet-500/20"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-zinc-400 focus:bg-[var(--bg-hover)] focus:ring-2 focus:ring-zinc-400/20"
             placeholder="예: 내 AI 프로젝트"
           />
         </div>
@@ -70,17 +70,17 @@ export function ProjectForm({
       <div className="space-y-2">
         <label
           htmlFor="description"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-[var(--text-secondary)]"
         >
           설명
         </label>
         <div className="relative">
-          <FileText className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+          <FileText className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-[var(--text-muted)]" />
           <textarea
             id="description"
             rows={3}
             {...register("description")}
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-violet-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-violet-500/20 resize-none"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-all focus:border-zinc-400 focus:bg-[var(--bg-hover)] focus:ring-2 focus:ring-zinc-400/20 resize-none"
             placeholder="프로젝트에 대한 간단한 설명 (선택)"
           />
         </div>
@@ -89,9 +89,9 @@ export function ProjectForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 transition-opacity group-hover:opacity-100" />
+        <span className="absolute inset-0 bg-gradient-to-r from-zinc-800 to-zinc-700 opacity-0 transition-opacity group-hover:opacity-100" />
         <span className="relative">
           {isSubmitting ? "처리 중..." : submitLabel}
         </span>

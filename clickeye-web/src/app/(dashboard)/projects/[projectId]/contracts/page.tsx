@@ -43,18 +43,17 @@ function OverrideCard({
   const [editing, setEditing] = useState(false);
   const updateOverride = useUpdateOverride(projectId);
 
-  // 상위 계약 정보 조회
   const { data: parentContract } = useContract(override.central_contract_id);
 
   const typeColor = parentContract
-    ? TYPE_COLORS[parentContract.contract_type] ?? "bg-slate-500/10 text-slate-300 border-slate-500/20"
-    : "bg-slate-500/10 text-slate-300 border-slate-500/20";
+    ? TYPE_COLORS[parentContract.contract_type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"
+    : "bg-zinc-100 text-zinc-600 border-zinc-200";
   const typeLabel = parentContract
     ? TYPE_LABELS[parentContract.contract_type] ?? parentContract.contract_type
     : "로딩 중...";
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
@@ -63,22 +62,22 @@ function OverrideCard({
             {typeLabel}
           </span>
           {parentContract && (
-            <span className="text-sm font-medium text-slate-200">
+            <span className="text-sm font-medium text-[var(--text-primary)]">
               {parentContract.slug}
             </span>
           )}
           {parentContract?.is_locked ? (
-            <Lock className="h-3 w-3 text-red-400" />
+            <Lock className="h-3 w-3 text-red-500" />
           ) : (
-            <Unlock className="h-3 w-3 text-emerald-400" />
+            <Unlock className="h-3 w-3 text-emerald-600" />
           )}
         </div>
         <div className="flex items-center gap-2">
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               override.is_active
-                ? "bg-emerald-500/10 text-emerald-300"
-                : "bg-slate-500/10 text-slate-400"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-zinc-100 text-zinc-500"
             }`}
           >
             {override.is_active ? "활성" : "비활성"}
@@ -86,7 +85,7 @@ function OverrideCard({
           <button
             type="button"
             onClick={() => setEditing(!editing)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             aria-label={editing ? "편집 취소" : "오버라이드 편집"}
           >
             {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
@@ -117,12 +116,12 @@ function OverrideCard({
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <pre className="max-h-40 overflow-auto rounded-lg border border-white/5 bg-slate-900/60 p-3 text-xs leading-relaxed text-slate-400">
+        <pre className="max-h-40 overflow-auto rounded-lg border border-[var(--border-subtle)] bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-600">
           {JSON.stringify(override.override_content, null, 2)}
         </pre>
       )}
 
-      <div className="mt-2 text-[10px] text-slate-600">
+      <div className="mt-2 text-[10px] text-[var(--text-muted)]">
         수정: {new Date(override.updated_at).toLocaleString("ko-KR")}
       </div>
     </div>
@@ -164,23 +163,23 @@ function ApplyContractDialog({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
+          className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">계약 적용</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">계약 적용</h3>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-300"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <p className="mb-4 text-sm text-slate-400">
+          <p className="mb-4 text-sm text-[var(--text-muted)]">
             프로젝트에 적용할 중앙 계약을 선택하세요.
           </p>
 
@@ -193,26 +192,26 @@ function ApplyContractDialog({
                   onClick={() => setSelectedId(c.id)}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
                     selectedId === c.id
-                      ? "bg-violet-500/10 text-violet-300"
-                      : "text-slate-300 hover:bg-white/[0.03]"
+                      ? "bg-zinc-900 text-white"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                   }`}
                 >
                   <div>
                     <p className="text-sm font-medium">{c.slug}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className={`text-xs ${selectedId === c.id ? "text-zinc-400" : "text-[var(--text-muted)]"}`}>
                       {TYPE_LABELS[c.contract_type] ?? c.contract_type} · v{c.version}
                     </p>
                   </div>
                   {c.is_locked ? (
-                    <Lock className="h-3.5 w-3.5 text-red-400" />
+                    <Lock className="h-3.5 w-3.5 text-red-500" />
                   ) : (
-                    <Unlock className="h-3.5 w-3.5 text-emerald-400" />
+                    <Unlock className="h-3.5 w-3.5 text-emerald-600" />
                   )}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="py-8 text-center text-sm text-slate-500">
+            <p className="py-8 text-center text-sm text-[var(--text-muted)]">
               적용 가능한 계약이 없습니다
             </p>
           )}
@@ -221,7 +220,7 @@ function ApplyContractDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[0.05]"
+              className="rounded-xl border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             >
               취소
             </button>
@@ -229,7 +228,7 @@ function ApplyContractDialog({
               type="button"
               onClick={handleApply}
               disabled={!selectedId || applyContract.isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
               {applyContract.isPending ? "적용 중..." : "적용"}
@@ -268,7 +267,7 @@ function ProjectContractsContent() {
       <div className="mb-6">
         <Link
           href={`/projects/${projectId}`}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           프로젝트 상세
@@ -278,12 +277,12 @@ function ProjectContractsContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-            <FileText className="h-5 w-5 text-violet-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
+            <FileText className="h-5 w-5 text-zinc-700" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">프로젝트 계약</h1>
-            <p className="mt-0.5 text-sm text-slate-400">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">프로젝트 계약</h1>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">
               이 프로젝트에 적용된 계약과 오버라이드를 관리합니다
             </p>
           </div>
@@ -294,7 +293,7 @@ function ProjectContractsContent() {
             type="button"
             onClick={handleSync}
             disabled={syncContracts.isPending}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-300 transition-colors hover:border-violet-500/30 hover:bg-white/[0.05] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
           >
             {syncContracts.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -306,7 +305,7 @@ function ProjectContractsContent() {
           <button
             type="button"
             onClick={() => setApplyOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
           >
             <Plus className="h-4 w-4" />
             계약 적용
@@ -320,7 +319,7 @@ function ProjectContractsContent() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-32 animate-pulse rounded-xl bg-white/[0.03]"
+              className="h-32 animate-pulse rounded-xl bg-zinc-100"
             />
           ))}
         </div>
@@ -328,7 +327,7 @@ function ProjectContractsContent() {
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           프로젝트 계약을 불러오지 못했습니다.
         </div>
       )}
@@ -343,7 +342,7 @@ function ProjectContractsContent() {
               projectId={projectId}
             />
           ))}
-          <p className="mt-4 text-center text-xs text-slate-600">
+          <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
             총 {data.total}개
           </p>
         </div>
@@ -352,14 +351,14 @@ function ProjectContractsContent() {
       {/* 빈 상태 */}
       {data?.items && data.items.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <FileText className="h-12 w-12 text-slate-600" />
-          <p className="text-sm text-slate-400">
+          <FileText className="h-12 w-12 text-zinc-400" />
+          <p className="text-sm text-[var(--text-muted)]">
             적용된 계약이 없습니다
           </p>
           <button
             type="button"
             onClick={() => setApplyOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
           >
             <Plus className="h-3.5 w-3.5" />
             첫 계약 적용
@@ -386,7 +385,7 @@ export default function ProjectContractsPage() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 animate-pulse rounded-xl bg-white/[0.03]"
+                className="h-32 animate-pulse rounded-xl bg-zinc-100"
               />
             ))}
           </div>

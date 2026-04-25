@@ -64,17 +64,17 @@ function LoginPageInner() {
     <div>
       {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">다시 오신 것을 환영해요</h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-zinc-950">다시 오신 것을 환영해요</h1>
+        <p className="mt-2 text-sm text-zinc-500">
           계정에 로그인하여 AI 에이전트를 관리하세요
         </p>
       </div>
 
       {/* 성공 알림 */}
       {registered && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-          <p className="text-sm text-emerald-300">
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-sm text-emerald-700">
             회원가입이 완료되었습니다. 로그인해주세요.
           </p>
         </div>
@@ -82,9 +82,9 @@ function LoginPageInner() {
 
       {/* 에러 알림 */}
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-          <p className="text-sm text-red-300">{error}</p>
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+          <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
@@ -93,7 +93,7 @@ function LoginPageInner() {
         <button
           type="button"
           onClick={() => signIn("github", { callbackUrl })}
-          className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+          className="flex items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-400"
         >
           <Github className="h-4 w-4" />
           GitHub
@@ -101,7 +101,7 @@ function LoginPageInner() {
         <button
           type="button"
           onClick={() => signIn("google", { callbackUrl })}
-          className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+          className="flex items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-400"
         >
           <Chrome className="h-4 w-4" />
           Google
@@ -110,31 +110,31 @@ function LoginPageInner() {
 
       {/* 구분선 */}
       <div className="mb-6 flex items-center gap-4">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs text-slate-500">또는 이메일로 계속</span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="h-px flex-1 bg-zinc-200" />
+        <span className="text-xs text-zinc-400">또는 이메일로 계속</span>
+        <div className="h-px flex-1 bg-zinc-200" />
       </div>
 
       {/* 폼 */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* 이메일 */}
         <div className="space-y-2">
-          <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+          <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
             이메일
           </label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               id="email"
               type="email"
               autoComplete="email"
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-violet-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-violet-500/20"
+              className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-4 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
               placeholder="name@example.com"
               {...register("email")}
             />
           </div>
           {errors.email && (
-            <p className="flex items-center gap-1.5 text-xs text-red-400">
+            <p className="flex items-center gap-1.5 text-xs text-red-600">
               <AlertCircle className="h-3 w-3" />
               {errors.email.message}
             </p>
@@ -144,34 +144,34 @@ function LoginPageInner() {
         {/* 비밀번호 */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+            <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
               비밀번호
             </label>
-            <button type="button" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+            <button type="button" className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors">
               비밀번호 찾기
             </button>
           </div>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               id="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-11 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-violet-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-violet-500/20"
+              className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-11 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
               placeholder="비밀번호를 입력하세요"
               {...register("password")}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 transition-colors"
               tabIndex={-1}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
           {errors.password && (
-            <p className="flex items-center gap-1.5 text-xs text-red-400">
+            <p className="flex items-center gap-1.5 text-xs text-red-600">
               <AlertCircle className="h-3 w-3" />
               {errors.password.message}
             </p>
@@ -182,22 +182,19 @@ function LoginPageInner() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500 hover:shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <span className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 transition-opacity group-hover:opacity-100" />
-          <span className="relative">
-            {isSubmitting ? "로그인 중..." : "로그인"}
-          </span>
+          {isSubmitting ? "로그인 중..." : "로그인"}
           {!isSubmitting && (
-            <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           )}
         </button>
       </form>
 
       {/* 하단 링크 (모바일) */}
-      <p className="mt-8 text-center text-sm text-slate-500 lg:hidden">
+      <p className="mt-8 text-center text-sm text-zinc-500 lg:hidden">
         계정이 없으신가요?{" "}
-        <Link href="/register" className="font-medium text-violet-400 hover:text-violet-300 transition-colors">
+        <Link href="/register" className="font-medium text-zinc-900 hover:underline transition-colors">
           회원가입
         </Link>
       </p>
@@ -210,7 +207,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-20">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
         </div>
       }
     >

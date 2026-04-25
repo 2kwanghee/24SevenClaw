@@ -29,17 +29,17 @@ interface CompositionItemRowProps {
 
 function CompositionItemRow({ item, onDelete, onEdit, isDeleting }: CompositionItemRowProps) {
   return (
-    <tr className="border-b border-white/5 hover:bg-white/[0.02]">
-      <td className="px-4 py-3 text-sm text-slate-400">{item.display_order}</td>
+    <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+      <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{item.display_order}</td>
       <td className="px-4 py-3">
-        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-300">
+        <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
           {TYPE_LABELS[item.component_type as ComponentType] ?? item.component_type}
         </span>
       </td>
-      <td className="px-4 py-3 font-mono text-sm text-slate-300">{item.component_slug}</td>
-      <td className="px-4 py-3 text-sm text-white">{item.component_name}</td>
-      <td className="px-4 py-3 text-xs text-slate-400">{item.is_required ? "✓" : "—"}</td>
-      <td className="px-4 py-3 text-xs text-slate-500 max-w-[160px] truncate">
+      <td className="px-4 py-3 font-mono text-sm text-[var(--text-primary)]">{item.component_slug}</td>
+      <td className="px-4 py-3 text-sm text-[var(--text-primary)]">{item.component_name}</td>
+      <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">{item.is_required ? "✓" : "—"}</td>
+      <td className="px-4 py-3 text-xs text-[var(--text-muted)] max-w-[160px] truncate">
         {item.config?.body_md_override ? "있음" : "—"}
       </td>
       <td className="px-4 py-3 text-right">
@@ -47,7 +47,7 @@ function CompositionItemRow({ item, onDelete, onEdit, isDeleting }: CompositionI
           <button
             type="button"
             onClick={() => onEdit(item)}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 transition-colors hover:bg-white/5"
+            className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
             aria-label={`${item.component_name} 편집`}
           >
             <Pencil className="h-3 w-3" />
@@ -60,7 +60,7 @@ function CompositionItemRow({ item, onDelete, onEdit, isDeleting }: CompositionI
               onDelete(item.id);
             }}
             disabled={isDeleting}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
             aria-label={`${item.component_name} 삭제`}
           >
             <Trash2 className="h-3 w-3" />
@@ -124,18 +124,18 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
   const [showBodyMd, setShowBodyMd] = useState(false);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-white">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-5 space-y-4">
+      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
         {isEdit ? "구성 컴포넌트 편집" : "구성 컴포넌트 추가"}
       </h3>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">타입</label>
+          <label className="block text-xs text-[var(--text-muted)] mb-1">타입</label>
           <select
             value={form.component_type}
             onChange={(e) => onChange({ ...form, component_type: e.target.value })}
             disabled={isEdit}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none disabled:opacity-50"
           >
             {COMPONENT_TYPES.map((t) => (
               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
@@ -143,32 +143,32 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
           </select>
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Slug</label>
+          <label className="block text-xs text-[var(--text-muted)] mb-1">Slug</label>
           <input
             value={form.component_slug}
             onChange={(e) => onChange({ ...form, component_slug: e.target.value })}
             disabled={isEdit}
             placeholder="예: code-reviewer"
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none disabled:opacity-50"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none disabled:opacity-50"
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">이름</label>
+          <label className="block text-xs text-[var(--text-muted)] mb-1">이름</label>
           <input
             value={form.component_name}
             onChange={(e) => onChange({ ...form, component_name: e.target.value })}
             placeholder="예: 코드 리뷰어"
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">표시 순서</label>
+          <label className="block text-xs text-[var(--text-muted)] mb-1">표시 순서</label>
           <input
             type="number"
             min={0}
             value={form.display_order}
             onChange={(e) => onChange({ ...form, display_order: parseInt(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
       </div>
@@ -178,9 +178,9 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
           type="checkbox"
           checked={form.is_required}
           onChange={(e) => onChange({ ...form, is_required: e.target.checked })}
-          className="h-4 w-4 rounded border-white/20"
+          className="h-4 w-4 rounded border-[var(--border-medium)]"
         />
-        <label htmlFor="comp_is_required" className="text-sm text-slate-300">필수 컴포넌트</label>
+        <label htmlFor="comp_is_required" className="text-sm text-[var(--text-secondary)]">필수 컴포넌트</label>
       </div>
 
       {/* body_md_override 섹션 */}
@@ -188,7 +188,7 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
         <button
           type="button"
           onClick={() => setShowBodyMd(!showBodyMd)}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300"
+          className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
         >
           {showBodyMd ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           body_md_override (마크다운 재정의)
@@ -199,7 +199,7 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
             value={form.body_md_override}
             onChange={(e) => onChange({ ...form, body_md_override: e.target.value })}
             placeholder="# 커스텀 마크다운&#10;레지스트리 body_md 대신 이 내용이 사용됩니다."
-            className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm text-slate-300 focus:border-violet-500/50 focus:outline-none"
+            className="mt-2 w-full rounded-lg border border-[var(--border-subtle)] bg-zinc-50 px-3 py-2 font-mono text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         )}
       </div>
@@ -209,7 +209,7 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
           type="button"
           onClick={onSubmit}
           disabled={isPending || !form.component_slug || !form.component_name}
-          className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
         >
           <Check className="h-3.5 w-3.5" />
           {isPending ? (isEdit ? "저장 중..." : "추가 중...") : (isEdit ? "저장" : "추가")}
@@ -217,7 +217,7 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5"
+          className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
         >
           취소
         </button>
@@ -313,12 +313,12 @@ export function CompositionPanel({ profileId }: CompositionPanelProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white">구성 컴포넌트</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">구성 컴포넌트</h2>
         {!formState && (
           <button
             type="button"
             onClick={openAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500"
+            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
           >
             <Plus className="h-3.5 w-3.5" />
             추가
@@ -328,7 +328,7 @@ export function CompositionPanel({ profileId }: CompositionPanelProps) {
           <button
             type="button"
             onClick={() => setFormState(null)}
-            className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-white/5"
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
           >
             <X className="h-3.5 w-3.5" />
             닫기
@@ -348,33 +348,33 @@ export function CompositionPanel({ profileId }: CompositionPanelProps) {
       )}
 
       {isLoading && (
-        <div className="py-8 text-center text-sm text-slate-500">불러오는 중...</div>
+        <div className="py-8 text-center text-sm text-[var(--text-muted)]">불러오는 중...</div>
       )}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {(error as Error).message}
         </div>
       )}
 
       {!isLoading && allItems.length === 0 && (
-        <div className="py-8 text-center text-sm text-slate-600">
+        <div className="py-8 text-center text-sm text-[var(--text-muted)]">
           구성 컴포넌트가 없습니다. 위 버튼으로 추가하세요.
         </div>
       )}
 
       {allItems.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-white/10">
+        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.02]">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">순서</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">타입</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">Slug</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">이름</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">필수</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">MD 재정의</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400">액션</th>
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">순서</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">타입</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Slug</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">이름</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">필수</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">MD 재정의</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">액션</th>
               </tr>
             </thead>
             <tbody>

@@ -94,14 +94,14 @@ function EditForm({
       {/* 타입 + 소스 + 버전 */}
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label htmlFor="edit-type" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="edit-type" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
             타입
           </label>
           <select
             id="edit-type"
             value={formData.contract_type ?? ""}
             onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/30 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           >
             {TYPE_OPTIONS.map((type) => (
               <option key={type} value={type}>
@@ -111,7 +111,7 @@ function EditForm({
           </select>
         </div>
         <div>
-          <label htmlFor="edit-source" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="edit-source" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
             소스
           </label>
           <input
@@ -119,11 +119,11 @@ function EditForm({
             type="text"
             value={formData.source ?? ""}
             onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/30 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="edit-version" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="edit-version" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
             버전
           </label>
           <input
@@ -131,7 +131,7 @@ function EditForm({
             type="text"
             value={formData.version ?? ""}
             onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/30 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
       </div>
@@ -139,7 +139,7 @@ function EditForm({
       {/* 설명 + 잠금 */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="edit-desc" className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor="edit-desc" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
             설명
           </label>
           <input
@@ -147,16 +147,16 @@ function EditForm({
             type="text"
             value={formData.description ?? ""}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/30 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
         <div className="flex items-end">
-          <label className="flex items-center gap-2 py-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 py-2 text-sm text-[var(--text-secondary)]">
             <input
               type="checkbox"
               checked={formData.is_locked ?? false}
               onChange={(e) => setFormData({ ...formData, is_locked: e.target.checked })}
-              className="h-4 w-4 rounded border-white/10 bg-white/[0.03] text-violet-500 focus:ring-violet-500/30"
+              className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-surface)] text-zinc-900 focus:ring-zinc-400/30"
             />
             잠금 상태
           </label>
@@ -165,7 +165,7 @@ function EditForm({
 
       {/* 허용 오버라이드 */}
       <div>
-        <label htmlFor="edit-overrides" className="mb-1 block text-xs font-medium text-slate-400">
+        <label htmlFor="edit-overrides" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
           허용 오버라이드 필드 (쉼표 구분)
         </label>
         <input
@@ -173,13 +173,13 @@ function EditForm({
           type="text"
           value={overridesText}
           onChange={(e) => setOverridesText(e.target.value)}
-          className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/30 focus:outline-none"
+          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
         />
       </div>
 
       {/* JSON 콘텐츠 */}
       <div>
-        <label htmlFor="edit-content" className="mb-1 block text-xs font-medium text-slate-400">
+        <label htmlFor="edit-content" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
           콘텐츠 (JSON)
         </label>
         <textarea
@@ -188,15 +188,15 @@ function EditForm({
           onChange={(e) => setContentText(e.target.value)}
           rows={12}
           spellCheck={false}
-          className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 font-mono text-xs leading-relaxed text-slate-300 focus:border-violet-500/30 focus:outline-none"
+          className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 font-mono text-xs leading-relaxed text-[var(--text-secondary)] focus:border-zinc-400 focus:outline-none"
         />
       </div>
 
       {/* 에러 */}
       {formError && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
-          <p className="text-xs text-red-300">{formError}</p>
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-700" />
+          <p className="text-xs text-red-700">{formError}</p>
         </div>
       )}
 
@@ -205,7 +205,7 @@ function EditForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-white/[0.05]"
+          className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)]"
         >
           <X className="h-3.5 w-3.5" />
           취소
@@ -214,7 +214,7 @@ function EditForm({
           type="button"
           onClick={handleSave}
           disabled={updateContract.isPending}
-          className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {updateContract.isPending ? "저장 중..." : "저장"}
@@ -234,16 +234,16 @@ function ContractDetailContent() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-        <p className="mt-4 text-sm text-slate-500">불러오는 중...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-        <p className="text-sm text-red-300">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-sm text-red-700">
           계약을 불러오지 못했습니다: {error.message}
         </p>
       </div>
@@ -271,7 +271,7 @@ function ContractDetailContent() {
       <div className="mb-6">
         <Link
           href="/admin/contracts"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           계약 목록
@@ -281,8 +281,8 @@ function ContractDetailContent() {
       {/* 헤더 */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{contract.slug}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{contract.slug}</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             ID: {contract.id}
           </p>
         </div>
@@ -290,7 +290,7 @@ function ContractDetailContent() {
           <button
             type="button"
             onClick={() => setIsEditing(!isEditing)}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+            className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <Pencil className="h-3.5 w-3.5" />
             {isEditing ? "보기 모드" : "수정"}
@@ -299,7 +299,7 @@ function ContractDetailContent() {
             type="button"
             onClick={handleDelete}
             disabled={deleteContract.isPending}
-            className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:bg-red-500/10 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-100 disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
             삭제
@@ -308,7 +308,7 @@ function ContractDetailContent() {
       </div>
 
       {/* 콘텐츠 영역 */}
-      <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         {isEditing ? (
           <EditForm contract={contract} onCancel={() => setIsEditing(false)} />
         ) : (
@@ -317,7 +317,7 @@ function ContractDetailContent() {
       </div>
 
       {/* 감사 로그 */}
-      <div className="mt-8 rounded-2xl border border-white/5 bg-white/[0.02] p-6">
+      <div className="mt-8 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <ContractAuditTable contractId={contract.id} />
       </div>
     </div>
@@ -330,8 +330,8 @@ export default function AdminContractDetailPage() {
       <Suspense
         fallback={
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-            <p className="mt-4 text-sm text-slate-500">불러오는 중...</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+            <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
           </div>
         }
       >

@@ -122,15 +122,15 @@ export function StepPMSelect() {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="relative mb-6">
-          <div className="h-16 w-16 animate-pulse rounded-full border border-emerald-500/20 bg-emerald-500/5" />
+          <div className="h-16 w-16 animate-pulse rounded-full border border-emerald-200 bg-emerald-50" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="h-7 w-7 animate-spin text-emerald-400" />
+            <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
           </div>
         </div>
-        <p className="mb-1 text-sm font-semibold text-white">
+        <p className="mb-1 text-sm font-semibold text-zinc-950">
           PM 추천 분석 중...
         </p>
-        <p className="mb-8 text-xs text-slate-500">
+        <p className="mb-8 text-xs text-zinc-500">
           프로토타입에 최적화된 PM 프로필을 탐색하고 있습니다
         </p>
         <div className="w-full max-w-xs space-y-3">
@@ -139,16 +139,16 @@ export function StepPMSelect() {
               key={label}
               className={`flex items-center gap-2.5 text-sm transition-all duration-300 ${
                 idx < loadingStep
-                  ? "text-emerald-400"
+                  ? "text-emerald-600"
                   : idx === loadingStep
-                    ? "text-white"
-                    : "text-slate-600"
+                    ? "text-zinc-950"
+                    : "text-zinc-500"
               }`}
             >
               {idx < loadingStep ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
               ) : idx === loadingStep ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-400" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-600" />
               ) : (
                 <div className="h-4 w-4 shrink-0 rounded-full border border-slate-700" />
               )}
@@ -164,8 +164,8 @@ export function StepPMSelect() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <UserCircle2 className="h-10 w-10 text-slate-600" />
-        <p className="mt-4 text-sm text-slate-400">
+        <UserCircle2 className="h-10 w-10 text-zinc-500" />
+        <p className="mt-4 text-sm text-zinc-500">
           추천 가능한 PM 프로필이 없습니다
         </p>
       </div>
@@ -177,9 +177,9 @@ export function StepPMSelect() {
     <div className="space-y-5">
       {/* 추천 안내 배너 */}
       {selectedPrototypeId && (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-          <p className="text-xs text-slate-400">
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-xs text-zinc-500">
             선택한 프로토타입 기반으로 AI가 최적의 PM을 추천했습니다. 일치율이
             높을수록 프로젝트 성공 가능성이 높습니다.
           </p>
@@ -204,7 +204,7 @@ export function StepPMSelect() {
       {/* PM 구성 시각화 (선택 후 표시) */}
       {selectedItem && (
         <div className="animate-fade-in-up space-y-3">
-          <div className="flex items-center gap-2 text-xs text-emerald-400">
+          <div className="flex items-center gap-2 text-xs text-emerald-600">
             <Sparkles className="h-3.5 w-3.5" />
             <span>선택한 PM의 구성 요소</span>
           </div>

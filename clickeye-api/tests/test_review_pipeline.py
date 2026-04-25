@@ -1,7 +1,13 @@
 """교차 리뷰 파이프라인 API 테스트."""
 
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.crypto import encrypt
+from app.models.user_linear_credentials import UserLinearCredentials
 
 
 @pytest.fixture
@@ -688,3 +694,127 @@ async def test_review_rejection_cycle(
         headers=auth_headers,
     )
     assert list_resp.json()["total"] == 2
+
+
+# === push-to-linear 테스트 ===
+
+
+@pytest.fixture
+async def session_with_description(
+    client: AsyncClient, auth_headers: dict[str, str], project_id: str
+) -> str:
+    """description이 있는 오케스트레이션 세션 생성 → 분해 → 배정."""
+    resp = await client.post(
+        f"/api/v1/orchestrator/projects/{project_id}/sessions",
+        json={
+            "title": "React + FastAPI 프로젝트 첫 세팅",
+            "description": "React 프론트엔드와 FastAPI 백엔드로 구성된 풀스택 프로젝트의 초기 세팅을 구현해주세요.",
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    sid = resp.json()["id"]
+
+    await client.post(f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers)
+    await client.post(f"/api/v1/orchestrator/sessions/{sid}/assign", json={}, headers=auth_headers)
+    return sid
+
+
+async def _seed_linear_credentials(db_session: AsyncSession, user_id: str) -> None:
+    """테스트용 Linear 자격증명을 DB에 시딩한다."""
+    import uuid
+
+    creds = UserLinearCredentials(
+        id=uuid.uuid4(),
+        user_id=uuid.UUID(user_id),
+        encrypted_api_key=encrypt("fake-linear-api-key"),
+        team_id="test-team-id",
+    )
+    db_session.add(creds)
+    await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_push_to_linear_includes_session_description(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    db_session: AsyncSession,
+    session_with_description: str,
+) -> None:
+    """push-to-linear 시 session.description이 create_issues에 전달되는지."""
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    await _seed_linear_credentials(db_session, me.json()["id"])
+
+    captured: dict = {}
+
+    def fake_create_issues(*args, **kwargs):  # type: ignore[no-untyped-def]
+        captured.update(kwargs)
+        return [{"identifier": "TEST-1", "title": "[backend] 세팅", "url": "https://linear.app/test/TEST-1"}]
+
+    with (
+        patch("app.services.linear_service.create_issues", side_effect=fake_create_issues),
+        patch("app.services.linear_service.get_queued_state_id", return_value=None),
+    ):
+        resp = await client.post(
+            f"/api/v1/orchestrator/sessions/{session_with_description}/push-to-linear",
+            headers=auth_headers,
+        )
+
+    assert resp.status_code == 201
+    assert resp.json()["count"] >= 1
+    assert captured.get("session_description") == (
+        "React 프론트엔드와 FastAPI 백엔드로 구성된 풀스택 프로젝트의 초기 세팅을 구현해주세요."
+    )
+
+
+@pytest.mark.asyncio
+async def test_push_to_linear_without_description(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    db_session: AsyncSession,
+    project_id: str,
+) -> None:
+    """session.description=None 일 때 session_description=None으로 전달되고 200 반환."""
+    resp = await client.post(
+        f"/api/v1/orchestrator/projects/{project_id}/sessions",
+        json={"title": "설명 없는 세션"},
+        headers=auth_headers,
+    )
+    sid = resp.json()["id"]
+    await client.post(f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers)
+    await client.post(f"/api/v1/orchestrator/sessions/{sid}/assign", json={}, headers=auth_headers)
+
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    await _seed_linear_credentials(db_session, me.json()["id"])
+
+    captured: dict = {}
+
+    def fake_create_issues(*args, **kwargs):  # type: ignore[no-untyped-def]
+        captured.update(kwargs)
+        return [{"identifier": "TEST-2", "title": "[backend] 태스크", "url": "https://linear.app/test/TEST-2"}]
+
+    with (
+        patch("app.services.linear_service.create_issues", side_effect=fake_create_issues),
+        patch("app.services.linear_service.get_queued_state_id", return_value=None),
+    ):
+        resp = await client.post(
+            f"/api/v1/orchestrator/sessions/{sid}/push-to-linear",
+            headers=auth_headers,
+        )
+
+    assert resp.status_code == 201
+    assert captured.get("session_description") is None
+
+
+@pytest.mark.asyncio
+async def test_push_to_linear_no_credentials(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    session_with_description: str,
+) -> None:
+    """Linear 자격증명 미설정 시 422 반환."""
+    resp = await client.post(
+        f"/api/v1/orchestrator/sessions/{session_with_description}/push-to-linear",
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422

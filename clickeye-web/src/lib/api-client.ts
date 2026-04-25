@@ -1596,6 +1596,7 @@ export interface LinearSyncHintSubtask {
 export interface LinearSyncHint {
   action: string;
   session_title: string;
+  session_description?: string | null;
   subtasks: LinearSyncHintSubtask[];
   suggested_labels: string[];
   instructions: string;
@@ -1703,6 +1704,7 @@ export interface PushToLinearResponse {
   created_identifiers: string[];
   created_urls: string[];
   count: number;
+  queued_state_applied: boolean;
 }
 
 export interface LinearConnectionStatus {
@@ -1734,6 +1736,13 @@ export const reviews = {
   generateDrafts: (token: string, sessionId: string) =>
     authRequest<GenerateDraftsResponse>(
       `/api/v1/orchestrator/sessions/${sessionId}/generate-drafts`,
+      token,
+      { method: "POST" },
+    ),
+
+  resumePipeline: (token: string, sessionId: string) =>
+    authRequest<{ message: string; session_id: string }>(
+      `/api/v1/orchestrator/sessions/${sessionId}/resume-pipeline`,
       token,
       { method: "POST" },
     ),

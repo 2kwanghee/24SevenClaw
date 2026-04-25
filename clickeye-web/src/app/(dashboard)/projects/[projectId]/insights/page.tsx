@@ -39,19 +39,19 @@ export default function ProjectInsightsPage() {
         <div className="flex items-center gap-3">
           <Link
             href={`/projects/${projectId}`}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
+            className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-violet-400" />
-              <h1 className="text-lg font-bold text-white">
+              <BarChart3 className="h-4 w-4 text-zinc-500" />
+              <h1 className="text-lg font-bold text-[var(--text-primary)]">
                 {kpi?.project_name ?? report?.project_name ?? "프로젝트"} KPI 인사이트
               </h1>
             </div>
             {kpi && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--text-muted)]">
                 마지막 집계:{" "}
                 {new Date(kpi.generated_at).toLocaleString("ko-KR")}
               </p>
@@ -61,7 +61,7 @@ export default function ProjectInsightsPage() {
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] disabled:opacity-50"
         >
           <RefreshCcw
             className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`}
@@ -73,13 +73,13 @@ export default function ProjectInsightsPage() {
       {/* 로딩 */}
       {isLoading && !kpi && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
       )}
 
       {/* 에러 */}
       {kpiError && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center text-sm text-red-400">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
           KPI 데이터를 불러오지 못했습니다. 다시 시도해 주세요.
         </div>
       )}

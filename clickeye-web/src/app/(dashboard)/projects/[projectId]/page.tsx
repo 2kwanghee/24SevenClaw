@@ -72,7 +72,6 @@ export default function ProjectDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  // API 키 — 위저드 스토어에서 초기값 로드 (보안상 DB 저장 안 함)
   const [envVars, setEnvVars] = useState<Record<string, string>>(() => {
     const stored = useSolutionWizardStore.getState().data.env.envVars;
     return { ...stored };
@@ -117,16 +116,16 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-        <p className="mt-4 text-sm text-slate-500">불러오는 중...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-        <p className="text-sm text-red-300">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-sm text-red-700">
           프로젝트를 불러오지 못했습니다: {error.message}
         </p>
       </div>
@@ -148,7 +147,7 @@ export default function ProjectDetailPage() {
       <div className="mb-8">
         <Link
           href="/projects"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           프로젝트 목록
@@ -157,22 +156,22 @@ export default function ProjectDetailPage() {
 
       {isEditing ? (
         /* 수정 모드 */
-        <div className="mx-auto max-w-lg rounded-2xl border border-white/5 bg-white/[0.02] p-8">
+        <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
 
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">프로젝트 수정</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">프로젝트 수정</h2>
             <button
               onClick={() => setIsEditing(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
           {submitError && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-              <p className="text-sm text-red-300">{submitError}</p>
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+              <p className="text-sm text-red-700">{submitError}</p>
             </div>
           )}
 
@@ -204,22 +203,22 @@ export default function ProjectDetailPage() {
       ) : (
         /* 상세 보기 */
         <>
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-[var(--text-primary)]">{project.name}</h1>
                 <span
                   className={`rounded-md px-2.5 py-0.5 text-xs font-medium ${
                     isActive
-                      ? "bg-emerald-500/10 text-emerald-400"
-                      : "bg-slate-500/10 text-slate-400"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-zinc-100 text-zinc-500"
                   }`}
                 >
                   {isActive ? "활성" : "보관됨"}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-500">{project.slug}</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">{project.slug}</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -227,35 +226,35 @@ export default function ProjectDetailPage() {
                   setSubmitError(null);
                   setIsEditing(true);
                 }}
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 수정
               </button>
               <Link
                 href={`/projects/${projectId}/dashboard`}
-                className="flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-2 text-sm font-medium text-violet-300 transition-all hover:bg-violet-500/10"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <BarChart3 className="h-3.5 w-3.5" />
                 대시보드
               </Link>
               <Link
                 href={`/projects/${projectId}/ai-team`}
-                className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-2 text-sm font-medium text-cyan-300 transition-all hover:bg-cyan-500/10"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Bot className="h-3.5 w-3.5" />
                 AI Team
               </Link>
               <Link
                 href={`/projects/${projectId}/settings`}
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Settings className="h-3.5 w-3.5" />
                 설정
               </Link>
               <button
                 onClick={() => setDeleteOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2 text-sm font-medium text-red-400 transition-all hover:bg-red-500/10"
+                className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 삭제
@@ -264,18 +263,18 @@ export default function ProjectDetailPage() {
           </div>
 
           {project.description && (
-            <p className="mt-6 leading-relaxed text-slate-300">
+            <p className="mt-6 leading-relaxed text-[var(--text-secondary)]">
               {project.description}
             </p>
           )}
 
           {/* 메타 정보 */}
-          <div className="mt-8 flex gap-6 border-t border-white/5 pt-6">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="mt-8 flex gap-6 border-t border-[var(--border-subtle)] pt-6">
+            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
               <Calendar className="h-4 w-4" />
               생성일: {formattedDate}
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
               <Activity className="h-4 w-4" />
               상태: {isActive ? "활성" : "보관됨"}
             </div>
@@ -284,8 +283,8 @@ export default function ProjectDetailPage() {
 
         {/* 설정 요약 + ZIP 다운로드 (wizard 프로젝트) */}
         {(project.wizard_data || project.project_type === "wizard") && (
-          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8">
-            <h2 className="mb-4 text-lg font-semibold text-white">
+          <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
               설정 요약
             </h2>
 
@@ -351,7 +350,7 @@ export default function ProjectDetailPage() {
                 />
               </div>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-[var(--text-muted)]">
                 위저드 설정 정보가 없습니다. ZIP을 다시 생성하려면 솔루션 위저드를 다시 진행해 주세요.
               </p>
             )}
@@ -381,14 +380,14 @@ export default function ProjectDetailPage() {
               ];
 
               return (
-                <div className="mt-6 border-t border-white/5 pt-6 space-y-4">
-                  <p className="text-xs text-slate-400">
-                    API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-slate-300">.env</code>에 직접 작성됩니다.
+                <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-[var(--text-secondary)]">.env</code>에 직접 작성됩니다.
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {ENV_FIELDS.map(({ key, label, placeholder }) => (
                       <div key={key}>
-                        <label className="mb-1 block text-[11px] font-medium text-slate-400">
+                        <label className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
                           {label}
                         </label>
                         <input
@@ -398,7 +397,7 @@ export default function ProjectDetailPage() {
                             setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
                           }
                           placeholder={placeholder}
-                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-slate-200 placeholder-slate-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+                          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-200"
                         />
                       </div>
                     ))}
@@ -407,7 +406,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={handleRedownload}
                       disabled={downloading || !envVars["ANTHROPIC_API_KEY"]?.trim()}
-                      className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {downloading ? (
                         <>
@@ -421,14 +420,14 @@ export default function ProjectDetailPage() {
                         </>
                       )}
                     </button>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-[var(--text-muted)]">
                       저장된 설정 + 입력한 API 키로 ZIP을 생성합니다
                     </span>
                   </div>
                   {downloadError && (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
-                      <p className="text-xs text-red-300">{downloadError}</p>
+                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                      <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                      <p className="text-xs text-red-700">{downloadError}</p>
                     </div>
                   )}
                 </div>
@@ -482,11 +481,11 @@ interface ConfigBadgeProps {
 
 function ConfigBadge({ icon: Icon, label, value }: ConfigBadgeProps) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-violet-400/60" />
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-600">{label}</p>
-        <p className="truncate text-xs font-medium text-slate-300">{value}</p>
+        <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
+        <p className="truncate text-xs font-medium text-[var(--text-primary)]">{value}</p>
       </div>
     </div>
   );
@@ -511,15 +510,15 @@ function CheckItem({ ok, label, description }: CheckItemProps) {
   return (
     <div className="flex items-start gap-3">
       {ok === null ? (
-        <div className="mt-0.5 h-4 w-4 shrink-0 animate-pulse rounded-full bg-slate-700" />
+        <div className="mt-0.5 h-4 w-4 shrink-0 animate-pulse rounded-full bg-zinc-200" />
       ) : ok ? (
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
       ) : (
-        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
       )}
       <div>
-        <p className="text-sm font-medium text-slate-300">{label}</p>
-        {description && <p className="text-xs text-slate-500">{description}</p>}
+        <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
+        {description && <p className="text-xs text-[var(--text-muted)]">{description}</p>}
       </div>
     </div>
   );
@@ -533,16 +532,16 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: Linea
     status?.webhook_registered;
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-8">
+    <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-violet-400" />
-          <h2 className="text-lg font-semibold text-white">Linear 연동 준비 상태</h2>
+          <Zap className="h-4 w-4 text-zinc-700" />
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Linear 연동 준비 상태</h2>
         </div>
         <button
           onClick={onRefresh}
           disabled={isFetching}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 transition-all hover:bg-white/10 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
           새로고침
@@ -590,11 +589,11 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: Linea
         />
       </div>
 
-      <div className="mt-6 flex items-center gap-3 border-t border-white/5 pt-6">
+      <div className="mt-6 flex items-center gap-3 border-t border-[var(--border-subtle)] pt-6">
         {allReady ? (
           <a
             href={`/projects/${projectId}/ai-team`}
-            className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500"
+            className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
           >
             <Zap className="h-4 w-4" />
             AI Team 시작하기
@@ -602,13 +601,13 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: Linea
         ) : (
           <a
             href="/settings/linear"
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+            className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Linear 설정 바로가기
           </a>
         )}
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-[var(--text-muted)]">
           {allReady
             ? "모든 준비가 완료되었습니다. AI Team에서 Linear 이슈를 자동으로 생성할 수 있습니다."
             : "4가지 항목을 모두 완료하면 Linear 자동화가 활성화됩니다."}

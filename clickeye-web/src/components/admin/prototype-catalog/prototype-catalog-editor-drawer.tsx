@@ -163,26 +163,26 @@ export function PrototypeCatalogEditorDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/40"
         onClick={onClose}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
         role="button"
         tabIndex={0}
         aria-label="닫기"
       />
-      <div className="relative w-full max-w-2xl h-full overflow-y-auto border-l border-white/10 bg-slate-900 flex flex-col">
+      <div className="relative w-full max-w-2xl h-full overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-surface)] flex flex-col">
         {/* 헤더 */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-slate-900 px-6 py-4">
-          <h2 className="text-sm font-semibold text-white">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             {entry ? "카탈로그 항목 편집" : "새 카탈로그 항목"}
           </h2>
-          <button type="button" onClick={onClose} className="text-slate-500 hover:text-white">
+          <button type="button" onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
             <X size={16} />
           </button>
         </div>
 
         {/* 탭 */}
-        <div className="flex border-b border-white/10 px-6">
+        <div className="flex border-b border-[var(--border-subtle)] px-6">
           {TABS.map(t => (
             <button
               key={t.id}
@@ -190,8 +190,8 @@ export function PrototypeCatalogEditorDrawer({
               onClick={() => setTab(t.id)}
               className={`mr-4 py-3 text-xs font-medium border-b-2 transition-colors ${
                 tab === t.id
-                  ? "border-blue-500 text-white"
-                  : "border-transparent text-slate-500 hover:text-white"
+                  ? "border-zinc-900 text-[var(--text-primary)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
               {t.label}
@@ -214,18 +214,18 @@ export function PrototypeCatalogEditorDrawer({
             <AgentTab form={form} set={set} />
           )}
 
-          <div className="sticky bottom-0 bg-slate-900 pt-4 flex justify-end gap-3 border-t border-white/10 mt-auto">
+          <div className="sticky bottom-0 bg-[var(--bg-surface)] pt-4 flex justify-end gap-3 border-t border-[var(--border-subtle)] mt-auto">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/10 px-4 py-2 text-xs text-slate-400 hover:text-white"
+              className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
             >
               {isSubmitting && <Loader2 size={12} className="animate-spin" />}
               저장
@@ -242,14 +242,14 @@ function Field({
 }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-slate-400">{label}</label>
-      {hint && <p className="text-xs text-slate-600">{hint}</p>}
+      <label className="text-xs font-medium text-[var(--text-secondary)]">{label}</label>
+      {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
       {children}
     </div>
   );
 }
 
-const INPUT = "w-full rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none";
+const INPUT = "w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none";
 const TEXTAREA = `${INPUT} resize-y min-h-[80px]`;
 
 type SetFn = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -293,7 +293,7 @@ function BasicTab({ form, set, isEdit }: { form: FormState; set: SetFn; isEdit: 
               }}
               className="rounded"
             />
-            <span className="text-xs text-slate-400">활성화</span>
+            <span className="text-xs text-[var(--text-secondary)]">활성화</span>
           </label>
         </Field>
       </div>

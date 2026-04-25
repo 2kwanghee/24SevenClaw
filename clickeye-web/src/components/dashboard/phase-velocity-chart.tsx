@@ -29,16 +29,16 @@ export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
   const maxDuration = Math.max(...data.map((d) => d.avg_duration_seconds), 1);
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-      <h3 className="mb-1 text-sm font-semibold text-slate-200">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <h3 className="mb-1 text-sm font-semibold text-[var(--text-primary)]">
         단계별 평균 소요시간
       </h3>
-      <p className="mb-4 text-xs text-slate-500">
+      <p className="mb-4 text-xs text-[var(--text-muted)]">
         각 파이프라인 단계의 평균 처리 시간
       </p>
 
       {data.length === 0 ? (
-        <p className="py-8 text-center text-sm text-slate-500">
+        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
           아직 단계 데이터가 없습니다
         </p>
       ) : (
@@ -49,10 +49,10 @@ export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
 
             return (
               <div key={item.phase} className="flex items-center gap-3">
-                <span className="w-16 shrink-0 text-right text-xs text-slate-400">
+                <span className="w-16 shrink-0 text-right text-xs text-[var(--text-secondary)]">
                   {label}
                 </span>
-                <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-white/5">
+                <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-zinc-100">
                   <div
                     className="absolute inset-y-0 left-0 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
                     style={{
@@ -61,7 +61,7 @@ export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
                     }}
                   />
                 </div>
-                <span className="w-16 text-right text-xs font-medium text-slate-300">
+                <span className="w-16 text-right text-xs font-medium text-[var(--text-primary)]">
                   {formatDuration(item.avg_duration_seconds)}
                 </span>
               </div>
@@ -71,7 +71,7 @@ export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
       )}
 
       {data.length > 0 && (
-        <div className="mt-4 border-t border-white/5 pt-3 text-right text-xs text-slate-500">
+        <div className="mt-4 border-t border-[var(--border-subtle)] pt-3 text-right text-xs text-[var(--text-muted)]">
           총 {data.reduce((s, d) => s + d.sample_count, 0)}건 샘플
         </div>
       )}

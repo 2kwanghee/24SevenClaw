@@ -30,7 +30,7 @@ export function PMRatingStars({
         return (
           <span key={i} className="relative inline-flex">
             {/* 빈 별 */}
-            <Star className={cn(starSize, "fill-slate-700 text-slate-700")} />
+            <Star className={cn(starSize, "fill-zinc-200 text-zinc-200")} />
             {/* 채워진 별 (full 또는 partial) */}
             {(filled || partial) && (
               <Star
@@ -45,7 +45,7 @@ export function PMRatingStars({
         );
       })}
       {showValue && (
-        <span className="ml-1 text-xs font-medium text-slate-400">
+        <span className="ml-1 text-xs font-medium text-[var(--text-muted)]">
           {clamped.toFixed(1)}
         </span>
       )}

@@ -45,11 +45,11 @@ export function StepPrototypeSelection() {
   if (prototypes.generatedPrototypes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <AlertCircle className="h-10 w-10 text-slate-600" aria-hidden="true" />
-        <p className="mt-4 text-sm font-medium text-slate-400">
+        <AlertCircle className="h-10 w-10 text-zinc-500" aria-hidden="true" />
+        <p className="mt-4 text-sm font-medium text-zinc-500">
           생성된 프로토타입이 없습니다
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-zinc-500">
           이전 단계로 돌아가 정보를 다시 확인해 주세요.
         </p>
       </div>
@@ -59,9 +59,9 @@ export function StepPrototypeSelection() {
   /* -- 프로토타입 카드 목록 ---------------------------------------------- */
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-zinc-500">
         <Sparkles
-          className="mr-1 inline-block h-3.5 w-3.5 text-emerald-400"
+          className="mr-1 inline-block h-3.5 w-3.5 text-emerald-600"
           aria-hidden="true"
         />
         AI가 분석한 솔루션 후보입니다. 가장 적합한 방향을 선택하세요.

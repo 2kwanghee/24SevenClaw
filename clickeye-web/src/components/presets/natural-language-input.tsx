@@ -41,12 +41,12 @@ export function NaturalLanguageInput({
     <div className="space-y-4">
       <div className="relative">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-violet-400" />
-          <span className="text-sm font-medium text-white">
+          <Sparkles className="h-4 w-4 text-violet-600" />
+          <span className="text-sm font-medium text-[var(--text-primary)]">
             자연어로 설정하기
           </span>
         </div>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-[var(--text-muted)]">
           원하는 프로젝트를 자연어로 설명하면 최적의 설정을 추천합니다
         </p>
 
@@ -61,12 +61,12 @@ export function NaturalLanguageInput({
             disabled={isLoading}
             aria-label="자연어 설정 입력"
             className={cn(
-              "w-full resize-none rounded-xl border bg-white/5 px-4 py-3 text-sm text-white",
-              "placeholder:text-slate-600 focus:outline-none focus:ring-2",
+              "w-full resize-none rounded-xl border bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)]",
+              "placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2",
               "transition-all duration-200",
               isLoading
-                ? "border-white/5 opacity-60"
-                : "border-white/10 focus:border-violet-500/50 focus:ring-violet-500/20",
+                ? "border-[var(--border-subtle)] opacity-60"
+                : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-400/20",
             )}
           />
           <button
@@ -77,8 +77,8 @@ export function NaturalLanguageInput({
             className={cn(
               "absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
               !text.trim() || isLoading
-                ? "cursor-not-allowed bg-white/5 text-slate-600"
-                : "bg-violet-600 text-white hover:bg-violet-500",
+                ? "cursor-not-allowed bg-[var(--bg-hover)] text-[var(--text-muted)]"
+                : "bg-zinc-900 text-white hover:bg-zinc-800",
             )}
           >
             {isLoading ? (
@@ -94,37 +94,37 @@ export function NaturalLanguageInput({
             )}
           </button>
         </div>
-        <div className="mt-1 text-right text-[10px] text-slate-600">
+        <div className="mt-1 text-right text-[10px] text-[var(--text-muted)]">
           {text.length}/2000
         </div>
       </div>
 
       {/* 분석 결과 */}
       {result && (
-        <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 space-y-2">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-violet-300">
+        <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 space-y-2">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-violet-700">
             <Sparkles className="h-3 w-3" />
             AI 분석 결과
-            <span className="ml-auto text-[10px] text-slate-500">
+            <span className="ml-auto text-[10px] text-[var(--text-muted)]">
               신뢰도 {Math.round(result.confidence * 100)}%
             </span>
           </p>
-          <p className="text-xs leading-relaxed text-slate-400">
+          <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
             {result.reasoning}
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             {result.suggested_agents.length > 0 && (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-400">
+              <span className="rounded-md bg-[var(--bg-hover)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)]">
                 에이전트 {result.suggested_agents.length}개
               </span>
             )}
             {result.suggested_skills.length > 0 && (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-400">
+              <span className="rounded-md bg-[var(--bg-hover)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)]">
                 스킬 {result.suggested_skills.length}개
               </span>
             )}
             {result.suggested_pipelines.length > 0 && (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-slate-400">
+              <span className="rounded-md bg-[var(--bg-hover)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)]">
                 파이프라인 {result.suggested_pipelines.length}개
               </span>
             )}

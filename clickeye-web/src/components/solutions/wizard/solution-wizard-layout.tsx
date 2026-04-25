@@ -78,8 +78,8 @@ export function SolutionWizardLayout({
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">새 솔루션</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-zinc-950">새 솔루션</h1>
+          <p className="mt-1 text-sm text-zinc-500">
             AI가 회사에 맞는 솔루션을 자동 설계합니다
           </p>
         </div>
@@ -89,13 +89,13 @@ export function SolutionWizardLayout({
             onClick={restartWizardTour}
             aria-label="위저드 가이드 다시 보기"
             title="위저드 가이드 다시 보기"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-300"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <HelpCircle className="h-4 w-4" aria-hidden="true" />
           </button>
           <Link
             href="/solutions"
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
             aria-label="솔루션 목록으로 이동"
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
@@ -113,17 +113,17 @@ export function SolutionWizardLayout({
       <section
         aria-labelledby="wizard-step-heading"
         data-tour="wizard-content"
-        className="rounded-2xl border border-white/5 bg-white/[0.02] p-6 sm:p-8"
+        className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8"
       >
         <h2
           id="wizard-step-heading"
           ref={stepHeadingRef}
           tabIndex={-1}
-          className="mb-1 text-lg font-semibold text-white outline-none"
+          className="mb-1 text-lg font-semibold text-zinc-950 outline-none"
         >
           {SOLUTION_WIZARD_STEPS[currentStep].label}
         </h2>
-        <p className="mb-6 text-sm text-slate-400">
+        <p className="mb-6 text-sm text-zinc-500">
           {SOLUTION_WIZARD_STEPS[currentStep].description}
         </p>
 
@@ -142,8 +142,8 @@ export function SolutionWizardLayout({
           className={cn(
             "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
             isFirst || isBlocked
-              ? "cursor-not-allowed text-slate-600"
-              : "text-slate-300 hover:bg-white/5 hover:text-white",
+              ? "cursor-not-allowed text-zinc-300"
+              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900",
           )}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -163,8 +163,8 @@ export function SolutionWizardLayout({
           className={cn(
             "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
             !canProceed || isBlocked
-              ? "cursor-not-allowed bg-emerald-600/30 text-emerald-300/50"
-              : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-500",
+              ? "cursor-not-allowed bg-zinc-200 text-zinc-400"
+              : "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800",
           )}
         >
           {isSubmitting ? (

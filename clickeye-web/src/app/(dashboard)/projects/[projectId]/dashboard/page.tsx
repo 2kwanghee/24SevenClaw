@@ -21,16 +21,16 @@ export default function ProjectDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href={`/projects/${projectId}`}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
+            className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-lg font-bold text-[var(--text-primary)]">
               {report?.project_name ?? "프로젝트"} 대시보드
             </h1>
             {report && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--text-muted)]">
                 마지막 생성:{" "}
                 {new Date(report.generated_at).toLocaleString("ko-KR")}
               </p>
@@ -40,7 +40,7 @@ export default function ProjectDashboardPage() {
         <button
           onClick={() => refetch()}
           disabled={isLoading}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] disabled:opacity-50"
         >
           <RefreshCcw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
           새로고침
@@ -50,13 +50,13 @@ export default function ProjectDashboardPage() {
       {/* 로딩 */}
       {isLoading && !report && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
       )}
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center text-sm text-red-400">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
           리포트를 불러오지 못했습니다. 다시 시도해 주세요.
         </div>
       )}

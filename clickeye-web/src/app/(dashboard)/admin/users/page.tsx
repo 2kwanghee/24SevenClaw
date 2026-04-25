@@ -16,10 +16,10 @@ const ROLE_LABELS: Record<SystemRole, string> = {
 };
 
 const ROLE_COLORS: Record<SystemRole, string> = {
-  superadmin: "bg-red-500/10 text-red-300 border-red-500/20",
-  admin: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-  member: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  viewer: "bg-slate-500/10 text-slate-300 border-slate-500/20",
+  superadmin: "bg-red-50 text-red-700 border-red-200",
+  admin: "bg-violet-50 text-violet-700 border-violet-200",
+  member: "bg-blue-50 text-blue-700 border-blue-200",
+  viewer: "bg-zinc-100 text-[var(--text-muted)] border-[var(--border-subtle)]",
 };
 
 function RoleBadge({ role }: { role: SystemRole }) {
@@ -67,7 +67,7 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
         type="button"
         onClick={() => setOpen(!open)}
         disabled={updateRole.isPending}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-violet-500/30 hover:bg-white/[0.05] disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)] disabled:opacity-50"
       >
         {ROLE_LABELS[currentRole]}
         <ChevronDown className="h-3 w-3" />
@@ -79,7 +79,7 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
             className="fixed inset-0 z-10"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-xl">
+          <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1 shadow-xl">
             {(
               Object.entries(ROLE_LABELS) as [SystemRole, string][]
             ).map(([role, label]) => (
@@ -89,8 +89,8 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
                 onClick={() => handleSelect(role)}
                 className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
                   role === currentRole
-                    ? "bg-violet-500/10 text-violet-300"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    ? "bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+                    : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
                 }`}
               >
                 {label}
@@ -109,17 +109,17 @@ function UserRow({ user }: { user: UserAdminResponse }) {
     : "U";
 
   return (
-    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
+    <tr className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-sm font-medium text-violet-300">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-sm font-medium text-zinc-700">
             {initials}
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-200">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
               {user.display_name}
             </p>
-            <p className="text-xs text-slate-500">{user.email}</p>
+            <p className="text-xs text-[var(--text-muted)]">{user.email}</p>
           </div>
         </div>
       </td>
@@ -130,14 +130,14 @@ function UserRow({ user }: { user: UserAdminResponse }) {
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             user.is_active
-              ? "bg-emerald-500/10 text-emerald-300"
-              : "bg-slate-500/10 text-slate-400"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-zinc-100 text-[var(--text-muted)]"
           }`}
         >
           {user.is_active ? "활성" : "비활성"}
         </span>
       </td>
-      <td className="px-4 py-3 text-xs text-slate-500">
+      <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
         {new Date(user.created_at).toLocaleDateString("ko-KR")}
       </td>
       <td className="px-4 py-3 text-right">
@@ -154,12 +154,12 @@ function UsersContent() {
     <div>
       {/* 헤더 */}
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-          <Users className="h-5 w-5 text-violet-400" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+          <Users className="h-5 w-5 text-[var(--text-secondary)]" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">사용자 관리</h1>
-          <p className="mt-0.5 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">사용자 관리</h1>
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
             전체 사용자 목록과 역할을 관리합니다
           </p>
         </div>
@@ -171,7 +171,7 @@ function UsersContent() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-16 animate-pulse rounded-xl bg-white/[0.03]"
+              className="h-16 animate-pulse rounded-xl bg-[var(--bg-hover)]"
             />
           ))}
         </div>
@@ -179,7 +179,7 @@ function UsersContent() {
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           사용자 목록을 불러오지 못했습니다.
         </div>
       )}
@@ -187,23 +187,23 @@ function UsersContent() {
       {/* 테이블 */}
       {users && (
         <>
-          <div className="overflow-hidden rounded-xl border border-white/5 bg-white/[0.02]">
+          <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/5 bg-white/[0.03]">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                     사용자
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                     역할
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                     상태
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                     가입일
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                     역할 변경
                   </th>
                 </tr>
@@ -216,7 +216,7 @@ function UsersContent() {
             </table>
           </div>
 
-          <p className="mt-4 text-center text-xs text-slate-600">
+          <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
             총 {users.length}명
           </p>
         </>
@@ -225,8 +225,8 @@ function UsersContent() {
       {/* 빈 상태 */}
       {users && users.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <Users className="h-12 w-12 text-slate-600" />
-          <p className="text-sm text-slate-400">등록된 사용자가 없습니다</p>
+          <Users className="h-12 w-12 text-[var(--text-muted)]" />
+          <p className="text-sm text-[var(--text-muted)]">등록된 사용자가 없습니다</p>
         </div>
       )}
     </div>
@@ -242,7 +242,7 @@ export default function AdminUsersPage() {
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-16 animate-pulse rounded-xl bg-white/[0.03]"
+                className="h-16 animate-pulse rounded-xl bg-[var(--bg-hover)]"
               />
             ))}
           </div>

@@ -26,10 +26,10 @@ const LAYER_COLORS: Record<
     icon: "text-violet-400",
   },
   database: {
-    bg: "bg-emerald-500/10",
+    bg: "bg-emerald-50",
     border: "border-emerald-500/30",
-    text: "text-emerald-300",
-    icon: "text-emerald-400",
+    text: "text-emerald-600",
+    icon: "text-emerald-600",
   },
   auth: {
     bg: "bg-amber-500/10",
@@ -38,10 +38,10 @@ const LAYER_COLORS: Record<
     icon: "text-amber-400",
   },
   deployment: {
-    bg: "bg-slate-500/10",
-    border: "border-slate-500/30",
-    text: "text-slate-300",
-    icon: "text-slate-400",
+    bg: "bg-zinc-100",
+    border: "border-zinc-300",
+    text: "text-zinc-700",
+    icon: "text-zinc-500",
   },
 };
 
@@ -113,7 +113,7 @@ function TechLayer({ layer, label, value, className }: TechLayerProps) {
       )}
     >
       <Icon className={cn("h-3.5 w-3.5", colors.icon)} />
-      <span className="text-[10px] font-medium text-slate-500 leading-none">
+      <span className="text-[10px] font-medium text-zinc-500 leading-none">
         {label}
       </span>
       <span className={cn("text-xs font-semibold leading-none", colors.text)}>
@@ -180,7 +180,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
                 <span
                   key={i}
                   title={hex}
-                  className="h-3.5 w-3.5 rounded-full border border-white/10"
+                  className="h-3.5 w-3.5 rounded-full border border-zinc-200"
                   style={{ backgroundColor: hex }}
                 />
               ),
@@ -189,13 +189,13 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
         )}
         {/* 메뉴 수 */}
         {hasMenus && (
-          <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-slate-500">
+          <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
             메뉴 {menus!.length}개
           </span>
         )}
         {/* 페이지 수 */}
         {hasPages && (
-          <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-slate-500">
+          <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
             페이지 {pages!.length}개
           </span>
         )}
@@ -209,7 +209,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {/* 컬러 팔레트 */}
       {hasColors && (
         <div>
-          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
             컬러 팔레트
           </p>
           <div className="flex flex-wrap gap-2">
@@ -224,11 +224,11 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
               .map((c) => (
                 <div key={c.label} className="flex items-center gap-1.5">
                   <span
-                    className="h-4 w-4 rounded-full border border-white/10"
+                    className="h-4 w-4 rounded-full border border-zinc-200"
                     style={{ backgroundColor: c.value }}
                   />
-                  <span className="text-[10px] text-slate-400">{c.label}</span>
-                  <span className="font-mono text-[10px] text-slate-600">
+                  <span className="text-[10px] text-zinc-500">{c.label}</span>
+                  <span className="font-mono text-[10px] text-zinc-500">
                     {c.value}
                   </span>
                 </div>
@@ -240,20 +240,20 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {/* 메뉴 트리 */}
       {hasMenus && (
         <div>
-          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
             메뉴 구조
           </p>
           <div className="flex flex-wrap gap-1.5">
             {menus!.slice(0, 8).map((menu, i) => (
               <span
                 key={i}
-                className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[11px] text-slate-400"
+                className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-500"
               >
                 {menu.label}
               </span>
             ))}
             {menus!.length > 8 && (
-              <span className="rounded-md border border-white/[0.06] px-2 py-0.5 text-[11px] text-slate-600">
+              <span className="rounded-md border border-zinc-200 px-2 py-0.5 text-[11px] text-zinc-500">
                 +{menus!.length - 8}
               </span>
             )}
@@ -264,28 +264,28 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {/* 페이지 레이아웃 */}
       {hasPages && (
         <div>
-          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+          <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
             페이지 레이아웃
           </p>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {pages!.slice(0, 6).map((page, i) => (
               <div
                 key={i}
-                className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5"
+                className="rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5"
               >
-                <p className="text-[11px] font-medium text-slate-300 truncate">
+                <p className="text-[11px] font-medium text-zinc-700 truncate">
                   {page.name}
                 </p>
                 {page.description && (
-                  <p className="mt-0.5 line-clamp-1 text-[10px] text-slate-600">
+                  <p className="mt-0.5 line-clamp-1 text-[10px] text-zinc-500">
                     {page.description}
                   </p>
                 )}
               </div>
             ))}
             {pages!.length > 6 && (
-              <div className="flex items-center justify-center rounded-lg border border-white/[0.04] px-2.5 py-1.5">
-                <span className="text-[10px] text-slate-600">
+              <div className="flex items-center justify-center rounded-lg border border-zinc-100 px-2.5 py-1.5">
+                <span className="text-[10px] text-zinc-500">
                   +{pages!.length - 6}개
                 </span>
               </div>
@@ -323,7 +323,7 @@ export function PrototypePreview({
   /* UI 구조 방식 */
   if (isUIStructure(config)) {
     return (
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5">
         <UIStructurePreview
           menus={config.menus as UIMenuItem[] | undefined}
           pages={config.pages as UIPage[] | undefined}
@@ -356,12 +356,12 @@ export function PrototypePreview({
   if (layers.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
         {layers.map((item, idx) => (
           <div key={`${item.layer}-${idx}`} className="flex items-center gap-1.5">
             {idx > 0 && (
-              <ArrowRight className="h-3 w-3 shrink-0 text-slate-700" />
+              <ArrowRight className="h-3 w-3 shrink-0 text-zinc-700" />
             )}
             <TechLayer
               layer={item.layer}

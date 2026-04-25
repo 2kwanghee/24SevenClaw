@@ -25,8 +25,8 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
   const currentIndex = PHASES.findIndex((p) => p.key === currentPhase);
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-      <h3 className="mb-4 text-sm font-semibold text-slate-200">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
         10단계 파이프라인
       </h3>
 
@@ -44,10 +44,10 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                     isDone
-                      ? "bg-emerald-500/20 text-emerald-400"
+                      ? "bg-emerald-50 text-emerald-700"
                       : isCurrent
-                        ? "bg-violet-500/20 text-violet-300 ring-2 ring-violet-500/40"
-                        : "bg-white/5 text-slate-600"
+                        ? "bg-zinc-900 text-white ring-2 ring-zinc-400"
+                        : "bg-zinc-100 text-[var(--text-muted)]"
                   }`}
                 >
                   {isDone ? (
@@ -60,10 +60,10 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
                 <span
                   className={`text-[10px] font-medium ${
                     isDone
-                      ? "text-emerald-400/80"
+                      ? "text-emerald-700"
                       : isCurrent
-                        ? "text-violet-300"
-                        : "text-slate-600"
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-muted)]"
                   }`}
                 >
                   {phase.label}
@@ -74,10 +74,10 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
                 <div
                   className={`mx-1 h-px flex-1 ${
                     isDone
-                      ? "bg-emerald-500/30"
+                      ? "bg-emerald-200"
                       : isUpcoming
-                        ? "bg-white/5"
-                        : "bg-violet-500/30"
+                        ? "bg-[var(--border-subtle)]"
+                        : "bg-zinc-300"
                   }`}
                 />
               )}
@@ -89,16 +89,16 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
       {/* 모바일: 프로그레스 바 + 현재 단계 */}
       <div className="md:hidden">
         <div className="mb-2 flex items-center justify-between text-xs">
-          <span className="font-medium text-violet-300">
+          <span className="font-medium text-[var(--text-primary)]">
             {PHASES[currentIndex]?.label ?? currentPhase}
           </span>
-          <span className="text-slate-500">
+          <span className="text-[var(--text-muted)]">
             {currentIndex + 1} / {PHASES.length}
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-white/5">
+        <div className="h-1.5 rounded-full bg-zinc-100">
           <div
-            className="h-full rounded-full bg-violet-500/60 transition-all"
+            className="h-full rounded-full bg-zinc-900 transition-all"
             style={{
               width: `${((currentIndex + 1) / PHASES.length) * 100}%`,
             }}

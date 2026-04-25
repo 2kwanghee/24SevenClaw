@@ -27,13 +27,18 @@ export function useSessionList(projectId: string) {
   });
 }
 
+const AUTO_PROGRESS_PHASES = new Set(["drafting", "reviewing", "integrating"]);
+
 export function useSessionSummary(sessionId: string) {
   const token = useAccessToken();
   return useQuery({
     queryKey: ["orchestrator-summary", sessionId],
     queryFn: () => orchestrator.getSessionSummary(token, sessionId),
     enabled: !!token && !!sessionId,
-    refetchInterval: 30_000,
+    refetchInterval: ({ state }) => {
+      const phase = (state.data as { session?: { phase?: string } } | undefined)?.session?.phase;
+      return phase && AUTO_PROGRESS_PHASES.has(phase) ? 3_000 : 30_000;
+    },
   });
 }
 
@@ -57,10 +62,18 @@ export function useDeleteSession(projectId: string) {
   return useMutation({
     mutationFn: (sessionId: string) =>
       orchestrator.deleteSession(token, sessionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["orchestrator-sessions", projectId],
-      });
+    onSuccess: (_data, sessionId) => {
+      // 목록 캐시에서 즉시 제거 (낙관적 업데이트)
+      queryClient.setQueryData<{ items: Array<{ id: string }> }>(
+        ["orchestrator-sessions", projectId],
+        (old) => {
+          if (!old) return old;
+          return { ...old, items: old.items.filter((s) => s.id !== sessionId) };
+        },
+      );
+      // 삭제된 세션의 summary/review 캐시를 즉시 제거
+      queryClient.removeQueries({ queryKey: ["orchestrator-summary", sessionId] });
+      queryClient.removeQueries({ queryKey: ["review-rounds", sessionId] });
     },
   });
 }
@@ -151,13 +164,27 @@ export function usePushToLinear() {
 
 // --- Reviews ---
 
-export function useReviewRounds(sessionId: string) {
+export function useReviewRounds(sessionId: string, fastPoll = false) {
   const token = useAccessToken();
   return useQuery({
     queryKey: ["review-rounds", sessionId],
     queryFn: () => reviews.list(token, sessionId, { limit: 50 }),
     enabled: !!token && !!sessionId,
-    refetchInterval: 30_000,
+    refetchInterval: fastPoll ? 3_000 : 30_000,
+  });
+}
+
+export function useResumePipeline() {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
+      reviews.resumePipeline(token, sessionId),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["orchestrator-summary", vars.sessionId],
+      });
+    },
   });
 }
 

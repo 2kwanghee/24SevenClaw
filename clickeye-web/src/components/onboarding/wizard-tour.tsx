@@ -43,11 +43,11 @@ export function WizardTourWrapper() {
         skip: "건너뛰기",
       }}
       options={{
-        primaryColor: "#10b981",
-        backgroundColor: "#1e293b",
-        textColor: "#f1f5f9",
-        overlayColor: "rgba(0, 0, 0, 0.5)",
-        arrowColor: "#1e293b",
+        primaryColor: "#18181b",
+        backgroundColor: "#ffffff",
+        textColor: "#09090b",
+        overlayColor: "rgba(0, 0, 0, 0.4)",
+        arrowColor: "#ffffff",
         zIndex: 10000,
         showProgress: true,
         skipBeacon: true,
@@ -57,8 +57,8 @@ export function WizardTourWrapper() {
       styles={{
         tooltip: {
           borderRadius: "12px",
-          border: "1px solid #334155",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+          border: "1px solid #e4e4e7",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
           padding: "20px 24px",
         },
         buttonPrimary: {
@@ -70,9 +70,11 @@ export function WizardTourWrapper() {
         buttonBack: {
           marginRight: "8px",
           fontSize: "13px",
+          color: "#52525b",
         },
         buttonSkip: {
           fontSize: "13px",
+          color: "#a1a1aa",
         },
       }}
     />

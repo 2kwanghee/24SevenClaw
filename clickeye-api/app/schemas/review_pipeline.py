@@ -136,6 +136,7 @@ class LinearSyncHint(BaseModel):
 
     action: str = "create_issues"
     session_title: str
+    session_description: str | None = None
     subtasks: list[LinearSyncHintSubtask]
     suggested_labels: list[str] = ["ai-team"]
     instructions: str = (
@@ -157,3 +158,4 @@ class PushToLinearResponse(BaseModel):
     created_identifiers: list[str]
     created_urls: list[str]
     count: int
+    queued_state_applied: bool = False

@@ -56,6 +56,14 @@ query Team($id: String!) {
 }
 """
 
+_TEAM_STATES_QUERY = """
+query TeamStates($id: String!) {
+  team(id: $id) {
+    states { nodes { id name type position } }
+  }
+}
+"""
+
 
 def _call(api_key: str, query: str, variables: dict | None = None, timeout: int = 15) -> dict:  # type: ignore[type-arg]
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
@@ -72,6 +80,19 @@ def _call(api_key: str, query: str, variables: dict | None = None, timeout: int 
         raise RuntimeError(f"Linear GraphQL 오류: {'; '.join(msgs)}")
     result: dict[str, object] = data.get("data", {})
     return result
+
+
+def get_queued_state_id(api_key: str, team_id: str) -> str | None:
+    """팀의 워크플로 상태 중 이름이 정확히 'queued'인 것의 ID를 반환한다."""
+    try:
+        data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
+        nodes = data.get("team", {}).get("states", {}).get("nodes", [])
+        for state in nodes:
+            if str(state.get("name", "")).lower() == "queued":
+                return str(state["id"])
+    except RuntimeError:
+        pass
+    return None
 
 
 def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
@@ -112,13 +133,20 @@ def create_issues(
     team_id: str,
     subtasks: list[LinearSyncHintSubtask],
     label_ids: list[str] | None = None,
+    state_id: str | None = None,
+    *,
+    session_description: str | None = None,
 ) -> list[dict]:  # type: ignore[type-arg]
     """subtasks 목록을 Linear 이슈로 생성. 생성된 이슈 정보 반환."""
+    base = (session_description or "").strip()
     created = []
     for st in subtasks:
         title = f"[{st.role}] {st.title}"
-        description = st.draft_summary
-        variables: dict = {
+        if base:
+            description = f"## 원본 요구사항\n\n{base}\n\n---\n\n{st.draft_summary}"
+        else:
+            description = st.draft_summary
+        variables: dict = {  # type: ignore[type-arg]
             "input": {
                 "teamId": team_id,
                 "title": title,
@@ -127,6 +155,8 @@ def create_issues(
         }
         if label_ids:
             variables["input"]["labelIds"] = label_ids
+        if state_id:
+            variables["input"]["stateId"] = state_id
 
         data = _call(api_key, _ISSUE_CREATE, variables)
         issue = data.get("issueCreate", {}).get("issue") or {}

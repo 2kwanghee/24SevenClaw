@@ -41,7 +41,7 @@ export function PrototypeCatalogTable() {
           <button
             type="button"
             onClick={() => setShowInactive(v => !v)}
-            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white"
+            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           >
             {showInactive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
             비활성 포함
@@ -50,7 +50,7 @@ export function PrototypeCatalogTable() {
         <button
           type="button"
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-500"
+          className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800"
         >
           <Plus size={12} />
           새 항목
@@ -58,63 +58,63 @@ export function PrototypeCatalogTable() {
       </div>
 
       {isLoading && (
-        <div className="py-12 text-center text-xs text-slate-500">로딩 중...</div>
+        <div className="py-12 text-center text-xs text-[var(--text-muted)]">로딩 중...</div>
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-xs text-red-400">
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700">
           <AlertCircle size={14} />
           불러오기 실패: {error.message}
         </div>
       )}
 
       {!isLoading && !error && (
-        <div className="rounded-xl border border-white/10 overflow-hidden">
+        <div className="rounded-xl border border-[var(--border-subtle)] overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="px-4 py-3 text-left font-medium text-slate-400">제목</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-400">Slug</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-400">대표 태그</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-400">기술 스택</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-400">우선순위</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-400">상태</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-400">액션</th>
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">제목</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">Slug</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">대표 태그</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">기술 스택</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">우선순위</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--text-muted)]">상태</th>
+                <th className="px-4 py-3 text-right font-medium text-[var(--text-muted)]">액션</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-600">
+                  <td colSpan={7} className="py-12 text-center text-[var(--text-muted)]">
                     카탈로그 항목이 없습니다
                   </td>
                 </tr>
               ) : (
                 items.map(item => (
-                  <tr key={item.id} className="border-b border-white/5 hover:bg-white/3">
-                    <td className="px-4 py-3 text-white font-medium max-w-[200px]">
+                  <tr key={item.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)]">
+                    <td className="px-4 py-3 text-[var(--text-primary)] font-medium max-w-[200px]">
                       <div className="truncate">{item.title}</div>
                       {item.description && (
-                        <div className="text-slate-500 text-xs truncate mt-0.5">{item.description}</div>
+                        <div className="text-[var(--text-muted)] text-xs truncate mt-0.5">{item.description}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{item.slug}</td>
+                    <td className="px-4 py-3 font-mono text-[var(--text-secondary)]">{item.slug}</td>
                     <td className="px-4 py-3">
                       {item.primary_tag && (
-                        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-blue-400 text-xs">
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 text-xs">
                           {item.primary_tag}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-400 max-w-[150px]">
+                    <td className="px-4 py-3 text-[var(--text-secondary)] max-w-[150px]">
                       <div className="truncate">{item.tech_stack_tags.join(", ")}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-400 text-center">{item.priority}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)] text-center">{item.priority}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs ${
                         item.is_active
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-slate-500/20 text-slate-500"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-zinc-100 text-[var(--text-muted)]"
                       }`}>
                         {item.is_active ? "활성" : "비활성"}
                       </span>
@@ -124,7 +124,7 @@ export function PrototypeCatalogTable() {
                         <button
                           type="button"
                           onClick={() => openEdit(item)}
-                          className="rounded p-1.5 text-slate-500 hover:text-white hover:bg-white/10"
+                          className="rounded p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                           title="편집"
                         >
                           <Pencil size={12} />
@@ -141,7 +141,7 @@ export function PrototypeCatalogTable() {
                             <button
                               type="button"
                               onClick={() => setDeleteConfirm(null)}
-                              className="rounded px-2 py-1 text-xs text-slate-500 hover:text-white"
+                              className="rounded px-2 py-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             >
                               취소
                             </button>
@@ -150,7 +150,7 @@ export function PrototypeCatalogTable() {
                           <button
                             type="button"
                             onClick={() => setDeleteConfirm(item.id)}
-                            className="rounded p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                            className="rounded p-1.5 text-[var(--text-muted)] hover:text-red-700 hover:bg-red-50"
                             title="삭제"
                           >
                             <Trash2 size={12} />

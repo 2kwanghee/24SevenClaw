@@ -23,38 +23,38 @@ const EXPECTED_COUNT = 3;
 function PMSkeletonCard({ index }: { index: number }) {
   return (
     <div
-      className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-4"
+      className="animate-pulse rounded-xl border border-zinc-200 bg-zinc-50 p-4"
       style={{ animationDelay: `${index * 120}ms` }}
       aria-hidden="true"
     >
       <div className="mb-3 flex items-center gap-3 pr-16">
-        <div className="h-11 w-11 shrink-0 rounded-full bg-white/[0.07]" />
+        <div className="h-11 w-11 shrink-0 rounded-full bg-zinc-100" />
         <div className="space-y-1.5">
-          <div className="h-3.5 w-28 rounded-md bg-white/[0.07]" />
-          <div className="h-2.5 w-20 rounded-full bg-white/[0.05]" />
+          <div className="h-3.5 w-28 rounded-md bg-zinc-100" />
+          <div className="h-2.5 w-20 rounded-full bg-zinc-100" />
         </div>
       </div>
       <div className="mb-3 flex gap-1">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-3 w-3 rounded-sm bg-white/[0.07]" />
+          <div key={i} className="h-3 w-3 rounded-sm bg-zinc-100" />
         ))}
       </div>
       <div className="mb-3 space-y-1.5">
-        <div className="h-3 w-full rounded-md bg-white/[0.05]" />
-        <div className="h-3 w-4/5 rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-full rounded-md bg-zinc-100" />
+        <div className="h-3 w-4/5 rounded-md bg-zinc-100" />
       </div>
-      <div className="mb-3 grid grid-cols-4 divide-x divide-white/5 rounded-lg bg-white/[0.03] px-2 py-2">
+      <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-200 rounded-lg bg-zinc-50 px-2 py-2">
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="space-y-1 px-1.5 text-center">
-            <div className="mx-auto h-4 w-8 rounded-md bg-white/[0.07]" />
-            <div className="mx-auto h-2.5 w-10 rounded-md bg-white/[0.05]" />
+            <div className="mx-auto h-4 w-8 rounded-md bg-zinc-100" />
+            <div className="mx-auto h-2.5 w-10 rounded-md bg-zinc-100" />
           </div>
         ))}
       </div>
       <div className="flex gap-1.5">
-        <div className="h-5 w-16 rounded-md bg-white/[0.05]" />
-        <div className="h-5 w-20 rounded-md bg-white/[0.05]" />
-        <div className="h-5 w-14 rounded-md bg-white/[0.05]" />
+        <div className="h-5 w-16 rounded-md bg-zinc-100" />
+        <div className="h-5 w-20 rounded-md bg-zinc-100" />
+        <div className="h-5 w-14 rounded-md bg-zinc-100" />
       </div>
     </div>
   );
@@ -70,28 +70,28 @@ interface PMReadyCardProps {
 function PMReadyCard({ item, index }: PMReadyCardProps) {
   return (
     <div
-      className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 animate-in fade-in slide-in-from-bottom-2"
+      className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 animate-in fade-in slide-in-from-bottom-2"
       style={{ animationDelay: `${index * 100}ms`, animationDuration: "400ms" }}
       role="status"
       aria-label={`PM "${item.name}" 분석 완료`}
     >
       <div className="mb-2 flex items-center gap-3 pr-12">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-          <UserCircle2 className="h-6 w-6 text-emerald-300" aria-hidden="true" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <UserCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{item.name}</p>
+          <p className="truncate text-sm font-semibold text-zinc-950">{item.name}</p>
           {item.title && (
-            <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-400">
+            <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600">
               {item.title}
             </span>
           )}
         </div>
         <div className="absolute right-7 top-4">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
         </div>
       </div>
-      <p className="line-clamp-1 text-xs text-slate-500 italic">&ldquo;{item.reasoning}&rdquo;</p>
+      <p className="line-clamp-1 text-xs text-zinc-500 italic">&ldquo;{item.reasoning}&rdquo;</p>
     </div>
   );
 }
@@ -216,13 +216,13 @@ export function StepPMRecommendation() {
         <h3 className="mb-1 text-sm font-semibold text-rose-300">
           PM 추천 분석에 실패했습니다
         </h3>
-        <p className="mb-6 text-xs text-slate-500">
+        <p className="mb-6 text-xs text-zinc-500">
           일시적인 오류가 발생했습니다. 다시 시도해 주세요.
         </p>
         <button
           type="button"
           onClick={handleRetry}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+          className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           다시 시도
@@ -239,11 +239,11 @@ export function StepPMRecommendation() {
       {/* 헤더 */}
       <div className="flex items-center gap-2.5">
         {isDone ? (
-          <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
         ) : (
-          <Loader2 className="h-5 w-5 animate-spin text-emerald-400" aria-hidden="true" />
+          <Loader2 className="h-5 w-5 animate-spin text-emerald-600" aria-hidden="true" />
         )}
-        <span className="text-sm font-medium text-slate-300">
+        <span className="text-sm font-medium text-zinc-700">
           {isDone
             ? "PM 추천 분석 완료!"
             : "프로토타입에 최적화된 PM을 분석하고 있습니다"}
@@ -252,7 +252,7 @@ export function StepPMRecommendation() {
 
       {/* 진행률 바 */}
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100"
         role="progressbar"
         aria-valuenow={isDone ? displayCount : 0}
         aria-valuemin={0}
@@ -278,7 +278,7 @@ export function StepPMRecommendation() {
 
       {/* 완료 후 안내 메시지 */}
       {isDone && (
-        <p className="text-center text-xs text-emerald-500" aria-live="polite">
+        <p className="text-center text-xs text-emerald-600" aria-live="polite">
           아래 <strong>다음</strong> 버튼을 클릭해 PM을 선택하세요.
         </p>
       )}

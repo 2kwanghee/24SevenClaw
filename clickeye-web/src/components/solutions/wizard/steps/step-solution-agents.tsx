@@ -14,11 +14,11 @@ function AgentsSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] px-3 py-3"
+          className="animate-pulse rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3"
           style={{ animationDelay: `${i * 80}ms` }}
         >
-          <div className="h-4 w-24 rounded-md bg-white/[0.07]" />
-          <div className="mt-1 h-3 w-32 rounded bg-white/[0.05]" />
+          <div className="h-4 w-24 rounded-md bg-zinc-100" />
+          <div className="mt-1 h-3 w-32 rounded bg-zinc-100" />
         </div>
       ))}
     </div>
@@ -31,7 +31,7 @@ function SkillsSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse h-8 w-20 rounded-lg bg-white/[0.05]"
+          className="animate-pulse h-8 w-20 rounded-lg bg-zinc-100"
           style={{ animationDelay: `${i * 60}ms` }}
         />
       ))}
@@ -42,8 +42,8 @@ function SkillsSkeleton() {
 function FetchError({ message }: { message: string }) {
   return (
     <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-      <p className="text-xs text-red-400">{message}</p>
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+      <p className="text-xs text-red-600">{message}</p>
     </div>
   );
 }
@@ -147,14 +147,14 @@ export function StepSolutionAgents() {
       {hasCatalogRecs ? (
         <div className="flex items-start gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-zinc-500">
             선택한 프로토타입 카탈로그를 기반으로 에이전트와 스킬이 자동 추천되었습니다. 필요에 따라 조정하세요.
           </p>
         </div>
       ) : (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-          <p className="text-xs text-slate-400">
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-xs text-zinc-500">
             선택한 프로토타입의 에이전트 구성을 확인하고 필요에 따라 조정하세요.
           </p>
         </div>
@@ -162,8 +162,8 @@ export function StepSolutionAgents() {
 
       {/* 에이전트 선택 */}
       <div className="space-y-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-          <Bot className="h-4 w-4 text-emerald-400" />
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          <Bot className="h-4 w-4 text-emerald-600" />
           AI 에이전트
         </label>
         {agentsLoading && <AgentsSkeleton />}
@@ -181,13 +181,13 @@ export function StepSolutionAgents() {
                   aria-pressed={isSelected}
                   className={`flex flex-col gap-0.5 rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
                     isSelected
-                      ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-                      : "border-white/10 bg-white/5 hover:border-white/20"
+                      ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+                      : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`text-sm font-medium ${isSelected ? "text-white" : "text-slate-300"}`}
+                      className={`text-sm font-medium ${isSelected ? "text-zinc-950" : "text-zinc-700"}`}
                     >
                       {label}
                     </span>
@@ -199,7 +199,7 @@ export function StepSolutionAgents() {
                     )}
                   </div>
                   {description && (
-                    <span className="text-xs text-slate-500">{description}</span>
+                    <span className="text-xs text-zinc-500">{description}</span>
                   )}
                 </button>
               );
@@ -210,21 +210,21 @@ export function StepSolutionAgents() {
 
       {/* 연동 스킬 */}
       <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-          <Wrench className="h-4 w-4 text-emerald-400" />
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+          <Wrench className="h-4 w-4 text-emerald-600" />
           연동 스킬
         </label>
 
         {/* 티켓 소스 (필수, 1개 선택) */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-300">티켓 소스</span>
+            <span className="text-xs font-medium text-zinc-700">티켓 소스</span>
             <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
               필수
             </span>
-            <span className="text-[11px] text-slate-500">1개 선택</span>
+            <span className="text-[11px] text-zinc-500">1개 선택</span>
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-zinc-500">
             이슈/티켓을 관리할 플랫폼을 선택하세요.
           </p>
           {skillsLoading && <SkillsSkeleton />}
@@ -244,8 +244,8 @@ export function StepSolutionAgents() {
                       aria-pressed={isSelected}
                       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
                         isSelected
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
-                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                          ? "border-zinc-900 bg-zinc-50 text-zinc-900 ring-2 ring-zinc-900/10"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300"
                       }`}
                     >
                       {label}
@@ -279,8 +279,8 @@ export function StepSolutionAgents() {
         {(skillsLoading || (skillsData && otherSkills.length > 0)) && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-300">추가 스킬</span>
-              <span className="text-[11px] text-slate-500">(선택)</span>
+              <span className="text-xs font-medium text-zinc-700">추가 스킬</span>
+              <span className="text-[11px] text-zinc-500">(선택)</span>
             </div>
             {skillsLoading && <SkillsSkeleton />}
             {skillsData && otherSkills.length > 0 && (
@@ -297,8 +297,8 @@ export function StepSolutionAgents() {
                       aria-pressed={isSelected}
                       className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
                         isSelected
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 ring-2 ring-emerald-500/20"
-                          : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                          ? "border-zinc-900 bg-zinc-50 text-zinc-900 ring-2 ring-zinc-900/10"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300"
                       }`}
                     >
                       {label}
@@ -324,10 +324,10 @@ export function StepSolutionAgents() {
       {/* 훅 선택 */}
       {(hooksLoading || hooksError || (hooksData && hooksData.items.length > 0)) && (
         <div className="space-y-3">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Link className="h-4 w-4 text-emerald-400" />
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <Link className="h-4 w-4 text-emerald-600" />
             훅 (Hooks)
-            <span className="text-[11px] text-slate-500">(선택)</span>
+            <span className="text-[11px] text-zinc-500">(선택)</span>
           </label>
           {hooksLoading && <SkillsSkeleton />}
           {hooksError && <FetchError message="훅 목록을 불러오지 못했습니다." />}
@@ -345,11 +345,11 @@ export function StepSolutionAgents() {
                     className={`flex flex-col gap-0.5 rounded-xl border px-3 py-2 text-left transition-all duration-200 ${
                       isSelected || required
                         ? "border-purple-500/50 bg-purple-500/10 ring-2 ring-purple-500/20"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
+                        : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
                     } ${required ? "cursor-default opacity-80" : ""}`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-sm font-medium ${isSelected || required ? "text-white" : "text-slate-300"}`}>
+                      <span className={`text-sm font-medium ${isSelected || required ? "text-zinc-950" : "text-zinc-700"}`}>
                         {label}
                       </span>
                       {required && (
@@ -358,13 +358,13 @@ export function StepSolutionAgents() {
                         </span>
                       )}
                       {event && (
-                        <span className="rounded-full bg-slate-700/50 px-1.5 py-0.5 text-[10px] text-slate-400">
+                        <span className="rounded-full bg-slate-700/50 px-1.5 py-0.5 text-[10px] text-zinc-500">
                           {event}
                         </span>
                       )}
                     </div>
                     {description && (
-                      <span className="text-xs text-slate-500">{description}</span>
+                      <span className="text-xs text-zinc-500">{description}</span>
                     )}
                   </button>
                 );

@@ -107,13 +107,13 @@ export function MaturityQuestionnaire({
     <div>
       {/* 진행률 바 */}
       <div className="mb-8">
-        <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
+        <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-muted)]">
           <span>
             {answeredCount}/{totalQuestions} 답변 완료
           </span>
           <span>{Math.round(progress)}%</span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
           <div
             className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
@@ -136,11 +136,11 @@ export function MaturityQuestionnaire({
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg transition-all",
                 isActive &&
-                  "bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/30",
-                isDone && "bg-emerald-500/10 text-emerald-400",
+                  "bg-violet-50 text-violet-600 ring-1 ring-violet-200",
+                isDone && "bg-emerald-50 text-emerald-700",
                 !isActive &&
                   !isDone &&
-                  "bg-white/[0.03] text-slate-600",
+                  "bg-[var(--bg-hover)] text-[var(--text-muted)]",
               )}
               title={CATEGORY_META[cat]?.label}
               aria-label={CATEGORY_META[cat]?.label}
@@ -158,13 +158,13 @@ export function MaturityQuestionnaire({
       {/* 카테고리 헤더 */}
       <div className="mb-6">
         <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 text-violet-400" />
-          <h2 className="text-lg font-semibold text-white">{meta?.label}</h2>
-          <span className="text-xs text-slate-600">
+          <Icon className="h-5 w-5 text-violet-600" />
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{meta?.label}</h2>
+          <span className="text-xs text-[var(--text-muted)]">
             {categoryIndex + 1}/{CATEGORY_ORDER.length}
           </span>
         </div>
-        <p className="mt-1 text-sm text-slate-400">{meta?.description}</p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{meta?.description}</p>
       </div>
 
       {/* 질문 목록 */}
@@ -172,9 +172,9 @@ export function MaturityQuestionnaire({
         {currentQuestions.map((q) => (
           <div
             key={q.id}
-            className="animate-fade-in-up rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+            className="animate-fade-in-up rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5"
           >
-            <p className="mb-3 text-sm font-medium text-slate-200">{q.text}</p>
+            <p className="mb-3 text-sm font-medium text-[var(--text-primary)]">{q.text}</p>
             <div className="space-y-2">
               {q.options.map((opt) => {
                 const isSelected = answers[q.id] === opt.score;
@@ -186,16 +186,16 @@ export function MaturityQuestionnaire({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all",
                       isSelected
-                        ? "border-violet-500/40 bg-violet-500/10 text-white"
-                        : "border-white/5 bg-white/[0.01] text-slate-400 hover:border-white/10 hover:bg-white/[0.03] hover:text-slate-200",
+                        ? "border-violet-300 bg-violet-50 text-[var(--text-primary)]"
+                        : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
                     )}
                   >
                     <span
                       className={cn(
                         "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all",
                         isSelected
-                          ? "border-violet-400 bg-violet-400"
-                          : "border-slate-600",
+                          ? "border-violet-500 bg-violet-500"
+                          : "border-[var(--border-medium)]",
                       )}
                       aria-hidden="true"
                     >
@@ -221,8 +221,8 @@ export function MaturityQuestionnaire({
           className={cn(
             "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
             categoryIndex === 0
-              ? "cursor-not-allowed text-slate-600"
-              : "text-slate-400 hover:bg-white/5 hover:text-white",
+              ? "cursor-not-allowed text-[var(--text-muted)]"
+              : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
           )}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -236,8 +236,8 @@ export function MaturityQuestionnaire({
           className={cn(
             "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
             !allCurrentAnswered || isSubmitting
-              ? "cursor-not-allowed bg-violet-600/30 text-violet-300/50"
-              : "bg-violet-600 text-white shadow-lg shadow-violet-600/25 hover:bg-violet-500",
+              ? "cursor-not-allowed bg-zinc-100 text-[var(--text-muted)]"
+              : "bg-zinc-900 text-white shadow-lg hover:bg-zinc-800",
           )}
         >
           {isSubmitting

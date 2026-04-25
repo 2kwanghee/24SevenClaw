@@ -43,7 +43,7 @@ export function StepSolutionOS() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-zinc-500">
         ZIP을 압축 해제하고 실행할 OS 환경을 선택하세요. 선택한 환경에 맞는 런처 스크립트가 포함됩니다.
       </p>
 
@@ -61,31 +61,31 @@ export function StepSolutionOS() {
               aria-pressed={isSelected}
               className={`relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200 ${
                 !isAvailable
-                  ? "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-40"
+                  ? "cursor-not-allowed border-zinc-100 bg-zinc-50 opacity-40"
                   : isSelected
-                    ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-                    : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]"
+                    ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+                    : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
               }`}
             >
               <span
                 className={`absolute right-3 top-3 rounded-md px-1.5 py-0.5 text-xs font-medium ${
                   opt.badge === "추천"
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : "bg-white/10 text-slate-400"
+                    ? "bg-emerald-100 text-emerald-600"
+                    : "bg-zinc-100 text-zinc-500"
                 }`}
               >
                 {opt.badge}
               </span>
               <MonitorDown
-                className={`mt-0.5 h-5 w-5 shrink-0 ${isSelected ? "text-emerald-400" : "text-slate-400"}`}
+                className={`mt-0.5 h-5 w-5 shrink-0 ${isSelected ? "text-emerald-600" : "text-zinc-500"}`}
               />
               <div>
                 <p
-                  className={`text-sm font-semibold ${isSelected ? "text-white" : "text-slate-300"}`}
+                  className={`text-sm font-semibold ${isSelected ? "text-zinc-950" : "text-zinc-700"}`}
                 >
                   {opt.label}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">{opt.description}</p>
+                <p className="mt-0.5 text-xs text-zinc-500">{opt.description}</p>
               </div>
             </button>
           );
@@ -93,29 +93,29 @@ export function StepSolutionOS() {
       </div>
 
       {/* WSL2 미설치 안내 (접힌 패널) */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03]">
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50">
         <button
           type="button"
           onClick={() => setWslGuideOpen((v) => !v)}
           className="flex w-full items-center justify-between px-4 py-3 text-left"
         >
-          <span className="text-xs font-medium text-slate-300">
+          <span className="text-xs font-medium text-zinc-700">
             WSL2가 설치되어 있지 않으신가요?
           </span>
           {wslGuideOpen ? (
-            <ChevronUp className="h-4 w-4 text-slate-400" />
+            <ChevronUp className="h-4 w-4 text-zinc-500" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4 text-zinc-500" />
           )}
         </button>
 
         {wslGuideOpen && (
-          <div className="border-t border-white/10 px-4 py-3 text-xs text-slate-400 space-y-2">
+          <div className="border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 space-y-2">
             <p>WSL2는 Windows에서 Linux 환경을 실행할 수 있는 Microsoft 공식 기능입니다.</p>
-            <ol className="list-decimal list-inside space-y-1 text-slate-500">
+            <ol className="list-decimal list-inside space-y-1 text-zinc-500">
               <li>
                 PowerShell (관리자)에서 실행:{" "}
-                <code className="rounded bg-white/10 px-1 text-slate-300">wsl --install</code>
+                <code className="rounded bg-zinc-100 px-1 text-zinc-700">wsl --install</code>
               </li>
               <li>PC 재시작 후 Ubuntu 앱 실행</li>
               <li>사용자 이름 · 비밀번호 설정 후 완료</li>
@@ -124,7 +124,7 @@ export function StepSolutionOS() {
               href="https://learn.microsoft.com/ko-kr/windows/wsl/install"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              className="inline-block text-emerald-600 underline underline-offset-2 hover:text-emerald-600"
             >
               공식 설치 가이드 열기 →
             </a>

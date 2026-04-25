@@ -89,18 +89,18 @@ function PMListPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
-            <Users className="h-5 w-5 text-violet-400" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+            <Users className="h-5 w-5 text-[var(--text-secondary)]" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-white">PM 프로필 관리</h1>
-            <p className="text-xs text-slate-500">AI PM 프로필 생성 및 편집 (관리자 전용)</p>
+            <h1 className="text-lg font-semibold text-[var(--text-primary)]">PM 프로필 관리</h1>
+            <p className="text-xs text-[var(--text-muted)]">AI PM 프로필 생성 및 편집 (관리자 전용)</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+          className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
         >
           <Plus className="h-4 w-4" />
           PM 생성
@@ -109,40 +109,40 @@ function PMListPage() {
 
       {/* 생성 다이얼로그 */}
       {showCreate && (
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-white">새 PM 프로필 생성</h2>
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">새 PM 프로필 생성</h2>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">이름 *</label>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">이름 *</label>
               <input
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
                 placeholder="예: Alex Chen"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Slug *</label>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">Slug *</label>
               <input
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
                 placeholder="예: alex-chen"
                 value={createForm.slug}
                 onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">직함</label>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">직함</label>
               <input
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
                 placeholder="예: Senior PM"
                 value={createForm.title ?? ""}
                 onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">도메인</label>
+              <label className="block text-xs text-[var(--text-muted)] mb-1">도메인</label>
               <input
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
                 placeholder="예: saas, fintech"
                 value={createForm.domain ?? ""}
                 onChange={(e) => setCreateForm({ ...createForm, domain: e.target.value })}
@@ -150,9 +150,9 @@ function PMListPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">한 줄 설명</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">한 줄 설명</label>
             <input
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
               placeholder="PM에 대한 간략한 설명"
               value={createForm.description ?? ""}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
@@ -163,14 +163,14 @@ function PMListPage() {
               type="button"
               onClick={handleCreate}
               disabled={createMutation.isPending}
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
             >
               {createMutation.isPending ? "생성 중..." : "생성"}
             </button>
             <button
               type="button"
               onClick={() => setShowCreate(false)}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5"
+              className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)]"
             >
               취소
             </button>
@@ -180,10 +180,10 @@ function PMListPage() {
 
       {/* 로딩/에러 */}
       {isLoading && (
-        <div className="py-12 text-center text-sm text-slate-500">불러오는 중...</div>
+        <div className="py-12 text-center text-sm text-[var(--text-muted)]">불러오는 중...</div>
       )}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {(error as Error).message}
         </div>
@@ -191,56 +191,56 @@ function PMListPage() {
 
       {/* PM 목록 */}
       {data && (
-        <div className="overflow-hidden rounded-xl border border-white/10">
+        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.02]">
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">이름</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">도메인</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">전문분야</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">사용횟수</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">피드백</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-400">상태</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-400">액션</th>
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">이름</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">도메인</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">전문분야</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">사용횟수</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">피드백</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">상태</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">액션</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((pm) => (
-                <tr key={pm.id} className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
+                <tr key={pm.id} className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
                   <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-white">{pm.name}</p>
-                    <p className="text-xs text-slate-500">{pm.slug}</p>
-                    {pm.title && <p className="text-xs text-slate-500">{pm.title}</p>}
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{pm.name}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{pm.slug}</p>
+                    {pm.title && <p className="text-xs text-[var(--text-muted)]">{pm.title}</p>}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">{pm.domain ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{pm.domain ?? "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {pm.specialties.slice(0, 3).map((s) => (
                         <span
                           key={s}
-                          className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                          className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
                         >
                           {s}
                         </span>
                       ))}
                       {pm.specialties.length > 3 && (
-                        <span className="text-[10px] text-slate-600">+{pm.specialties.length - 3}</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">+{pm.specialties.length - 3}</span>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm font-medium text-violet-300">
+                    <span className="text-sm font-medium text-[var(--text-secondary)]">
                       {pm.usage_count}
                     </span>
-                    <span className="ml-1 text-[10px] text-slate-600">회</span>
+                    <span className="ml-1 text-[10px] text-[var(--text-muted)]">회</span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-xs text-rose-400">
-                        <Heart className="h-3 w-3 fill-rose-400" aria-hidden="true" />
+                      <span className="flex items-center gap-1 text-xs text-rose-700">
+                        <Heart className="h-3 w-3 fill-rose-500 text-rose-500" aria-hidden="true" />
                         {pm.like_count}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-sky-400">
+                      <span className="flex items-center gap-1 text-xs text-sky-700">
                         <Frown className="h-3 w-3" aria-hidden="true" />
                         {pm.dislike_count}
                       </span>
@@ -248,11 +248,11 @@ function PMListPage() {
                   </td>
                   <td className="px-4 py-3">
                     {pm.is_active ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
                         <CheckCircle2 className="h-3 w-3" /> 활성
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                         <XCircle className="h-3 w-3" /> 비활성
                       </span>
                     )}
@@ -261,7 +261,7 @@ function PMListPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/admin/pm/${pm.id}`}
-                        className="flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                        className="flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                       >
                         <Pencil className="h-3 w-3" />
                         편집
@@ -270,7 +270,7 @@ function PMListPage() {
                         type="button"
                         onClick={() => handleDelete(pm)}
                         disabled={deleteMutation.isPending}
-                        className="flex items-center gap-1 rounded-lg border border-red-500/20 px-2.5 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                        className="flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-3 w-3" />
                         삭제
@@ -281,7 +281,7 @@ function PMListPage() {
               ))}
               {data.items.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-600">
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-[var(--text-muted)]">
                     PM 프로필이 없습니다. 위 버튼으로 추가하세요.
                   </td>
                 </tr>

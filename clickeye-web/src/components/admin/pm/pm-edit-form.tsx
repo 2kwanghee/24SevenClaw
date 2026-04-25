@@ -138,11 +138,11 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
   };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-sm text-slate-500">불러오는 중...</div>;
+    return <div className="py-12 text-center text-sm text-[var(--text-muted)]">불러오는 중...</div>;
   }
   if (error) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+      <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <AlertCircle className="h-4 w-4 shrink-0" />
         {(error as Error).message}
       </div>
@@ -156,13 +156,13 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         <div className="flex items-center gap-3">
           <Link
             href="/admin/pm"
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300"
+            className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             목록으로
           </Link>
-          <span className="text-slate-700">/</span>
-          <h1 className="text-sm font-semibold text-white">{profile?.name}</h1>
+          <span className="text-[var(--border-medium)]">/</span>
+          <h1 className="text-sm font-semibold text-[var(--text-primary)]">{profile?.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           {mdDirty ? (
@@ -179,7 +179,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           <button
             type="submit"
             disabled={updateMutation.isPending || !isDirty}
-            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
             {updateMutation.isPending ? "저장 중..." : "저장"}
@@ -191,59 +191,59 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       <CollapsibleSection title="기본 정보" defaultOpen>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">이름 *</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">이름 *</label>
             <input
               {...register("name")}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
-            {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">슬러그 *</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">슬러그 *</label>
             <input
               {...register("slug")}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
-            {errors.slug && <p className="mt-1 text-xs text-red-400">{errors.slug.message}</p>}
+            {errors.slug && <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p>}
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">직함</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">직함</label>
             <input
               {...register("title")}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">도메인</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">도메인</label>
             <input
               {...register("domain")}
               placeholder="예: saas, fintech"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Avatar URL</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">Avatar URL</label>
             <input
               {...register("avatar_url")}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
-            {errors.avatar_url && <p className="mt-1 text-xs text-red-400">{errors.avatar_url.message}</p>}
+            {errors.avatar_url && <p className="mt-1 text-xs text-red-600">{errors.avatar_url.message}</p>}
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">연차</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">연차</label>
             <input
               type="number"
               {...register("years_experience")}
               min={0}
               max={50}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">언어</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1">언어</label>
             <select
               {...register("language")}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
             >
               <option value="ko">한국어</option>
               <option value="en">English</option>
@@ -254,9 +254,9 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
               id="is_active"
               type="checkbox"
               {...register("is_active")}
-              className="h-4 w-4 rounded border-white/20"
+              className="h-4 w-4 rounded border-[var(--border-medium)]"
             />
-            <label htmlFor="is_active" className="text-sm text-slate-300">활성 상태</label>
+            <label htmlFor="is_active" className="text-sm text-[var(--text-secondary)]">활성 상태</label>
           </div>
         </div>
       </CollapsibleSection>
@@ -292,23 +292,23 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       {/* 블록 3: 자유서술 */}
       <CollapsibleSection title="자유서술">
         <div>
-          <label className="block text-xs text-slate-400 mb-1">한 줄 설명</label>
+          <label className="block text-xs text-[var(--text-muted)] mb-1">한 줄 설명</label>
           <input
             {...register("description")}
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">
+          <label className="block text-xs text-[var(--text-muted)] mb-1">
             상세 소개 (bio_long) — Claude PM 추천 시 전달
           </label>
           <textarea
             {...register("bio_long")}
             rows={6}
             placeholder="PM의 전문성, 경험, 스타일을 상세히 기술해 주세요."
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
           />
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
             구체적이고 상세할수록 Claude 추천 품질이 높아집니다.
           </p>
         </div>
@@ -398,34 +398,34 @@ function PMFeedbackPanel({ profileId }: { profileId: string }) {
       {/* 요약 카드 */}
       <div className="grid grid-cols-4 gap-3">
         <SummaryTile
-          icon={<Heart className="h-4 w-4 fill-rose-400 text-rose-400" />}
+          icon={<Heart className="h-4 w-4 fill-rose-500 text-rose-500" />}
           label="좋아요"
           value={metrics?.like_count ?? 0}
-          color="text-rose-300"
+          color="text-rose-700"
         />
         <SummaryTile
-          icon={<Frown className="h-4 w-4 text-sky-400" />}
+          icon={<Frown className="h-4 w-4 text-sky-600" />}
           label="별루예요"
           value={metrics?.dislike_count ?? 0}
-          color="text-sky-300"
+          color="text-sky-700"
         />
         <SummaryTile
-          icon={<MessageSquare className="h-4 w-4 text-violet-400" />}
+          icon={<MessageSquare className="h-4 w-4 text-violet-600" />}
           label="총 피드백"
           value={metrics?.total_ratings ?? 0}
-          color="text-violet-300"
+          color="text-violet-700"
         />
         <SummaryTile
-          icon={<BarChart3 className="h-4 w-4 text-emerald-400" />}
+          icon={<BarChart3 className="h-4 w-4 text-emerald-600" />}
           label="사용횟수"
           value={metrics?.usage_count ?? 0}
-          color="text-emerald-300"
+          color="text-emerald-700"
         />
       </div>
 
       {/* 피드백 목록 */}
       {isLoading ? (
-        <p className="py-6 text-center text-sm text-slate-500">불러오는 중...</p>
+        <p className="py-6 text-center text-sm text-[var(--text-muted)]">불러오는 중...</p>
       ) : ratingsData && ratingsData.items.length > 0 ? (
         <div className="space-y-2">
           {ratingsData.items.map((r: PMRatingResponse) => (
@@ -433,7 +433,7 @@ function PMFeedbackPanel({ profileId }: { profileId: string }) {
           ))}
         </div>
       ) : (
-        <p className="py-6 text-center text-sm text-slate-600">
+        <p className="py-6 text-center text-sm text-[var(--text-muted)]">
           아직 피드백이 없습니다
         </p>
       )}
@@ -445,18 +445,18 @@ function PMFeedbackPanel({ profileId }: { profileId: string }) {
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="rounded-lg border border-white/10 px-3 py-1 text-xs text-slate-400 disabled:opacity-40 hover:bg-white/5"
+            className="rounded-lg border border-[var(--border-subtle)] px-3 py-1 text-xs text-[var(--text-secondary)] disabled:opacity-40 hover:bg-[var(--bg-hover)]"
           >
             이전
           </button>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-[var(--text-muted)]">
             {page + 1} / {totalPages}
           </span>
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="rounded-lg border border-white/10 px-3 py-1 text-xs text-slate-400 disabled:opacity-40 hover:bg-white/5"
+            className="rounded-lg border border-[var(--border-subtle)] px-3 py-1 text-xs text-[var(--text-secondary)] disabled:opacity-40 hover:bg-[var(--bg-hover)]"
           >
             다음
           </button>
@@ -475,10 +475,10 @@ interface SummaryTileProps {
 
 function SummaryTile({ icon, label, value, color }: SummaryTileProps) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] py-4">
+    <div className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] py-4">
       {icon}
       <span className={`text-xl font-bold ${color}`}>{value}</span>
-      <span className="text-[11px] text-slate-500">{label}</span>
+      <span className="text-[11px] text-[var(--text-muted)]">{label}</span>
     </div>
   );
 }
@@ -491,23 +491,23 @@ function FeedbackEntry({ rating }: { rating: PMRatingResponse }) {
   });
 
   return (
-    <div className="flex gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+    <div className="flex gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-3">
       <div className="mt-0.5 shrink-0">
         {rating.reaction === "like" ? (
-          <Heart className="h-4 w-4 fill-rose-400 text-rose-400" aria-label="좋아요" />
+          <Heart className="h-4 w-4 fill-rose-500 text-rose-500" aria-label="좋아요" />
         ) : rating.reaction === "dislike" ? (
-          <Frown className="h-4 w-4 text-sky-400" aria-label="별루예요" />
+          <Frown className="h-4 w-4 text-sky-600" aria-label="별루예요" />
         ) : (
-          <MessageSquare className="h-4 w-4 text-slate-500" />
+          <MessageSquare className="h-4 w-4 text-[var(--text-muted)]" />
         )}
       </div>
       <div className="min-w-0 flex-1">
         {rating.comment ? (
-          <p className="text-sm text-slate-300">{rating.comment}</p>
+          <p className="text-sm text-[var(--text-secondary)]">{rating.comment}</p>
         ) : (
-          <p className="text-sm italic text-slate-600">코멘트 없음</p>
+          <p className="text-sm italic text-[var(--text-muted)]">코멘트 없음</p>
         )}
-        <p className="mt-1 text-[11px] text-slate-600">{date}</p>
+        <p className="mt-1 text-[11px] text-[var(--text-muted)]">{date}</p>
       </div>
     </div>
   );

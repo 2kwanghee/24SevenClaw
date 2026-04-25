@@ -12,11 +12,11 @@ export function AutomationBreakdown({ automationRate }: AutomationBreakdownProps
   const roundedHuman = 100 - roundedAuto;
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-      <h3 className="mb-1 text-sm font-semibold text-slate-200">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <h3 className="mb-1 text-sm font-semibold text-[var(--text-primary)]">
         AI vs 사람 작업 비율
       </h3>
-      <p className="mb-6 text-xs text-slate-500">
+      <p className="mb-6 text-xs text-[var(--text-muted)]">
         자동화된 태스크와 수동 태스크 비율
       </p>
 
@@ -28,16 +28,16 @@ export function AutomationBreakdown({ automationRate }: AutomationBreakdownProps
             style={{
               background: `conic-gradient(
                 #8b5cf6 0deg ${automationRate * 3.6}deg,
-                #334155 ${automationRate * 3.6}deg 360deg
+                #e4e4e7 ${automationRate * 3.6}deg 360deg
               )`,
             }}
           />
           {/* 중심 구멍 */}
-          <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-slate-900">
-            <span className="text-2xl font-bold text-slate-100">
+          <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-white">
+            <span className="text-2xl font-bold text-[var(--text-primary)]">
               {roundedAuto}%
             </span>
-            <span className="text-[10px] text-slate-500">자동화</span>
+            <span className="text-[10px] text-[var(--text-muted)]">자동화</span>
           </div>
         </div>
       </div>
@@ -45,21 +45,21 @@ export function AutomationBreakdown({ automationRate }: AutomationBreakdownProps
       {/* 범례 */}
       <div className="mt-6 flex justify-center gap-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-500/20">
-            <Cpu className="h-3.5 w-3.5 text-violet-400" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-50">
+            <Cpu className="h-3.5 w-3.5 text-violet-600" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-300">AI 자동화</p>
-            <p className="text-[10px] text-slate-500">{roundedAuto}%</p>
+            <p className="text-xs font-medium text-[var(--text-secondary)]">AI 자동화</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{roundedAuto}%</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-600/20">
-            <User className="h-3.5 w-3.5 text-slate-400" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100">
+            <User className="h-3.5 w-3.5 text-zinc-600" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-300">수동 작업</p>
-            <p className="text-[10px] text-slate-500">{roundedHuman}%</p>
+            <p className="text-xs font-medium text-[var(--text-secondary)]">수동 작업</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{roundedHuman}%</p>
           </div>
         </div>
       </div>

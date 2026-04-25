@@ -120,8 +120,8 @@ interface SummaryRowProps {
 function SummaryRow({ label, value }: SummaryRowProps) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="shrink-0 text-xs text-slate-500">{label}</span>
-      <span className="text-right text-xs text-slate-300">{value}</span>
+      <span className="shrink-0 text-xs text-zinc-500">{label}</span>
+      <span className="text-right text-xs text-zinc-700">{value}</span>
     </div>
   );
 }
@@ -137,7 +137,7 @@ function ReSelector({ stepIndex, label }: ReSelectorProps) {
     <button
       type="button"
       onClick={() => goToStep(stepIndex)}
-      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+      className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
       aria-label={`${label} 단계로 이동`}
     >
       <ArrowLeft className="h-3 w-3" aria-hidden="true" />
@@ -164,8 +164,8 @@ function CompositionCountBadge({
   return (
     <div className={cn("flex flex-col items-center gap-1 rounded-lg py-2", bg)}>
       <Icon className={cn("h-3.5 w-3.5", color)} aria-hidden="true" />
-      <span className="text-sm font-semibold text-white">{count}</span>
-      <span className="text-[10px] leading-none text-slate-500">{label}</span>
+      <span className="text-sm font-semibold text-zinc-950">{count}</span>
+      <span className="text-[10px] leading-none text-zinc-500">{label}</span>
     </div>
   );
 }
@@ -245,7 +245,7 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="setup-guide-modal mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-emerald-500/20 shadow-2xl"
+        className="setup-guide-modal mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-zinc-200 shadow-2xl"
         style={{ maxHeight: "90vh" }}
         role="dialog"
         aria-modal="true"
@@ -254,19 +254,19 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
         <div className="setup-guide-scroll overflow-y-auto p-6">
           {/* 헤더 */}
           <div className="mb-5 flex flex-col items-center text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
               <CheckCircle2
-                className="h-7 w-7 text-emerald-400"
+                className="h-7 w-7 text-emerald-600"
                 aria-hidden="true"
               />
             </div>
             <h2
               id="guide-modal-title"
-              className="text-lg font-bold text-white"
+              className="text-lg font-bold text-zinc-950"
             >
               솔루션이 생성되었습니다!
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-zinc-500">
               아래 절차로 로컬 개발 환경을 셋업하세요
             </p>
           </div>
@@ -277,22 +277,22 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
               const Icon = step.icon;
               return (
                 <li key={step.label} className="flex items-start gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-400">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-600">
                     {i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <Icon
-                        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        className="h-3.5 w-3.5 shrink-0 text-emerald-600"
                         aria-hidden="true"
                       />
-                      <span className="text-sm font-medium text-slate-200">
+                      <span className="text-sm font-medium text-zinc-700">
                         {step.label}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-500">{step.desc}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{step.desc}</p>
                     {step.command && (
-                      <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-300">
+                      <code className="setup-guide-modal-code mt-1.5 block rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-emerald-600">
                         {step.command}
                       </code>
                     )}
@@ -319,20 +319,20 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
           {/* 연동 설정 가이드 (선택 자산별 동적 렌더링) */}
           {guideGroups.length > 0 && (
             <div className="mb-5 space-y-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                 연동 설정 가이드
               </p>
               {guideGroups.map((group) => (
                 <div
                   key={group.skillId}
-                  className="rounded-xl border border-white/5 bg-white/[0.02] p-3"
+                  className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"
                 >
                   <div className="mb-2 flex items-center gap-1.5">
                     <KeyRound
                       className="h-3 w-3 text-amber-400"
                       aria-hidden="true"
                     />
-                    <span className="text-xs font-semibold text-slate-200">
+                    <span className="text-xs font-semibold text-zinc-700">
                       {group.skillLabel}
                     </span>
                   </div>
@@ -345,8 +345,8 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
                           className={cn(
                             "flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-mono text-[10px]",
                             filled
-                              ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-white/5 text-slate-400",
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-zinc-50 text-zinc-500",
                           )}
                         >
                           {filled ? (
@@ -355,7 +355,7 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
                               aria-hidden="true"
                             />
                           ) : (
-                            <span className="inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
+                            <span className="inline-block h-2.5 w-2.5 rounded-full border border-zinc-300" />
                           )}
                           {v.name}
                         </span>
@@ -363,7 +363,7 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
                     })}
                   </div>
                   {group.bodyMd && (
-                    <div className="prose prose-xs prose-invert max-w-none text-[11px] text-slate-400 [&_a]:text-sky-400 [&_code]:rounded [&_code]:bg-white/5 [&_code]:px-1 [&_code]:text-emerald-300 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-xs [&_li]:mb-0.5 [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:pl-4">
+                    <div className="prose prose-xs prose-invert max-w-none text-[11px] text-zinc-500 [&_a]:text-sky-400 [&_code]:rounded [&_code]:bg-zinc-50 [&_code]:px-1 [&_code]:text-emerald-600 [&_h1]:text-xs [&_h2]:text-xs [&_h3]:text-xs [&_li]:mb-0.5 [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:pl-4">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {group.bodyMd}
                       </ReactMarkdown>
@@ -375,41 +375,41 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
           )}
 
           {/* /ClickEyeStart 흐름 안내 */}
-          <div className="mb-5 space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          <div className="mb-5 space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
               /ClickEyeStart 실행 흐름
             </p>
-            <div className="space-y-1 text-[11px] text-slate-500">
+            <div className="space-y-1 text-[11px] text-zinc-500">
               <p>
                 ①{" "}
-                <code className="text-emerald-300">bash start.sh</code> 실행 →
+                <code className="text-emerald-600">bash start.sh</code> 실행 →
                 Node·Claude Code 점검 후 자동 진입
               </p>
               <p>
                 ②{" "}
-                <code className="text-emerald-300">/ClickEyeStart</code> 입력 →
+                <code className="text-emerald-600">/ClickEyeStart</code> 입력 →
                 자동 셋업 시작
               </p>
               <p>
-                ③ <code className="text-slate-400">.env</code> 검증 → 누락 키
+                ③ <code className="text-zinc-500">.env</code> 검증 → 누락 키
                 대화형 입력 안내
               </p>
               <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
             </div>
-            <p className="mt-2 border-t border-emerald-500/10 pt-2 text-[11px] text-slate-600">
+            <p className="mt-2 border-t border-emerald-100 pt-2 text-[11px] text-zinc-500">
               팀 공유용 슬라이드 가이드: ZIP 내{" "}
-              <code className="text-slate-400">docs/setup-guide.pptx</code>
+              <code className="text-zinc-500">docs/setup-guide.pptx</code>
             </p>
           </div>
 
           {/* 액션 버튼 */}
           <Link
             href={`/projects/${projectId}`}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-colors hover:bg-emerald-500"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/10 transition-colors hover:bg-zinc-800"
           >
             프로젝트 페이지로 이동
           </Link>
-          <p className="mt-2 text-center text-[11px] text-slate-600">
+          <p className="mt-2 text-center text-[11px] text-zinc-500">
             프로젝트 페이지에서 ZIP 다운로드 및 연동 상태를 확인할 수 있습니다
           </p>
         </div>
@@ -458,10 +458,10 @@ export function StepConfirmation() {
   return (
     <div className="space-y-4" role="region" aria-label="최종 확인">
       {/* -- 회사 정보 -- */}
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Building2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+          <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <Building2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
             회사 정보
           </h3>
           <ReSelector stepIndex={0} label="재설정" />
@@ -481,8 +481,8 @@ export function StepConfirmation() {
             value={company.mainProduct || "미설정"}
           />
           {company.solutionRequest && (
-            <div className="mt-2 rounded-lg bg-white/5 p-3">
-              <p className="text-xs leading-relaxed text-slate-400">
+            <div className="mt-2 rounded-lg bg-zinc-50 p-3">
+              <p className="text-xs leading-relaxed text-zinc-500">
                 {company.solutionRequest.length > 150
                   ? company.solutionRequest.slice(0, 150) + "..."
                   : company.solutionRequest}
@@ -493,10 +493,10 @@ export function StepConfirmation() {
       </div>
 
       {/* -- 선택된 프로토타입 -- */}
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Cpu className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+          <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <Cpu className="h-4 w-4 text-emerald-600" aria-hidden="true" />
             솔루션 프로토타입
           </h3>
           <ReSelector stepIndex={1} label="재선택" />
@@ -504,16 +504,16 @@ export function StepConfirmation() {
         {selectedProto ? (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-white">
+              <span className="text-sm font-semibold text-zinc-950">
                 {selectedProto.name}
               </span>
-              <span className="inline-flex items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-300">
+              <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
                 {SOLUTION_TYPE_LABELS[selectedProto.solutionType] ??
                   selectedProto.solutionType}
               </span>
             </div>
             {selectedProto.reasoning && (
-              <p className="text-xs leading-relaxed text-slate-400">
+              <p className="text-xs leading-relaxed text-zinc-500">
                 {selectedProto.reasoning.length > 120
                   ? selectedProto.reasoning.slice(0, 120) + "..."
                   : selectedProto.reasoning}
@@ -526,15 +526,15 @@ export function StepConfirmation() {
             />
           </div>
         ) : (
-          <p className="text-xs text-slate-500">선택된 프로토타입 없음</p>
+          <p className="text-xs text-zinc-500">선택된 프로토타입 없음</p>
         )}
       </div>
 
       {/* -- 선택된 PM -- */}
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <UserCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+          <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <UserCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
             프로젝트 매니저
           </h3>
           <ReSelector stepIndex={2} label="재선택" />
@@ -543,19 +543,19 @@ export function StepConfirmation() {
         {pmProfile ? (
           <div className="space-y-3">
             {/* PM 미니 카드 */}
-            <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
-                <UserCircle2 className="h-5 w-5 text-emerald-300" aria-hidden="true" />
+            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                <UserCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-zinc-950">
                   {pmProfile.name}
                 </p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2">
                   {(pmProfile.specialties?.[0] ??
                     pmProfile.domain ??
                     pmProfile.title) && (
-                    <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-600">
                       {pmProfile.specialties?.[0] ??
                         pmProfile.domain ??
                         pmProfile.title}
@@ -571,7 +571,7 @@ export function StepConfirmation() {
             {/* PM 구성 요약 (수량 배지) */}
             {compositionCounts && (
               <div>
-                <p className="mb-2 text-[11px] font-medium text-slate-500">
+                <p className="mb-2 text-[11px] font-medium text-zinc-500">
                   PM 구성 요소
                 </p>
                 <div className="grid grid-cols-5 gap-2">
@@ -579,8 +579,8 @@ export function StepConfirmation() {
                     icon={Bot}
                     label="에이전트"
                     count={compositionCounts.agents}
-                    color="text-emerald-400"
-                    bg="bg-emerald-500/10"
+                    color="text-emerald-600"
+                    bg="bg-emerald-50"
                   />
                   <CompositionCountBadge
                     icon={Wrench}
@@ -615,22 +615,22 @@ export function StepConfirmation() {
             )}
           </div>
         ) : pm.selectedPmProfileId ? (
-          <p className="text-xs text-slate-400">PM 정보 로딩 중...</p>
+          <p className="text-xs text-zinc-500">PM 정보 로딩 중...</p>
         ) : (
-          <p className="text-xs text-slate-500">선택된 PM 없음</p>
+          <p className="text-xs text-zinc-500">선택된 PM 없음</p>
         )}
       </div>
 
       {/* -- 최종 안내 -- */}
       <div className="flex flex-col items-center justify-center pt-4 text-center">
         <CheckCircle2
-          className="mb-3 h-8 w-8 text-emerald-400"
+          className="mb-3 h-8 w-8 text-emerald-600"
           aria-hidden="true"
         />
-        <p className="text-sm font-medium text-white">
+        <p className="text-sm font-medium text-zinc-950">
           모든 설정을 확인했습니다
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-zinc-500">
           &ldquo;이대로 진행&rdquo; 버튼을 클릭하면 프로젝트가 생성됩니다
         </p>
       </div>

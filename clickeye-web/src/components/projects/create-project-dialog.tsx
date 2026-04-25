@@ -28,14 +28,14 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
       />
 
       {/* 다이얼로그 */}
-      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-2xl shadow-black/50">
+      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-2xl shadow-black/10">
         {/* 헤더 */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">새 프로젝트</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">새 프로젝트</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -62,7 +62,7 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full rounded-xl border border-white/5 bg-white/[0.02] py-2.5 text-center text-sm font-medium text-slate-400 transition-all hover:bg-white/5 hover:text-slate-300"
+          className="mt-4 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 text-center text-sm font-medium text-[var(--text-muted)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >
           취소
         </button>

@@ -7,8 +7,8 @@ export default function AdminRegistrySkillsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-white">Skill 레지스트리</h1>
-            <p className="mt-1 text-xs text-slate-500">스킬 카탈로그 항목 관리</p>
+            <h1 className="text-lg font-semibold text-[var(--text-primary)]">Skill 레지스트리</h1>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">스킬 카탈로그 항목 관리</p>
           </div>
         </div>
         <RegistryListTable type="skills" />

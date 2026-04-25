@@ -59,7 +59,7 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
       className={cn(
         "rounded-xl border px-4 py-3 transition-colors",
         isSet
-          ? "border-emerald-500/20 bg-emerald-500/5"
+          ? "border-emerald-200 bg-emerald-50"
           : "border-red-500/20 bg-red-500/5",
       )}
     >
@@ -67,32 +67,32 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
         <div className="flex items-start gap-2.5">
           {isSet ? (
             <CheckCircle2
-              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
               aria-hidden="true"
             />
           ) : (
             <XCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-red-400"
+              className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
               aria-hidden="true"
             />
           )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <code className="font-mono text-xs font-semibold text-slate-200">
+              <code className="font-mono text-xs font-semibold text-zinc-700">
                 {config.key}
               </code>
               <span
                 className={cn(
                   "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                   isSet
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-red-500/15 text-red-400",
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-red-500/15 text-red-600",
                 )}
               >
                 {isSet ? "설정됨" : "필수"}
               </span>
             </div>
-            <p className="mt-0.5 text-[11px] text-slate-500">
+            <p className="mt-0.5 text-[11px] text-zinc-500">
               {config.description}
             </p>
           </div>
@@ -117,7 +117,7 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
               setDraft(value);
               setIsEditing((v) => !v);
             }}
-            className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-300"
+            className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
           >
             {isEditing ? "취소" : isSet ? "수정" : "입력"}
           </button>
@@ -136,14 +136,14 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
             }}
             placeholder={`${config.key} 값 입력`}
             autoFocus
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-white placeholder-slate-600 outline-none transition-all focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20"
+            className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20"
             aria-label={`${config.label} 입력`}
           />
           <button
             type="button"
             onClick={handleSave}
             disabled={!draft.trim()}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             저장
           </button>
@@ -177,9 +177,9 @@ function IntegrationValidationBadge({
       role="status"
       className={cn(
         "flex items-center gap-2 rounded-lg px-3 py-2 text-xs",
-        status === "loading" && "border border-slate-500/20 bg-slate-500/5 text-slate-400",
-        status === "valid" && "border border-emerald-500/20 bg-emerald-500/5 text-emerald-400",
-        status === "invalid" && "border border-red-500/20 bg-red-500/5 text-red-400",
+        status === "loading" && "border border-zinc-200 bg-zinc-100 text-zinc-500",
+        status === "valid" && "border border-emerald-200 bg-emerald-50 text-emerald-600",
+        status === "invalid" && "border border-red-200 bg-red-50 text-red-600",
       )}
     >
       {status === "loading" && (
@@ -365,9 +365,9 @@ export function StepSolutionEnv() {
     <div className="space-y-6">
       {/* Anthropic 기본 키 */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-slate-300">
+        <h3 className="text-sm font-medium text-zinc-700">
           필수 API 키
-          <span className="ml-1.5 text-[11px] font-normal text-slate-500">
+          <span className="ml-1.5 text-[11px] font-normal text-zinc-500">
             ({allRequiredKeys.length - missingKeys.length}/{allRequiredKeys.length} 설정됨)
           </span>
         </h3>
@@ -386,11 +386,11 @@ export function StepSolutionEnv() {
         const isExpanded = expandedGuides.has(group.skillId);
         const hasGuide = !!group.bodyMd;
         return (
-          <div key={group.skillId} className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div key={group.skillId} className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-                <span className="text-sm font-medium text-slate-200">{group.skillLabel}</span>
+                <span className="text-sm font-medium text-zinc-700">{group.skillLabel}</span>
                 <span className="rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
                   API 키 필요
                 </span>
@@ -410,21 +410,21 @@ export function StepSolutionEnv() {
 
             {/* 접이식 body_md 가이드 */}
             {hasGuide && isExpanded && (
-              <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+              <div className="rounded-lg border border-zinc-200 bg-black/20 px-4 py-3">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    h1: ({ children }) => <h1 className="mb-2 text-sm font-semibold text-white">{children}</h1>,
-                    h2: ({ children }) => <h2 className="mb-1.5 mt-3 text-xs font-semibold text-slate-200">{children}</h2>,
-                    h3: ({ children }) => <h3 className="mb-1 mt-2 text-xs font-medium text-slate-300">{children}</h3>,
-                    p: ({ children }) => <p className="mb-1.5 text-xs text-slate-400">{children}</p>,
-                    ol: ({ children }) => <ol className="mb-1.5 list-decimal pl-4 text-xs text-slate-400 space-y-0.5">{children}</ol>,
-                    ul: ({ children }) => <ul className="mb-1.5 list-disc pl-4 text-xs text-slate-400 space-y-0.5">{children}</ul>,
+                    h1: ({ children }) => <h1 className="mb-2 text-sm font-semibold text-zinc-950">{children}</h1>,
+                    h2: ({ children }) => <h2 className="mb-1.5 mt-3 text-xs font-semibold text-zinc-700">{children}</h2>,
+                    h3: ({ children }) => <h3 className="mb-1 mt-2 text-xs font-medium text-zinc-700">{children}</h3>,
+                    p: ({ children }) => <p className="mb-1.5 text-xs text-zinc-500">{children}</p>,
+                    ol: ({ children }) => <ol className="mb-1.5 list-decimal pl-4 text-xs text-zinc-500 space-y-0.5">{children}</ol>,
+                    ul: ({ children }) => <ul className="mb-1.5 list-disc pl-4 text-xs text-zinc-500 space-y-0.5">{children}</ul>,
                     li: ({ children }) => <li>{children}</li>,
-                    code: ({ children }) => <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-slate-300">{children}</code>,
-                    pre: ({ children }) => <pre className="mb-2 overflow-auto rounded-lg bg-black/40 px-3 py-2 font-mono text-[11px] text-slate-300">{children}</pre>,
+                    code: ({ children }) => <code className="rounded bg-zinc-100 px-1 py-0.5 font-mono text-[11px] text-zinc-700">{children}</code>,
+                    pre: ({ children }) => <pre className="mb-2 overflow-auto rounded-lg bg-black/40 px-3 py-2 font-mono text-[11px] text-zinc-700">{children}</pre>,
                     a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300">{children}</a>,
-                    strong: ({ children }) => <strong className="font-semibold text-slate-200">{children}</strong>,
+                    strong: ({ children }) => <strong className="font-semibold text-zinc-700">{children}</strong>,
                   }}
                 >
                   {group.bodyMd!}
@@ -479,12 +479,12 @@ export function StepSolutionEnv() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Wifi className="h-4 w-4 text-violet-400" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-slate-300">
+            <h3 className="text-sm font-medium text-zinc-700">
               실시간 트래킹 방식
-              <span className="ml-1.5 text-[11px] font-normal text-slate-500">(선택)</span>
+              <span className="ml-1.5 text-[11px] font-normal text-zinc-500">(선택)</span>
             </h3>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-zinc-500">
             Linear 이슈 상태 변경 시 로컬 Claude를 자동으로 실행하는 방식을 선택하세요.
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -509,21 +509,21 @@ export function StepSolutionEnv() {
                     "rounded-xl border px-3 py-2.5 text-left transition-colors",
                     isSelected
                       ? "border-violet-500/40 bg-violet-500/10"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/20",
+                      : "border-zinc-200 bg-zinc-50 hover:border-zinc-300",
                   )}
                 >
-                  <p className={cn("text-xs font-medium", isSelected ? "text-violet-300" : "text-slate-300")}>
+                  <p className={cn("text-xs font-medium", isSelected ? "text-violet-300" : "text-zinc-700")}>
                     {labels[provider].title}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">{labels[provider].desc}</p>
+                  <p className="mt-0.5 text-[11px] text-zinc-500">{labels[provider].desc}</p>
                 </button>
               );
             })}
           </div>
 
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "ngrok" && (
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
-              <label className="block text-xs text-slate-400 mb-1.5">
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+              <label className="block text-xs text-zinc-500 mb-1.5">
                 ngrok 인증 토큰{" "}
                 <a
                   href="https://dashboard.ngrok.com/get-started/your-authtoken"
@@ -541,19 +541,19 @@ export function StepSolutionEnv() {
                   setEnv({ envVars: { ...envVars, NGROK_AUTH_TOKEN: e.target.value } })
                 }
                 placeholder="ngrok 인증 토큰"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-white placeholder-slate-600 outline-none focus:border-violet-500/50"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none focus:border-violet-500/50"
               />
             </div>
           )}
 
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "cloudflare" && (
-            <p className="text-[11px] text-slate-600">
-              ZIP 압축 해제 후 <code className="text-slate-400">bash scripts/setup-tunnel.sh</code>을 실행하면 cloudflared가 자동 설치됩니다.
+            <p className="text-[11px] text-zinc-500">
+              ZIP 압축 해제 후 <code className="text-zinc-500">bash scripts/setup-tunnel.sh</code>을 실행하면 cloudflared가 자동 설치됩니다.
             </p>
           )}
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "polling" && (
-            <p className="text-[11px] text-slate-600">
-              <code className="text-slate-400">python3 scripts/linear_watcher.py</code>를 실행하면 30초마다 Linear를 폴링합니다. webhook 서버 불필요.
+            <p className="text-[11px] text-zinc-500">
+              <code className="text-zinc-500">python3 scripts/linear_watcher.py</code>를 실행하면 30초마다 Linear를 폴링합니다. webhook 서버 불필요.
             </p>
           )}
         </div>
@@ -565,7 +565,7 @@ export function StepSolutionEnv() {
           className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400"
           aria-hidden="true"
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-zinc-500">
           입력한 키는 ZIP 파일의{" "}
           <code className="text-yellow-300">.env</code>에 저장됩니다.
           ZIP 파일은 공유하지 마세요. 방법을 모르는 경우 ZIP의{" "}
@@ -576,29 +576,29 @@ export function StepSolutionEnv() {
       {/* 추가 환경변수 목록 */}
       {extraEnvVars.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-300">
+          <h3 className="text-sm font-medium text-zinc-700">
             추가 환경변수
           </h3>
           {extraEnvVars.map(([key, value]) => (
             <div
               key={key}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2"
             >
               <KeyRound
-                className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                className="h-3.5 w-3.5 shrink-0 text-emerald-600"
                 aria-hidden="true"
               />
-              <span className="min-w-0 flex-1 font-mono text-xs text-slate-300">
+              <span className="min-w-0 flex-1 font-mono text-xs text-zinc-700">
                 {key}
               </span>
-              <span className="min-w-0 flex-1 truncate font-mono text-xs text-slate-500">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-zinc-500">
                 {value ? "••••••••" : "(비어있음)"}
               </span>
               <button
                 type="button"
                 onClick={() => handleRemove(key)}
                 aria-label={`${key} 제거`}
-                className="rounded-md p-1 text-slate-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-600"
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
@@ -609,9 +609,9 @@ export function StepSolutionEnv() {
 
       {/* 환경변수 추가 */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-300">
+        <label className="block text-sm font-medium text-zinc-700">
           환경변수 추가{" "}
-          <span className="text-xs font-normal text-slate-500">(선택)</span>
+          <span className="text-xs font-normal text-zinc-500">(선택)</span>
         </label>
         <div className="flex gap-2">
           <input
@@ -620,7 +620,7 @@ export function StepSolutionEnv() {
             onChange={(e) => setNewKey(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="KEY_NAME"
-            className="w-1/3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 font-mono text-sm text-white placeholder-slate-600 outline-none transition-all focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+            className="w-1/3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 font-mono text-sm text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           />
           <input
             type="text"
@@ -628,13 +628,13 @@ export function StepSolutionEnv() {
             onChange={(e) => setNewValue(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="값 (나중에 입력 가능)"
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-all focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20"
+            className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           />
           <button
             type="button"
             onClick={handleAdd}
             disabled={!newKey.trim()}
-            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
           </button>

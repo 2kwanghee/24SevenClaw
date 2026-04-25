@@ -123,19 +123,19 @@ export function StepCompany() {
       <div className="space-y-2">
         <label
           htmlFor="company-name"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-zinc-700"
         >
-          회사 이름 <span className="text-red-400">*</span>
+          회사 이름 <span className="text-red-600">*</span>
         </label>
         <input
           id="company-name"
           type="text"
           {...register("companyName")}
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           placeholder="예: 우리 회사"
         />
         {errors.companyName && (
-          <p className="flex items-center gap-1.5 text-xs text-red-400">
+          <p className="flex items-center gap-1.5 text-xs text-red-600">
             <AlertCircle className="h-3 w-3" />
             {errors.companyName.message}
           </p>
@@ -146,19 +146,19 @@ export function StepCompany() {
       <div className="space-y-2">
         <label
           htmlFor="main-product"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-zinc-700"
         >
-          주력 제품/서비스 <span className="text-red-400">*</span>
+          주력 제품/서비스 <span className="text-red-600">*</span>
         </label>
         <input
           id="main-product"
           type="text"
           {...register("mainProduct")}
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           placeholder="예: 기업용 HR 관리 플랫폼"
         />
         {errors.mainProduct && (
-          <p className="flex items-center gap-1.5 text-xs text-red-400">
+          <p className="flex items-center gap-1.5 text-xs text-red-600">
             <AlertCircle className="h-3 w-3" />
             {errors.mainProduct.message}
           </p>
@@ -167,8 +167,8 @@ export function StepCompany() {
 
       {/* 비즈니스 유형 */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-300">
-          비즈니스 유형 <span className="text-red-400">*</span>
+        <label className="block text-sm font-medium text-zinc-700">
+          비즈니스 유형 <span className="text-red-600">*</span>
         </label>
         <Controller
           name="businessType"
@@ -186,19 +186,19 @@ export function StepCompany() {
                     aria-pressed={selected}
                     className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-4 text-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                       selected
-                        ? "border-emerald-500/50 bg-emerald-500/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20"
-                        : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]"
+                        ? "border-zinc-900 bg-zinc-50 shadow-sm ring-2 ring-zinc-900/10"
+                        : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
                     }`}
                   >
                     <Icon
-                      className={`h-5 w-5 ${selected ? "text-emerald-400" : "text-slate-400"}`}
+                      className={`h-5 w-5 ${selected ? "text-emerald-600" : "text-zinc-500"}`}
                     />
                     <span
-                      className={`text-sm font-medium ${selected ? "text-white" : "text-slate-300"}`}
+                      className={`text-sm font-medium ${selected ? "text-zinc-950" : "text-zinc-700"}`}
                     >
                       {opt.label}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-zinc-500">
                       {opt.description}
                     </span>
                   </button>
@@ -208,7 +208,7 @@ export function StepCompany() {
           )}
         />
         {errors.businessType && (
-          <p className="flex items-center gap-1.5 text-xs text-red-400">
+          <p className="flex items-center gap-1.5 text-xs text-red-600">
             <AlertCircle className="h-3 w-3" />
             {errors.businessType.message}
           </p>
@@ -219,20 +219,20 @@ export function StepCompany() {
       <div className="space-y-2">
         <label
           htmlFor="company-description"
-          className="block text-sm font-medium text-slate-300"
+          className="block text-sm font-medium text-zinc-700"
         >
           회사 설명{" "}
-          <span className="text-xs font-normal text-slate-500">(선택)</span>
+          <span className="text-xs font-normal text-zinc-500">(선택)</span>
         </label>
         <textarea
           id="company-description"
           {...register("companyDescription")}
           rows={3}
-          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           placeholder="회사 배경, 팀 구성, 현재 기술 수준 등을 자유롭게 설명해 주세요"
         />
         {errors.companyDescription && (
-          <p className="flex items-center gap-1.5 text-xs text-red-400">
+          <p className="flex items-center gap-1.5 text-xs text-red-600">
             <AlertCircle className="h-3 w-3" />
             {errors.companyDescription.message}
           </p>
@@ -243,12 +243,12 @@ export function StepCompany() {
       <div className="space-y-2">
         <label
           htmlFor="solution-request"
-          className="flex items-center gap-2 text-sm font-medium text-slate-300"
+          className="flex items-center gap-2 text-sm font-medium text-zinc-700"
         >
-          <Sparkles className="h-4 w-4 text-emerald-400" />
-          필요한 솔루션 설명 <span className="text-red-400">*</span>
+          <Sparkles className="h-4 w-4 text-emerald-600" />
+          필요한 솔루션 설명 <span className="text-red-600">*</span>
         </label>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-zinc-500">
           자연어로 자유롭게 작성하세요. AI가 분석하여 최적의 솔루션을
           설계합니다.
         </p>
@@ -256,19 +256,19 @@ export function StepCompany() {
           id="solution-request"
           {...register("solutionRequest")}
           rows={5}
-          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           placeholder="예: 현재 엑셀로 관리하는 고객 데이터를 자동화하고 싶습니다. 영업팀 10명이 사용할 CRM 시스템이 필요하고, Slack 알림과 연동되면 좋겠습니다..."
         />
         <div className="flex items-center justify-between">
           {errors.solutionRequest ? (
-            <p className="flex items-center gap-1.5 text-xs text-red-400">
+            <p className="flex items-center gap-1.5 text-xs text-red-600">
               <AlertCircle className="h-3 w-3" />
               {errors.solutionRequest.message}
             </p>
           ) : (
             <span />
           )}
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-zinc-500">
             {watchedValues.solutionRequest?.length ?? 0} / 2000
           </span>
         </div>

@@ -18,24 +18,24 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
 };
 
 const CHANGE_TYPE_COLORS: Record<string, string> = {
-  create: "bg-emerald-500/10 text-emerald-300",
-  update: "bg-blue-500/10 text-blue-300",
-  delete: "bg-red-500/10 text-red-300",
-  apply: "bg-violet-500/10 text-violet-300",
-  override: "bg-amber-500/10 text-amber-300",
-  sync: "bg-cyan-500/10 text-cyan-300",
+  create: "bg-emerald-50 text-emerald-700",
+  update: "bg-blue-50 text-blue-700",
+  delete: "bg-red-50 text-red-700",
+  apply: "bg-violet-50 text-violet-700",
+  override: "bg-amber-50 text-amber-700",
+  sync: "bg-cyan-50 text-cyan-700",
 };
 
 function AuditRow({ log }: { log: ContractAuditLogResponse }) {
   const changeLabel = CHANGE_TYPE_LABELS[log.change_type] ?? log.change_type;
   const changeColor =
-    CHANGE_TYPE_COLORS[log.change_type] ?? "bg-slate-500/10 text-slate-300";
+    CHANGE_TYPE_COLORS[log.change_type] ?? "bg-zinc-100 text-zinc-600";
 
   const hasDiff = Object.keys(log.diff_snapshot).length > 0;
 
   return (
-    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-      <td className="px-4 py-3 text-xs text-slate-500">
+    <tr className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
+      <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
         {new Date(log.created_at).toLocaleString("ko-KR")}
       </td>
       <td className="px-4 py-3">
@@ -45,27 +45,27 @@ function AuditRow({ log }: { log: ContractAuditLogResponse }) {
           {changeLabel}
         </span>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        <code className="rounded bg-white/[0.05] px-1.5 py-0.5 text-xs">
+      <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+        <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">
           {log.actor_id.slice(0, 8)}...
         </code>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
+      <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
         {log.contract_id ? (
-          <code className="rounded bg-white/[0.05] px-1.5 py-0.5 text-xs">
+          <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs">
             {log.contract_id.slice(0, 8)}...
           </code>
         ) : (
-          <span className="text-xs text-slate-600">-</span>
+          <span className="text-xs text-[var(--text-muted)]">-</span>
         )}
       </td>
       <td className="max-w-xs px-4 py-3">
         {hasDiff ? (
-          <pre className="max-h-20 overflow-auto rounded bg-white/[0.03] px-2 py-1 text-[10px] leading-relaxed text-slate-400">
+          <pre className="max-h-20 overflow-auto rounded bg-zinc-50 px-2 py-1 text-[10px] leading-relaxed text-[var(--text-secondary)]">
             {JSON.stringify(log.diff_snapshot, null, 2)}
           </pre>
         ) : (
-          <span className="text-xs text-slate-600">-</span>
+          <span className="text-xs text-[var(--text-muted)]">-</span>
         )}
       </td>
     </tr>
@@ -120,12 +120,12 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
     <div>
       {/* 헤더 + 필터 */}
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-200">계약 감사 로그</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">계약 감사 로그</h3>
         <div className="relative">
           <button
             type="button"
             onClick={() => setFilterOpen(!filterOpen)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-violet-500/30 hover:bg-white/[0.05]"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]"
           >
             <Filter className="h-3 w-3" />
             {changeTypeFilter
@@ -138,7 +138,7 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
                 className="fixed inset-0 z-10"
                 onClick={() => setFilterOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-36 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-xl">
+              <div className="absolute right-0 z-20 mt-1 w-36 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1 shadow-xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -147,8 +147,8 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
                   }}
                   className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
                     !changeTypeFilter
-                      ? "bg-violet-500/10 text-violet-300"
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                      ? "bg-zinc-100 text-[var(--text-primary)]"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   전체
@@ -163,8 +163,8 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
                     }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
                       changeTypeFilter === value
-                        ? "bg-violet-500/10 text-violet-300"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                        ? "bg-zinc-100 text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     }`}
                   >
                     {label}
@@ -182,7 +182,7 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-10 animate-pulse rounded-lg bg-white/[0.03]"
+              className="h-10 animate-pulse rounded-lg bg-zinc-100"
             />
           ))}
         </div>
@@ -190,30 +190,30 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           감사 로그를 불러오지 못했습니다.
         </div>
       )}
 
       {/* 테이블 */}
       {logs && logs.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-white/5 bg-white/[0.02]">
+        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.03]">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   시각
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   유형
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   수행자
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   계약 ID
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   변경 내용
                 </th>
               </tr>
@@ -230,8 +230,8 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
       {/* 빈 상태 */}
       {logs && logs.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <ScrollText className="h-10 w-10 text-slate-600" />
-          <p className="text-sm text-slate-400">감사 로그가 없습니다</p>
+          <ScrollText className="h-10 w-10 text-[var(--text-muted)]" />
+          <p className="text-sm text-[var(--text-muted)]">감사 로그가 없습니다</p>
         </div>
       )}
 
@@ -245,11 +245,11 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
               updateParams({ audit_page: String(auditPage - 1) })
             }
             aria-label="이전 페이지"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-xs text-slate-400">{auditPage} 페이지</span>
+          <span className="text-xs text-[var(--text-secondary)]">{auditPage} 페이지</span>
           <button
             type="button"
             disabled={!hasMore}
@@ -257,7 +257,7 @@ export function ContractAuditTable({ contractId }: ContractAuditTableProps) {
               updateParams({ audit_page: String(auditPage + 1) })
             }
             aria-label="다음 페이지"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

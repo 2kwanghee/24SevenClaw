@@ -273,17 +273,17 @@ export default function NewSolutionPage() {
       {error && (
         <div
           role="alert"
-          className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3"
+          className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
         >
-          <AlertCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden="true" />
-          <p className="flex-1 text-sm text-red-300">{error}</p>
+          <AlertCircle className="h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+          <p className="flex-1 text-sm text-red-700">{error}</p>
           <button
             type="button"
             onClick={() => {
               setError(null);
               void handleStep1Next();
             }}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-300 transition-colors hover:bg-red-500/10"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-100"
           >
             <RefreshCw className="h-3 w-3" />
             재시도

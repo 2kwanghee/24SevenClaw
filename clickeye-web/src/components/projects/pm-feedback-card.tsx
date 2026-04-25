@@ -68,15 +68,15 @@ export function PMFeedbackCard({
   if (dismissed) return null;
 
   return (
-    <div className="mt-6 rounded-2xl border border-violet-500/20 bg-violet-500/5 p-6">
+    <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50 p-6">
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/15">
-            <Star className="h-4 w-4 text-violet-400" aria-hidden="true" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-100">
+            <Star className="h-4 w-4 text-violet-600" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">PM 피드백</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">PM 피드백</h3>
+            <p className="text-xs text-[var(--text-muted)]">
               사용 중인 PM에 대한 평가를 남겨주세요
             </p>
           </div>
@@ -85,7 +85,7 @@ export function PMFeedbackCard({
           <button
             type="button"
             onClick={handleDismiss}
-            className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+            className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
           >
             나중에
           </button>
@@ -94,31 +94,31 @@ export function PMFeedbackCard({
 
       {/* PM 정보 */}
       {pmProfile && (
-        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
-            <UserCircle2 className="h-4.5 w-4.5 text-violet-400" aria-hidden="true" />
+        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100">
+            <UserCircle2 className="h-4.5 w-4.5 text-violet-600" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-xs font-medium text-slate-200">
+            <p className="truncate text-xs font-medium text-[var(--text-primary)]">
               {pmProfile.name}
             </p>
-            <p className="truncate text-[11px] text-slate-500">
+            <p className="truncate text-[11px] text-[var(--text-muted)]">
               {pmProfile.title ?? pmProfile.domain ?? pmProfile.specialties?.[0] ?? ""}
             </p>
           </div>
           <div className="ml-auto shrink-0 text-right">
-            <p className="text-xs font-medium text-violet-300">
+            <p className="text-xs font-medium text-violet-600">
               {pmProfile.usage_count}회
             </p>
-            <p className="text-[10px] text-slate-600">사용됨</p>
+            <p className="text-[10px] text-[var(--text-muted)]">사용됨</p>
           </div>
         </div>
       )}
 
       {submitted ? (
-        <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-2.5">
-          <Heart className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-          <p className="text-xs text-emerald-300">
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5">
+          <Heart className="h-4 w-4 text-emerald-700" aria-hidden="true" />
+          <p className="text-xs text-emerald-700">
             피드백을 보내주셔서 감사합니다. PM 개선에 반영됩니다.
           </p>
         </div>
@@ -132,14 +132,14 @@ export function PMFeedbackCard({
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition-all",
                 reaction === "like"
-                  ? "border-rose-500/50 bg-rose-500/15 text-rose-300"
-                  : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:bg-white/[0.06]",
+                  ? "border-rose-300 bg-rose-50 text-rose-700"
+                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]",
               )}
             >
               <Heart
                 className={cn(
                   "h-4 w-4",
-                  reaction === "like" ? "fill-rose-400 text-rose-400" : "",
+                  reaction === "like" ? "fill-rose-500 text-rose-500" : "",
                 )}
                 aria-hidden="true"
               />
@@ -151,8 +151,8 @@ export function PMFeedbackCard({
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition-all",
                 reaction === "dislike"
-                  ? "border-sky-500/50 bg-sky-500/15 text-sky-300"
-                  : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:bg-white/[0.06]",
+                  ? "border-sky-300 bg-sky-50 text-sky-700"
+                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)] hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]",
               )}
             >
               <Frown className="h-4 w-4" aria-hidden="true" />
@@ -166,14 +166,14 @@ export function PMFeedbackCard({
             onChange={(e) => setComment(e.target.value)}
             placeholder="어떤 업무를 잘 처리하는지, 어떤 점이 아쉬웠는지 자유롭게 적어주세요. PM 개선에 큰 도움이 됩니다."
             rows={3}
-            className="mb-3 w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-slate-300 placeholder-slate-600 focus:border-violet-500/40 focus:outline-none focus:ring-1 focus:ring-violet-500/20 transition-colors"
+            className="mb-3 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400/20 transition-colors"
           />
 
           <button
             type="button"
             onClick={() => void handleSubmit()}
             disabled={!reaction || loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-medium text-white shadow-lg shadow-violet-600/20 transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 py-2.5 text-sm font-medium text-white shadow-lg transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <SendHorizontal className="h-4 w-4" aria-hidden="true" />
             {loading ? "전송 중..." : "피드백 보내기"}

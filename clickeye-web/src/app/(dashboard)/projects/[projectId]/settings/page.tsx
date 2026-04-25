@@ -26,19 +26,19 @@ export default function ProjectSettingsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-        <p className="mt-4 text-sm text-slate-500">불러오는 중...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
       </div>
     );
   }
 
   if (loadError || !project) {
     return (
-      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-        <p className="text-sm text-red-300">프로젝트를 찾을 수 없습니다.</p>
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-sm text-red-700">프로젝트를 찾을 수 없습니다.</p>
         <Link
           href="/projects"
-          className="mt-3 inline-block text-sm text-violet-400 transition-colors hover:text-violet-300"
+          className="mt-3 inline-block text-sm text-zinc-500 transition-colors hover:text-zinc-900 hover:underline"
         >
           목록으로 돌아가기
         </Link>
@@ -51,32 +51,32 @@ export default function ProjectSettingsPage() {
       <div className="mb-8">
         <Link
           href={`/projects/${projectId}`}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-slate-300"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {project.name}
         </Link>
-        <h1 className="mt-3 text-2xl font-bold text-white">프로젝트 설정</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="mt-3 text-2xl font-bold text-[var(--text-primary)]">프로젝트 설정</h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
           프로젝트 정보를 수정하고 상태를 관리하세요
         </p>
       </div>
 
       {/* 기본 정보 */}
       <div className="mx-auto max-w-lg space-y-6">
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8">
-          <h2 className="mb-6 text-lg font-semibold text-white">기본 정보</h2>
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="mb-6 text-lg font-semibold text-[var(--text-primary)]">기본 정보</h2>
 
           {error && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-              <p className="text-sm text-red-300">{error}</p>
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
           {success && (
-            <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-              <p className="text-sm text-emerald-300">프로젝트가 업데이트되었습니다.</p>
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+              <p className="text-sm text-emerald-700">프로젝트가 업데이트되었습니다.</p>
             </div>
           )}
 
@@ -111,9 +111,9 @@ export default function ProjectSettingsPage() {
         </div>
 
         {/* 상태 변경 */}
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8">
-          <h2 className="text-lg font-semibold text-white">프로젝트 상태</h2>
-          <p className="mt-1 text-sm text-slate-400">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">프로젝트 상태</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             프로젝트를 보관하거나 다시 활성화할 수 있습니다
           </p>
 
@@ -128,7 +128,7 @@ export default function ProjectSettingsPage() {
                   )
                 }
                 disabled={updateProject.isPending}
-                className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-5 py-2.5 text-sm font-medium text-amber-400 transition-all hover:bg-amber-500/10 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-2.5 text-sm font-medium text-amber-700 transition-all hover:bg-amber-100 disabled:opacity-50"
               >
                 <Archive className="h-4 w-4" />
                 보관 처리
@@ -143,7 +143,7 @@ export default function ProjectSettingsPage() {
                   )
                 }
                 disabled={updateProject.isPending}
-                className="flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/5 px-5 py-2.5 text-sm font-medium text-violet-400 transition-all hover:bg-violet-500/10 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
               >
                 <RotateCcw className="h-4 w-4" />
                 활성화

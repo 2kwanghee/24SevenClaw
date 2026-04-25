@@ -53,9 +53,9 @@ export function OverrideEditor({
     <div className="space-y-4">
       {/* 허용 필드 안내 */}
       {isLocked && allowedFields.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
-          <p className="text-xs text-amber-300">
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
+          <p className="text-xs text-amber-700">
             이 계약은 잠금 상태입니다. 오버라이드 가능한 필드:{" "}
             <span className="font-medium">{allowedFields.join(", ")}</span>
           </p>
@@ -71,15 +71,15 @@ export function OverrideEditor({
         }}
         rows={12}
         spellCheck={false}
-        className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 font-mono text-xs leading-relaxed text-slate-300 placeholder:text-slate-600 focus:border-violet-500/30 focus:outline-none focus:ring-1 focus:ring-violet-500/20"
+        className="w-full rounded-xl border border-[var(--border-subtle)] bg-zinc-50 px-4 py-3 font-mono text-xs leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400/20"
         placeholder='{ "key": "value" }'
       />
 
       {/* 파싱 에러 */}
       {parseError && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
-          <p className="text-xs text-red-300">{parseError}</p>
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-700" />
+          <p className="text-xs text-red-700">{parseError}</p>
         </div>
       )}
 
@@ -88,7 +88,7 @@ export function OverrideEditor({
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-white/[0.05] hover:text-slate-200"
+          className="flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
         >
           <X className="h-3.5 w-3.5" />
           취소
@@ -97,7 +97,7 @@ export function OverrideEditor({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? "저장 중..." : "저장"}

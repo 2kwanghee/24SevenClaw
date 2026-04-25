@@ -51,7 +51,7 @@ export function SolutionWizardStepper() {
                     <div
                       className={cn(
                         "h-0.5 flex-1 transition-colors duration-300",
-                        isCompleted ? "bg-emerald-500" : "bg-white/10",
+                        isCompleted ? "bg-zinc-900" : "bg-zinc-200",
                       )}
                     />
                   ) : (
@@ -62,10 +62,10 @@ export function SolutionWizardStepper() {
                     className={cn(
                       "relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all duration-300",
                       isCompleted
-                        ? "border-emerald-500 bg-emerald-500 text-white"
+                        ? "border-zinc-900 bg-zinc-900 text-white"
                         : isCurrent
-                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-300 ring-4 ring-emerald-500/20"
-                          : "border-white/10 bg-white/[0.02] text-slate-500",
+                          ? "border-zinc-900 bg-white text-zinc-900 ring-4 ring-zinc-200"
+                          : "border-zinc-200 bg-white text-zinc-500",
                     )}
                   >
                     {isCompleted ? (
@@ -79,7 +79,7 @@ export function SolutionWizardStepper() {
                     <div
                       className={cn(
                         "h-0.5 flex-1 transition-colors duration-300",
-                        isCompleted ? "bg-emerald-500" : "bg-white/10",
+                        isCompleted ? "bg-zinc-900" : "bg-zinc-200",
                       )}
                     />
                   ) : (
@@ -91,10 +91,10 @@ export function SolutionWizardStepper() {
                   className={cn(
                     "text-xs font-medium transition-colors",
                     isCurrent
-                      ? "text-emerald-300"
+                      ? "font-semibold text-zinc-900"
                       : isCompleted
-                        ? "text-slate-300"
-                        : "text-slate-500",
+                        ? "text-zinc-600"
+                        : "text-zinc-500",
                   )}
                 >
                   {step.label}
@@ -107,9 +107,9 @@ export function SolutionWizardStepper() {
 
       {/* 모바일: 압축 스텝 */}
       <div className="md:hidden">
-        <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-zinc-200">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-zinc-900 transition-all duration-500 ease-out"
             style={{
               width: `${((currentStep + 1) / SOLUTION_WIZARD_STEPS.length) * 100}%`,
             }}
@@ -118,18 +118,18 @@ export function SolutionWizardStepper() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-semibold text-emerald-300">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">
               {currentStep + 1}
             </span>
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium text-zinc-950">
               {SOLUTION_WIZARD_STEPS[currentStep].label}
             </span>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-zinc-500">
             {currentStep + 1} / {SOLUTION_WIZARD_STEPS.length}
           </span>
         </div>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-zinc-500">
           {SOLUTION_WIZARD_STEPS[currentStep].description}
         </p>
       </div>

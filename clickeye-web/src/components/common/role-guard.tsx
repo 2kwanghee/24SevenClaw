@@ -36,7 +36,7 @@ export function RoleGuard({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
       </div>
     );
   }
@@ -62,14 +62,14 @@ export function RoleGuard({
 function AccessDenied() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
-        <ShieldAlert className="h-8 w-8 text-red-400" />
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
+        <ShieldAlert className="h-8 w-8 text-red-700" />
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-slate-200">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
           접근 권한이 없습니다
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
           이 페이지에 접근하려면 관리자 권한이 필요합니다.
         </p>
       </div>

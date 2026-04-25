@@ -40,24 +40,24 @@ export function WeeklyThroughput({ data }: WeeklyThroughputProps) {
       : "";
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-200">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
             주간 처리량
           </h3>
-          <p className="text-xs text-slate-500">주별 완료된 태스크 수</p>
+          <p className="text-xs text-[var(--text-muted)]">주별 완료된 태스크 수</p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1">
-          <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-          <span className="text-xs font-medium text-emerald-300">
+        <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1">
+          <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+          <span className="text-xs font-medium text-emerald-700">
             총 {total}건
           </span>
         </div>
       </div>
 
       {data.length === 0 ? (
-        <p className="py-8 text-center text-sm text-slate-500">
+        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
           아직 주간 데이터가 없습니다
         </p>
       ) : (
@@ -102,7 +102,7 @@ export function WeeklyThroughput({ data }: WeeklyThroughputProps) {
                   cx={p.x}
                   cy={p.y}
                   r="3"
-                  fill="#1e1b4b"
+                  fill="#ffffff"
                   stroke="#8b5cf6"
                   strokeWidth="1.5"
                 />
@@ -114,10 +114,10 @@ export function WeeklyThroughput({ data }: WeeklyThroughputProps) {
           <div className="mt-3 flex justify-between px-1">
             {data.map((d) => (
               <div key={d.week_start} className="text-center">
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-[var(--text-muted)]">
                   {formatWeekLabel(d.week_start)}
                 </p>
-                <p className="text-xs font-medium text-slate-400">
+                <p className="text-xs font-medium text-[var(--text-secondary)]">
                   {d.completed_count}
                 </p>
               </div>

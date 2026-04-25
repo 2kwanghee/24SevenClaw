@@ -4,7 +4,6 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LogOut, Bell, HelpCircle, BookOpen, RotateCcw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
 function HelpDropdown() {
@@ -82,12 +81,6 @@ export function Header() {
     <header className="flex h-16 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-header)] px-8 backdrop-blur-sm">
       <div />
       <div className="flex items-center gap-4">
-        {/* 테마 스위처 */}
-        <ThemeSwitcher />
-
-        {/* 구분선 */}
-        <div className="h-6 w-px bg-[var(--border-medium)]" />
-
         {/* 알림 */}
         <button
           aria-label="알림"

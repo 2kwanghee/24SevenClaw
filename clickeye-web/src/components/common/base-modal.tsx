@@ -57,13 +57,13 @@ export function BaseModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
       role="presentation"
       onClick={onClose}
     >
       <div
         className={cn(
-          "flex w-full flex-col rounded-2xl bg-slate-900 shadow-2xl",
+          "flex w-full flex-col rounded-2xl bg-[var(--bg-surface)] shadow-2xl",
           SIZE_CLASS[size],
           className,
         )}
@@ -73,11 +73,11 @@ export function BaseModal({
         onClick={(e) => e.stopPropagation()}
       >
         {(title || onClose) && (
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-6 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--border-subtle)] px-6 py-4">
             {title ? (
               <div
                 id={titleId}
-                className="text-base font-semibold text-white"
+                className="text-base font-semibold text-[var(--text-primary)]"
               >
                 {title}
               </div>
@@ -89,7 +89,7 @@ export function BaseModal({
                 type="button"
                 onClick={onClose}
                 aria-label="닫기"
-                className="rounded-md p-1 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>

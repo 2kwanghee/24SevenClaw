@@ -1,9 +1,11 @@
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import async_session as db_session_factory
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.orchestrator import SubTask
@@ -27,7 +29,104 @@ from app.services.claude_service import ClaudeService
 from app.services.orchestrator_service import OrchestratorService
 from app.services.review_pipeline import ReviewPipelineService
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/orchestrator", tags=["review-pipeline"])
+
+
+# === 파이프라인 자동 진행 (BackgroundTask) ===
+
+
+async def _auto_progress_pipeline(session_id: UUID) -> None:
+    """drafting → reviewing → integrating → validating 자동 진행.
+
+    generate_drafts 완료 후 BackgroundTask로 실행된다.
+    resume_pipeline 엔드포인트에서도 재호출 가능하다.
+    """
+    from app.models.orchestrator import OrchestratorSession, PhaseEvent  # noqa: PLC0415
+    from app.models.review_pipeline import ReviewRound  # noqa: PLC0415
+    from app.schemas.orchestrator import PhaseTransitionRequest  # noqa: PLC0415
+
+    async with db_session_factory() as db:
+        orch = OrchestratorService(db)
+        review = ReviewPipelineService(db)
+        try:
+            session = await orch.get_session(session_id)
+            current_phase = str(session.phase)
+
+            # 05단계: drafting → reviewing 전이
+            if current_phase == "drafting":
+                await orch.transition(
+                    session_id=session_id,
+                    data=PhaseTransitionRequest(
+                        target_phase="reviewing", message="자동 교차 리뷰 시작"
+                    ),
+                    actor_type="system",
+                )
+                current_phase = "reviewing"
+
+            # 05단계: draft_submitted 라운드마다 교차 리뷰 자동 생성
+            if current_phase == "reviewing":
+                draft_rows = await db.execute(
+                    select(ReviewRound)
+                    .where(ReviewRound.session_id == session_id)
+                    .where(ReviewRound.status == "draft_submitted")
+                )
+                for rnd in draft_rows.scalars().all():
+                    try:
+                        await review.generate_review(rnd.id)  # type: ignore[arg-type]
+                    except Exception as exc:
+                        logger.error("generate_review 실패 round=%s: %s", rnd.id, exc)
+
+                # reviewing → integrating 전이
+                await orch.transition(
+                    session_id=session_id,
+                    data=PhaseTransitionRequest(
+                        target_phase="integrating", message="자동 통합 시작"
+                    ),
+                    actor_type="system",
+                )
+                current_phase = "integrating"
+
+            # 06단계: review_completed 라운드마다 draft 그대로 병합
+            if current_phase == "integrating":
+                completed_rows = await db.execute(
+                    select(ReviewRound)
+                    .where(ReviewRound.session_id == session_id)
+                    .where(ReviewRound.status == "review_completed")
+                )
+                for rnd in completed_rows.scalars().all():
+                    try:
+                        await review.merge(rnd.id, MergeRequest(merge_strategy="accept_draft"))  # type: ignore[arg-type]
+                    except Exception as exc:
+                        logger.error("merge 실패 round=%s: %s", rnd.id, exc)
+
+                # integrating → validating 전이
+                await orch.transition(
+                    session_id=session_id,
+                    data=PhaseTransitionRequest(
+                        target_phase="validating", message="자동 검증 단계 진입"
+                    ),
+                    actor_type="system",
+                )
+
+        except Exception as exc:
+            logger.error("_auto_progress_pipeline 실패 session=%s: %s", session_id, exc)
+            # 오류 PhaseEvent 기록 (사용자에게 가시성 제공)
+            try:
+                session_obj = await db.get(OrchestratorSession, session_id)
+                if session_obj is not None:
+                    err_event = PhaseEvent(
+                        session_id=session_id,
+                        old_phase=str(session_obj.phase),
+                        new_phase=str(session_obj.phase),
+                        actor_type="system",
+                        message=f"자동 파이프라인 오류: {str(exc)[:200]}",
+                    )
+                    db.add(err_event)
+                    await db.commit()
+            except Exception:
+                pass
 
 
 # === 초안 제출 ===
@@ -60,6 +159,7 @@ async def submit_draft(
 )
 async def generate_drafts(
     session_id: UUID,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),
 ) -> GenerateDraftsResponse:
@@ -126,10 +226,45 @@ async def generate_drafts(
     ]
     linear_sync_hint = LinearSyncHint(
         session_title=str(session.title),
+        session_description=str(session.description) if session.description else None,
         subtasks=hint_subtasks,
     )
 
+    # 응답 반환 후 백그라운드에서 reviewing → integrating → validating 자동 진행
+    background_tasks.add_task(_auto_progress_pipeline, session_id)
+
     return GenerateDraftsResponse(rounds=rounds, linear_sync_hint=linear_sync_hint)
+
+
+# === 중단된 파이프라인 재개 ===
+
+
+@router.post(
+    "/sessions/{session_id}/resume-pipeline",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def resume_pipeline(
+    session_id: UUID,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),
+) -> dict:  # type: ignore[type-arg]
+    """중단된 파이프라인을 재개한다 (drafting/reviewing/integrating 단계에서 가능)."""
+    orch_service = OrchestratorService(db)
+    session = await orch_service.get_session(session_id)
+
+    resumable_phases = {"drafting", "reviewing", "integrating"}
+    if session.phase not in resumable_phases:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"재개 가능한 단계가 아닙니다. 현재: '{session.phase}' "
+                f"(재개 가능: {sorted(resumable_phases)})"
+            ),
+        )
+
+    background_tasks.add_task(_auto_progress_pipeline, session_id)
+    return {"message": "파이프라인 재개를 시작했습니다.", "session_id": str(session_id)}
 
 
 # === 서버 대행 Linear 이슈 생성 ===
@@ -153,12 +288,20 @@ async def push_to_linear(
     from app.models.project_linear_credentials import ProjectLinearCredentials
     from app.models.user_linear_credentials import UserLinearCredentials
     from app.schemas.review_pipeline import LinearSyncHintSubtask as HintSubtask
-    from app.services.linear_service import create_issues
+    from app.services.linear_service import create_issues, get_queued_state_id
+
+    # 세션 먼저 로드 (project_id를 자격증명 조회에 사용)
+    session_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = session_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
 
     # 프로젝트별 자격증명 우선, 없으면 유저 전역 자격증명 폴백
     proj_creds_result = await db.execute(
         sa_select(ProjectLinearCredentials).where(
-            ProjectLinearCredentials.project_id == session_id
+            ProjectLinearCredentials.project_id == session.project_id
         )
     )
     proj_creds = proj_creds_result.scalar_one_or_none()
@@ -181,14 +324,7 @@ async def push_to_linear(
         api_key = decrypt(str(creds.encrypted_api_key))
         team_id = str(creds.team_id)
 
-    # 세션 및 서브태스크 조회
-    session_result = await db.execute(
-        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
-    )
-    session = session_result.scalar_one_or_none()
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
-
+    # 서브태스크 조회
     subtask_result = await db.execute(
         sa_select(SubTask)
         .where(SubTask.session_id == session_id)
@@ -210,12 +346,22 @@ async def push_to_linear(
         for st in subtasks
     ]
 
-    created = create_issues(api_key, team_id, hint_subtasks)
+    # Queued 상태 ID 조회 (실패 시 None — 이슈는 정상 생성, 상태만 미적용)
+    queued_state_id = get_queued_state_id(api_key, team_id)
+
+    created = create_issues(
+        api_key,
+        team_id,
+        hint_subtasks,
+        state_id=queued_state_id,
+        session_description=str(session.description) if session.description else None,
+    )
 
     return PushToLinearResponse(
         created_identifiers=[c["identifier"] for c in created],
         created_urls=[c["url"] for c in created],
         count=len(created),
+        queued_state_applied=queued_state_id is not None,
     )
 
 

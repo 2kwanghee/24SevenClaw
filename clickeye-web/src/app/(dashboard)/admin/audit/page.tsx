@@ -23,19 +23,19 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  assign_system_role: "bg-violet-500/10 text-violet-300",
-  add_org_member: "bg-emerald-500/10 text-emerald-300",
-  remove_org_member: "bg-red-500/10 text-red-300",
+  assign_system_role: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  add_org_member: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  remove_org_member: "bg-red-50 text-red-700",
 };
 
 function AuditRow({ log }: { log: AuditLogResponse }) {
   const actionLabel = ACTION_LABELS[log.action] ?? log.action;
   const actionColor =
-    ACTION_COLORS[log.action] ?? "bg-slate-500/10 text-slate-300";
+    ACTION_COLORS[log.action] ?? "bg-[var(--bg-hover)] text-[var(--text-secondary)]";
 
   return (
-    <tr className="border-b border-white/5 transition-colors hover:bg-white/[0.02]">
-      <td className="px-4 py-3 text-xs text-slate-500">
+    <tr className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
+      <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
         {new Date(log.created_at).toLocaleString("ko-KR")}
       </td>
       <td className="px-4 py-3">
@@ -45,34 +45,34 @@ function AuditRow({ log }: { log: AuditLogResponse }) {
           {actionLabel}
         </span>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        <code className="rounded bg-white/[0.05] px-1.5 py-0.5 text-xs">
+      <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+        <code className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs">
           {log.actor_id.slice(0, 8)}...
         </code>
       </td>
-      <td className="px-4 py-3 text-sm text-slate-300">
+      <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
         {log.target_user_id ? (
-          <code className="rounded bg-white/[0.05] px-1.5 py-0.5 text-xs">
+          <code className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs">
             {log.target_user_id.slice(0, 8)}...
           </code>
         ) : (
-          <span className="text-xs text-slate-600">-</span>
+          <span className="text-xs text-[var(--text-secondary)]">-</span>
         )}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 text-xs">
           {log.old_value && (
-            <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400 line-through">
+            <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-700 line-through">
               {log.old_value}
             </span>
           )}
-          {log.old_value && <span className="text-slate-600">&rarr;</span>}
-          <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">
+          {log.old_value && <span className="text-[var(--text-muted)]">&rarr;</span>}
+          <span className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[var(--text-secondary)]">
             {log.new_value}
           </span>
         </div>
       </td>
-      <td className="px-4 py-3 text-xs text-slate-500">
+      <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
         {log.resource ?? "-"}
       </td>
     </tr>
@@ -119,12 +119,12 @@ function AuditContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-            <ScrollText className="h-5 w-5 text-violet-400" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+            <ScrollText className="h-5 w-5 text-[var(--text-secondary)]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">감사 로그</h1>
-            <p className="mt-0.5 text-sm text-slate-400">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">감사 로그</h1>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">
               역할 및 권한 변경 이력을 확인합니다
             </p>
           </div>
@@ -135,7 +135,7 @@ function AuditContent() {
           <button
             type="button"
             onClick={() => setFilterOpen(!filterOpen)}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-300 transition-colors hover:border-violet-500/30 hover:bg-white/[0.05]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)]"
           >
             <Filter className="h-4 w-4" />
             {actionFilter
@@ -149,7 +149,7 @@ function AuditContent() {
                 className="fixed inset-0 z-10"
                 onClick={() => setFilterOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-white/10 bg-slate-900 p-1 shadow-xl">
+              <div className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1 shadow-xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -158,8 +158,8 @@ function AuditContent() {
                   }}
                   className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
                     !actionFilter
-                      ? "bg-violet-500/10 text-violet-300"
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                      ? "bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+                      : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
                   }`}
                 >
                   모든 액션
@@ -174,8 +174,8 @@ function AuditContent() {
                     }}
                     className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors ${
                       actionFilter === value
-                        ? "bg-violet-500/10 text-violet-300"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                        ? "bg-[var(--bg-hover)] text-[var(--text-secondary)]"
+                        : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
                     }`}
                   >
                     {label}
@@ -193,7 +193,7 @@ function AuditContent() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-12 animate-pulse rounded-xl bg-white/[0.03]"
+              className="h-12 animate-pulse rounded-xl bg-[var(--bg-surface)]"
             />
           ))}
         </div>
@@ -201,33 +201,33 @@ function AuditContent() {
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           감사 로그를 불러오지 못했습니다.
         </div>
       )}
 
       {/* 테이블 */}
       {logs && (
-        <div className="overflow-x-auto rounded-xl border border-white/5 bg-white/[0.02]">
+        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.03]">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   시각
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   액션
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   수행자
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   대상
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   변경 내용
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
                   리소스
                 </th>
               </tr>
@@ -244,8 +244,8 @@ function AuditContent() {
       {/* 빈 상태 */}
       {logs && logs.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <ScrollText className="h-12 w-12 text-slate-600" />
-          <p className="text-sm text-slate-400">감사 로그가 없습니다</p>
+          <ScrollText className="h-12 w-12 text-[var(--text-muted)]" />
+          <p className="text-sm text-[var(--text-muted)]">감사 로그가 없습니다</p>
         </div>
       )}
 
@@ -257,12 +257,12 @@ function AuditContent() {
             disabled={currentPage <= 1}
             onClick={() => updateParams({ page: String(currentPage - 1) })}
             aria-label="이전 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-[var(--text-muted)]">
             {currentPage} 페이지
           </span>
 
@@ -271,7 +271,7 @@ function AuditContent() {
             disabled={!hasMore}
             onClick={() => updateParams({ page: String(currentPage + 1) })}
             aria-label="다음 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -290,7 +290,7 @@ export default function AdminAuditPage() {
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="h-12 animate-pulse rounded-xl bg-white/[0.03]"
+                className="h-12 animate-pulse rounded-xl bg-[var(--bg-surface)]"
               />
             ))}
           </div>

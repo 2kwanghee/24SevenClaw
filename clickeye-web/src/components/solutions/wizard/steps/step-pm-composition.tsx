@@ -31,9 +31,9 @@ const CATEGORY_CONFIG = [
     key: "agents" as const,
     label: "AI 에이전트",
     icon: Bot,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    border: "border-zinc-200",
   },
   {
     key: "skills" as const,
@@ -99,7 +99,7 @@ function CompositionSection({
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-white/[0.02]"
+        className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-zinc-50"
         aria-expanded={isOpen}
         aria-controls={`section-${label}`}
       >
@@ -112,19 +112,19 @@ function CompositionSection({
           >
             <Icon className={cn("h-4 w-4", color)} aria-hidden={true} />
           </div>
-          <span className="text-sm font-medium text-white">{label}</span>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-400">
+          <span className="text-sm font-medium text-zinc-950">{label}</span>
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
             {items.length}
           </span>
         </div>
         {isOpen ? (
           <ChevronDown
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-zinc-500"
             aria-hidden={true}
           />
         ) : (
           <ChevronRight
-            className="h-4 w-4 text-slate-500"
+            className="h-4 w-4 text-zinc-500"
             aria-hidden={true}
           />
         )}
@@ -133,7 +133,7 @@ function CompositionSection({
       {isOpen && (
         <div
           id={`section-${label}`}
-          className="border-t border-white/5 px-4 py-2"
+          className="border-t border-zinc-100 px-4 py-2"
         >
           <ul className="space-y-1" role="list">
             {items.map((item) => {
@@ -149,25 +149,25 @@ function CompositionSection({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-sm font-medium text-slate-200">
+                      <span className="text-sm font-medium text-zinc-700">
                         {item.component_name}
                       </span>
-                      <code className="rounded bg-white/5 px-1 py-0.5 font-mono text-xs text-slate-500">
+                      <code className="rounded bg-zinc-50 px-1 py-0.5 font-mono text-xs text-zinc-500">
                         {item.component_slug}
                       </code>
                       <span
                         className={cn(
                           "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                           item.is_required
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-white/10 text-slate-500",
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-zinc-100 text-zinc-500",
                         )}
                       >
                         {item.is_required ? "필수" : "선택"}
                       </span>
                     </div>
                     {desc && (
-                      <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                      <p className="mt-0.5 text-xs text-zinc-500">{desc}</p>
                     )}
                   </div>
                 </li>
@@ -249,14 +249,14 @@ export function StepPMComposition() {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <UserCircle2
-          className="h-10 w-10 text-slate-600"
+          className="h-10 w-10 text-zinc-500"
           aria-hidden={true}
         />
-        <p className="mt-4 text-sm text-slate-400">선택된 PM이 없습니다.</p>
+        <p className="mt-4 text-sm text-zinc-500">선택된 PM이 없습니다.</p>
         <button
           type="button"
           onClick={() => goToStep(PM_SELECTION_STEP)}
-          className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+          className="mt-4 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden={true} />
           PM 선택으로 돌아가기
@@ -270,19 +270,19 @@ export function StepPMComposition() {
     return (
       <div className="space-y-5">
         {/* PM 헤더 스켈레톤 */}
-        <div className="flex animate-pulse items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-          <div className="h-10 w-10 shrink-0 rounded-full bg-white/[0.07]" />
+        <div className="flex animate-pulse items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-zinc-100" />
           <div className="space-y-1.5">
-            <div className="h-3.5 w-28 rounded-md bg-white/[0.07]" />
-            <div className="h-2.5 w-20 rounded-full bg-white/[0.05]" />
+            <div className="h-3.5 w-28 rounded-md bg-zinc-100" />
+            <div className="h-2.5 w-20 rounded-full bg-zinc-100" />
           </div>
         </div>
         <div className="flex items-center justify-center gap-2 py-8">
           <Loader2
-            className="h-5 w-5 animate-spin text-emerald-400"
+            className="h-5 w-5 animate-spin text-emerald-600"
             aria-hidden={true}
           />
-          <span className="text-sm text-slate-400">구성 요소 불러오는 중...</span>
+          <span className="text-sm text-zinc-500">구성 요소 불러오는 중...</span>
         </div>
       </div>
     );
@@ -301,11 +301,11 @@ export function StepPMComposition() {
         <p className="mb-1 text-sm font-semibold text-rose-300">
           구성 정보 조회 실패
         </p>
-        <p className="mb-6 text-xs text-slate-500">{fetchError}</p>
+        <p className="mb-6 text-xs text-zinc-500">{fetchError}</p>
         <button
           type="button"
           onClick={() => setRetryCount((c) => c + 1)}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+          className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden={true} />
           다시 시도
@@ -319,23 +319,23 @@ export function StepPMComposition() {
     <div className="space-y-5">
       {/* PM 프로필 헤더 */}
       {selectedPMInfo && (
-        <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+        <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50">
             <UserCircle2
-              className="h-5 w-5 text-emerald-300"
+              className="h-5 w-5 text-emerald-600"
               aria-hidden={true}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-zinc-950">
               {selectedPMInfo.name}
             </p>
             {selectedPMInfo.title && (
-              <p className="text-xs text-slate-500">{selectedPMInfo.title}</p>
+              <p className="text-xs text-zinc-500">{selectedPMInfo.title}</p>
             )}
           </div>
           {selectedPMInfo.matchScore > 0 && (
-            <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-400">
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600">
               일치율 {Math.round(selectedPMInfo.matchScore)}%
             </span>
           )}
@@ -368,7 +368,7 @@ export function StepPMComposition() {
         <button
           type="button"
           onClick={() => goToStep(PM_SELECTION_STEP)}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-400 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-slate-300"
+          className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-700"
           aria-label="PM 선택 단계로 돌아가기"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden={true} />

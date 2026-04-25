@@ -31,11 +31,11 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
   const maxTime = Math.max(totalManual, totalAutomated, 1);
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-      <h3 className="mb-1 text-sm font-semibold text-slate-200">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <h3 className="mb-1 text-sm font-semibold text-[var(--text-primary)]">
         시간 절감 비교
       </h3>
-      <p className="mb-6 text-xs text-slate-500">
+      <p className="mb-6 text-xs text-[var(--text-muted)]">
         기존 수동 개발 대비 24Seven 자동화 소요시간
       </p>
 
@@ -43,17 +43,17 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
         {/* 기존 방식 */}
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-slate-400">
+            <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
               <Clock className="h-3.5 w-3.5" />
               기존 수동
             </span>
-            <span className="font-medium text-slate-300">
+            <span className="font-medium text-[var(--text-primary)]">
               {formatDuration(totalManual)}
             </span>
           </div>
-          <div className="h-8 overflow-hidden rounded-lg bg-white/5">
+          <div className="h-8 overflow-hidden rounded-lg bg-zinc-100">
             <div
-              className="h-full rounded-lg bg-slate-600 transition-all duration-700"
+              className="h-full rounded-lg bg-zinc-400 transition-all duration-700"
               style={{ width: `${(totalManual / maxTime) * 100}%` }}
             />
           </div>
@@ -62,15 +62,15 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
         {/* 24Seven */}
         <div>
           <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-violet-400">
+            <span className="flex items-center gap-1.5 text-violet-600">
               <Zap className="h-3.5 w-3.5" />
               24Seven 자동화
             </span>
-            <span className="font-medium text-violet-300">
+            <span className="font-medium text-violet-600">
               {formatDuration(totalAutomated)}
             </span>
           </div>
-          <div className="h-8 overflow-hidden rounded-lg bg-white/5">
+          <div className="h-8 overflow-hidden rounded-lg bg-zinc-100">
             <div
               className="h-full rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-700"
               style={{ width: `${(totalAutomated / maxTime) * 100}%` }}
@@ -79,9 +79,9 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 py-3">
-        <Zap className="h-4 w-4 text-emerald-400" />
-        <span className="text-sm font-semibold text-emerald-300">
+      <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3">
+        <Zap className="h-4 w-4 text-emerald-700" />
+        <span className="text-sm font-semibold text-emerald-700">
           {savedPercent}% 시간 절감
         </span>
       </div>

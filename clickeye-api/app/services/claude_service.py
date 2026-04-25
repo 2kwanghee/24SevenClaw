@@ -218,6 +218,10 @@ class ClaudeService:
         self._timeout = settings.prototype_generation_timeout
 
     def _get_client(self) -> anthropic.AsyncAnthropic:
+        if not self._api_key:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY가 설정되지 않았습니다. .env 파일에 ANTHROPIC_API_KEY=sk-ant-... 를 추가하세요."
+            )
         return anthropic.AsyncAnthropic(
             api_key=self._api_key,
             timeout=float(self._timeout),

@@ -82,21 +82,21 @@ function ProjectsContent() {
   return (
     <div>
       {/* 새 솔루션 위저드 CTA 배너 */}
-      <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-            <Sparkles className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+            <Sparkles className="h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">새 솔루션 위저드</p>
-            <p className="mt-0.5 text-xs text-slate-400">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">새 솔루션 위저드</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               7단계로 AI 솔루션을 설계하고 ZIP으로 바로 시작하세요
             </p>
           </div>
         </div>
         <Link
           href="/solutions/new"
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-500"
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800"
           aria-label="새 솔루션 위저드 시작"
         >
           솔루션 설계 시작
@@ -107,8 +107,8 @@ function ProjectsContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">프로젝트</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">프로젝트</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             AI 에이전트가 작업할 프로젝트를 관리하세요
           </p>
         </div>
@@ -118,19 +118,19 @@ function ProjectsContent() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         {/* 검색 */}
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             placeholder="프로젝트 검색..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             aria-label="프로젝트 검색"
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-violet-500/50 focus:bg-white/[0.05]"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-300"
           />
         </div>
 
         {/* 상태 필터 */}
-        <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+        <div className="flex gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
           {([
             { value: "", label: "전체" },
             { value: "active", label: "활성" },
@@ -145,8 +145,8 @@ function ProjectsContent() {
               aria-pressed={statusFilter === option.value}
               className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 statusFilter === option.value
-                  ? "bg-violet-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-zinc-900 text-white shadow-sm"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               {option.label}
@@ -160,7 +160,7 @@ function ProjectsContent() {
 
       {/* 에러 */}
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           프로젝트 목록을 불러오지 못했습니다.
         </div>
       )}
@@ -178,7 +178,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage - 1) })
             }
             aria-label="이전 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-slate-400"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -193,8 +193,8 @@ function ProjectsContent() {
                 aria-current={page === currentPage ? "page" : undefined}
                 className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors ${
                   page === currentPage
-                    ? "bg-violet-600 text-white shadow-sm"
-                    : "border border-white/10 text-slate-400 hover:border-violet-500/30 hover:text-white"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-zinc-400 hover:text-[var(--text-primary)]"
                 }`}
               >
                 {page}
@@ -209,7 +209,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage + 1) })
             }
             aria-label="다음 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-slate-400 transition-colors hover:border-violet-500/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-slate-400"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -218,7 +218,7 @@ function ProjectsContent() {
 
       {/* 결과 카운트 */}
       {data && (
-        <p className="mt-4 text-center text-xs text-slate-600">
+        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
           총 {data.total}개 프로젝트
         </p>
       )}

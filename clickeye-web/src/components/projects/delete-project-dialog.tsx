@@ -32,15 +32,15 @@ export function DeleteProjectDialog({
       />
 
       {/* 다이얼로그 */}
-      <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-2xl shadow-black/50">
+      <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-2xl shadow-black/10">
         {/* 아이콘 */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
-          <AlertTriangle className="h-6 w-6 text-red-400" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
+          <AlertTriangle className="h-6 w-6 text-red-700" />
         </div>
 
-        <h3 className="mt-4 text-lg font-semibold text-white">프로젝트 삭제</h3>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          <strong className="text-slate-200">{projectName}</strong> 프로젝트를 삭제하시겠습니까?
+        <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">프로젝트 삭제</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+          <strong className="text-[var(--text-secondary)]">{projectName}</strong> 프로젝트를 삭제하시겠습니까?
           이 작업은 되돌릴 수 없습니다.
         </p>
 
@@ -48,7 +48,7 @@ export function DeleteProjectDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+            className="flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             취소
           </button>

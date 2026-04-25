@@ -41,7 +41,7 @@ export function StepSolutionPlatform() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-zinc-500">
         생성된 솔루션을 실행할 Agent 플랫폼을 선택하세요.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -56,25 +56,25 @@ export function StepSolutionPlatform() {
               aria-pressed={isSelected}
               className={`relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200 ${
                 isSelected
-                  ? "border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-                  : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]"
+                  ? "border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10"
+                  : "border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50"
               }`}
             >
               {opt.recommended && (
-                <span className="absolute right-3 top-3 rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-xs font-medium text-emerald-300">
+                <span className="absolute right-3 top-3 rounded-md bg-emerald-100 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
                   추천
                 </span>
               )}
               <Icon
-                className={`mt-0.5 h-5 w-5 shrink-0 ${isSelected ? "text-emerald-400" : "text-slate-400"}`}
+                className={`mt-0.5 h-5 w-5 shrink-0 ${isSelected ? "text-emerald-600" : "text-zinc-500"}`}
               />
               <div>
                 <p
-                  className={`text-sm font-semibold ${isSelected ? "text-white" : "text-slate-300"}`}
+                  className={`text-sm font-semibold ${isSelected ? "text-zinc-950" : "text-zinc-700"}`}
                 >
                   {opt.label}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-zinc-500">
                   {opt.description}
                 </p>
               </div>

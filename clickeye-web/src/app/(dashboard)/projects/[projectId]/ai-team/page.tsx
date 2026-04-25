@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Plus,
   RefreshCcw,
+  RotateCcw,
   Loader2,
   AlertTriangle,
   User,
@@ -18,6 +19,7 @@ import {
   Link2,
   Trash2,
   X,
+  Terminal,
 } from "lucide-react";
 
 import { PipelineStepper } from "@/components/ai-team/pipeline-stepper";
@@ -32,6 +34,7 @@ import {
   useGenerateDrafts,
   usePushToLinear,
   useDeleteSession,
+  useResumePipeline,
 } from "@/hooks/use-orchestrator";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
@@ -70,18 +73,26 @@ export default function AITeamDashboardPage() {
     refetch: refetchSummary,
   } = useSessionSummary(selectedSessionId);
 
-  const { data: reviewData } = useReviewRounds(selectedSessionId);
+  const isAutoProgressPhase = ["drafting", "reviewing", "integrating"].includes(
+    summary?.session?.phase ?? "",
+  );
+
+  const { data: reviewData } = useReviewRounds(selectedSessionId, isAutoProgressPhase);
 
   const transition = useTransition();
   const generateDrafts = useGenerateDrafts();
   const pushToLinear = usePushToLinear();
   const deleteSession = useDeleteSession(projectId);
+  const resumePipeline = useResumePipeline();
 
-  // 세션이 로드되면 첫 세션 자동 선택
-  const activeSessionId = selectedSessionId || sessions?.items[0]?.id || "";
-  if (!selectedSessionId && sessions?.items[0]?.id) {
-    setSelectedSessionId(sessions.items[0].id);
-  }
+  const firstSessionId = sessions?.items[0]?.id ?? "";
+  const activeSessionId = selectedSessionId || firstSessionId;
+
+  useEffect(() => {
+    if (!selectedSessionId && firstSessionId) {
+      setSelectedSessionId(firstSessionId);
+    }
+  }, [selectedSessionId, firstSessionId]);
 
   const session = summary?.session;
   const subtasks = summary?.subtasks ?? [];
@@ -119,6 +130,11 @@ export default function AITeamDashboardPage() {
 
   const isReviewPhase = session?.phase === "reviewing";
 
+  const handleResume = () => {
+    if (!session) return;
+    resumePipeline.mutate({ sessionId: session.id });
+  };
+
   const handleGenerateDrafts = () => {
     if (!session) return;
     setLinearPushResult(null);
@@ -141,14 +157,14 @@ export default function AITeamDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href={`/projects/${projectId}`}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200"
+            className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
             aria-label="프로젝트로 돌아가기"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-bold text-white">AI Team 운영</h1>
-            <p className="text-xs text-slate-500">
+            <h1 className="text-lg font-bold text-[var(--text-primary)]">AI Team 운영</h1>
+            <p className="text-xs text-[var(--text-muted)]">
               3계층 오케스트레이션 대시보드
             </p>
           </div>
@@ -158,7 +174,7 @@ export default function AITeamDashboardPage() {
             type="button"
             onClick={handleRefresh}
             disabled={summaryLoading}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] disabled:opacity-50"
             aria-label="새로고침"
           >
             <RefreshCcw
@@ -169,7 +185,7 @@ export default function AITeamDashboardPage() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-500"
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
           >
             <Plus className="h-3 w-3" />
             새 작업 요청
@@ -187,12 +203,12 @@ export default function AITeamDashboardPage() {
                 onClick={() => setSelectedSessionId(s.id)}
                 className={`rounded-lg py-1.5 pl-3 pr-2 text-xs font-medium transition-colors ${
                   s.id === activeSessionId
-                    ? "bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/30"
-                    : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
+                    ? "bg-zinc-900 text-white shadow-sm"
+                    : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {s.title}
-                <span className="ml-1.5 rounded bg-white/5 px-1 py-0.5 text-[10px] text-slate-500">
+                <span className="ml-1.5 rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-zinc-500">
                   {PHASE_LABELS[s.phase] ?? s.phase}
                 </span>
               </button>
@@ -202,7 +218,7 @@ export default function AITeamDashboardPage() {
                   e.stopPropagation();
                   setDeleteTarget({ id: s.id, title: s.title });
                 }}
-                className="ml-0.5 rounded p-0.5 text-slate-600 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                className="ml-0.5 rounded p-0.5 text-zinc-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
                 aria-label={`${s.title} 삭제`}
               >
                 <X className="h-3 w-3" />
@@ -215,23 +231,23 @@ export default function AITeamDashboardPage() {
       {/* 로딩 */}
       {(sessionsLoading || (summaryLoading && !summary)) && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
       )}
 
       {/* 세션 없음 */}
       {sessions && sessions.items.length === 0 && !sessionsLoading && (
         <div className="flex flex-col items-center gap-4 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5">
-            <Bot className="h-7 w-7 text-slate-600" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100">
+            <Bot className="h-7 w-7 text-zinc-400" />
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--text-muted)]">
             아직 생성된 작업이 없습니다
           </p>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
           >
             <Plus className="h-4 w-4" />
             첫 작업 요청하기
@@ -244,21 +260,21 @@ export default function AITeamDashboardPage() {
         <div className="space-y-6">
           {/* --- 1계층: 사람 (Human) --- */}
           <section
-            className="rounded-2xl border border-white/5 bg-slate-900/50 p-6"
+            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             aria-label="사람 계층"
           >
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10">
-                <User className="h-3.5 w-3.5 text-amber-400" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-50">
+                <User className="h-3.5 w-3.5 text-amber-600" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-200">사람</h2>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">사람</h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               {/* 프로젝트 단계 배지 */}
-              <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-                <span className="text-xs text-slate-500">현재 단계</span>
-                <span className="rounded-md bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-300">
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
+                <span className="text-xs text-[var(--text-muted)]">현재 단계</span>
+                <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
                   {PHASE_LABELS[session.phase] ?? session.phase}
                 </span>
               </div>
@@ -266,11 +282,11 @@ export default function AITeamDashboardPage() {
               {/* 리스크 플래그 */}
               {session.risk_flags.length > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
                   {session.risk_flags.map((flag) => (
                     <span
                       key={flag}
-                      className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400"
+                      className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
                     >
                       {flag}
                     </span>
@@ -284,7 +300,7 @@ export default function AITeamDashboardPage() {
                   type="button"
                   onClick={handleGenerateDrafts}
                   disabled={generateDrafts.isPending}
-                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
                 >
                   {generateDrafts.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -295,13 +311,31 @@ export default function AITeamDashboardPage() {
                 </button>
               )}
 
+              {/* 자동 진행 중 표시 (drafting/reviewing/integrating) */}
+              {isAutoProgressPhase && (
+                <div className="ml-auto flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin text-violet-600" />
+                  <span className="text-xs text-violet-700">자동 진행 중…</span>
+                  <button
+                    type="button"
+                    onClick={handleResume}
+                    disabled={resumePipeline.isPending}
+                    title="파이프라인이 멈춘 경우 재개"
+                    className="ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-violet-600 hover:bg-violet-100 disabled:opacity-50"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    재개
+                  </button>
+                </div>
+              )}
+
               {/* 승인 버튼 (validating 단계일 때) */}
               {session.phase === "validating" && (
                 <button
                   type="button"
                   onClick={handleApprove}
                   disabled={transition.isPending}
-                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
                 >
                   {transition.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -319,7 +353,7 @@ export default function AITeamDashboardPage() {
                 {phaseHistory.slice(-5).map((evt) => (
                   <span
                     key={evt.id}
-                    className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500"
+                    className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500"
                   >
                     {PHASE_LABELS[evt.new_phase] ?? evt.new_phase}
                     {evt.message ? ` — ${evt.message}` : ""}
@@ -332,10 +366,10 @@ export default function AITeamDashboardPage() {
           {/* --- 2계층: PM AI --- */}
           <section aria-label="PM AI 계층" className="space-y-4">
             <div className="flex items-center gap-2 px-1">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-500/10">
-                <Brain className="h-3.5 w-3.5 text-violet-400" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-50">
+                <Brain className="h-3.5 w-3.5 text-violet-600" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-200">PM AI</h2>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">PM AI</h2>
             </div>
 
             {/* 10단계 파이프라인 스테퍼 */}
@@ -343,14 +377,14 @@ export default function AITeamDashboardPage() {
 
             {/* prompt_template 뷰어 */}
             {session.prompt_template && (
-              <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 <div className="mb-3 flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-slate-400" />
-                  <h3 className="text-sm font-semibold text-slate-200">
+                  <FileText className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                     프롬프트 템플릿
                   </h3>
                 </div>
-                <pre className="max-h-40 overflow-auto rounded-lg bg-slate-950/50 p-3 text-xs text-slate-300 whitespace-pre-wrap">
+                <pre className="max-h-40 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
                   {session.prompt_template}
                 </pre>
               </div>
@@ -358,15 +392,15 @@ export default function AITeamDashboardPage() {
 
             {/* 리스크 칩 */}
             {session.risk_flags.length > 0 && (
-              <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-4">
-                <h3 className="mb-2 text-xs font-semibold text-slate-400">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <h3 className="mb-2 text-xs font-semibold text-[var(--text-muted)]">
                   감지된 리스크
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {session.risk_flags.map((flag) => (
                     <span
                       key={flag}
-                      className="flex items-center gap-1 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400"
+                      className="flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
                     >
                       <AlertTriangle className="h-3 w-3" />
                       {flag}
@@ -378,8 +412,8 @@ export default function AITeamDashboardPage() {
 
             {/* 초안/리뷰 (drafting 이상 단계일 때) */}
             {["drafting", "reviewing", "integrating", "validating", "approved", "transitioning", "completed"].includes(session.phase) && reviewRounds.length > 0 && (
-              <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-                <h3 className="mb-4 text-sm font-semibold text-slate-200">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
                   {isReviewPhase ? "리뷰 라운드" : "AI 초안"}
                 </h3>
                 <div className="space-y-3">
@@ -391,40 +425,72 @@ export default function AITeamDashboardPage() {
             )}
           </section>
 
+          {/* 로컬 파이프라인 안내 (approved 이후) */}
+          {["approved", "transitioning", "completed"].includes(session.phase) && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-emerald-700" />
+                <h3 className="text-sm font-semibold text-emerald-800">
+                  코드 작성은 로컬 파이프라인에서 실행됩니다
+                </h3>
+              </div>
+              <p className="text-xs text-emerald-700">
+                Linear 이슈가 <strong>Queued</strong> 상태로 이동하면 로컬 PC의{" "}
+                <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono text-[11px]">
+                  webhook_server.py
+                </code>
+                {" "}+ ngrok 파이프라인이 자동으로 Claude에게 코드 작성을 지시합니다.
+              </p>
+              <p className="mt-1.5 text-[11px] text-emerald-600">
+                파이프라인이 실행 중이 아니라면 프로젝트 ZIP에 포함된 README를 참고해 로컬 환경을 먼저 시작하세요.
+              </p>
+            </div>
+          )}
+
           {/* Linear 동기화 힌트 */}
           {linearHint && (
-            <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-violet-400" />
-                  <h3 className="text-sm font-semibold text-violet-300">
+                  <Link2 className="h-4 w-4 text-violet-600" />
+                  <h3 className="text-sm font-semibold text-violet-700">
                     Linear 동기화
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setLinearHint(null)}
-                  className="rounded px-2 py-0.5 text-[11px] text-slate-500 hover:bg-white/5 hover:text-slate-300"
+                  className="rounded px-2 py-0.5 text-[11px] text-[var(--text-muted)] hover:bg-violet-100 hover:text-[var(--text-secondary)]"
                 >
                   닫기
                 </button>
               </div>
-              <p className="mb-3 text-xs text-slate-400">{linearHint.instructions}</p>
+              <p className="mb-3 text-xs text-[var(--text-secondary)]">{linearHint.instructions}</p>
+              {linearHint.session_description && (
+                <div className="mb-3 rounded-lg border border-violet-200 bg-white px-3 py-2">
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+                    원본 요구사항
+                  </p>
+                  <p className="whitespace-pre-wrap text-[11px] text-[var(--text-secondary)]">
+                    {linearHint.session_description}
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
                 {linearHint.subtasks.map((st) => (
                   <div
                     key={st.title}
-                    className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+                    className="rounded-lg border border-violet-200 bg-white px-3 py-2"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-400">
+                      <span className="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
                         {st.role}
                       </span>
-                      <span className="text-xs font-medium text-slate-200">
+                      <span className="text-xs font-medium text-[var(--text-primary)]">
                         {st.title}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-[11px] text-slate-500">
+                    <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">
                       {st.draft_summary}
                     </p>
                   </div>
@@ -432,19 +498,19 @@ export default function AITeamDashboardPage() {
               </div>
               {/* push-to-linear 결과 */}
               {linearPushResult && (
-                <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-                  <p className="text-xs text-emerald-300">
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <p className="text-xs text-emerald-700">
                     ✓ Linear 이슈 생성 완료: {linearPushResult.created_identifiers.join(", ")}
                   </p>
                 </div>
               )}
               {linearPushError && (
-                <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
-                  <p className="text-xs text-amber-300">
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <p className="text-xs text-amber-700">
                     {linearPushError.includes("자격증명") ? (
                       <>
                         Linear 자격증명이 없습니다.{" "}
-                        <a href="/settings/linear" className="underline hover:text-amber-200">
+                        <a href="/settings/linear" className="underline hover:text-amber-900">
                           설정에서 API 키를 저장하세요 →
                         </a>
                       </>
@@ -455,7 +521,7 @@ export default function AITeamDashboardPage() {
                 </div>
               )}
               {!linearPushResult && !linearPushError && (
-                <p className="mt-3 text-[11px] text-slate-600">
+                <p className="mt-3 text-[11px] text-[var(--text-muted)]">
                   로컬 Claude Code에서 linear 스킬의 sync 명령을 실행하면 위 이슈가 자동으로 생성됩니다.
                 </p>
               )}
@@ -464,26 +530,28 @@ export default function AITeamDashboardPage() {
 
           {/* --- 3계층: AI Team --- */}
           <section
-            className="rounded-2xl border border-white/5 bg-slate-900/50 p-6"
+            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             aria-label="AI Team 계층"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-500/10">
-                  <Bot className="h-3.5 w-3.5 text-cyan-400" />
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100">
+                  <Bot className="h-3.5 w-3.5 text-zinc-700" />
                 </div>
-                <h2 className="text-sm font-semibold text-slate-200">
+                <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                   AI Team
                 </h2>
-                <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-500">
+                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
                   {subtasks.length}개 태스크
                 </span>
               </div>
-              <span className="text-[10px] text-slate-600">30초 자동 갱신</span>
+              <span className="text-[10px] text-[var(--text-muted)]">
+                {isAutoProgressPhase ? "3초 자동 갱신" : "30초 자동 갱신"}
+              </span>
             </div>
 
             {subtasks.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-500">
+              <p className="py-8 text-center text-sm text-[var(--text-muted)]">
                 아직 서브태스크가 없습니다
               </p>
             ) : (
@@ -509,29 +577,29 @@ export default function AITeamDashboardPage() {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/40"
             onClick={() => setDeleteTarget(null)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+          <div className="relative w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-2xl">
             <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
-                <Trash2 className="h-4 w-4 text-red-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
+                <Trash2 className="h-4 w-4 text-red-600" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-200">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                 작업 요청 삭제
               </h2>
             </div>
 
-            <p className="mb-2 text-sm text-slate-300">
-              <span className="font-medium text-white">
+            <p className="mb-2 text-sm text-[var(--text-secondary)]">
+              <span className="font-medium text-[var(--text-primary)]">
                 &ldquo;{deleteTarget.title}&rdquo;
               </span>{" "}
               을(를) 삭제하시겠습니까?
             </p>
-            <p className="mb-1 text-xs text-slate-500">
+            <p className="mb-1 text-xs text-[var(--text-muted)]">
               서브태스크·리뷰 데이터가 모두 삭제됩니다.
             </p>
-            <p className="mb-6 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               ⚠ Linear에 등록된 이슈는 삭제되지 않습니다. Linear에서 직접
               취소 또는 삭제해 주세요.
             </p>
@@ -541,7 +609,7 @@ export default function AITeamDashboardPage() {
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleteSession.isPending}
-                className="rounded-lg border border-white/10 px-4 py-2 text-xs text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 disabled:opacity-50"
+                className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
               >
                 취소
               </button>

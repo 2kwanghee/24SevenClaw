@@ -19,14 +19,14 @@ interface MetricCardProps {
   accent?: string;
 }
 
-function MetricCard({ icon, label, value, sub, accent = "text-violet-400" }: MetricCardProps) {
+function MetricCard({ icon, label, value, sub, accent = "text-zinc-700" }: MetricCardProps) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-4">
       <div className={`mt-0.5 ${accent}`}>{icon}</div>
       <div>
-        <p className="text-xs text-slate-500">{label}</p>
-        <p className="mt-0.5 text-lg font-semibold text-slate-100">{value}</p>
-        {sub && <p className="text-xs text-slate-500">{sub}</p>}
+        <p className="text-xs text-[var(--text-muted)]">{label}</p>
+        <p className="mt-0.5 text-lg font-semibold text-[var(--text-primary)]">{value}</p>
+        {sub && <p className="text-xs text-[var(--text-muted)]">{sub}</p>}
       </div>
     </div>
   );
@@ -45,8 +45,8 @@ export function QualityMetrics({ data, sessionsTotal, subtasksTotal }: QualityMe
       : 0;
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
-      <h3 className="mb-4 text-sm font-semibold text-slate-200">
+    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
         품질 메트릭
       </h3>
 
@@ -56,38 +56,38 @@ export function QualityMetrics({ data, sessionsTotal, subtasksTotal }: QualityMe
           label="산출물"
           value={`${data.released_artifacts}/${data.total_artifacts}`}
           sub={`배포율 ${releaseRate}%`}
-          accent="text-emerald-400"
+          accent="text-emerald-700"
         />
         <MetricCard
           icon={<Star className="h-4 w-4" />}
           label="평균 리뷰 점수"
           value={data.avg_review_score != null ? `${data.avg_review_score}점` : "—"}
           sub={`${data.review_rounds_total}건 리뷰`}
-          accent="text-amber-400"
+          accent="text-amber-700"
         />
         <MetricCard
           icon={<RotateCcw className="h-4 w-4" />}
           label="평균 수정 횟수"
           value={`${data.avg_revision_count}회`}
-          accent="text-blue-400"
+          accent="text-blue-700"
         />
         <MetricCard
           icon={<CheckCircle2 className="h-4 w-4" />}
           label="리뷰 완료율"
           value={`${data.review_completion_rate}%`}
-          accent="text-cyan-400"
+          accent="text-cyan-700"
         />
         <MetricCard
           icon={<BarChart3 className="h-4 w-4" />}
           label="세션"
           value={`${sessionsTotal}개`}
-          accent="text-violet-400"
+          accent="text-zinc-700"
         />
         <MetricCard
           icon={<Layers className="h-4 w-4" />}
           label="서브태스크"
           value={`${subtasksTotal}개`}
-          accent="text-indigo-400"
+          accent="text-indigo-700"
         />
       </div>
     </div>

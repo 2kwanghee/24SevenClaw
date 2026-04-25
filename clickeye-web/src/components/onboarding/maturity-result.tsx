@@ -50,17 +50,17 @@ export function MaturityResult({ result }: MaturityResultProps) {
 
   const scoreColor =
     result.level === "starter"
-      ? "text-emerald-400"
+      ? "text-emerald-600"
       : result.level === "intermediate"
-        ? "text-blue-400"
-        : "text-amber-400";
+        ? "text-blue-600"
+        : "text-amber-600";
 
   const ringColor =
     result.level === "starter"
-      ? "border-emerald-500/30"
+      ? "border-emerald-200"
       : result.level === "intermediate"
-        ? "border-blue-500/30"
-        : "border-amber-500/30";
+        ? "border-blue-200"
+        : "border-amber-200";
 
   const glowClass =
     result.level === "starter"
@@ -82,7 +82,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
         <span className={cn("text-5xl font-bold tabular-nums", scoreColor)}>
           {animatedScore}
         </span>
-        <span className="text-xs text-slate-500">/ 100</span>
+        <span className="text-xs text-[var(--text-muted)]">/ 100</span>
       </div>
 
       {/* 배지 */}
@@ -101,8 +101,8 @@ export function MaturityResult({ result }: MaturityResultProps) {
         )}
       >
         {/* 분석 결과 */}
-        <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <p className="text-sm leading-relaxed text-slate-300">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {result.reasoning}
           </p>
         </div>
@@ -117,7 +117,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
                 : "";
               router.push(`/onboarding/preset${params}`);
             }}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition-all hover:bg-violet-500"
+            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800"
           >
             <Sparkles className="h-4 w-4" />
             추천 프리셋 보기
@@ -127,7 +127,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
           <button
             type="button"
             onClick={() => router.push("/solutions/new")}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/5 px-5 py-3 text-sm text-slate-400 transition-all hover:bg-white/5 hover:text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] px-5 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <Settings2 className="h-4 w-4" />
             설정 직접 선택하기

@@ -34,11 +34,11 @@ const SOLUTION_TYPE_COLORS: Record<
     check: "text-violet-400",
   },
   fullstack: {
-    badge: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
+    badge: "text-emerald-600 border-emerald-200 bg-emerald-50",
     ring: "ring-emerald-500/20",
     bg: "bg-emerald-500/5",
-    border: "border-emerald-500/40",
-    check: "text-emerald-400",
+    border: "border-zinc-900",
+    check: "text-emerald-600",
   },
   "internal-tool": {
     badge: "text-amber-300 border-amber-500/30 bg-amber-500/10",
@@ -55,11 +55,11 @@ const SOLUTION_TYPE_COLORS: Record<
     check: "text-rose-400",
   },
   custom: {
-    badge: "text-slate-300 border-slate-500/30 bg-slate-500/10",
-    ring: "ring-slate-500/20",
-    bg: "bg-slate-500/5",
-    border: "border-slate-500/40",
-    check: "text-slate-400",
+    badge: "text-zinc-700 border-zinc-300 bg-zinc-100",
+    ring: "ring-zinc-300",
+    bg: "bg-zinc-50",
+    border: "border-zinc-200",
+    check: "text-zinc-500",
   },
 };
 
@@ -92,14 +92,14 @@ export function PrototypeCard({
         "group w-full rounded-xl border p-4 text-left transition-all duration-200",
         isSelected
           ? cn("ring-2", style.ring, style.bg, style.border)
-          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]",
+          : "border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100",
       )}
     >
       {/* 헤더: 이름 + 유형 배지 + 선택 아이콘 */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-zinc-950">
               {prototype.name}
             </span>
             {/* 추천 배지 */}
@@ -123,21 +123,21 @@ export function PrototypeCard({
 
           {/* 아키텍처 패턴 */}
           {prototype.architecturePattern && (
-            <p className="text-[11px] font-medium text-slate-500">
+            <p className="text-[11px] font-medium text-zinc-500">
               {prototype.architecturePattern}
             </p>
           )}
 
           {/* 근거 (1줄) */}
           {prototype.rationale && (
-            <p className="line-clamp-1 text-xs italic text-slate-500">
+            <p className="line-clamp-1 text-xs italic text-zinc-500">
               {prototype.rationale}
             </p>
           )}
 
           {/* AI 추론 설명 (description) */}
           {prototype.reasoning && (
-            <p className="text-xs leading-relaxed text-slate-400">
+            <p className="text-xs leading-relaxed text-zinc-500">
               {prototype.reasoning}
             </p>
           )}
@@ -148,13 +148,13 @@ export function PrototypeCard({
               {prototype.techStack.slice(0, 5).map((tech) => (
                 <span
                   key={tech}
-                  className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                  className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500"
                 >
                   {tech}
                 </span>
               ))}
               {prototype.techStack.length > 5 && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500">
                   +{prototype.techStack.length - 5}
                 </span>
               )}
@@ -163,7 +163,7 @@ export function PrototypeCard({
 
           {/* 장단점 */}
           {((prototype.pros && prototype.pros.length > 0) || (prototype.cons && prototype.cons.length > 0)) && (
-            <div className="mt-2 space-y-1.5 rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
+            <div className="mt-2 space-y-1.5 rounded-lg border border-zinc-100 bg-zinc-50 p-2.5">
               {prototype.pros && prototype.pros.length > 0 && (
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1 mb-1">
@@ -171,7 +171,7 @@ export function PrototypeCard({
                     <span className="text-[10px] font-medium text-emerald-500">장점</span>
                   </div>
                   {prototype.pros.map((pro, i) => (
-                    <p key={i} className="text-[11px] leading-relaxed text-slate-400 pl-3.5">
+                    <p key={i} className="text-[11px] leading-relaxed text-zinc-500 pl-3.5">
                       {pro}
                     </p>
                   ))}
@@ -184,7 +184,7 @@ export function PrototypeCard({
                     <span className="text-[10px] font-medium text-amber-500">단점</span>
                   </div>
                   {prototype.cons.map((con, i) => (
-                    <p key={i} className="text-[11px] leading-relaxed text-slate-400 pl-3.5">
+                    <p key={i} className="text-[11px] leading-relaxed text-zinc-500 pl-3.5">
                       {con}
                     </p>
                   ))}
@@ -199,7 +199,7 @@ export function PrototypeCard({
           {isSelected ? (
             <CheckCircle2 className={cn("h-5 w-5", style.check)} />
           ) : (
-            <ChevronRight className="h-5 w-5 text-slate-600 transition-colors group-hover:text-slate-400" />
+            <ChevronRight className="h-5 w-5 text-zinc-500 transition-colors group-hover:text-zinc-500" />
           )}
         </div>
       </div>

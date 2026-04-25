@@ -20,18 +20,18 @@ export function TagInput({ label, values, onChange, placeholder }: TagInputProps
 
   return (
     <div>
-      <label className="block text-xs text-slate-400 mb-1">{label}</label>
+      <label className="block text-xs text-[var(--text-muted)] mb-1">{label}</label>
       <div className="flex flex-wrap gap-1 mb-2 min-h-[28px]">
         {values.map((v) => (
           <span
             key={v}
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-300"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-2 py-0.5 text-xs text-[var(--text-secondary)]"
           >
             {v}
             <button
               type="button"
               onClick={() => onChange(values.filter((x) => x !== v))}
-              className="text-slate-500 hover:text-slate-300"
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             >
               ×
             </button>
@@ -40,7 +40,7 @@ export function TagInput({ label, values, onChange, placeholder }: TagInputProps
       </div>
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white placeholder-slate-600 focus:border-violet-500/50 focus:outline-none"
+          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
           placeholder={placeholder ?? "입력 후 Enter"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -51,7 +51,7 @@ export function TagInput({ label, values, onChange, placeholder }: TagInputProps
         <button
           type="button"
           onClick={add}
-          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5"
+          className="rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
         >
           추가
         </button>

@@ -38,22 +38,22 @@ interface PrototypeCardItem {
 function SkeletonCard({ index }: { index: number }) {
   return (
     <div
-      className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-4"
+      className="animate-pulse rounded-xl border border-zinc-200 bg-zinc-50 p-4"
       style={{ animationDelay: `${index * 120}ms` }}
       aria-hidden="true"
     >
       <div className="mb-3 flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-white/[0.07]" />
-        <div className="h-4 w-36 rounded-md bg-white/[0.07]" />
+        <div className="h-8 w-8 rounded-full bg-zinc-100" />
+        <div className="h-4 w-36 rounded-md bg-zinc-100" />
       </div>
       <div className="space-y-2">
-        <div className="h-3 w-full rounded-md bg-white/[0.05]" />
-        <div className="h-3 w-4/5 rounded-md bg-white/[0.05]" />
-        <div className="h-3 w-3/5 rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-full rounded-md bg-zinc-100" />
+        <div className="h-3 w-4/5 rounded-md bg-zinc-100" />
+        <div className="h-3 w-3/5 rounded-md bg-zinc-100" />
       </div>
       <div className="mt-3 flex gap-2">
-        <div className="h-5 w-16 rounded-full bg-white/[0.05]" />
-        <div className="h-5 w-20 rounded-full bg-white/[0.05]" />
+        <div className="h-5 w-16 rounded-full bg-zinc-100" />
+        <div className="h-5 w-20 rounded-full bg-zinc-100" />
       </div>
     </div>
   );
@@ -62,19 +62,19 @@ function SkeletonCard({ index }: { index: number }) {
 function GeneratingCard({ index }: { index: number }) {
   return (
     <div
-      className="rounded-xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4"
+      className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"
       style={{ animationDelay: `${index * 120}ms` }}
       aria-label="프로토타입 생성 중"
     >
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-400" aria-hidden="true" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <Loader2 className="h-4 w-4 animate-spin text-emerald-600" aria-hidden="true" />
         </div>
-        <div className="h-4 w-36 animate-pulse rounded-md bg-white/[0.07]" />
+        <div className="h-4 w-36 animate-pulse rounded-md bg-zinc-100" />
       </div>
       <div className="space-y-2">
-        <div className="h-3 w-full animate-pulse rounded-md bg-white/[0.05]" />
-        <div className="h-3 w-4/5 animate-pulse rounded-md bg-white/[0.05]" />
+        <div className="h-3 w-full animate-pulse rounded-md bg-zinc-100" />
+        <div className="h-3 w-4/5 animate-pulse rounded-md bg-zinc-100" />
       </div>
     </div>
   );
@@ -89,7 +89,7 @@ function ReadyCard({ card, index }: ReadyCardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4",
+        "rounded-xl border border-emerald-200 bg-emerald-50 p-4",
         "transition-all duration-500",
         "animate-in fade-in slide-in-from-bottom-2",
       )}
@@ -98,17 +98,17 @@ function ReadyCard({ card, index }: ReadyCardProps) {
       aria-label={`프로토타입 "${card.name}" 생성 완료`}
     >
       <div className="mb-2 flex items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
         </div>
-        <h3 className="text-sm font-semibold text-white">{card.name}</h3>
+        <h3 className="text-sm font-semibold text-zinc-950">{card.name}</h3>
       </div>
       {card.description && (
-        <p className="mb-2.5 line-clamp-2 text-xs leading-relaxed text-slate-400">
+        <p className="mb-2.5 line-clamp-2 text-xs leading-relaxed text-zinc-500">
           {card.description}
         </p>
       )}
-      <span className="inline-block rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+      <span className="inline-block rounded-full border border-emerald-500/20 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-600">
         {card.solutionType}
       </span>
     </div>
@@ -318,13 +318,13 @@ export function StepPrototypeGeneration() {
         <h3 className="mb-1 text-sm font-semibold text-rose-300">
           프로토타입 생성에 실패했습니다
         </h3>
-        <p className="mb-6 text-xs text-slate-500">
+        <p className="mb-6 text-xs text-zinc-500">
           일시적인 오류가 발생했습니다. 다시 시도해 주세요.
         </p>
         <button
           type="button"
           onClick={handleRetry}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition-all hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+          className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           다시 시도
@@ -354,21 +354,21 @@ export function StepPrototypeGeneration() {
         <div className="flex items-center gap-2.5">
           {isStarting ? (
             <Loader2
-              className="h-5 w-5 animate-spin text-emerald-400"
+              className="h-5 w-5 animate-spin text-emerald-600"
               aria-hidden="true"
             />
           ) : allReady ? (
             <CheckCircle2
-              className="h-5 w-5 text-emerald-400"
+              className="h-5 w-5 text-emerald-600"
               aria-hidden="true"
             />
           ) : (
             <Sparkles
-              className="h-5 w-5 animate-pulse text-emerald-400"
+              className="h-5 w-5 animate-pulse text-emerald-600"
               aria-hidden="true"
             />
           )}
-          <span className="text-sm font-medium text-slate-300">
+          <span className="text-sm font-medium text-zinc-700">
             {isStarting
               ? "생성 준비 중..."
               : allReady
@@ -378,7 +378,7 @@ export function StepPrototypeGeneration() {
         </div>
 
         <span
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400"
+          className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-500"
           aria-live="polite"
           aria-label={`${totalCount}개 중 ${readyCount}개 완료`}
         >
@@ -388,7 +388,7 @@ export function StepPrototypeGeneration() {
 
       {/* 전체 진행률 바 */}
       <div
-        className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100"
         role="progressbar"
         aria-valuenow={readyCount}
         aria-valuemin={0}
@@ -418,14 +418,14 @@ export function StepPrototypeGeneration() {
 
       {/* 안내 메시지 */}
       {!isStarting && !allReady && (
-        <p className="text-center text-xs text-slate-600">
+        <p className="text-center text-xs text-zinc-500">
           약 30초~1분 소요됩니다. 잠시만 기다려 주세요.
         </p>
       )}
 
       {/* 완료 후 안내 메시지 */}
       {allReady && (
-        <p className="text-center text-xs text-emerald-500">
+        <p className="text-center text-xs text-emerald-600">
           아래 <strong>다음</strong> 버튼을 클릭해 프로토타입을 확인하세요.
         </p>
       )}

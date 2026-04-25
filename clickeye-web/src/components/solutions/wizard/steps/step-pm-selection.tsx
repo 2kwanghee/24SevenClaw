@@ -170,32 +170,32 @@ export function StepPMSelection() {
     return (
       <div className="space-y-5">
         {recommendedItems.length > 0 && (
-          <div className="h-10 animate-pulse rounded-xl bg-white/[0.03]" aria-hidden="true" />
+          <div className="h-10 animate-pulse rounded-xl bg-zinc-50" aria-hidden="true" />
         )}
         <div className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="PM 프로필 불러오는 중">
           {Array.from({ length: recommendedItems.length > 0 ? recommendedItems.length : 3 }, (_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-xl border border-white/5 bg-white/[0.02] p-4"
+              className="animate-pulse rounded-xl border border-zinc-200 bg-zinc-50 p-4"
               style={{ animationDelay: `${i * 100}ms` }}
               aria-hidden="true"
             >
               <div className="mb-3 flex items-start gap-3">
-                <div className="h-12 w-12 shrink-0 rounded-full bg-white/[0.07]" />
+                <div className="h-12 w-12 shrink-0 rounded-full bg-zinc-100" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 rounded-md bg-white/[0.07]" />
-                  <div className="h-3 w-20 rounded-full bg-white/[0.05]" />
+                  <div className="h-4 w-32 rounded-md bg-zinc-100" />
+                  <div className="h-3 w-20 rounded-full bg-zinc-100" />
                 </div>
               </div>
               <div className="mb-3 space-y-1.5">
-                <div className="h-3 w-full rounded-md bg-white/[0.05]" />
-                <div className="h-3 w-4/5 rounded-md bg-white/[0.05]" />
+                <div className="h-3 w-full rounded-md bg-zinc-100" />
+                <div className="h-3 w-4/5 rounded-md bg-zinc-100" />
               </div>
-              <div className="grid grid-cols-4 gap-2 rounded-lg bg-white/[0.03] p-2">
+              <div className="grid grid-cols-4 gap-2 rounded-lg bg-zinc-50 p-2">
                 {Array.from({ length: 4 }, (_, j) => (
                   <div key={j} className="space-y-1 text-center">
-                    <div className="mx-auto h-4 w-8 rounded-md bg-white/[0.07]" />
-                    <div className="mx-auto h-2.5 w-10 rounded-md bg-white/[0.05]" />
+                    <div className="mx-auto h-4 w-8 rounded-md bg-zinc-100" />
+                    <div className="mx-auto h-2.5 w-10 rounded-md bg-zinc-100" />
                   </div>
                 ))}
               </div>
@@ -210,8 +210,8 @@ export function StepPMSelection() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <UserCircle2 className="h-10 w-10 text-slate-600" />
-        <p className="mt-4 text-sm text-slate-400">
+        <UserCircle2 className="h-10 w-10 text-zinc-500" />
+        <p className="mt-4 text-sm text-zinc-500">
           추천 가능한 PM 프로필이 없습니다
         </p>
       </div>
@@ -223,9 +223,9 @@ export function StepPMSelection() {
     <div className="space-y-5">
       {/* 추천 안내 배너 */}
       {recommendedItems.length > 0 && (
-        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-          <p className="text-xs text-slate-400">
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <p className="text-xs text-zinc-500">
             선택한 프로토타입 기반으로 AI가 최적의 PM을 추천했습니다. 일치율이
             높을수록 프로젝트 성공 가능성이 높습니다.
           </p>
@@ -250,7 +250,7 @@ export function StepPMSelection() {
       {/* PM 구성 시각화 (선택 후 표시) */}
       {selectedItem && (
         <div className="animate-in fade-in slide-in-from-bottom-2 space-y-3">
-          <div className="flex items-center gap-2 text-xs text-emerald-400">
+          <div className="flex items-center gap-2 text-xs text-emerald-600">
             <Sparkles className="h-3.5 w-3.5" />
             <span>선택한 PM의 구성 요소</span>
           </div>
