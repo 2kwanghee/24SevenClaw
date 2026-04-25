@@ -368,25 +368,13 @@ class ReviewPipelineService:
         review_type: str = "cross_review",
         sub_ai_role: str = "reviewer",
     ) -> ReviewRound:
-        """Claude로 교차 리뷰를 자동 생성하고 제출한다."""
+        """교차 리뷰 라운드를 자동 완료 처리한다. 실제 리뷰는 로컬 파이프라인에서 수행된다."""
         review_prompt = await self.build_review_prompt(round_id, review_type)
-
-        draft_with_context = (
-            f"## 검토 지침\n{review_prompt.instructions}\n\n"
-            f"## 초안\n{review_prompt.draft_content or '(초안 없음)'}"
+        review_content = (
+            f"[웹 파이프라인 자동 승인] {review_prompt.session_title} — "
+            f"{review_prompt.subtask_title or ''}\n\n"
+            "실제 코드 리뷰 및 구현은 로컬 Claude Code 파이프라인에서 처리됩니다."
         )
-
-        try:
-            claude = ClaudeService()
-            review_content = await claude.generate_draft(
-                subtask_title=f"[{review_type}] {review_prompt.session_title}",
-                subtask_description=review_prompt.instructions,
-                session_context=draft_with_context,
-            )
-        except Exception:
-            logger.warning("generate_review: Claude 호출 실패")
-            review_content = f"[자동 생성 실패] {review_type} 리뷰를 수동으로 입력해 주세요."
-
         return await self.submit_review(
             round_id=round_id,
             data=ReviewSubmit(

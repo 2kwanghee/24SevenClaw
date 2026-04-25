@@ -4,10 +4,10 @@ import { useState } from "react";
 import { X, Loader2, Sparkles, Check, Link2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
-import { useCreateSession, useDecompose, useAssign, usePushToLinear } from "@/hooks/use-orchestrator";
+import { useCreateSession, useDecompose, useAssign, useGenerateDrafts, usePushToLinear } from "@/hooks/use-orchestrator";
 import type { SubTaskResponse, SubTaskRole, PushToLinearResponse } from "@/lib/api-client";
 
-type ModalStep = "form" | "decomposing" | "review" | "assigning" | "pushing" | "done";
+type ModalStep = "form" | "decomposing" | "review" | "assigning" | "drafting" | "pushing" | "done";
 
 interface SessionCreateModalProps {
   projectId: string;
@@ -34,6 +34,7 @@ export function SessionCreateModal({
   const create = useCreateSession(projectId);
   const decompose = useDecompose();
   const assign = useAssign();
+  const generateDrafts = useGenerateDrafts();
   const pushToLinear = usePushToLinear();
 
   const reset = () => {
@@ -82,7 +83,11 @@ export function SessionCreateModal({
       const result = await assign.mutateAsync({ sessionId });
       setSubtasks(result.subtasks);
 
-      // 배정 완료 후 자동으로 Linear 이슈 등록
+      // 초안 생성 → 자동 파이프라인 시작 (drafting → reviewing → integrating → validating)
+      setStep("drafting");
+      await generateDrafts.mutateAsync({ sessionId });
+
+      // Linear 이슈 등록
       setStep("pushing");
       try {
         const pushed = await pushToLinear.mutateAsync({ sessionId });
@@ -279,6 +284,15 @@ export function SessionCreateModal({
           <div className="flex flex-col items-center gap-3 py-10">
             <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
             <p className="text-sm text-[var(--text-secondary)]">AI 팀을 배정하는 중...</p>
+          </div>
+        )}
+
+        {/* Step: Drafting */}
+        {step === "drafting" && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+            <p className="text-sm text-[var(--text-secondary)]">파이프라인을 시작하는 중...</p>
+            <p className="text-xs text-[var(--text-muted)]">초안 생성 후 자동으로 진행됩니다</p>
           </div>
         )}
 

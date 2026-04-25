@@ -25,7 +25,6 @@ from app.schemas.review_pipeline import (
     ReviewRoundResponse,
     ReviewSubmit,
 )
-from app.services.claude_service import ClaudeService
 from app.services.orchestrator_service import OrchestratorService
 from app.services.review_pipeline import ReviewPipelineService
 
@@ -166,7 +165,6 @@ async def generate_drafts(
     """서브태스크별 AI 초안을 자동 생성하고 drafting 단계로 전이한다."""
     orch_service = OrchestratorService(db)
     review_service = ReviewPipelineService(db)
-    claude = ClaudeService()
 
     session = await orch_service.get_session(session_id)
     if session.phase != "assigned":
@@ -194,14 +192,16 @@ async def generate_drafts(
         actor_type="system",
     )
 
-    session_context = f"세션: {session.title}\n설명: {session.description or '없음'}"
-
     rounds = []
     for st in subtasks:
-        draft_content = await claude.generate_draft(
-            subtask_title=str(st.title),
-            subtask_description=str(st.description) if st.description else None,
-            session_context=session_context,
+        # 웹 파이프라인은 계획/조율 레이어 — 실제 구현은 로컬 Claude Code 파이프라인에서 처리
+        draft_content = (
+            f"[웹 파이프라인 자동 초안] {str(st.title)}\n\n"
+            f"역할: {str(st.assigned_role)}\n"
+            f"세션: {str(session.title)}\n"
+            f"설명: {str(session.description or '없음')}\n\n"
+            "이 초안은 Linear 이슈 생성용 플레이스홀더입니다.\n"
+            "실제 코드 작성 및 구현은 로컬 Claude Code 파이프라인이 담당합니다."
         )
         review_round = await review_service.submit_draft(
             session_id=session_id,
