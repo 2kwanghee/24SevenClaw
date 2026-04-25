@@ -120,7 +120,7 @@ def generate_all(
 
     # Linear webhook ?¤í¬ë¦½í¸ ?ì± (linear ?¤í¬ ? í ??
     if "linear" in workflow_ids:
-        _generate_webhook_files(files, project_name)
+        _generate_webhook_files(files, project_name, dirs["config_dir"])
 
     # .env / .env.example ?ì±
     _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch)
@@ -394,15 +394,17 @@ def _generate_hook_files(
 def _generate_webhook_files(
     files: dict[str, str | bytes],
     project_name: str,
+    config_dir: str = ".claude",
 ) -> None:
     """Linear webhook 수신 서버 + 이링 이백 스크립트 생성."""
-    ctx = {"project_name": project_name}
+    ctx = {"project_name": project_name, "config_dir": config_dir}
 
     for tmpl_path, out_path in [
         ("scripts/webhook_server.py.j2", "scripts/webhook_server.py"),
         ("scripts/linear_watcher.py.j2", "scripts/linear_watcher.py"),
         ("scripts/start-webhook.sh.j2", "scripts/start-webhook.sh"),
         ("scripts/setup-tunnel.sh.j2", "scripts/setup-tunnel.sh"),
+        ("scripts/run-pipeline.sh.j2", "scripts/run-pipeline.sh"),
     ]:
         tpl = _env.get_template(tmpl_path)
         files[out_path] = tpl.render(**ctx)
