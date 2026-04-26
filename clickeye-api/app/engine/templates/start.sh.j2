@@ -194,10 +194,10 @@ elif [[ "$_LINEAR_OK" == "true" ]]; then
   # webhook_server.py 기동
   if [[ "$_USE_POLLING" == "false" ]]; then
     echo -e "${CYAN}[3/3]${NC} Webhook 서버 기동 중..."
-    mkdir -p log
+    mkdir -p logs
     nohup python3 "$PROJECT_ROOT/scripts/webhook_server.py" \
       --port "${WEBHOOK_PORT:-9876}" \
-      >> log/webhook.log 2>&1 &
+      >> logs/webhook.log 2>&1 &
     echo $! > .run/webhook.pid
     sleep 1
     if _is_running "webhook"; then
@@ -212,9 +212,9 @@ fi
 # linear_watcher.py — polling 모드이거나 WATCHER_ALWAYS_ON=1
 if [[ "$_USE_POLLING" == "true" ]] || [[ "${WATCHER_ALWAYS_ON:-0}" == "1" ]]; then
   echo -e "${CYAN}[●]${NC} Linear 폴링 watcher 기동 중 (30초 간격)..."
-  mkdir -p log
+  mkdir -p logs
   nohup python3 "$PROJECT_ROOT/scripts/linear_watcher.py" \
-    >> log/watcher.log 2>&1 &
+    >> logs/watcher.log 2>&1 &
   echo $! > .run/watcher.pid
   sleep 1
   if _is_running "watcher"; then
@@ -237,10 +237,10 @@ if [[ "$_USE_POLLING" == "false" ]]; then
   echo -e "  터널 URL  : ${BOLD}$TUNNEL_URL${NC}"
   echo -e "  Webhook   : ${_WEBHOOK_REGISTERED:+등록됨}${_WEBHOOK_REGISTERED:-미등록 (폴링 대체)}"
   echo -e "  포트      : ${WEBHOOK_PORT:-9876}"
-  echo -e "  로그      : log/webhook.log"
+  echo -e "  로그      : logs/webhook.log"
 else
   echo -e "  모드      : ${BOLD}폴링 (30초 간격)${NC}"
-  echo -e "  로그      : log/watcher.log"
+  echo -e "  로그      : logs/watcher.log"
 fi
 echo ""
 echo -e "  Queued 이슈 → 자동 감지 → Claude 구현 → Done"

@@ -34,7 +34,7 @@ _trigger_lock = threading.Lock()
 # ── 로거 초기화 ─────────────────────────────────────────────────────────────────
 
 def _setup_logger() -> logging.Logger:
-    log_dir = Path(__file__).parent.parent / "log"
+    log_dir = Path(__file__).parent.parent / "logs"
     log_dir.mkdir(exist_ok=True)
 
     logger = logging.getLogger("webhook")
@@ -42,7 +42,7 @@ def _setup_logger() -> logging.Logger:
 
     fmt = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
-    # 파일 핸들러 (log/webhook.log)
+    # 파일 핸들러 (logs/webhook.log)
     fh = logging.FileHandler(log_dir / "webhook.log", encoding="utf-8")
     fh.setFormatter(fmt)
     logger.addHandler(fh)
