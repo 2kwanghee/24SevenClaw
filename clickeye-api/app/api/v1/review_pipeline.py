@@ -26,6 +26,8 @@ from app.schemas.review_pipeline import (
     ReviewRoundListResponse,
     ReviewRoundResponse,
     ReviewSubmit,
+    SyncedSubtask,
+    SyncLinearStatesResponse,
 )
 from app.services.orchestrator_service import OrchestratorService
 from app.services.review_pipeline import ReviewPipelineService
@@ -757,4 +759,103 @@ async def reset_subtask_to_wait(
         linear_identifier=str(subtask.linear_identifier or ""),
         previous_state=previous_state,
         transitioned_to="Wait",
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/sync-linear-states",
+    response_model=SyncLinearStatesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def sync_linear_states(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SyncLinearStatesResponse:
+    """세션의 모든 subtask Linear 상태를 실제 Linear 값으로 동기화한다.
+
+    AI Team 진입 시 또는 수동 갱신 시 호출. Linear에서 직접 변경한 상태도 반영된다.
+    In Progress 이후 상태(Done, In Review 등)도 DB에 정확히 업데이트한다.
+    """
+    from datetime import UTC, datetime as dt
+
+    from sqlalchemy import select as sa_select
+
+    from app.core.crypto import decrypt
+    from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import fetch_issue_states
+
+    # Linear issue가 있는 subtask만 조회
+    st_result = await db.execute(
+        sa_select(SubTask).where(
+            SubTask.session_id == session_id,
+            SubTask.linear_identifier.is_not(None),
+            SubTask.linear_issue_id.is_not(None),
+        )
+    )
+    subtasks = st_result.scalars().all()
+    if not subtasks:
+        return SyncLinearStatesResponse(synced_count=0, changed=[])
+
+    # 세션 → 자격증명 조회
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = sess_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
+
+    proj_creds_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session.project_id
+        )
+    )
+    proj_creds = proj_creds_result.scalar_one_or_none()
+
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == user.id
+            )
+        )
+        creds = creds_result.scalar_one_or_none()
+        if creds is None:
+            # 자격증명 없으면 동기화 없이 빈 결과 반환 (에러 대신)
+            return SyncLinearStatesResponse(synced_count=0, changed=[])
+        api_key = decrypt(str(creds.encrypted_api_key))
+        team_id = str(creds.team_id)
+
+    # Linear에서 현재 상태 일괄 조회
+    identifiers = [str(st.linear_identifier) for st in subtasks]
+    state_map = fetch_issue_states(api_key, team_id, identifiers)
+
+    now = dt.now(UTC)
+    changed: list[SyncedSubtask] = []
+
+    for subtask in subtasks:
+        identifier = str(subtask.linear_identifier)
+        new_state = state_map.get(identifier)
+        if new_state is None:
+            continue
+        if subtask.linear_state != new_state:
+            changed.append(SyncedSubtask(
+                subtask_id=subtask.id,
+                linear_identifier=identifier,
+                previous_state=subtask.linear_state,
+                current_state=new_state,
+            ))
+            subtask.linear_state = new_state
+            subtask.updated_at = now
+
+    if changed:
+        await db.commit()
+
+    return SyncLinearStatesResponse(
+        synced_count=len(subtasks),
+        changed=changed,
     )

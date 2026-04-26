@@ -35,6 +35,7 @@ import {
   usePushToLinear,
   useDeleteSession,
   useResumePipeline,
+  useSyncLinearStates,
 } from "@/hooks/use-orchestrator";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
@@ -84,6 +85,7 @@ export default function AITeamDashboardPage() {
   const pushToLinear = usePushToLinear();
   const deleteSession = useDeleteSession(projectId);
   const resumePipeline = useResumePipeline();
+  const syncLinearStates = useSyncLinearStates(selectedSessionId);
 
   const firstSessionId = sessions?.items[0]?.id ?? "";
   const activeSessionId = selectedSessionId || firstSessionId;
@@ -93,6 +95,18 @@ export default function AITeamDashboardPage() {
       setSelectedSessionId(firstSessionId);
     }
   }, [selectedSessionId, firstSessionId]);
+
+  // 세션 진입 시 Linear 상태 자동 동기화
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    // summary가 로드된 직후, Linear 이슈가 있는 subtask가 하나라도 있으면 sync
+    const hasLinearIssues = summary?.subtasks?.some((st) => !!st.linear_issue_id);
+    if (hasLinearIssues && !syncLinearStates.isPending) {
+      syncLinearStates.mutate();
+    }
+    // selectedSessionId가 바뀔 때만 (summary 의존성은 의도적으로 제외)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSessionId, !!summary]);
 
   const session = summary?.session;
   const subtasks = summary?.subtasks ?? [];

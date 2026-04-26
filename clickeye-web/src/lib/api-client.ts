@@ -1723,6 +1723,18 @@ export interface ResetToWaitResponse {
   transitioned_to: string;
 }
 
+export interface SyncedSubtask {
+  subtask_id: string;
+  linear_identifier: string;
+  previous_state: string | null;
+  current_state: string;
+}
+
+export interface SyncLinearStatesResponse {
+  synced_count: number;
+  changed: SyncedSubtask[];
+}
+
 export interface LinearConnectionStatus {
   credentials_saved: boolean;
   webhook_registered: boolean;
@@ -1780,6 +1792,13 @@ export const reviews = {
   resetSubtaskToWait: (token: string, sessionId: string, subtaskId: string) =>
     authRequest<ResetToWaitResponse>(
       `/api/v1/orchestrator/sessions/${sessionId}/subtasks/${subtaskId}/reset-to-wait`,
+      token,
+      { method: "POST" },
+    ),
+
+  syncLinearStates: (token: string, sessionId: string) =>
+    authRequest<SyncLinearStatesResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/sync-linear-states`,
       token,
       { method: "POST" },
     ),

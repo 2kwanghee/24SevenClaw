@@ -176,3 +176,19 @@ class ResetToWaitResponse(BaseModel):
     linear_identifier: str
     previous_state: str
     transitioned_to: str
+
+
+class SyncedSubtask(BaseModel):
+    """Linear 상태 동기화 결과 항목."""
+
+    subtask_id: UUID
+    linear_identifier: str
+    previous_state: str | None
+    current_state: str
+
+
+class SyncLinearStatesResponse(BaseModel):
+    """Linear 상태 일괄 동기화 결과."""
+
+    synced_count: int
+    changed: list[SyncedSubtask]

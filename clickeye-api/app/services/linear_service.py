@@ -136,6 +136,41 @@ def update_issue_state_id(api_key: str, issue_id: str, state_id: str) -> bool:
 
 
 
+_ISSUE_STATES_QUERY = """
+query IssueStates($teamId: ID!, $identifiers: [String!]!) {
+  issues(
+    filter: {
+      team: { id: { eq: $teamId } }
+      identifier: { in: $identifiers }
+    }
+    first: 50
+  ) {
+    nodes {
+      id
+      identifier
+      state { name }
+    }
+  }
+}
+"""
+
+
+def fetch_issue_states(api_key: str, team_id: str, identifiers: list[str]) -> dict[str, str]:
+    """Linear 이슈 목록의 현재 상태를 한 번에 조회한다.
+
+    Returns:
+        {identifier: state_name} 매핑. 조회 실패 시 빈 dict 반환.
+    """
+    if not identifiers:
+        return {}
+    try:
+        data = _call(api_key, _ISSUE_STATES_QUERY, {"teamId": team_id, "identifiers": identifiers})
+        nodes = data.get("issues", {}).get("nodes", [])
+        return {str(n["identifier"]): str(n["state"]["name"]) for n in nodes if n.get("state")}
+    except RuntimeError:
+        return {}
+
+
 def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
     """Linear API 키와 팀 ID 유효성 검증. 실제 API 호출로 인증 확인."""
     try:

@@ -190,6 +190,19 @@ export function useResetSubtaskToWait() {
   });
 }
 
+export function useSyncLinearStates(sessionId: string) {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => reviews.syncLinearStates(token, sessionId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["orchestrator-summary", sessionId],
+      });
+    },
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string, fastPoll = false) {
