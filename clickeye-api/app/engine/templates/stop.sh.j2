@@ -46,6 +46,16 @@ _stop_pid() {
       echo -e "  ${YELLOW}ℹ  $name: 실행 중인 프로세스 없음${NC}"
     fi
   fi
+
+  # 터널은 중복 기동 가능 — PID 파일 여부와 무관하게 잔여 인스턴스 정리
+  if [[ "$name" == "tunnel" ]]; then
+    local _extra
+    _extra=$(pgrep -f "cloudflared|ngrok" 2>/dev/null || true)
+    if [[ -n "$_extra" ]]; then
+      echo "$_extra" | xargs kill -TERM 2>/dev/null || true
+      echo -e "  ${GREEN}✅ 잔여 터널 프로세스 정리됨${NC}"
+    fi
+  fi
 }
 
 _stop_pid "tunnel"

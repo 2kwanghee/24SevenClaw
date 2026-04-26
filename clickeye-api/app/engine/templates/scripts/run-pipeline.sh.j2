@@ -56,7 +56,7 @@ from urllib.request import Request, urlopen
 identifier, api_key, team_id = sys.argv[1], sys.argv[2], sys.argv[3]
 
 query = """
-query($teamId: ID!) {
+query($teamId: String!) {
   issues(
     filter: {
       team: { id: { eq: $teamId } }
@@ -141,7 +141,7 @@ from urllib.request import Request, urlopen
 issue_id, state_name, state_type, api_key, team_id = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
 
 # 팀 상태 목록 조회 (type 필드 포함)
-q = 'query($id: ID!) { team(id: $id) { states { nodes { id name type } } } }'
+q = 'query($id: String!) { team(id: $id) { states { nodes { id name type } } } }'
 body = json.dumps({"query": q, "variables": {"id": team_id}}).encode()
 req = Request("https://api.linear.app/graphql", data=body, method="POST")
 req.add_header("Authorization", api_key)
