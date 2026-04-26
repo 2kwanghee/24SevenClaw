@@ -28,11 +28,17 @@ log() {
 }
 
 # ── 환경변수 로드 ──
+# IFS='=' 방식 대신 BASH_REMATCH로 파싱 — 값에 '='가 포함돼도 잘리지 않음
 if [[ -f "$PROJECT_DIR/.env" ]]; then
-  while IFS='=' read -r k v; do
-    [[ "$k" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
-    export "$k=$v"
-  done < <(grep -E '^[A-Z_][A-Z0-9_]*=.' "$PROJECT_DIR/.env" 2>/dev/null)
+  while IFS= read -r _line; do
+    [[ "$_line" =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] || continue
+    _k="${BASH_REMATCH[1]}"
+    _v="${BASH_REMATCH[2]}"
+    # 따옴표 감싸진 값 제거 ("value" 또는 'value')
+    _v="${_v#\"}" ; _v="${_v%\"}"
+    _v="${_v#\'}" ; _v="${_v%\'}"
+    export "$_k=$_v"
+  done < <(grep -E '^[A-Z_][A-Z0-9_]*=' "$PROJECT_DIR/.env" 2>/dev/null)
 fi
 
 if [[ -z "${LINEAR_API_KEY:-}" || -z "${LINEAR_TEAM_ID:-}" ]]; then
