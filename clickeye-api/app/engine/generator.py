@@ -648,7 +648,7 @@ def _emit_first_run_artifacts(
         files["stop.sh"] = stopper.render(**ctx)
 
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
-        files["log/.gitkeep"] = ""
+        files["logs/.gitkeep"] = ""
         files[".run/.gitkeep"] = ""
     except Exception:
         pass

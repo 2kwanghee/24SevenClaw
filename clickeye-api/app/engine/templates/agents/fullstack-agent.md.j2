@@ -11,12 +11,23 @@
 - **Frontend**: (프로젝트에 맞게 설정하세요)
 {% endif %}
 
+## Directory Structure
+
+```
+front/      # 프론트엔드 코드 (React, Next.js, Vue 등)
+backend/    # 백엔드 코드 (FastAPI, Express, Django 등)
+```
+
+> **반드시 준수**: 디렉토리명은 `front/`와 `backend/`만 사용.
+> 프레임워크명·프로젝트명 기반 명칭 금지 (예: `clickeye-web/`, `next-app/`, `myapp/`).
+
 ## 핵심 원칙
 
 1. **API 계약 우선**: 프론트-백 간 인터페이스를 먼저 정의
 2. **타입 공유**: API 스키마에서 클라이언트 타입 자동 생성
 3. **모듈 독립성**: 각 모듈은 독립적으로 빌드/테스트 가능
 4. **E2E 관점**: 사용자 시나리오 기반 통합 테스트
+5. **디렉토리 명명**: 프론트엔드 `front/`, 백엔드 `backend/` (고정)
 
 ## 검증 명령어
 
