@@ -90,7 +90,7 @@ function ProjectsContent() {
           <div>
             <p className="text-sm font-semibold text-[var(--text-primary)]">새 솔루션 위저드</p>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              7단계로 AI 솔루션을 설계하고 ZIP으로 바로 시작하세요
+              직접 AI 솔루션을 설계하고 ZIP으로 바로 시작하세요
             </p>
           </div>
         </div>

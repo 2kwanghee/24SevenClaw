@@ -154,18 +154,19 @@ if [[ "$TUNNEL_PROVIDER" == "polling" ]]; then
 elif [[ "$_LINEAR_OK" == "true" ]]; then
   echo -e "${CYAN}[1/3]${NC} 터널 기동 중 ($TUNNEL_PROVIDER)..."
 
-  _tunnel_output=$(bash "$PROJECT_ROOT/scripts/setup-tunnel.sh" --detach 2>&1) || {
+  # URL 파일 초기화 후 setup-tunnel.sh를 직접 실행 (출력이 터미널에 실시간 표시됨)
+  rm -f "$PROJECT_ROOT/.run/tunnel.url"
+  bash "$PROJECT_ROOT/scripts/setup-tunnel.sh" --detach || {
     echo -e "${YELLOW}⚠️  터널 기동 실패. 폴링 모드로 전환합니다.${NC}"
     _USE_POLLING=true
   }
 
   if [[ "$_USE_POLLING" == "false" ]]; then
-    TUNNEL_URL=$(echo "$_tunnel_output" | grep -oP 'TUNNEL_URL=\K[^\s]+' | head -1 || true)
+    # setup-tunnel.sh가 .run/tunnel.url 파일에 URL을 기록
+    TUNNEL_URL=$(cat "$PROJECT_ROOT/.run/tunnel.url" 2>/dev/null || true)
     if [[ -z "$TUNNEL_URL" ]]; then
       echo -e "${YELLOW}⚠️  터널 URL 파싱 실패. 폴링 모드로 전환합니다.${NC}"
       _USE_POLLING=true
-    else
-      echo -e "   ✅ 터널 URL: ${BOLD}$TUNNEL_URL${NC}"
     fi
   fi
 

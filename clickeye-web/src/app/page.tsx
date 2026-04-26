@@ -174,7 +174,7 @@ export default function Home() {
           </div>
 
           <h1 className="mx-auto max-w-4xl text-5xl font-bold leading-[1.08] tracking-tight text-zinc-950 md:text-6xl lg:text-7xl">
-            7단계로 설계하고
+            직접 설계하고
             <br />
             ZIP 하나로 시작하는
             <br />

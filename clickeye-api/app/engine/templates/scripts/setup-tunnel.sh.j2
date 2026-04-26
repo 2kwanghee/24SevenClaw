@@ -108,8 +108,8 @@ if [[ "$TUNNEL_PROVIDER" == "cloudflare" ]]; then
     echo "$CF_PID" > "$PROJECT_ROOT/.run/tunnel.pid"
 
     if [[ "$DETACH_MODE" -eq 1 ]]; then
-        # --detach: URL만 출력하고 반환 (프로세스는 백그라운드에서 계속 실행)
-        echo "TUNNEL_URL=$TUNNEL_URL"
+        # --detach: URL을 파일에 기록하고 반환 (프로세스는 백그라운드에서 계속 실행)
+        echo "$TUNNEL_URL" > "$PROJECT_ROOT/.run/tunnel.url"
         exit 0
     fi
 
@@ -171,7 +171,7 @@ if [[ "$TUNNEL_PROVIDER" == "ngrok" ]]; then
     echo "$NGROK_PID" > "$PROJECT_ROOT/.run/tunnel.pid"
 
     if [[ "$DETACH_MODE" -eq 1 ]]; then
-        echo "TUNNEL_URL=$TUNNEL_URL"
+        echo "$TUNNEL_URL" > "$PROJECT_ROOT/.run/tunnel.url"
         exit 0
     fi
 
