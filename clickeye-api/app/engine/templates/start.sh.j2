@@ -97,7 +97,10 @@ fi
 # ── 5. 필수 API 키 검증 ────────────────────────────────────────────────────────
 _missing_keys=()
 _has_missing=0
-[[ -z "${ANTHROPIC_API_KEY:-}" ]] && { _missing_keys+=("ANTHROPIC_API_KEY"); _has_missing=1; }
+# ANTHROPIC_API_KEY는 선택사항 — claude.ai 구독 사용자는 불필요
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+  echo -e "${CYAN}ℹ  ANTHROPIC_API_KEY 미설정 — claude.ai 구독 세션으로 실행합니다.${NC}"
+fi
 {% if has_linear %}_LINEAR_OK=true
 [[ -z "${LINEAR_API_KEY:-}" ]]  && { _missing_keys+=("LINEAR_API_KEY");  _LINEAR_OK=false; _has_missing=1; }
 [[ -z "${LINEAR_TEAM_ID:-}" ]]  && { _missing_keys+=("LINEAR_TEAM_ID");  _LINEAR_OK=false; _has_missing=1; }
