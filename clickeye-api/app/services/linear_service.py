@@ -64,6 +64,14 @@ query TeamStates($id: String!) {
 }
 """
 
+_ISSUE_UPDATE = """
+mutation IssueUpdate($id: String!, $stateId: String!) {
+  issueUpdate(id: $id, input: { stateId: $stateId }) {
+    success
+  }
+}
+"""
+
 
 def _call(api_key: str, query: str, variables: dict | None = None, timeout: int = 15) -> dict:  # type: ignore[type-arg]
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
@@ -82,12 +90,27 @@ def _call(api_key: str, query: str, variables: dict | None = None, timeout: int 
     return result
 
 
-def get_queued_state_id(api_key: str, team_id: str) -> str | None:
-    """팀의 워크플로 상태 중 로컬 파이프라인이 감지하는 상태 ID를 반환한다.
+def get_initial_state_id(api_key: str, team_id: str) -> str | None:
+    """이슈 최초 등록 시 부여할 상태 ID를 반환한다.
 
-    우선순위: DayQueued > NightQueued > Queued
-    로컬 webhook_server.py / linear_watcher.py는 DayQueued|NightQueued를 트리거로 사용한다.
+    우선순위: Wait (검수 대기) — 사람이 승인 후 Queued로 전이한다.
+    Wait 상태가 없으면 None을 반환해 Linear 기본 상태로 생성한다.
     """
+    try:
+        data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
+        nodes = data.get("team", {}).get("states", {}).get("nodes", [])
+        priority = ["wait"]
+        by_name = {str(s.get("name", "")).lower(): str(s["id"]) for s in nodes}
+        for name in priority:
+            if name in by_name:
+                return by_name[name]
+    except RuntimeError:
+        pass
+    return None
+
+
+def get_queued_state_id(api_key: str, team_id: str) -> str | None:
+    """Queued 상태 ID를 반환한다. 사람 승인 시 Wait → Queued 전이에 사용."""
     try:
         data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
         nodes = data.get("team", {}).get("states", {}).get("nodes", [])
@@ -99,6 +122,18 @@ def get_queued_state_id(api_key: str, team_id: str) -> str | None:
     except RuntimeError:
         pass
     return None
+
+
+def update_issue_state_id(api_key: str, issue_id: str, state_id: str) -> bool:
+    """이미 알고 있는 stateId로 Linear 이슈 상태를 직접 변경한다."""
+    try:
+        result = _call(api_key, _ISSUE_UPDATE, {"id": issue_id, "stateId": state_id})
+        return bool(result.get("issueUpdate", {}).get("success"))
+    except RuntimeError:
+        return False
+
+
+
 
 
 def validate_credentials(api_key: str, team_id: str) -> tuple[bool, str]:
@@ -168,6 +203,7 @@ def create_issues(
         issue = data.get("issueCreate", {}).get("issue") or {}
         created.append(
             {
+                "id": issue.get("id", ""),
                 "identifier": issue.get("identifier", ""),
                 "title": issue.get("title", ""),
                 "url": issue.get("url", ""),

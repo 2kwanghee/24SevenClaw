@@ -5,12 +5,15 @@ import {
   Code2,
   Cpu,
   Eye,
+  ExternalLink,
+  Loader2,
   Server,
   Shield,
   TestTube2,
   Wrench,
 } from "lucide-react";
 
+import { useApproveSubtask } from "@/hooks/use-orchestrator";
 import type { SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<
@@ -72,11 +75,20 @@ const STATUS_CONFIG: Record<
   blocked: { label: "차단됨", cls: "bg-amber-50 text-amber-700" },
 };
 
+const LINEAR_STATE_CONFIG: Record<string, { label: string; cls: string }> = {
+  Wait: { label: "검수 대기", cls: "bg-amber-50 text-amber-700 border border-amber-200" },
+  Queued: { label: "큐 등록됨", cls: "bg-violet-50 text-violet-700 border border-violet-200" },
+  "In Progress": { label: "개발 중", cls: "bg-blue-50 text-blue-700 border border-blue-200" },
+  "In Review": { label: "리뷰 중", cls: "bg-pink-50 text-pink-700 border border-pink-200" },
+  Done: { label: "완료", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+};
+
 interface SubTaskCardProps {
   subtask: SubTaskResponse;
+  sessionId?: string;
 }
 
-export function SubTaskCard({ subtask }: SubTaskCardProps) {
+export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
   const role = ROLE_CONFIG[subtask.assigned_role] ?? {
     label: subtask.assigned_role,
     icon: <Bot className="h-3.5 w-3.5" />,
@@ -84,6 +96,12 @@ export function SubTaskCard({ subtask }: SubTaskCardProps) {
     bg: "bg-zinc-100",
   };
   const status = STATUS_CONFIG[subtask.status] ?? STATUS_CONFIG.pending;
+  const linearState = subtask.linear_state
+    ? (LINEAR_STATE_CONFIG[subtask.linear_state] ?? { label: subtask.linear_state, cls: "bg-zinc-100 text-zinc-600" })
+    : null;
+
+  const approveMutation = useApproveSubtask();
+  const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Wait" && !!sessionId;
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:bg-[var(--bg-hover)]">
@@ -115,6 +133,42 @@ export function SubTaskCard({ subtask }: SubTaskCardProps) {
         <div className="mt-2 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
           <span>의존:</span>
           <span className="truncate">{subtask.depends_on.length}개 태스크</span>
+        </div>
+      )}
+
+      {/* Linear 연동 정보 */}
+      {subtask.linear_identifier && (
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono text-[var(--text-muted)]">
+              {subtask.linear_identifier}
+            </span>
+            {linearState && (
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${linearState.cls}`}>
+                {linearState.label}
+              </span>
+            )}
+          </div>
+
+          {canApprove ? (
+            <button
+              type="button"
+              disabled={approveMutation.isPending}
+              onClick={() =>
+                approveMutation.mutate({ sessionId, subtaskId: subtask.id })
+              }
+              className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
+            >
+              {approveMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <ExternalLink className="h-3 w-3" />
+              )}
+              큐 등록
+            </button>
+          ) : subtask.linear_state && subtask.linear_state !== "Wait" ? (
+            <span className="text-[10px] text-[var(--text-muted)]">승인됨</span>
+          ) : null}
         </div>
       )}
     </div>

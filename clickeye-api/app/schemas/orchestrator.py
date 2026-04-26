@@ -87,6 +87,9 @@ class SubTaskResponse(BaseModel):
     depends_on: list[str]
     artifact_id: UUID | None
     result_summary: str | None
+    linear_identifier: str | None = None
+    linear_issue_id: str | None = None
+    linear_state: str | None = None
     created_at: datetime
     updated_at: datetime
 

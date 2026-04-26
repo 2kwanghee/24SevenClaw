@@ -1528,6 +1528,9 @@ export interface SubTaskResponse {
   depends_on: string[];
   artifact_id: string | null;
   result_summary: string | null;
+  linear_identifier: string | null;
+  linear_issue_id: string | null;
+  linear_state: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1704,7 +1707,13 @@ export interface PushToLinearResponse {
   created_identifiers: string[];
   created_urls: string[];
   count: number;
-  queued_state_applied: boolean;
+  initial_state_applied: boolean;
+}
+
+export interface ApproveSubtaskResponse {
+  subtask_id: string;
+  linear_identifier: string;
+  transitioned_to: string;
 }
 
 export interface LinearConnectionStatus {
@@ -1750,6 +1759,13 @@ export const reviews = {
   pushToLinear: (token: string, sessionId: string) =>
     authRequest<PushToLinearResponse>(
       `/api/v1/orchestrator/sessions/${sessionId}/push-to-linear`,
+      token,
+      { method: "POST" },
+    ),
+
+  approveSubtask: (token: string, sessionId: string, subtaskId: string) =>
+    authRequest<ApproveSubtaskResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/subtasks/${subtaskId}/approve`,
       token,
       { method: "POST" },
     ),

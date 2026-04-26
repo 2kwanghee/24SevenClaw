@@ -43,6 +43,9 @@ class SubTask(Base):
         Uuid, ForeignKey("artifacts.id", ondelete="SET NULL"), nullable=True
     )
     result_summary = Column(Text, nullable=True)
+    linear_identifier = Column(String(50), nullable=True)  # e.g. "24S-5"
+    linear_issue_id = Column(String(100), nullable=True)   # Linear internal UUID
+    linear_state = Column(String(50), nullable=True)       # 현재 Linear 상태명
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 

@@ -158,4 +158,12 @@ class PushToLinearResponse(BaseModel):
     created_identifiers: list[str]
     created_urls: list[str]
     count: int
-    queued_state_applied: bool = False
+    initial_state_applied: bool = False
+
+
+class ApproveSubtaskResponse(BaseModel):
+    """subtask 큐 등록(Wait → Queued) 결과."""
+
+    subtask_id: UUID
+    linear_identifier: str
+    transitioned_to: str

@@ -435,6 +435,7 @@ export default function AITeamDashboardPage() {
                 </h3>
               </div>
               <p className="text-xs text-emerald-700">
+                각 태스크 카드의 <strong>큐 등록</strong> 버튼을 눌러 검수를 완료하세요.
                 Linear 이슈가 <strong>Queued</strong> 상태로 이동하면 로컬 PC의{" "}
                 <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono text-[11px]">
                   webhook_server.py
@@ -443,6 +444,7 @@ export default function AITeamDashboardPage() {
               </p>
               <p className="mt-1.5 text-[11px] text-emerald-600">
                 파이프라인이 실행 중이 아니라면 프로젝트 ZIP에 포함된 README를 참고해 로컬 환경을 먼저 시작하세요.
+                linear_watcher.py도 함께 실행하면 큐 누락을 방지할 수 있습니다.
               </p>
             </div>
           )}
@@ -557,7 +559,7 @@ export default function AITeamDashboardPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {subtasks.map((st) => (
-                  <SubTaskCard key={st.id} subtask={st} />
+                  <SubTaskCard key={st.id} subtask={st} sessionId={selectedSessionId} />
                 ))}
               </div>
             )}

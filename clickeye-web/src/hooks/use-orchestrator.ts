@@ -162,6 +162,20 @@ export function usePushToLinear() {
   });
 }
 
+export function useApproveSubtask() {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, subtaskId }: { sessionId: string; subtaskId: string }) =>
+      reviews.approveSubtask(token, sessionId, subtaskId),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["orchestrator-summary", vars.sessionId],
+      });
+    },
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string, fastPoll = false) {

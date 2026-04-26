@@ -328,9 +328,9 @@ export function SessionCreateModal({
                   <p className="text-xs font-medium text-emerald-700">
                     Linear 이슈 등록 완료 ({linearResult.count}개)
                   </p>
-                  {linearResult.queued_state_applied && (
-                    <span className="ml-auto rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white">
-                      Queued
+                  {linearResult.initial_state_applied && (
+                    <span className="ml-auto rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      Wait (검수 대기)
                     </span>
                   )}
                 </div>

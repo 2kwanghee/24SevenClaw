@@ -11,6 +11,7 @@ from app.dependencies import get_current_user
 from app.models.orchestrator import SubTask
 from app.models.user import User
 from app.schemas.review_pipeline import (
+    ApproveSubtaskResponse,
     DiffResult,
     GenerateDraftsResponse,
     LinearSyncHint,
@@ -288,7 +289,7 @@ async def push_to_linear(
     from app.models.project_linear_credentials import ProjectLinearCredentials
     from app.models.user_linear_credentials import UserLinearCredentials
     from app.schemas.review_pipeline import LinearSyncHintSubtask as HintSubtask
-    from app.services.linear_service import create_issues, get_queued_state_id
+    from app.services.linear_service import create_issues, get_initial_state_id
 
     # 세션 먼저 로드 (project_id를 자격증명 조회에 사용)
     session_result = await db.execute(
@@ -346,22 +347,31 @@ async def push_to_linear(
         for st in subtasks
     ]
 
-    # Queued 상태 ID 조회 (실패 시 None — 이슈는 정상 생성, 상태만 미적용)
-    queued_state_id = get_queued_state_id(api_key, team_id)
+    # Wait 상태 ID 조회 (실패 시 None — 이슈는 정상 생성, 상태만 미적용)
+    initial_state_id = get_initial_state_id(api_key, team_id)
 
     created = create_issues(
         api_key,
         team_id,
         hint_subtasks,
-        state_id=queued_state_id,
+        state_id=initial_state_id,
         session_description=str(session.description) if session.description else None,
     )
+
+    # 생성된 Linear 이슈 정보를 subtask 행에 저장
+    from datetime import UTC, datetime as dt
+    for subtask, issue in zip(subtasks, created):
+        subtask.linear_identifier = issue.get("identifier") or None
+        subtask.linear_issue_id = issue.get("id") or None
+        subtask.linear_state = "Wait" if initial_state_id else None
+        subtask.updated_at = dt.now(UTC)
+    await db.commit()
 
     return PushToLinearResponse(
         created_identifiers=[c["identifier"] for c in created],
         created_urls=[c["url"] for c in created],
         count=len(created),
-        queued_state_applied=queued_state_id is not None,
+        initial_state_applied=initial_state_id is not None,
     )
 
 
@@ -520,3 +530,110 @@ async def get_review_prompt(
     """교차 리뷰용 표준 프롬프트를 생성한다."""
     service = ReviewPipelineService(db)
     return await service.build_review_prompt(round_id=round_id, review_type=review_type)
+
+
+# === Linear 이슈 상태 전이 ===
+
+
+@router.post(
+    "/sessions/{session_id}/subtasks/{subtask_id}/approve",
+    response_model=ApproveSubtaskResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def approve_subtask(
+    session_id: UUID,
+    subtask_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ApproveSubtaskResponse:
+    """subtask의 Linear 이슈를 Wait → Queued로 전이한다 (사람 검수 완료).
+
+    로컬 webhook_server / linear_watcher가 Queued 감지 후 자동으로
+    In Progress로 전이하고 Claude 구현을 시작한다.
+    """
+    from datetime import UTC, datetime as dt
+
+    from sqlalchemy import select as sa_select
+
+    from app.core.crypto import decrypt
+    from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import get_queued_state_id, update_issue_state_id
+
+    # subtask 조회 + 세션 소유권 확인
+    st_result = await db.execute(
+        sa_select(SubTask).where(
+            SubTask.id == subtask_id,
+            SubTask.session_id == session_id,
+        )
+    )
+    subtask = st_result.scalar_one_or_none()
+    if subtask is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
+
+    if not subtask.linear_issue_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 이슈가 아직 생성되지 않았습니다. push-to-linear를 먼저 실행하세요.",
+        )
+
+    # 세션 조회 (project_id 필요)
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = sess_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
+
+    # Linear 자격증명 조회 (프로젝트 우선, 유저 폴백)
+    proj_creds_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session.project_id
+        )
+    )
+    proj_creds = proj_creds_result.scalar_one_or_none()
+
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == user.id
+            )
+        )
+        creds = creds_result.scalar_one_or_none()
+        if creds is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Linear 자격증명 미설정. 설정 → Linear에서 API 키를 저장하세요.",
+            )
+        api_key = decrypt(str(creds.encrypted_api_key))
+        team_id = str(creds.team_id)
+
+    # Queued 상태 ID 조회 → 이슈 상태 전이
+    queued_state_id = get_queued_state_id(api_key, team_id)
+    if not queued_state_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 팀에 Queued(DayQueued/NightQueued) 상태가 없습니다.",
+        )
+
+    ok = update_issue_state_id(api_key, str(subtask.linear_issue_id), queued_state_id)
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Linear 이슈 상태 변경에 실패했습니다. API 키 권한을 확인하세요.",
+        )
+
+    # DB 상태 갱신
+    subtask.linear_state = "Queued"
+    subtask.updated_at = dt.now(UTC)
+    await db.commit()
+
+    return ApproveSubtaskResponse(
+        subtask_id=subtask_id,
+        linear_identifier=str(subtask.linear_identifier or ""),
+        transitioned_to="Queued",
+    )
