@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # 앱
-    app_name: str = "24SevenClaw API"
+    app_name: str = "ClickEye API"
     debug: bool = False
 
     # DB

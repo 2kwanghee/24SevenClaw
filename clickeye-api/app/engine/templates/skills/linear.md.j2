@@ -32,7 +32,7 @@ LINEAR_TEAM_ID=팀-UUID-또는-키
 
 ## AI Team 동기화
 
-24SevenClaw AI Team 화면에서 생성된 세션/서브태스크를 Linear 이슈로 자동 등록합니다.
+ClickEye AI Team 화면에서 생성된 세션/서브태스크를 Linear 이슈로 자동 등록합니다.
 
 ### 동기화 트리거
 
@@ -40,11 +40,11 @@ LINEAR_TEAM_ID=팀-UUID-또는-키
 
 #### 1. AI Team 세션 생성 시
 
-24SevenClaw API에서 `linear_sync_hint` 필드가 포함된 응답을 수신하면 Linear 이슈를 생성합니다.
+ClickEye API에서 `linear_sync_hint` 필드가 포함된 응답을 수신하면 Linear 이슈를 생성합니다.
 
 ```
 [감지 조건]
-- 24SevenClaw API 응답에 linear_sync_hint.action == "create_issue" 포함
+- ClickEye API 응답에 linear_sync_hint.action == "create_issue" 포함
 - linear_sync_hint.title, linear_sync_hint.description 필드 존재
 
 [실행 액션]

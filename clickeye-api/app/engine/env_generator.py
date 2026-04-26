@@ -41,7 +41,7 @@ def generate_env_files(
     # .env 생성 (실제 값 포함)
     env_lines: list[str] = [
         "# 환경 변수 — 이 파일을 .gitignore에 추가하세요",
-        "# 자동 생성됨 (24SevenClaw)",
+        "# 자동 생성됨 (ClickEye)",
         "",
     ]
 

@@ -2,7 +2,7 @@
 
 ## 개요
 
-이 문서는 24SevenClaw AI Team 화면의 이벤트를 Linear 이슈로 동기화하는
+이 문서는 ClickEye AI Team 화면의 이벤트를 Linear 이슈로 동기화하는
 GraphQL 뮤테이션/쿼리 명세를 정의합니다.
 
 사용자 로컬 Agent (Claude Code 등)가 이 명세를 읽고
@@ -55,7 +55,7 @@ query ListWorkflowStates($teamId: String!) {
 
 ## 2. AI Team 세션 → Linear 이슈 생성
 
-24SevenClaw API 응답의 `linear_sync_hint` 필드 확인 후 실행.
+ClickEye API 응답의 `linear_sync_hint` 필드 확인 후 실행.
 
 ### 뮤테이션
 
@@ -79,7 +79,7 @@ mutation CreateIssue($input: IssueCreateInput!) {
   "input": {
     "teamId": "$LINEAR_TEAM_ID",
     "title": "[linear_sync_hint.title]",
-    "description": "[linear_sync_hint.description]\n\n---\n*24SevenClaw AI Team 세션 자동 생성*",
+    "description": "[linear_sync_hint.description]\n\n---\n*ClickEye AI Team 세션 자동 생성*",
     "stateId": "[Queued 상태 ID]",
     "labelIds": ["[ai-team 레이블 ID]"]
   }
@@ -160,14 +160,14 @@ mutation CreateLabel($input: IssueLabelCreateInput!) {
     "teamId": "$LINEAR_TEAM_ID",
     "name": "ai-team",
     "color": "#BB87FC",
-    "description": "24SevenClaw AI Team 자동 생성 이슈"
+    "description": "ClickEye AI Team 자동 생성 이슈"
   }
 }
 ```
 
 ---
 
-## 6. linear_sync_hint 구조 (24SevenClaw API 응답)
+## 6. linear_sync_hint 구조 (ClickEye API 응답)
 
 ```json
 {
@@ -177,7 +177,7 @@ mutation CreateLabel($input: IssueLabelCreateInput!) {
     "description": "이슈 설명 (Markdown)",
     "issue_id": "기존 이슈 ID (complete_issue 시)",
     "parent_issue_id": "부모 이슈 ID (create_subtask 시)",
-    "session_id": "24SevenClaw 세션 UUID"
+    "session_id": "ClickEye 세션 UUID"
   }
 }
 ```
@@ -200,7 +200,7 @@ mutation CreateLabel($input: IssueLabelCreateInput!) {
     "ai-team": "..."
   },
   "session_map": {
-    "[24SevenClaw session_id]": "[Linear issue id]"
+    "[ClickEye session_id]": "[Linear issue id]"
   }
 }
 ```

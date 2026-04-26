@@ -44,7 +44,7 @@ claude --api-key $ANTHROPIC_API_KEY
 ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
-## 4. 24SevenClaw와 함께 사용
+## 4. ClickEye와 함께 사용
 
 ZIP 압축 해제 후:
 

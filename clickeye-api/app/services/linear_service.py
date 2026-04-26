@@ -217,7 +217,7 @@ def ensure_webhook(
     team_id: str,
     url: str,
     secret: str | None = None,
-    label: str = "24SevenClaw",
+    label: str = "ClickEye",
 ) -> str:
     """Linear 워크스페이스에 webhook을 등록하거나 기존 URL을 갱신한다.
 

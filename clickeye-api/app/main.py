@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="24SevenClaw API",
+        title="ClickEye API",
         description="AI 에이전트 개발 오케스트레이션 플랫폼",
         version="0.1.0",
         lifespan=lifespan,

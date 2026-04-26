@@ -41,7 +41,7 @@ gemini
 gemini  # 처음 실행 시 브라우저 로그인 진행
 ```
 
-## 6. 24SevenClaw와 함께 사용
+## 6. ClickEye와 함께 사용
 
 ZIP 압축 해제 후:
 
