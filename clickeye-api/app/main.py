@@ -1,8 +1,12 @@
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
 from app.api.v1.router import api_v1_router
 from app.config import settings
@@ -13,14 +17,115 @@ from app.core.rate_limit import RateLimitMiddleware
 from app.redis import close_redis, init_redis
 from app.ws.router import router as ws_router
 
+_bg_logger = logging.getLogger("queue_monitor")
+
+# Queued 계열 상태 — 타임아웃 대상
+_STALE_STATES = {"Queued", "DayQueued", "NightQueued", "Backlog"}
+# 5분마다 체크
+_CHECK_INTERVAL = 300
+
+
+async def _reset_stale_queued_issues() -> None:
+    """Queued/Backlog 상태에서 일정 시간 이상 정체된 이슈를 Wait로 되돌린다."""
+    from app.core.crypto import decrypt
+    from app.database import async_session
+    from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import get_initial_state_id, update_issue_state_id
+
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.queue_stale_minutes)
+
+    async with async_session() as db:
+        result = await db.execute(
+            select(SubTask).where(
+                SubTask.linear_state.in_(list(_STALE_STATES)),
+                SubTask.linear_issue_id.is_not(None),
+                SubTask.updated_at < cutoff,
+            )
+        )
+        stale = result.scalars().all()
+
+    if not stale:
+        return
+
+    _bg_logger.info("정체 이슈 %d건 발견 (기준: %d분)", len(stale), settings.queue_stale_minutes)
+
+    for subtask in stale:
+        try:
+            async with async_session() as db:
+                # 세션 → 프로젝트 자격증명 조회
+                sess_result = await db.execute(
+                    select(OrchestratorSession).where(
+                        OrchestratorSession.id == subtask.session_id
+                    )
+                )
+                session = sess_result.scalar_one_or_none()
+                if session is None:
+                    continue
+
+                proj_creds_result = await db.execute(
+                    select(ProjectLinearCredentials).where(
+                        ProjectLinearCredentials.project_id == session.project_id
+                    )
+                )
+                proj_creds = proj_creds_result.scalar_one_or_none()
+
+                if proj_creds is not None:
+                    api_key = decrypt(str(proj_creds.encrypted_api_key))
+                    team_id = str(proj_creds.team_id)
+                else:
+                    user_creds_result = await db.execute(
+                        select(UserLinearCredentials).where(
+                            UserLinearCredentials.user_id == session.created_by
+                        )
+                    )
+                    user_creds = user_creds_result.scalar_one_or_none()
+                    if user_creds is None:
+                        _bg_logger.warning("자격증명 없음: subtask=%s", subtask.id)
+                        continue
+                    api_key = decrypt(str(user_creds.encrypted_api_key))
+                    team_id = str(user_creds.team_id)
+
+                wait_state_id = get_initial_state_id(api_key, team_id)
+                if not wait_state_id:
+                    continue
+
+                ok = update_issue_state_id(api_key, str(subtask.linear_issue_id), wait_state_id)
+                if ok:
+                    subtask_fresh = await db.get(SubTask, subtask.id)
+                    if subtask_fresh:
+                        subtask_fresh.linear_state = "Wait"
+                        subtask_fresh.updated_at = datetime.now(UTC)
+                        await db.commit()
+                    _bg_logger.info(
+                        "자동 복귀: %s (%s → Wait)",
+                        subtask.linear_identifier,
+                        subtask.linear_state,
+                    )
+        except Exception as exc:
+            _bg_logger.error("자동 복귀 오류 subtask=%s: %s", subtask.id, exc)
+
+
+async def _queue_monitor_loop() -> None:
+    await asyncio.sleep(60)  # 서버 기동 후 1분 대기
+    while True:
+        try:
+            await _reset_stale_queued_issues()
+        except Exception as exc:
+            _bg_logger.error("queue_monitor 오류: %s", exc)
+        await asyncio.sleep(_CHECK_INTERVAL)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 시작 시 초기화
     setup_logging()
     await init_redis()
+    monitor_task = asyncio.create_task(_queue_monitor_loop())
     yield
     # 종료 시 정리
+    monitor_task.cancel()
     await close_redis()
 
 

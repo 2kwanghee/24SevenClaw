@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     anthropic_model_advanced: str = "claude-opus-4-7"
     prototype_generation_timeout: int = 60
 
+    # Queued/Backlog 이슈 자동 Wait 복귀 타임아웃 (분)
+    queue_stale_minutes: int = 60
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

@@ -1716,6 +1716,13 @@ export interface ApproveSubtaskResponse {
   transitioned_to: string;
 }
 
+export interface ResetToWaitResponse {
+  subtask_id: string;
+  linear_identifier: string;
+  previous_state: string;
+  transitioned_to: string;
+}
+
 export interface LinearConnectionStatus {
   credentials_saved: boolean;
   webhook_registered: boolean;
@@ -1766,6 +1773,13 @@ export const reviews = {
   approveSubtask: (token: string, sessionId: string, subtaskId: string) =>
     authRequest<ApproveSubtaskResponse>(
       `/api/v1/orchestrator/sessions/${sessionId}/subtasks/${subtaskId}/approve`,
+      token,
+      { method: "POST" },
+    ),
+
+  resetSubtaskToWait: (token: string, sessionId: string, subtaskId: string) =>
+    authRequest<ResetToWaitResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/subtasks/${subtaskId}/reset-to-wait`,
       token,
       { method: "POST" },
     ),

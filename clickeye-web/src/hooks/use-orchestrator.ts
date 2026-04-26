@@ -176,6 +176,20 @@ export function useApproveSubtask() {
   });
 }
 
+export function useResetSubtaskToWait() {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, subtaskId }: { sessionId: string; subtaskId: string }) =>
+      reviews.resetSubtaskToWait(token, sessionId, subtaskId),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({
+        queryKey: ["orchestrator-summary", vars.sessionId],
+      });
+    },
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string, fastPoll = false) {

@@ -167,3 +167,12 @@ class ApproveSubtaskResponse(BaseModel):
     subtask_id: UUID
     linear_identifier: str
     transitioned_to: str
+
+
+class ResetToWaitResponse(BaseModel):
+    """subtask 대기 복귀(Queued/Backlog → Wait) 결과."""
+
+    subtask_id: UUID
+    linear_identifier: str
+    previous_state: str
+    transitioned_to: str

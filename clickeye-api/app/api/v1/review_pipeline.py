@@ -19,6 +19,7 @@ from app.schemas.review_pipeline import (
     MergeRequest,
     PushToLinearResponse,
     RejectRequest,
+    ResetToWaitResponse,
     ReviewEventResponse,
     ReviewPrompt,
     ReviewRoundCreate,
@@ -636,4 +637,124 @@ async def approve_subtask(
         subtask_id=subtask_id,
         linear_identifier=str(subtask.linear_identifier or ""),
         transitioned_to="Queued",
+    )
+
+
+# In Progress 이후 상태 — 되돌리기 불가
+_LOCKED_STATES = {"In Progress", "Done", "In Review", "Cancelled"}
+# 되돌리기 가능한 상태
+_RESETTABLE_STATES = {"Queued", "DayQueued", "NightQueued", "Backlog"}
+
+
+@router.post(
+    "/sessions/{session_id}/subtasks/{subtask_id}/reset-to-wait",
+    response_model=ResetToWaitResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reset_subtask_to_wait(
+    session_id: UUID,
+    subtask_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ResetToWaitResponse:
+    """subtask의 Linear 이슈를 Queued/Backlog → Wait로 되돌린다.
+
+    In Progress 이후(In Progress, Done, In Review, Cancelled) 상태는 변경 불가.
+    """
+    from datetime import UTC, datetime as dt
+
+    from sqlalchemy import select as sa_select
+
+    from app.core.crypto import decrypt
+    from app.models.orchestrator import OrchestratorSession, SubTask
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import get_initial_state_id, update_issue_state_id
+
+    st_result = await db.execute(
+        sa_select(SubTask).where(
+            SubTask.id == subtask_id,
+            SubTask.session_id == session_id,
+        )
+    )
+    subtask = st_result.scalar_one_or_none()
+    if subtask is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
+
+    if not subtask.linear_issue_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 이슈가 아직 생성되지 않았습니다.",
+        )
+
+    current_state = subtask.linear_state or ""
+
+    if current_state in _LOCKED_STATES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"'{current_state}' 상태는 되돌릴 수 없습니다. In Progress 이후 항목은 변경이 금지됩니다.",
+        )
+
+    if current_state not in _RESETTABLE_STATES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"'{current_state}' 상태는 Wait 복귀 대상이 아닙니다.",
+        )
+
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = sess_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
+
+    proj_creds_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session.project_id
+        )
+    )
+    proj_creds = proj_creds_result.scalar_one_or_none()
+
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == user.id
+            )
+        )
+        creds = creds_result.scalar_one_or_none()
+        if creds is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Linear 자격증명 미설정. 설정 → Linear에서 API 키를 저장하세요.",
+            )
+        api_key = decrypt(str(creds.encrypted_api_key))
+        team_id = str(creds.team_id)
+
+    wait_state_id = get_initial_state_id(api_key, team_id)
+    if not wait_state_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 팀에 Wait 상태가 없습니다.",
+        )
+
+    ok = update_issue_state_id(api_key, str(subtask.linear_issue_id), wait_state_id)
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Linear 이슈 상태 변경에 실패했습니다. API 키 권한을 확인하세요.",
+        )
+
+    previous_state = current_state
+    subtask.linear_state = "Wait"
+    subtask.updated_at = dt.now(UTC)
+    await db.commit()
+
+    return ResetToWaitResponse(
+        subtask_id=subtask_id,
+        linear_identifier=str(subtask.linear_identifier or ""),
+        previous_state=previous_state,
+        transitioned_to="Wait",
     )

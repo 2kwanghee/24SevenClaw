@@ -7,13 +7,14 @@ import {
   Eye,
   ExternalLink,
   Loader2,
+  RotateCcw,
   Server,
   Shield,
   TestTube2,
   Wrench,
 } from "lucide-react";
 
-import { useApproveSubtask } from "@/hooks/use-orchestrator";
+import { useApproveSubtask, useResetSubtaskToWait } from "@/hooks/use-orchestrator";
 import type { SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<
@@ -101,7 +102,13 @@ export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
     : null;
 
   const approveMutation = useApproveSubtask();
+  const resetMutation = useResetSubtaskToWait();
+
   const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Wait" && !!sessionId;
+  const canReset =
+    !!subtask.linear_issue_id &&
+    !!sessionId &&
+    ["Queued", "DayQueued", "NightQueued", "Backlog"].includes(subtask.linear_state ?? "");
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:bg-[var(--bg-hover)]">
@@ -150,25 +157,47 @@ export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
             )}
           </div>
 
-          {canApprove ? (
-            <button
-              type="button"
-              disabled={approveMutation.isPending}
-              onClick={() =>
-                approveMutation.mutate({ sessionId, subtaskId: subtask.id })
-              }
-              className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
-            >
-              {approveMutation.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <ExternalLink className="h-3 w-3" />
-              )}
-              큐 등록
-            </button>
-          ) : subtask.linear_state && subtask.linear_state !== "Wait" ? (
-            <span className="text-[10px] text-[var(--text-muted)]">승인됨</span>
-          ) : null}
+          <div className="flex items-center gap-1.5">
+            {canApprove && (
+              <button
+                type="button"
+                disabled={approveMutation.isPending}
+                onClick={() =>
+                  approveMutation.mutate({ sessionId, subtaskId: subtask.id })
+                }
+                className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
+              >
+                {approveMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3 w-3" />
+                )}
+                큐 등록
+              </button>
+            )}
+            {canReset && (
+              <button
+                type="button"
+                disabled={resetMutation.isPending}
+                onClick={() =>
+                  resetMutation.mutate({ sessionId, subtaskId: subtask.id })
+                }
+                className="flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
+              >
+                {resetMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3 w-3" />
+                )}
+                대기로 복귀
+              </button>
+            )}
+            {!canApprove && !canReset && subtask.linear_state && subtask.linear_state !== "Wait" && (
+              <span className="text-[10px] text-[var(--text-muted)]">
+                {subtask.linear_state === "Done" ? "완료됨" : "진행 중"}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
