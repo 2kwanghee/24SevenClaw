@@ -405,6 +405,7 @@ def _generate_webhook_files(
         ("scripts/start-webhook.sh.j2", "scripts/start-webhook.sh"),
         ("scripts/setup-tunnel.sh.j2", "scripts/setup-tunnel.sh"),
         ("scripts/run-pipeline.sh.j2", "scripts/run-pipeline.sh"),
+        ("scripts/register-webhook.py.j2", "scripts/register-webhook.py"),
     ]:
         tpl = _env.get_template(tmpl_path)
         files[out_path] = tpl.render(**ctx)
@@ -642,7 +643,12 @@ def _emit_first_run_artifacts(
         readme = _env.get_template("README.md.j2")
         files["README.md"] = readme.render(**ctx)
 
-        # log/ 디렉토리 자리 확보 (.gitkeep)
+        # stop.sh — 원클릭 종료
+        stopper = _env.get_template("stop.sh.j2")
+        files["stop.sh"] = stopper.render(**ctx)
+
+        # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["log/.gitkeep"] = ""
+        files[".run/.gitkeep"] = ""
     except Exception:
         pass

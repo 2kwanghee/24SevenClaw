@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Cloudflare Tunnel / ngrok 자동 설치 및 기동 — {{ project_name }}
-# 사용법: bash scripts/setup-tunnel.sh
+# 사용법:
+#   bash scripts/setup-tunnel.sh            # 포그라운드 (터미널 점유)
+#   bash scripts/setup-tunnel.sh --detach   # 백그라운드 기동 (start.sh에서 호출)
 #
 # TUNNEL_PROVIDER 환경변수로 방식 선택:
-#   cloudflare (기본) — 무료, 정적 URL
+#   cloudflare (기본) — 무료, 일시적 URL
 #   ngrok              — 유료 고정 URL / 무료 임시 URL
 #   polling            — 터널 없이 30초 폴링 사용
 set -euo pipefail
@@ -12,6 +14,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_ROOT/.env"
 WEBHOOK_PORT="${WEBHOOK_PORT:-9876}"
+DETACH_MODE=0
+[[ "${1:-}" == "--detach" ]] && DETACH_MODE=1
 
 # .env 로드
 if [[ -f "$ENV_FILE" ]]; then
@@ -22,6 +26,7 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 TUNNEL_PROVIDER="${TUNNEL_PROVIDER:-cloudflare}"
+mkdir -p "$PROJECT_ROOT/.run"
 
 _update_env() {
     local key="$1"
@@ -99,6 +104,15 @@ if [[ "$TUNNEL_PROVIDER" == "cloudflare" ]]; then
     echo "   ✅ Cloudflare Tunnel URL: $TUNNEL_URL"
     _update_env "WEBHOOK_PUBLIC_URL" "$TUNNEL_URL"
     echo "   .env의 WEBHOOK_PUBLIC_URL을 업데이트했습니다."
+    # PID 저장 (stop.sh / start.sh가 사용)
+    echo "$CF_PID" > "$PROJECT_ROOT/.run/tunnel.pid"
+
+    if [[ "$DETACH_MODE" -eq 1 ]]; then
+        # --detach: URL만 출력하고 반환 (프로세스는 백그라운드에서 계속 실행)
+        echo "TUNNEL_URL=$TUNNEL_URL"
+        exit 0
+    fi
+
     echo ""
     echo "   다음 단계:"
     echo "   1. ClickEye 설정 페이지에서 위 URL을 저장하세요 → Linear Webhook 자동 등록"
@@ -154,9 +168,15 @@ if [[ "$TUNNEL_PROVIDER" == "ngrok" ]]; then
     echo "   ✅ ngrok URL: $TUNNEL_URL"
     _update_env "WEBHOOK_PUBLIC_URL" "$TUNNEL_URL"
     echo "   .env의 WEBHOOK_PUBLIC_URL을 업데이트했습니다."
+    echo "$NGROK_PID" > "$PROJECT_ROOT/.run/tunnel.pid"
+
+    if [[ "$DETACH_MODE" -eq 1 ]]; then
+        echo "TUNNEL_URL=$TUNNEL_URL"
+        exit 0
+    fi
+
     echo ""
     echo "   ⚠️  ngrok 무료 플랜은 재시작마다 URL이 변경됩니다."
-    echo "      URL 변경 시 ClickEye 설정에서 다시 저장해야 합니다."
     echo ""
     echo "   다음 단계:"
     echo "   1. ClickEye 설정 페이지에서 위 URL을 저장하세요 → Linear Webhook 자동 등록"
