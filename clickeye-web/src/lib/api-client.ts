@@ -1770,6 +1770,20 @@ export const linearCredentials = {
     authRequest<void>("/api/v1/me/linear-credentials/", token, { method: "DELETE" }),
 };
 
+export interface ProjectLinearStatus {
+  credentials_saved: boolean;
+  team_id: string | null;
+  api_key_masked: string | null;
+}
+
+export const projectLinearCredentials = {
+  status: (token: string, projectId: string) =>
+    authRequest<ProjectLinearStatus>(
+      `/api/v1/integrations/projects/${projectId}/linear-credentials/status`,
+      token,
+    ),
+};
+
 export const reviews = {
   generateDrafts: (token: string, sessionId: string) =>
     authRequest<GenerateDraftsResponse>(

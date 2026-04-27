@@ -19,11 +19,52 @@ from app.schemas.integrations import (
     IntegrationValidateResponse,
     LinearValidateRequest,
     NotionValidateRequest,
+    ProjectLinearStatusResponse,
     RegisterInitialTasksRequest,
     RegisterInitialTasksResponse,
 )
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+
+
+@router.get(
+    "/projects/{project_id}/linear-credentials/status",
+    response_model=ProjectLinearStatusResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_project_linear_status(
+    project_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectLinearStatusResponse:
+    """프로젝트에 저장된 Linear 자격증명 상태 조회 (API 키는 마스킹)."""
+    from app.core.crypto import decrypt
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+
+    result = await db.execute(
+        select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == project_id
+        )
+    )
+    creds = result.scalar_one_or_none()
+    if creds is None:
+        return ProjectLinearStatusResponse(
+            credentials_saved=False,
+            team_id=None,
+            api_key_masked=None,
+        )
+
+    try:
+        plain = decrypt(str(creds.encrypted_api_key))
+        masked = plain[:12] + "****"
+    except Exception:
+        masked = "****"
+
+    return ProjectLinearStatusResponse(
+        credentials_saved=True,
+        team_id=str(creds.team_id),
+        api_key_masked=masked,
+    )
 
 _executor = ThreadPoolExecutor(max_workers=4)
 

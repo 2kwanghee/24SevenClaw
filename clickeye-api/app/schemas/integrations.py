@@ -31,3 +31,9 @@ class RegisterInitialTasksResponse(BaseModel):
     notion_created: bool
     notion_page_url: str | None
     errors: list[str]
+
+
+class ProjectLinearStatusResponse(BaseModel):
+    credentials_saved: bool
+    team_id: str | None
+    api_key_masked: str | None

@@ -39,7 +39,7 @@ import {
   useProject,
   useUpdateProject,
 } from "@/hooks/use-projects";
-import { apiClient, ApiClientError, linearCredentials, type LinearConnectionStatus } from "@/lib/api-client";
+import { apiClient, ApiClientError, projectLinearCredentials, type ProjectLinearStatus } from "@/lib/api-client";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
@@ -78,9 +78,9 @@ export default function ProjectDetailPage() {
   });
 
   const { data: linearStatus, refetch: refetchLinearStatus, isFetching: linearFetching } = useQuery({
-    queryKey: ["linear-connection-status"],
-    queryFn: () => linearCredentials.status(token),
-    enabled: !!token,
+    queryKey: ["linear-connection-status", projectId],
+    queryFn: () => projectLinearCredentials.status(token, projectId),
+    enabled: !!token && !!projectId,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -495,7 +495,7 @@ function ConfigBadge({ icon: Icon, label, value }: ConfigBadgeProps) {
 
 interface LinearPreflightCardProps {
   projectId: string;
-  status: LinearConnectionStatus | null;
+  status: ProjectLinearStatus | null;
   isFetching: boolean;
   onRefresh: () => void;
 }
@@ -525,18 +525,14 @@ function CheckItem({ ok, label, description }: CheckItemProps) {
 }
 
 function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: LinearPreflightCardProps) {
-  const allReady =
-    status?.credentials_saved &&
-    status?.tunnel_url != null &&
-    status?.tunnel_reachable === true &&
-    status?.webhook_registered;
+  const credentialsReady = status?.credentials_saved === true;
 
   return (
     <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-zinc-700" />
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Linear 연동 준비 상태</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Linear 연동 상태</h2>
         </div>
         <button
           onClick={onRefresh}
@@ -550,47 +546,27 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: Linea
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CheckItem
-          ok={status ? status.credentials_saved : null}
+          ok={status ? credentialsReady : null}
           label="자격증명 저장됨"
           description={
-            status?.credentials_saved
-              ? status.team_name ? `팀: ${status.team_name}` : "Linear API 키가 등록되어 있습니다"
-              : "Linear API 키와 팀 ID를 등록해 주세요"
+            credentialsReady
+              ? status?.team_id
+                ? `팀 ID: ${status.team_id}`
+                : "Linear API 키가 등록되어 있습니다"
+              : "프로젝트 생성 시 Linear API 키와 팀 ID를 입력하면 자동 저장됩니다"
           }
         />
-        <CheckItem
-          ok={status ? status.tunnel_url != null : null}
-          label="터널 URL 등록됨"
-          description={
-            status?.tunnel_url
-              ? status.tunnel_url
-              : "cloudflared 터널 URL을 설정에서 등록해 주세요"
-          }
-        />
-        <CheckItem
-          ok={status ? status.tunnel_reachable === true : null}
-          label="터널 응답 확인됨"
-          description={
-            status?.tunnel_reachable === true
-              ? "webhook 서버가 외부에서 접근 가능합니다"
-              : status?.tunnel_url
-              ? "터널이 응답하지 않습니다. start-webhook.sh를 실행해 주세요"
-              : "터널 URL 등록 후 확인 가능합니다"
-          }
-        />
-        <CheckItem
-          ok={status ? status.webhook_registered : null}
-          label="Linear Webhook 등록됨"
-          description={
-            status?.webhook_registered
-              ? "Linear에서 이벤트를 수신할 준비가 되었습니다"
-              : "설정에서 터널 URL 저장 시 자동으로 등록됩니다"
-          }
-        />
+        {credentialsReady && status?.api_key_masked && (
+          <CheckItem
+            ok={true}
+            label="API 키 확인됨"
+            description={status.api_key_masked}
+          />
+        )}
       </div>
 
       <div className="mt-6 flex items-center gap-3 border-t border-[var(--border-subtle)] pt-6">
-        {allReady ? (
+        {credentialsReady ? (
           <a
             href={`/projects/${projectId}/ai-team`}
             className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
@@ -600,17 +576,17 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: Linea
           </a>
         ) : (
           <a
-            href="/settings/linear"
+            href="/solutions/new"
             className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            Linear 설정 바로가기
+            새 솔루션 만들기
           </a>
         )}
         <span className="text-xs text-[var(--text-muted)]">
-          {allReady
-            ? "모든 준비가 완료되었습니다. AI Team에서 Linear 이슈를 자동으로 생성할 수 있습니다."
-            : "4가지 항목을 모두 완료하면 Linear 자동화가 활성화됩니다."}
+          {credentialsReady
+            ? "Linear 자격증명이 이 프로젝트에 저장되어 있습니다."
+            : "프로젝트 생성 위저드에서 Linear API 키를 입력하면 프로젝트에 종속 저장됩니다."}
         </span>
       </div>
     </div>
