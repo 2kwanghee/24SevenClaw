@@ -40,6 +40,7 @@ def _setup_logger() -> logging.Logger:
 
     logger = logging.getLogger("webhook")
     logger.setLevel(logging.DEBUG)
+    logger.propagate = False  # root logger 핸들러 중복 출력 방지
 
     fmt = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 

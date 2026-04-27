@@ -87,7 +87,7 @@ def _graphql(api_key: str, query: str, variables: dict | None = None) -> dict:
 
 
 QUEUED_STATES_QUERY = """
-query QueuedIssues($teamId: String!) {
+query QueuedIssues($teamId: ID!) {
   issues(
     filter: {
       team: { id: { eq: $teamId } }
