@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import TYPE_CHECKING
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
+_logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from app.schemas.review_pipeline import LinearSyncHintSubtask
@@ -160,10 +163,9 @@ def update_issue_state_id(api_key: str, issue_id: str, state_id: str) -> bool:
 
 
 _ISSUE_STATES_QUERY = """
-query IssueStates($teamId: ID!, $identifiers: [String!]!) {
+query IssueStates($identifiers: [String!]!) {
   issues(
     filter: {
-      team: { id: { eq: $teamId } }
       identifier: { in: $identifiers }
     }
     first: 50
@@ -187,10 +189,14 @@ def fetch_issue_states(api_key: str, team_id: str, identifiers: list[str]) -> di
     if not identifiers:
         return {}
     try:
-        data = _call(api_key, _ISSUE_STATES_QUERY, {"teamId": team_id, "identifiers": identifiers})
+        data = _call(api_key, _ISSUE_STATES_QUERY, {"identifiers": identifiers})
         nodes = data.get("issues", {}).get("nodes", [])
-        return {str(n["identifier"]): str(n["state"]["name"]) for n in nodes if n.get("state")}
-    except RuntimeError:
+        result = {str(n["identifier"]): str(n["state"]["name"]) for n in nodes if n.get("state")}
+        if not result:
+            _logger.warning("fetch_issue_states: 결과 없음 identifiers=%s", identifiers)
+        return result
+    except RuntimeError as exc:
+        _logger.warning("fetch_issue_states 실패 identifiers=%s: %s", identifiers, exc)
         return {}
 
 

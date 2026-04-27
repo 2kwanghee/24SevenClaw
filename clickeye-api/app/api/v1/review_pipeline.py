@@ -793,12 +793,11 @@ async def sync_linear_states(
     from app.models.user_linear_credentials import UserLinearCredentials
     from app.services.linear_service import fetch_issue_states
 
-    # Linear issue가 있는 subtask만 조회
+    # linear_identifier 가 있는 subtask만 조회 (상태 읽기는 identifier로 충분)
     st_result = await db.execute(
         sa_select(SubTask).where(
             SubTask.session_id == session_id,
             SubTask.linear_identifier.is_not(None),
-            SubTask.linear_issue_id.is_not(None),
         )
     )
     subtasks = st_result.scalars().all()
