@@ -203,6 +203,17 @@ export function useSyncLinearStates(sessionId: string) {
   });
 }
 
+export function useLinearTeamStates(sessionId: string) {
+  const token = useAccessToken();
+  return useQuery({
+    queryKey: ["linear-team-states", sessionId],
+    queryFn: () => reviews.getLinearTeamStates(token, sessionId),
+    enabled: !!token && !!sessionId,
+    staleTime: 1000 * 60 * 60,  // 1시간 — 상태 목록은 자주 바뀌지 않음
+    select: (data) => data.states,
+  });
+}
+
 // --- Reviews ---
 
 export function useReviewRounds(sessionId: string, fastPoll = false) {

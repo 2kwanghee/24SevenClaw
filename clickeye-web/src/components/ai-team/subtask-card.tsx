@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { useApproveSubtask, useResetSubtaskToWait } from "@/hooks/use-orchestrator";
-import type { SubTaskResponse } from "@/lib/api-client";
+import type { LinearTeamState, SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<
   string,
@@ -76,20 +76,39 @@ const STATUS_CONFIG: Record<
   blocked: { label: "차단됨", cls: "bg-amber-50 text-amber-700" },
 };
 
-const LINEAR_STATE_CONFIG: Record<string, { label: string; cls: string }> = {
-  Wait: { label: "검수 대기", cls: "bg-amber-50 text-amber-700 border border-amber-200" },
-  Queued: { label: "큐 등록됨", cls: "bg-violet-50 text-violet-700 border border-violet-200" },
-  "In Progress": { label: "개발 중", cls: "bg-blue-50 text-blue-700 border border-blue-200" },
-  "In Review": { label: "리뷰 중", cls: "bg-pink-50 text-pink-700 border border-pink-200" },
-  Done: { label: "완료", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+// Linear 상태 type → Tailwind 색상 매핑
+const LINEAR_TYPE_CLS: Record<string, string> = {
+  triage:    "bg-amber-50 text-amber-700 border border-amber-200",
+  backlog:   "bg-zinc-100 text-zinc-500 border border-zinc-200",
+  unstarted: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  started:   "bg-blue-50 text-blue-700 border border-blue-200",
+  completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
+
+const LINEAR_TYPE_FALLBACK = "bg-zinc-100 text-zinc-600 border border-zinc-200";
+
+function getLinearStateCls(stateName: string, teamStates: LinearTeamState[]): string {
+  const matched = teamStates.find((s) => s.name === stateName);
+  if (matched) return LINEAR_TYPE_CLS[matched.type] ?? LINEAR_TYPE_FALLBACK;
+  // 이름 기반 폴백 (자격증명 미설정 또는 API 호출 전)
+  const lower = stateName.toLowerCase();
+  if (lower === "done" || lower === "completed") return LINEAR_TYPE_CLS.completed;
+  if (lower.includes("progress") || lower.includes("started")) return LINEAR_TYPE_CLS.started;
+  if (lower === "wait" || lower.includes("triage")) return LINEAR_TYPE_CLS.triage;
+  if (lower.includes("review")) return "bg-pink-50 text-pink-700 border border-pink-200";
+  if (lower.includes("queue") || lower.includes("backlog")) return LINEAR_TYPE_CLS.backlog;
+  if (lower === "cancelled" || lower === "canceled") return LINEAR_TYPE_CLS.cancelled;
+  return LINEAR_TYPE_FALLBACK;
+}
 
 interface SubTaskCardProps {
   subtask: SubTaskResponse;
   sessionId?: string;
+  teamStates?: LinearTeamState[];
 }
 
-export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
+export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCardProps) {
   const role = ROLE_CONFIG[subtask.assigned_role] ?? {
     label: subtask.assigned_role,
     icon: <Bot className="h-3.5 w-3.5" />,
@@ -97,8 +116,9 @@ export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
     bg: "bg-zinc-100",
   };
   const status = STATUS_CONFIG[subtask.status] ?? STATUS_CONFIG.pending;
-  const linearState = subtask.linear_state
-    ? (LINEAR_STATE_CONFIG[subtask.linear_state] ?? { label: subtask.linear_state, cls: "bg-zinc-100 text-zinc-600" })
+  const linearStateName = subtask.linear_state ?? null;
+  const linearStateCls = linearStateName
+    ? getLinearStateCls(linearStateName, teamStates)
     : null;
 
   const approveMutation = useApproveSubtask();
@@ -150,9 +170,9 @@ export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
             <span className="text-[10px] font-mono text-[var(--text-muted)]">
               {subtask.linear_identifier}
             </span>
-            {linearState && (
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${linearState.cls}`}>
-                {linearState.label}
+            {linearStateName && linearStateCls && (
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${linearStateCls}`}>
+                {linearStateName}
               </span>
             )}
           </div>
@@ -192,9 +212,9 @@ export function SubTaskCard({ subtask, sessionId }: SubTaskCardProps) {
                 대기로 복귀
               </button>
             )}
-            {!canApprove && !canReset && subtask.linear_state && subtask.linear_state !== "Wait" && (
+            {!canApprove && !canReset && linearStateName && linearStateName !== "Wait" && (
               <span className="text-[10px] text-[var(--text-muted)]">
-                {subtask.linear_state === "Done" ? "완료됨" : "진행 중"}
+                {linearStateName}
               </span>
             )}
           </div>

@@ -192,3 +192,17 @@ class SyncLinearStatesResponse(BaseModel):
 
     synced_count: int
     changed: list[SyncedSubtask]
+
+
+class LinearTeamState(BaseModel):
+    """Linear 팀 워크플로우 상태 항목."""
+
+    name: str
+    type: str
+    color: str
+
+
+class LinearTeamStatesResponse(BaseModel):
+    """Linear 팀 상태 목록."""
+
+    states: list[LinearTeamState]

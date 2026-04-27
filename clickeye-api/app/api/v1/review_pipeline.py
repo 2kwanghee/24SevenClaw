@@ -16,6 +16,8 @@ from app.schemas.review_pipeline import (
     GenerateDraftsResponse,
     LinearSyncHint,
     LinearSyncHintSubtask,
+    LinearTeamState,
+    LinearTeamStatesResponse,
     MergeRequest,
     PushToLinearResponse,
     RejectRequest,
@@ -362,7 +364,8 @@ async def push_to_linear(
     )
 
     # 생성된 Linear 이슈 정보를 subtask 행에 저장
-    from datetime import UTC, datetime as dt
+    from datetime import UTC
+    from datetime import datetime as dt
     for subtask, issue in zip(subtasks, created):
         subtask.linear_identifier = issue.get("identifier") or None
         subtask.linear_issue_id = issue.get("id") or None
@@ -554,7 +557,8 @@ async def approve_subtask(
     로컬 webhook_server / linear_watcher가 Queued 감지 후 자동으로
     In Progress로 전이하고 Claude 구현을 시작한다.
     """
-    from datetime import UTC, datetime as dt
+    from datetime import UTC
+    from datetime import datetime as dt
 
     from sqlalchemy import select as sa_select
 
@@ -663,7 +667,8 @@ async def reset_subtask_to_wait(
 
     In Progress 이후(In Progress, Done, In Review, Cancelled) 상태는 변경 불가.
     """
-    from datetime import UTC, datetime as dt
+    from datetime import UTC
+    from datetime import datetime as dt
 
     from sqlalchemy import select as sa_select
 
@@ -777,7 +782,8 @@ async def sync_linear_states(
     AI Team 진입 시 또는 수동 갱신 시 호출. Linear에서 직접 변경한 상태도 반영된다.
     In Progress 이후 상태(Done, In Review 등)도 DB에 정확히 업데이트한다.
     """
-    from datetime import UTC, datetime as dt
+    from datetime import UTC
+    from datetime import datetime as dt
 
     from sqlalchemy import select as sa_select
 
@@ -859,3 +865,64 @@ async def sync_linear_states(
         synced_count=len(subtasks),
         changed=changed,
     )
+
+
+@router.get(
+    "/sessions/{session_id}/linear-team-states",
+    response_model=LinearTeamStatesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_linear_team_states(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LinearTeamStatesResponse:
+    """세션에 연결된 Linear 팀의 전체 워크플로우 상태 목록을 반환한다.
+
+    프론트엔드가 상태 배지 렌더링 시 Linear 실제 상태명과 type을 사용하기 위해 호출.
+    자격증명 미설정 시 빈 목록 반환 (UI 폴백 허용).
+    """
+    from sqlalchemy import select as sa_select
+
+    from app.core.crypto import decrypt
+    from app.models.orchestrator import OrchestratorSession
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.services.linear_service import get_team_states
+
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = sess_result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
+
+    proj_creds_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session.project_id
+        )
+    )
+    proj_creds = proj_creds_result.scalar_one_or_none()
+
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == user.id
+            )
+        )
+        creds = creds_result.scalar_one_or_none()
+        if creds is None:
+            return LinearTeamStatesResponse(states=[])
+        api_key = decrypt(str(creds.encrypted_api_key))
+        team_id = str(creds.team_id)
+
+    raw = get_team_states(api_key, team_id)
+    raw.sort(key=lambda n: n.get("position", 0))
+    states = [
+        LinearTeamState(name=n["name"], type=n["type"], color=n["color"])
+        for n in raw
+    ]
+    return LinearTeamStatesResponse(states=states)

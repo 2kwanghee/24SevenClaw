@@ -1735,6 +1735,16 @@ export interface SyncLinearStatesResponse {
   changed: SyncedSubtask[];
 }
 
+export interface LinearTeamState {
+  name: string;
+  type: string;
+  color: string;
+}
+
+export interface LinearTeamStatesResponse {
+  states: LinearTeamState[];
+}
+
 export interface LinearConnectionStatus {
   credentials_saved: boolean;
   webhook_registered: boolean;
@@ -1801,6 +1811,12 @@ export const reviews = {
       `/api/v1/orchestrator/sessions/${sessionId}/sync-linear-states`,
       token,
       { method: "POST" },
+    ),
+
+  getLinearTeamStates: (token: string, sessionId: string) =>
+    authRequest<LinearTeamStatesResponse>(
+      `/api/v1/orchestrator/sessions/${sessionId}/linear-team-states`,
+      token,
     ),
 
   list: (

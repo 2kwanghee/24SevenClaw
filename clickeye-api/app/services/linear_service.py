@@ -109,6 +109,29 @@ def get_initial_state_id(api_key: str, team_id: str) -> str | None:
     return None
 
 
+def get_team_states(api_key: str, team_id: str) -> list[dict]:  # type: ignore[type-arg]
+    """팀의 전체 워크플로우 상태 목록을 반환한다.
+
+    Returns:
+        [{name, type, color, position}] 리스트. 조회 실패 시 빈 리스트 반환.
+    """
+    try:
+        data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
+        nodes = data.get("team", {}).get("states", {}).get("nodes", [])
+        return [
+            {
+                "name": str(n.get("name", "")),
+                "type": str(n.get("type", "")),
+                "color": str(n.get("color", "#95A2B3")),
+                "position": float(n.get("position", 0)),
+            }
+            for n in nodes
+            if n.get("name")
+        ]
+    except RuntimeError:
+        return []
+
+
 def get_queued_state_id(api_key: str, team_id: str) -> str | None:
     """Queued 상태 ID를 반환한다. 사람 승인 시 Wait → Queued 전이에 사용."""
     try:

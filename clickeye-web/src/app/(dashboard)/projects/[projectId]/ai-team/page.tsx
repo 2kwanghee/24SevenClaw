@@ -36,6 +36,7 @@ import {
   useDeleteSession,
   useResumePipeline,
   useSyncLinearStates,
+  useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
@@ -86,6 +87,7 @@ export default function AITeamDashboardPage() {
   const deleteSession = useDeleteSession(projectId);
   const resumePipeline = useResumePipeline();
   const syncLinearStates = useSyncLinearStates(selectedSessionId);
+  const { data: teamStates } = useLinearTeamStates(selectedSessionId);
 
   const firstSessionId = sessions?.items[0]?.id ?? "";
   const activeSessionId = selectedSessionId || firstSessionId;
@@ -594,7 +596,7 @@ export default function AITeamDashboardPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {subtasks.map((st) => (
-                  <SubTaskCard key={st.id} subtask={st} sessionId={selectedSessionId} />
+                  <SubTaskCard key={st.id} subtask={st} sessionId={selectedSessionId} teamStates={teamStates ?? []} />
                 ))}
               </div>
             )}
