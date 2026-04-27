@@ -96,17 +96,31 @@ export default function AITeamDashboardPage() {
     }
   }, [selectedSessionId, firstSessionId]);
 
-  // 세션 진입 시 Linear 상태 자동 동기화
+  // 세션 진입 시 Linear 상태 자동 동기화 (1회)
   useEffect(() => {
     if (!selectedSessionId) return;
-    // summary가 로드된 직후, Linear 이슈가 있는 subtask가 하나라도 있으면 sync
     const hasLinearIssues = summary?.subtasks?.some((st) => !!st.linear_issue_id);
     if (hasLinearIssues && !syncLinearStates.isPending) {
       syncLinearStates.mutate();
     }
-    // selectedSessionId가 바뀔 때만 (summary 의존성은 의도적으로 제외)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSessionId, !!summary]);
+
+  // Linear 상태 주기 동기화 — DB 폴링은 stale일 수 있으므로 별도 간격으로 sync 실행
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    const hasLinearIssues = summary?.subtasks?.some((st) => !!st.linear_issue_id);
+    if (!hasLinearIssues) return;
+
+    const intervalMs = isAutoProgressPhase ? 15_000 : 60_000;
+    const timer = setInterval(() => {
+      if (!syncLinearStates.isPending) {
+        syncLinearStates.mutate();
+      }
+    }, intervalMs);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSessionId, !!summary, isAutoProgressPhase, summary?.subtasks?.length]);
 
   const session = summary?.session;
   const subtasks = summary?.subtasks ?? [];
@@ -116,6 +130,13 @@ export default function AITeamDashboardPage() {
   const handleRefresh = () => {
     refetchSessions();
     refetchSummary();
+    if (
+      selectedSessionId &&
+      !syncLinearStates.isPending &&
+      summary?.subtasks?.some((st) => !!st.linear_issue_id)
+    ) {
+      syncLinearStates.mutate();
+    }
   };
 
   const handleDeleteConfirm = () => {
