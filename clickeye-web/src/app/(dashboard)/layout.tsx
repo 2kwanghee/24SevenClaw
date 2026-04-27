@@ -20,6 +20,7 @@ import {
   Users,
   BarChart3,
   BookOpen,
+  Calculator,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -49,6 +50,7 @@ const adminItems = [
   { href: "/admin/registry/mcps", label: "MCP 레지스트리", icon: Blocks },
   { href: "/admin/registry/prototype-catalog", label: "프로토타입 카탈로그", icon: Sparkles },
   { href: "/admin/registry/prototype-tags", label: "프로토타입 태그", icon: Puzzle },
+  { href: "/admin/roi-standards", label: "ROI 단가/공수", icon: Calculator },
   { href: "/admin/settings", label: "전역 설정", icon: Blocks },
   { href: "/admin/recommendations", label: "추천 로그", icon: BarChart3 },
   { href: "/admin/audit", label: "감사 로그", icon: ScrollText },

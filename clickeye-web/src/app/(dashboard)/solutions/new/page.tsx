@@ -18,13 +18,14 @@ import {
   StepSolutionPlatform,
   StepSolutionOS,
   StepSolutionEnv,
+  StepSolutionRoi,
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { organizations, prototypeSessions, integrations, linearCredentials, ApiClientError, NetworkError } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 
-// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=최종확인
+// 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=ROI비교, 11=최종확인
 const STEP_COMPONENTS = [
   StepCompanySolution,
   StepPrototypeGeneration,
@@ -36,6 +37,7 @@ const STEP_COMPONENTS = [
   StepSolutionPlatform,
   StepSolutionOS,
   StepSolutionEnv,
+  StepSolutionRoi,
   StepConfirmation,
 ];
 
@@ -71,7 +73,7 @@ export default function NewSolutionPage() {
   const StepComponent = STEP_COMPONENTS[currentStep];
 
   // 각 스텝별 진행 가능 여부
-  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=최종확인
+  // 인덱스: 0=회사정보, 1=솔루션생성(자동), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=ROI비교, 11=최종확인
   const canProceed = (() => {
     switch (currentStep) {
       case 0:
@@ -128,6 +130,8 @@ export default function NewSolutionPage() {
         }
         return true;
       }
+      case 10:
+        return !!data.roi.result;
       default:
         return true;
     }

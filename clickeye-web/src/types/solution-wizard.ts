@@ -11,6 +11,7 @@ export const SOLUTION_WIZARD_STEPS = [
   { id: "platform", label: "플랫폼", description: "Agent 플랫폼 선택" },
   { id: "os", label: "실행 환경", description: "솔루션을 실행할 OS 환경 선택" },
   { id: "env", label: "환경변수", description: "API 키 및 환경변수 입력" },
+  { id: "roi", label: "ROI 비교", description: "ClickEye 도입 효율 가치 산출" },
   { id: "confirm", label: "최종 확인", description: "설정 확인 및 프로젝트 생성" },
 ] as const;
 
@@ -232,6 +233,39 @@ export interface EnvStep {
 }
 
 // ---------------------------------------------------------------------------
+// Step 10: ROI 비교
+// ---------------------------------------------------------------------------
+
+export interface RoiBreakdownItem {
+  role_key: string;
+  label: string;
+  days: number;
+  rate: number;
+  subtotal: number;
+}
+
+export interface RoiResult {
+  baselineCost: number;
+  clickeyeCost: number;
+  savings: number;
+  savingsRatio: number;
+  baselineDays: number;
+  clickeyeDays: number;
+  breakdown: RoiBreakdownItem[];
+  ratesSnapshot: Record<string, Record<string, number>>;
+  formulaVersion: string;
+}
+
+export interface RoiOverrides {
+  roleRates?: Record<string, number>;
+}
+
+export interface RoiStep {
+  overrides: RoiOverrides;
+  result: RoiResult | null;
+}
+
+// ---------------------------------------------------------------------------
 // 위저드 전체 상태
 // ---------------------------------------------------------------------------
 
@@ -248,6 +282,7 @@ export interface SolutionWizardData {
   platform: PlatformStep;
   os: OsStep;
   env: EnvStep;
+  roi: RoiStep;
 }
 
 export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
@@ -284,5 +319,9 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   },
   env: {
     envVars: {},
+  },
+  roi: {
+    overrides: {},
+    result: null,
   },
 };

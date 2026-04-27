@@ -2200,4 +2200,114 @@ export const controlTower = {
     ),
 };
 
+// ─── ROI 타입 ───
+
+export interface RoiStandardResponse {
+  id: string;
+  category: "role_rate" | "solution_effort" | "complexity_multiplier";
+  key: string;
+  label: string;
+  description: string | null;
+  value_numeric: number | null;
+  value_json: Record<string, number> | null;
+  unit: string;
+  display_order: number;
+  is_active: boolean;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoiStandardListResponse {
+  items: RoiStandardResponse[];
+  total: number;
+}
+
+export interface RoiStandardCreateRequest {
+  category: "role_rate" | "solution_effort" | "complexity_multiplier";
+  key: string;
+  label: string;
+  description?: string;
+  value_numeric?: number;
+  value_json?: Record<string, number>;
+  unit: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface RoiStandardUpdateRequest {
+  label?: string;
+  description?: string;
+  value_numeric?: number;
+  value_json?: Record<string, number>;
+  unit?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface RoiBreakdownItem {
+  role_key: string;
+  label: string;
+  days: number;
+  rate: number;
+  subtotal: number;
+}
+
+export interface RoiCalculateRequest {
+  solution_type: string;
+  complexity: "low" | "medium" | "high";
+  selected_agents_count: number;
+  selected_skills_count: number;
+  selected_hooks_count: number;
+  platform_id?: string;
+  overrides?: Record<string, number>;
+}
+
+export interface RoiCalculateResponse {
+  baseline_cost: number;
+  clickeye_cost: number;
+  savings: number;
+  savings_ratio: number;
+  baseline_days: number;
+  clickeye_days: number;
+  breakdown: RoiBreakdownItem[];
+  rates_snapshot: Record<string, Record<string, number>>;
+  formula_version: string;
+}
+
+export const roiAdmin = {
+  list: (token: string, category?: string, includeInactive?: boolean) => {
+    const q = new URLSearchParams();
+    if (category) q.set("category", category);
+    if (includeInactive) q.set("include_inactive", "true");
+    const qs = q.toString();
+    return authRequest<RoiStandardListResponse>(
+      `/api/v1/admin/roi-standards${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+  create: (token: string, data: RoiStandardCreateRequest) =>
+    authRequest<RoiStandardResponse>("/api/v1/admin/roi-standards", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (token: string, id: string, data: RoiStandardUpdateRequest) =>
+    authRequest<RoiStandardResponse>(`/api/v1/admin/roi-standards/${id}`, token, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  delete: (token: string, id: string) =>
+    authRequest<void>(`/api/v1/admin/roi-standards/${id}`, token, {
+      method: "DELETE",
+    }),
+};
+
+export const roi = {
+  calculate: (token: string, data: RoiCalculateRequest) =>
+    authRequest<RoiCalculateResponse>("/api/v1/roi/calculate", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
 export { ApiClientError, NetworkError };

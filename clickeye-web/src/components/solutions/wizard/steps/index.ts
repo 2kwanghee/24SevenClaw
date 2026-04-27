@@ -9,5 +9,6 @@ export { StepSolutionAgents } from "./step-solution-agents";
 export { StepSolutionPlatform } from "./step-solution-platform";
 export { StepSolutionOS } from "./step-solution-os";
 export { StepSolutionEnv } from "./step-solution-env";
+export { StepSolutionRoi } from "./step-solution-roi";
 export { StepSolutionConfirm } from "./step-solution-confirm";
 export { StepConfirmation } from "./step-confirmation";

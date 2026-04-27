@@ -21,6 +21,7 @@ import {
   Sparkles,
   KeyRound,
   ExternalLink,
+  TrendingDown,
 } from "lucide-react";
 
 import ReactMarkdown from "react-markdown";
@@ -428,7 +429,7 @@ export function StepConfirmation() {
 
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
-  const { company, prototypes, pm } = data;
+  const { company, prototypes, pm, roi } = data;
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -620,6 +621,38 @@ export function StepConfirmation() {
           <p className="text-xs text-zinc-500">선택된 PM 없음</p>
         )}
       </div>
+
+      {/* -- ROI 요약 -- */}
+      {roi.result && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+              <TrendingDown className="h-4 w-4" aria-hidden="true" />
+              ROI 비교 요약
+            </h3>
+            <ReSelector stepIndex={10} label="재계산" />
+          </div>
+          <div className="space-y-2">
+            <SummaryRow
+              label="기존 인력 비용"
+              value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.baselineCost)}
+            />
+            <SummaryRow
+              label="ClickEye 도입 비용"
+              value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.clickeyeCost)}
+            />
+            <SummaryRow
+              label="예상 절감액"
+              value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.savings)}
+            />
+            <SummaryRow
+              label="절감률"
+              value={`${Math.round(roi.result.savingsRatio * 100)}%`}
+            />
+          </div>
+          <p className="mt-3 text-[10px] text-emerald-600/70">공식 버전: {roi.result.formulaVersion}</p>
+        </div>
+      )}
 
       {/* -- 최종 안내 -- */}
       <div className="flex flex-col items-center justify-center pt-4 text-center">

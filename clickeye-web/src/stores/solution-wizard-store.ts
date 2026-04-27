@@ -12,6 +12,7 @@ import {
   type PlatformStep,
   type OsStep,
   type EnvStep,
+  type RoiStep,
   type PrototypeOption,
 } from "@/types/solution-wizard";
 
@@ -61,6 +62,7 @@ interface SolutionWizardActions {
   setPlatform: (data: PlatformStep) => void;
   setOs: (data: OsStep) => void;
   setEnv: (data: Partial<EnvStep>) => void;
+  setRoi: (data: Partial<RoiStep>) => void;
   setIsGenerating: (v: boolean) => void;
   setCreatedProjectId: (id: string) => void;
   setEnvValidation: (data: Partial<EnvValidationState>) => void;
@@ -190,6 +192,11 @@ export const useSolutionWizardStore = create<
   setEnv: (env) =>
     set((state) => ({
       data: { ...state.data, env: { ...state.data.env, ...env } },
+    })),
+
+  setRoi: (roi) =>
+    set((state) => ({
+      data: { ...state.data, roi: { ...state.data.roi, ...roi } },
     })),
 
   setIsGenerating: (isGenerating) => set({ isGenerating }),

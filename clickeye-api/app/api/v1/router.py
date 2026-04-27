@@ -27,6 +27,8 @@ from app.api.v1.registry_admin import router as registry_admin_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.control_tower import router as control_tower_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
+from app.api.v1.roi import router as roi_router
+from app.api.v1.roi_admin import router as roi_admin_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(admin_recommendations_router)
@@ -56,3 +58,5 @@ api_v1_router.include_router(contracts_sync_router)
 api_v1_router.include_router(linear_credentials_router)
 api_v1_router.include_router(integrations_router)
 api_v1_router.include_router(control_tower_router)
+api_v1_router.include_router(roi_router)
+api_v1_router.include_router(roi_admin_router)
