@@ -30,8 +30,6 @@ DEFAULT_PORT = 9876
 DRY_RUN = False
 WEBHOOK_SECRET: str | None = None
 
-_LOCK_DIR = Path(__file__).parent.parent / ".run"
-
 # ── 로거 초기화 ─────────────────────────────────────────────────────────────────
 
 def _setup_logger() -> logging.Logger:
@@ -68,74 +66,28 @@ def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-# ── 파일 기반 이슈 잠금 — webhook/watcher 프로세스 간 중복 실행 방지 ──────────────
-
-def _acquire_issue_lock(identifier: str) -> bool:
-    """원자적 파일 생성으로 잠금 획득. 이미 실행 중이면 False."""
-    _LOCK_DIR.mkdir(exist_ok=True)
-    lock_path = _LOCK_DIR / f"pipeline-{identifier}.lock"
-
-    if lock_path.exists():
-        try:
-            pid = int(lock_path.read_text().strip() or "0")
-            if pid > 0:
-                os.kill(pid, 0)
-                return False
-        except (ValueError, ProcessLookupError):
-            lock_path.unlink(missing_ok=True)
-        except PermissionError:
-            return False
-
-    try:
-        fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.write(fd, str(os.getpid()).encode())
-        os.close(fd)
-        return True
-    except FileExistsError:
-        return False
-
-
-def _release_issue_lock(identifier: str) -> None:
-    lock_path = _LOCK_DIR / f"pipeline-{identifier}.lock"
-    try:
-        lock_path.unlink()
-    except FileNotFoundError:
-        pass
-
-
 def _trigger(issue_identifier: str, title: str) -> None:
     """이슈 처리 트리거. claude CLI 또는 커스텀 스크립트 실행."""
-    if not _acquire_issue_lock(issue_identifier):
-        _log(f"SKIP: {issue_identifier} — 이미 실행 중 (타 프로세스 포함)")
-        return
-
     try:
         if DRY_RUN:
             _log(f"DRY-RUN: {issue_identifier} — '{title}' (실행 안 함)")
-            _release_issue_lock(issue_identifier)
             return
-
         _log(f"TRIGGER: {issue_identifier} — '{title}'")
-
-        # 커스텀 파이프라인이 있으면 실행, 없으면 claude 호출
         pipeline = os.path.join(os.path.dirname(__file__), "run-pipeline.sh")
         if os.path.exists(pipeline):
             cmd = ["bash", pipeline, issue_identifier]
         else:
             prompt = f"Linear 이슈 {issue_identifier}를 처리해줘: {title}"
             cmd = ["claude", "-p", prompt]
-
         proc = subprocess.Popen(cmd, cwd=os.path.dirname(os.path.dirname(__file__)))
 
         def _reap(p: subprocess.Popen) -> None:  # type: ignore[type-arg]
             p.wait()
             _log(f"DONE: {issue_identifier}, exit={p.returncode}")
-            _release_issue_lock(issue_identifier)
 
         threading.Thread(target=_reap, args=(proc,), daemon=True).start()
     except Exception as exc:
         _log(f"ERROR: {exc}")
-        _release_issue_lock(issue_identifier)
 
 
 class _Handler(BaseHTTPRequestHandler):
