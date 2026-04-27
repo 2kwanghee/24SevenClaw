@@ -19,27 +19,42 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # role_rate — JSON 없음, 콜론 문제 없음
     op.execute("""
         INSERT INTO roi_standards (id, category, key, label, value_numeric, unit, display_order, is_active, created_at, updated_at)
         VALUES
-          (gen_random_uuid(), 'role_rate', 'pm',       '프로젝트 매니저',         900000,  'KRW/day', 0, true, now(), now()),
-          (gen_random_uuid(), 'role_rate', 'be',       '백엔드 개발자',           1000000, 'KRW/day', 1, true, now(), now()),
-          (gen_random_uuid(), 'role_rate', 'fe',       '프론트엔드 개발자',       900000,  'KRW/day', 2, true, now(), now()),
-          (gen_random_uuid(), 'role_rate', 'qa',       'QA 엔지니어',            600000,  'KRW/day', 3, true, now(), now()),
-          (gen_random_uuid(), 'role_rate', 'designer', 'UI/UX 디자이너',         700000,  'KRW/day', 4, true, now(), now())
+          (gen_random_uuid(), 'role_rate', 'pm',       '프로젝트 매니저',    900000,  'KRW/day', 0, true, now(), now()),
+          (gen_random_uuid(), 'role_rate', 'be',       '백엔드 개발자',      1000000, 'KRW/day', 1, true, now(), now()),
+          (gen_random_uuid(), 'role_rate', 'fe',       '프론트엔드 개발자',  900000,  'KRW/day', 2, true, now(), now()),
+          (gen_random_uuid(), 'role_rate', 'qa',       'QA 엔지니어',       600000,  'KRW/day', 3, true, now(), now()),
+          (gen_random_uuid(), 'role_rate', 'designer', 'UI/UX 디자이너',    700000,  'KRW/day', 4, true, now(), now())
     """)
 
+    # solution_effort — jsonb_build_object()으로 콜론 바인드 파라미터 문제 우회
     op.execute("""
         INSERT INTO roi_standards (id, category, key, label, value_json, unit, display_order, is_active, created_at, updated_at)
         VALUES
-          (gen_random_uuid(), 'solution_effort', 'saas',          'SaaS',       '{"pm":10,"be":20,"fe":15,"qa":8,"designer":5}',  'days', 0, true, now(), now()),
-          (gen_random_uuid(), 'solution_effort', 'rest-api',      'REST API',   '{"pm":5,"be":15,"fe":0,"qa":5,"designer":0}',    'days', 1, true, now(), now()),
-          (gen_random_uuid(), 'solution_effort', 'fullstack',     '풀스택',     '{"pm":12,"be":25,"fe":20,"qa":10,"designer":6}', 'days', 2, true, now(), now()),
-          (gen_random_uuid(), 'solution_effort', 'internal-tool', '내부 도구',  '{"pm":5,"be":10,"fe":8,"qa":4,"designer":2}',    'days', 3, true, now(), now()),
-          (gen_random_uuid(), 'solution_effort', 'mvp',           'MVP',        '{"pm":6,"be":12,"fe":10,"qa":3,"designer":3}',   'days', 4, true, now(), now()),
-          (gen_random_uuid(), 'solution_effort', 'custom',        '커스텀',     '{"pm":10,"be":18,"fe":12,"qa":6,"designer":4}',  'days', 5, true, now(), now())
+          (gen_random_uuid(), 'solution_effort', 'saas',          'SaaS',
+           jsonb_build_object('pm',10,'be',20,'fe',15,'qa',8,'designer',5),
+           'days', 0, true, now(), now()),
+          (gen_random_uuid(), 'solution_effort', 'rest-api',      'REST API',
+           jsonb_build_object('pm',5,'be',15,'fe',0,'qa',5,'designer',0),
+           'days', 1, true, now(), now()),
+          (gen_random_uuid(), 'solution_effort', 'fullstack',     '풀스택',
+           jsonb_build_object('pm',12,'be',25,'fe',20,'qa',10,'designer',6),
+           'days', 2, true, now(), now()),
+          (gen_random_uuid(), 'solution_effort', 'internal-tool', '내부 도구',
+           jsonb_build_object('pm',5,'be',10,'fe',8,'qa',4,'designer',2),
+           'days', 3, true, now(), now()),
+          (gen_random_uuid(), 'solution_effort', 'mvp',           'MVP',
+           jsonb_build_object('pm',6,'be',12,'fe',10,'qa',3,'designer',3),
+           'days', 4, true, now(), now()),
+          (gen_random_uuid(), 'solution_effort', 'custom',        '커스텀',
+           jsonb_build_object('pm',10,'be',18,'fe',12,'qa',6,'designer',4),
+           'days', 5, true, now(), now())
     """)
 
+    # complexity_multiplier — JSON 없음, 콜론 문제 없음
     op.execute("""
         INSERT INTO roi_standards (id, category, key, label, value_numeric, unit, display_order, is_active, created_at, updated_at)
         VALUES
