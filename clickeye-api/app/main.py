@@ -19,14 +19,14 @@ from app.ws.router import router as ws_router
 
 _bg_logger = logging.getLogger("queue_monitor")
 
-# Queued 계열 상태 — 타임아웃 대상
-_STALE_STATES = {"Queued", "DayQueued", "NightQueued", "Backlog"}
+# Todo/Backlog 상태 — 타임아웃 대상
+_STALE_STATES = {"Todo", "Backlog"}
 # 5분마다 체크
 _CHECK_INTERVAL = 300
 
 
 async def _reset_stale_queued_issues() -> None:
-    """Queued/Backlog 상태에서 일정 시간 이상 정체된 이슈를 Wait로 되돌린다."""
+    """Todo/Backlog 상태에서 일정 시간 이상 정체된 이슈를 Backlog로 되돌린다."""
     from app.core.crypto import decrypt
     from app.database import async_session
     from app.models.orchestrator import OrchestratorSession, SubTask
@@ -119,11 +119,11 @@ async def _reset_stale_queued_issues() -> None:
                 if ok:
                     subtask_fresh = await db.get(SubTask, subtask.id)
                     if subtask_fresh:
-                        subtask_fresh.linear_state = "Wait"
+                        subtask_fresh.linear_state = "Backlog"
                         subtask_fresh.updated_at = datetime.now(UTC)
                         await db.commit()
                     _bg_logger.info(
-                        "자동 복귀: %s (%s → Wait)",
+                        "자동 복귀: %s (%s → Backlog)",
                         subtask.linear_identifier,
                         subtask.linear_state,
                     )

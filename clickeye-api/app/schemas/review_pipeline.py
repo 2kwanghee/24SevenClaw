@@ -162,7 +162,7 @@ class PushToLinearResponse(BaseModel):
 
 
 class ApproveSubtaskResponse(BaseModel):
-    """subtask 큐 등록(Wait → Queued) 결과."""
+    """subtask 큐 등록(Backlog → Todo) 결과."""
 
     subtask_id: UUID
     linear_identifier: str
@@ -170,7 +170,7 @@ class ApproveSubtaskResponse(BaseModel):
 
 
 class ResetToWaitResponse(BaseModel):
-    """subtask 대기 복귀(Queued/Backlog → Wait) 결과."""
+    """subtask 대기 복귀(Todo/Backlog → Backlog) 결과."""
 
     subtask_id: UUID
     linear_identifier: str

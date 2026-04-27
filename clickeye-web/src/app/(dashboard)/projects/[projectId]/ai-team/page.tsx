@@ -473,7 +473,7 @@ export default function AITeamDashboardPage() {
               </div>
               <p className="text-xs text-emerald-700">
                 각 태스크 카드의 <strong>큐 등록</strong> 버튼을 눌러 검수를 완료하세요.
-                Linear 이슈가 <strong>Queued</strong> 상태로 이동하면 로컬 PC의{" "}
+                Linear 이슈가 <strong>Todo</strong> 상태로 이동하면 로컬 PC의{" "}
                 <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono text-[11px]">
                   webhook_server.py
                 </code>

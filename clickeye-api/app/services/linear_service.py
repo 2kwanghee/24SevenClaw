@@ -96,13 +96,13 @@ def _call(api_key: str, query: str, variables: dict | None = None, timeout: int 
 def get_initial_state_id(api_key: str, team_id: str) -> str | None:
     """이슈 최초 등록 시 부여할 상태 ID를 반환한다.
 
-    우선순위: Wait (검수 대기) — 사람이 승인 후 Queued로 전이한다.
-    Wait 상태가 없으면 None을 반환해 Linear 기본 상태로 생성한다.
+    우선순위: Backlog (검수 대기) — 사람이 승인 후 Todo로 전이한다.
+    Backlog 상태가 없으면 None을 반환해 Linear 기본 상태로 생성한다.
     """
     try:
         data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
         nodes = data.get("team", {}).get("states", {}).get("nodes", [])
-        priority = ["wait"]
+        priority = ["backlog"]
         by_name = {str(s.get("name", "")).lower(): str(s["id"]) for s in nodes}
         for name in priority:
             if name in by_name:
@@ -136,11 +136,11 @@ def get_team_states(api_key: str, team_id: str) -> list[dict]:  # type: ignore[t
 
 
 def get_queued_state_id(api_key: str, team_id: str) -> str | None:
-    """Queued 상태 ID를 반환한다. 사람 승인 시 Wait → Queued 전이에 사용."""
+    """Todo 상태 ID를 반환한다. 사람 승인 시 Backlog → Todo 전이에 사용."""
     try:
         data = _call(api_key, _TEAM_STATES_QUERY, {"id": team_id})
         nodes = data.get("team", {}).get("states", {}).get("nodes", [])
-        priority = ["dayqueued", "nightqueued", "queued"]
+        priority = ["todo"]
         by_name = {str(s.get("name", "")).lower(): str(s["id"]) for s in nodes}
         for name in priority:
             if name in by_name:

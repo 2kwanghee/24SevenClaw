@@ -369,7 +369,7 @@ async def push_to_linear(
     for subtask, issue in zip(subtasks, created):
         subtask.linear_identifier = issue.get("identifier") or None
         subtask.linear_issue_id = issue.get("id") or None
-        subtask.linear_state = "Wait" if initial_state_id else None
+        subtask.linear_state = "Backlog" if initial_state_id else None
         subtask.updated_at = dt.now(UTC)
     await db.commit()
 
@@ -552,9 +552,9 @@ async def approve_subtask(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApproveSubtaskResponse:
-    """subtask의 Linear 이슈를 Wait → Queued로 전이한다 (사람 검수 완료).
+    """subtask의 Linear 이슈를 Backlog → Todo로 전이한다 (사람 검수 완료).
 
-    로컬 webhook_server / linear_watcher가 Queued 감지 후 자동으로
+    로컬 webhook_server / linear_watcher가 Todo 감지 후 자동으로
     In Progress로 전이하고 Claude 구현을 시작한다.
     """
     from datetime import UTC
@@ -619,12 +619,12 @@ async def approve_subtask(
         api_key = decrypt(str(creds.encrypted_api_key))
         team_id = str(creds.team_id)
 
-    # Queued 상태 ID 조회 → 이슈 상태 전이
+    # Todo 상태 ID 조회 → 이슈 상태 전이
     queued_state_id = get_queued_state_id(api_key, team_id)
     if not queued_state_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Linear 팀에 Queued(DayQueued/NightQueued) 상태가 없습니다.",
+            detail="Linear 팀에 Todo 상태가 없습니다.",
         )
 
     ok = update_issue_state_id(api_key, str(subtask.linear_issue_id), queued_state_id)
@@ -635,21 +635,21 @@ async def approve_subtask(
         )
 
     # DB 상태 갱신
-    subtask.linear_state = "Queued"
+    subtask.linear_state = "Todo"
     subtask.updated_at = dt.now(UTC)
     await db.commit()
 
     return ApproveSubtaskResponse(
         subtask_id=subtask_id,
         linear_identifier=str(subtask.linear_identifier or ""),
-        transitioned_to="Queued",
+        transitioned_to="Todo",
     )
 
 
 # In Progress 이후 상태 — 되돌리기 불가
 _LOCKED_STATES = {"In Progress", "Done", "In Review", "Cancelled"}
-# 되돌리기 가능한 상태
-_RESETTABLE_STATES = {"Queued", "DayQueued", "NightQueued", "Backlog"}
+# 되돌리기 가능한 상태 (Todo, Backlog → Backlog)
+_RESETTABLE_STATES = {"Todo", "Backlog"}
 
 
 @router.post(
@@ -663,7 +663,7 @@ async def reset_subtask_to_wait(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ResetToWaitResponse:
-    """subtask의 Linear 이슈를 Queued/Backlog → Wait로 되돌린다.
+    """subtask의 Linear 이슈를 Todo/Backlog → Backlog로 되돌린다.
 
     In Progress 이후(In Progress, Done, In Review, Cancelled) 상태는 변경 불가.
     """
@@ -705,7 +705,7 @@ async def reset_subtask_to_wait(
     if current_state not in _RESETTABLE_STATES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"'{current_state}' 상태는 Wait 복귀 대상이 아닙니다.",
+            detail=f"'{current_state}' 상태는 Backlog 복귀 대상이 아닙니다.",
         )
 
     sess_result = await db.execute(
@@ -744,7 +744,7 @@ async def reset_subtask_to_wait(
     if not wait_state_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Linear 팀에 Wait 상태가 없습니다.",
+            detail="Linear 팀에 Backlog 상태가 없습니다.",
         )
 
     ok = update_issue_state_id(api_key, str(subtask.linear_issue_id), wait_state_id)
@@ -755,7 +755,7 @@ async def reset_subtask_to_wait(
         )
 
     previous_state = current_state
-    subtask.linear_state = "Wait"
+    subtask.linear_state = "Backlog"
     subtask.updated_at = dt.now(UTC)
     await db.commit()
 
@@ -763,7 +763,7 @@ async def reset_subtask_to_wait(
         subtask_id=subtask_id,
         linear_identifier=str(subtask.linear_identifier or ""),
         previous_state=previous_state,
-        transitioned_to="Wait",
+        transitioned_to="Backlog",
     )
 
 

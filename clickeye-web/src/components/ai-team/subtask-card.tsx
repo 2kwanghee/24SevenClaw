@@ -125,11 +125,11 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
   const resetMutation = useResetSubtaskToWait();
   const syncLinearStates = useSyncLinearStates(sessionId ?? "");
 
-  const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Wait" && !!sessionId;
+  const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Backlog" && !!sessionId;
   const canReset =
     !!subtask.linear_issue_id &&
     !!sessionId &&
-    ["Queued", "DayQueued", "NightQueued", "Backlog"].includes(subtask.linear_state ?? "");
+    ["Todo", "Backlog"].includes(subtask.linear_state ?? "");
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-colors hover:bg-[var(--bg-hover)]">
@@ -188,7 +188,7 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
                     { sessionId, subtaskId: subtask.id },
                     {
                       onSuccess: () => {
-                        // Linear 로컬 watcher가 Queued → In Progress로 즉시 전이할 수 있으므로
+                        // Linear 로컬 watcher가 Todo → In Progress로 즉시 전이할 수 있으므로
                         // approve 직후 Linear 실제 상태를 즉시 동기화한다.
                         if (sessionId && !syncLinearStates.isPending) {
                           syncLinearStates.mutate();
@@ -224,7 +224,7 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
                 대기로 복귀
               </button>
             )}
-            {!canApprove && !canReset && linearStateName && linearStateName !== "Wait" && (
+            {!canApprove && !canReset && linearStateName && linearStateName !== "Backlog" && (
               <span className="text-[10px] text-[var(--text-muted)]">
                 {linearStateName}
               </span>
