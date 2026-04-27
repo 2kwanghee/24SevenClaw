@@ -5,6 +5,8 @@ import sys
 
 # .env 수동 로드
 env_path = os.path.join(os.path.dirname(__file__), ".env")
+if not os.path.exists(env_path):
+    env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 if os.path.exists(env_path):
     with open(env_path) as f:
         for line in f:
