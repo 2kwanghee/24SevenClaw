@@ -3,7 +3,7 @@
 Usage:
     python -m scripts.export_openapi [output_path]
 
-기본 출력: ../24SevenClaw-contracts/openapi/openapi.json
+기본 출력: ../clickeye-contracts/openapi/openapi.json
 """
 
 import json
@@ -19,7 +19,7 @@ def export_openapi(output_path: str | None = None) -> None:
 
     if output_path is None:
         # 기본값: contracts 레포의 openapi 디렉토리
-        contracts_dir = Path(__file__).resolve().parent.parent.parent / "24SevenClaw-contracts"
+        contracts_dir = Path(__file__).resolve().parent.parent.parent / "clickeye-contracts"
         output_path = str(contracts_dir / "openapi" / "openapi.json")
 
     output = Path(output_path)

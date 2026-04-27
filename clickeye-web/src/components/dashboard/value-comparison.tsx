@@ -4,7 +4,7 @@ import { Clock, Zap } from "lucide-react";
 
 import type { PhaseDuration } from "@/lib/api-client";
 
-/** 기존 수동 개발 대비 24Seven 자동화 시간을 비교하는 단순 추정 계수 */
+/** 기존 수동 개발 대비 ClickEye 자동화 시간을 비교하는 단순 추정 계수 */
 const MANUAL_MULTIPLIER = 3.5;
 
 interface ValueComparisonProps {
@@ -36,7 +36,7 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
         시간 절감 비교
       </h3>
       <p className="mb-6 text-xs text-[var(--text-muted)]">
-        기존 수동 개발 대비 24Seven 자동화 소요시간
+        기존 수동 개발 대비 ClickEye 자동화 소요시간
       </p>
 
       <div className="space-y-5">
@@ -64,7 +64,7 @@ export function ValueComparison({ avgPhaseDuration }: ValueComparisonProps) {
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-violet-600">
               <Zap className="h-3.5 w-3.5" />
-              24Seven 자동화
+              ClickEye 자동화
             </span>
             <span className="font-medium text-violet-600">
               {formatDuration(totalAutomated)}

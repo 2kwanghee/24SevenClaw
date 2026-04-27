@@ -1,5 +1,5 @@
 /**
- * 24SevenClaw 중앙 실행 계약 관리 타입 정의
+ * ClickEye 중앙 실행 계약 관리 타입 정의
  * 중앙 레포(private)에서 settings, skills, agents, pipelines 계약을 관리하고
  * 고객 프로젝트에 배포. 허용된 필드만 오버라이드 가능.
  */

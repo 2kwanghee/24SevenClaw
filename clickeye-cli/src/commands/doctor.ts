@@ -187,7 +187,7 @@ async function checkClaudeMd(targetDir: string): Promise<CheckResult> {
 export async function doctorCommand(): Promise<void> {
   const targetDir = process.cwd();
 
-  console.log(chalk.bold("\n🔍 24SevenClaw 설정 진단\n"));
+  console.log(chalk.bold("\n🔍 ClickEye 설정 진단\n"));
   console.log(chalk.dim(`검사 경로: ${targetDir}\n`));
 
   const allResults: CheckResult[] = [];

@@ -1,7 +1,7 @@
 {
   "name": "@clickeye/contracts",
   "version": "0.1.0",
-  "description": "24SevenClaw 공유 타입, OpenAPI 스펙, Agent 프로토콜",
+  "description": "ClickEye 공유 타입, OpenAPI 스펙, Agent 프로토콜",
   "main": "generated/typescript/index.ts",
   "types": "generated/typescript/index.ts",
   "scripts": {

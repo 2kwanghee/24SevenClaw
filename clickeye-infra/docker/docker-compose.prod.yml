@@ -1,4 +1,4 @@
-# 24SevenClaw - 프로덕션 환경
+# ClickEye - 프로덕션 환경
 # 사용: docker compose -f docker-compose.prod.yml up -d
 # 환경변수: .env.prod 또는 외부 시크릿 매니저에서 주입
 

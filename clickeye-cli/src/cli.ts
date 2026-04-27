@@ -8,7 +8,7 @@ const program = new Command();
 program
   .name("24sc")
   .description(
-    "24SevenClaw CLI — 하네스 엔지니어링이 탑재된 AI 개발 워크플로우를 한 줄 명령으로 구축"
+    "ClickEye CLI — 하네스 엔지니어링이 탑재된 AI 개발 워크플로우를 한 줄 명령으로 구축"
   )
   .version("0.1.0");
 
@@ -31,7 +31,7 @@ program
 
 program
   .command("doctor")
-  .description("현재 프로젝트의 24SevenClaw 설정 상태를 진단합니다")
+  .description("현재 프로젝트의 ClickEye 설정 상태를 진단합니다")
   .action(doctorCommand);
 
 program.parse();

@@ -1,7 +1,7 @@
 [project]
 name = "clickeye-agent"
 version = "0.1.0"
-description = "24SevenClaw Agent - 고객 서버 실행 플레인 데몬"
+description = "ClickEye Agent - 고객 서버 실행 플레인 데몬"
 requires-python = ">=3.12"
 dependencies = [
     "websockets>=14.0",

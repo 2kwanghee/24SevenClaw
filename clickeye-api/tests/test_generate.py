@@ -69,7 +69,7 @@ def test_generate_zip_includes_start_command_claude() -> None:
         names = zf.namelist()
         assert ".claude/commands/ClickEyeStart.md" in names
         content = zf.read(".claude/commands/ClickEyeStart.md").decode()
-        assert "24SevenClaw" in content
+        assert "ClickEye" in content
         assert "ANTHROPIC_API_KEY" in content
 
 

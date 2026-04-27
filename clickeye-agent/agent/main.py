@@ -1,4 +1,4 @@
-"""24SevenClaw Agent 데몬 엔트리포인트"""
+"""ClickEye Agent 데몬 엔트리포인트"""
 
 import asyncio
 import signal
@@ -19,7 +19,7 @@ logger = structlog.get_logger()
 
 async def main() -> None:
     logger.info(
-        "24SevenClaw Agent 시작",
+        "ClickEye Agent 시작",
         agent_id=agent_settings.agent_id,
         cloud_url=agent_settings.cloud_ws_url,
     )
@@ -74,7 +74,7 @@ async def main() -> None:
         logger.exception("Agent 오류 발생")
     finally:
         await local_store.close()
-        logger.info("24SevenClaw Agent 종료")
+        logger.info("ClickEye Agent 종료")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# 24SevenClaw - 로컬 개발 환경
+# ClickEye - 로컬 개발 환경
 # 기본: docker compose up -d (DB + Redis만)
 # 전체: docker compose --profile full up -d (API 포함)
 

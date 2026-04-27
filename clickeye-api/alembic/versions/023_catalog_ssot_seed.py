@@ -29,7 +29,7 @@ _NOW = datetime(2026, 4, 23, tzinfo=UTC)
 # .claude/ 디렉토리 탐색 순서 (환경변수 → 알려진 로컬 경로들)
 _CLAUDE_DIR_CANDIDATES = [
     os.environ.get("CLAUDE_DIR", ""),
-    "/mnt/c/workspace/24SevenClaw/.claude",
+    "/mnt/c/workspace/ClickEye/.claude",
     str(Path(__file__).parents[4] / ".claude"),  # 레포 루트/../.claude
 ]
 

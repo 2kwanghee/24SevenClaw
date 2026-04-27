@@ -1,4 +1,4 @@
-"""24SevenClaw Agent ↔ Cloud 프로토콜 타입 (Python/Pydantic)
+"""ClickEye Agent ↔ Cloud 프로토콜 타입 (Python/Pydantic)
 TypeScript protocol/ 디렉토리와 반드시 동기화 유지
 """
 

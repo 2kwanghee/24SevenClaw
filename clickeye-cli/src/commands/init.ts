@@ -20,7 +20,7 @@ interface InitFlags {
 
 export async function initCommand(flags: InitFlags): Promise<void> {
   console.log(
-    chalk.bold("\n🤖 24SevenClaw — AI 에이전트 워크플로우 설정\n")
+    chalk.bold("\n🤖 ClickEye — AI 에이전트 워크플로우 설정\n")
   );
 
   // Step 1 & 2 & 3: 위저드 또는 기본값

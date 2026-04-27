@@ -1,4 +1,4 @@
-# 24SevenClaw - Agent 테스트 환경
+# ClickEye - Agent 테스트 환경
 # 사용법: docker compose -f docker-compose.agent-test.yml up -d
 
 services:

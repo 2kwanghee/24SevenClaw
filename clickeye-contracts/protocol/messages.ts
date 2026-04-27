@@ -1,5 +1,5 @@
 /**
- * 24SevenClaw Agent ↔ Cloud WebSocket 메시지 타입 정의
+ * ClickEye Agent ↔ Cloud WebSocket 메시지 타입 정의
  * 양쪽(api, agent, web) 모두 이 타입을 참조
  */
 
