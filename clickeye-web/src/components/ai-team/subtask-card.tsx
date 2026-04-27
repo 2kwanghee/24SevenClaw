@@ -14,7 +14,7 @@ import {
   Wrench,
 } from "lucide-react";
 
-import { useApproveSubtask, useResetSubtaskToWait } from "@/hooks/use-orchestrator";
+import { useApproveSubtask, useResetSubtaskToWait, useSyncLinearStates } from "@/hooks/use-orchestrator";
 import type { LinearTeamState, SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<
@@ -123,6 +123,7 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
 
   const approveMutation = useApproveSubtask();
   const resetMutation = useResetSubtaskToWait();
+  const syncLinearStates = useSyncLinearStates(sessionId ?? "");
 
   const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Wait" && !!sessionId;
   const canReset =
@@ -183,7 +184,18 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
                 type="button"
                 disabled={approveMutation.isPending}
                 onClick={() =>
-                  approveMutation.mutate({ sessionId, subtaskId: subtask.id })
+                  approveMutation.mutate(
+                    { sessionId, subtaskId: subtask.id },
+                    {
+                      onSuccess: () => {
+                        // Linear 로컬 watcher가 Queued → In Progress로 즉시 전이할 수 있으므로
+                        // approve 직후 Linear 실제 상태를 즉시 동기화한다.
+                        if (sessionId && !syncLinearStates.isPending) {
+                          syncLinearStates.mutate();
+                        }
+                      },
+                    },
+                  )
                 }
                 className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
               >

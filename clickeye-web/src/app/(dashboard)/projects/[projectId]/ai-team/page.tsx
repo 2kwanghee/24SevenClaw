@@ -114,7 +114,7 @@ export default function AITeamDashboardPage() {
     const hasLinearIssues = summary?.subtasks?.some((st) => !!st.linear_issue_id);
     if (!hasLinearIssues) return;
 
-    const intervalMs = isAutoProgressPhase ? 15_000 : 60_000;
+    const intervalMs = isAutoProgressPhase ? 10_000 : 30_000;
     const timer = setInterval(() => {
       if (!syncLinearStates.isPending) {
         syncLinearStates.mutate();
@@ -585,7 +585,7 @@ export default function AITeamDashboardPage() {
                 </span>
               </div>
               <span className="text-[10px] text-[var(--text-muted)]">
-                {isAutoProgressPhase ? "3초 자동 갱신" : "30초 자동 갱신"}
+                {isAutoProgressPhase ? "Linear 10초 동기화" : "Linear 30초 동기화"}
               </span>
             </div>
 
