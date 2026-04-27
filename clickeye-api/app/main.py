@@ -32,7 +32,11 @@ async def _reset_stale_queued_issues() -> None:
     from app.models.orchestrator import OrchestratorSession, SubTask
     from app.models.project_linear_credentials import ProjectLinearCredentials
     from app.models.user_linear_credentials import UserLinearCredentials
-    from app.services.linear_service import get_initial_state_id, update_issue_state_id
+    from app.services.linear_service import (
+        fetch_issue_states,
+        get_initial_state_id,
+        update_issue_state_id,
+    )
 
     cutoff = datetime.now(UTC) - timedelta(minutes=settings.queue_stale_minutes)
 
@@ -86,6 +90,26 @@ async def _reset_stale_queued_issues() -> None:
                         continue
                     api_key = decrypt(str(user_creds.encrypted_api_key))
                     team_id = str(user_creds.team_id)
+
+                # Linear 실제 상태 먼저 확인 — 이미 전진했으면 DB만 갱신하고 복귀하지 않음
+                real_states = fetch_issue_states(
+                    api_key, team_id, [str(subtask.linear_identifier)]
+                )
+                real_state = real_states.get(str(subtask.linear_identifier))
+
+                if real_state and real_state not in _STALE_STATES:
+                    subtask_fresh = await db.get(SubTask, subtask.id)
+                    if subtask_fresh:
+                        subtask_fresh.linear_state = real_state
+                        subtask_fresh.updated_at = datetime.now(UTC)
+                        await db.commit()
+                    _bg_logger.info(
+                        "DB 동기화 (파이프라인 전진): %s (%s → %s)",
+                        subtask.linear_identifier,
+                        subtask.linear_state,
+                        real_state,
+                    )
+                    continue
 
                 wait_state_id = get_initial_state_id(api_key, team_id)
                 if not wait_state_id:
