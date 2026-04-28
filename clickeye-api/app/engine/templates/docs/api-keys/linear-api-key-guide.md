@@ -44,7 +44,7 @@ curl -H "Authorization: lin_api_여기에키" \
 ## 5. AI Team 연동 설정
 
 ClickEye AI Team 화면과 연동하면:
-- 세션 생성 → Linear 이슈 자동 등록 (status: Queued)
+- 세션 생성 → Linear 이슈 자동 등록 (status: Backlog, 검수 대기)
 - 서브태스크 완료 → Linear 이슈 상태 자동 업데이트
 - Merge 완료 → Linear 이슈 Done 전환
 

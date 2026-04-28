@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Linear Webhook 수신 서버 — {{ project_name }}.
 
-Linear에서 이슈 상태가 Queued/DayQueued/NightQueued로 변경되면
+Linear에서 이슈 상태가 Todo로 변경되면
 로컬 Claude Code(또는 커스텀 파이프라인)를 자동 트리거한다.
 
 사용법:
@@ -137,7 +137,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         _log(f"EVENT: {action} {identifier} '{title}' → {state_name}")
 
-        if state_name in ("Queued", "DayQueued", "NightQueued") and action in ("create", "update"):
+        if state_name == "Todo" and action in ("create", "update"):
             threading.Thread(target=_trigger, args=(identifier, title), daemon=True).start()
 
     def _ok(self, body: dict) -> None:  # type: ignore[type-arg]

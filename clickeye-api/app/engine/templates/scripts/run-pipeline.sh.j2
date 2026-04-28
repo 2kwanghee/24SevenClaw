@@ -78,7 +78,7 @@ query($teamId: ID!) {
   issues(
     filter: {
       team: { id: { eq: $teamId } }
-      state: { name: { in: ["Queued", "DayQueued", "NightQueued", "In Progress"] } }
+      state: { name: { in: ["Todo", "In Progress"] } }
     }
     first: 50
   ) {

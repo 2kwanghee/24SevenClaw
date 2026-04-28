@@ -196,7 +196,7 @@ def build_setup_guide_pptx(
             ("③ 서브태스크 확인 → '배정 확정' 클릭", None),
             ("④ 배정 완료 → Linear 이슈 자동 등록 (서브태스크별 1개)",
              "예: [backend] 인증 API, [frontend] 로그인 UI, [qa] 테스트"),
-            ("⑤ Linear에서 이슈 상태를 'Queued'로 변경 → 로컬 Claude가 자동으로 작업 시작", None),
+            ("⑤ ClickEye 웹에서 태스크 승인(Todo) → 로컬 Claude가 자동으로 작업 시작", None),
         ], start_y=2.0)
 
     else:

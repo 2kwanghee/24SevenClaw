@@ -1,6 +1,6 @@
 # Linear 실시간 이슈 추적 설정 — {{ project_name }}
 
-Linear 이슈 상태가 `Queued`로 변경될 때 로컬 Claude Code를 자동 실행하는 환경을 구성합니다.
+Linear 이슈 상태가 `Todo`로 변경될 때 로컬 Claude Code를 자동 실행하는 환경을 구성합니다.
 
 ## 방식 선택
 
@@ -63,7 +63,7 @@ bash scripts/start-webhook.sh
 ## Option C: 폴링 (webhook 불필요)
 
 ```bash
-# 30초마다 Linear를 폴링하여 Queued 이슈를 처리합니다
+# 30초마다 Linear를 폴링하여 Todo 이슈를 처리합니다
 python3 scripts/linear_watcher.py
 
 # 1회만 실행
@@ -84,7 +84,7 @@ curl http://localhost:9876/health
 # 테스트 이벤트 전송 (서명 없이)
 curl -X POST http://localhost:9876/webhook/linear \
   -H "Content-Type: application/json" \
-  -d '{"type":"Issue","action":"update","data":{"identifier":"TEST-1","title":"테스트","state":{"name":"Queued"}}}'
+  -d '{"type":"Issue","action":"update","data":{"identifier":"TEST-1","title":"테스트","state":{"name":"Todo"}}}'
 ```
 
 ---
