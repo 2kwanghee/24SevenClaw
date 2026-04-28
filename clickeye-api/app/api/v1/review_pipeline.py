@@ -675,6 +675,7 @@ async def reset_subtask_to_wait(
     from app.core.crypto import decrypt
     from app.models.orchestrator import OrchestratorSession, SubTask
     from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.models.user_linear_credentials import UserLinearCredentials
     from app.services.linear_service import get_initial_state_id, update_issue_state_id
 
     st_result = await db.execute(
@@ -721,13 +722,23 @@ async def reset_subtask_to_wait(
     )
     proj_creds = proj_creds_result.scalar_one_or_none()
 
-    if proj_creds is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="이 프로젝트에 Linear 자격증명이 설정되지 않았습니다. 프로젝트 생성 시 Linear API 키와 Team ID를 입력하세요.",
+    if proj_creds is not None:
+        api_key = decrypt(str(proj_creds.encrypted_api_key))
+        team_id = str(proj_creds.team_id)
+    else:
+        user_creds_result = await db.execute(
+            sa_select(UserLinearCredentials).where(
+                UserLinearCredentials.user_id == session.created_by
+            )
         )
-    api_key = decrypt(str(proj_creds.encrypted_api_key))
-    team_id = str(proj_creds.team_id)
+        user_creds = user_creds_result.scalar_one_or_none()
+        if user_creds is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
+            )
+        api_key = decrypt(str(user_creds.encrypted_api_key))
+        team_id = str(user_creds.team_id)
 
     wait_state_id = get_initial_state_id(api_key, team_id)
     if not wait_state_id:
