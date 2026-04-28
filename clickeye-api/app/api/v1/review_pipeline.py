@@ -793,11 +793,11 @@ async def sync_linear_states(
     from app.models.user_linear_credentials import UserLinearCredentials
     from app.services.linear_service import fetch_issue_states
 
-    # linear_identifier 가 있는 subtask만 조회 (상태 읽기는 identifier로 충분)
+    # linear_issue_id(UUID)가 있는 subtask만 조회 — UUID로 Linear API 조회
     st_result = await db.execute(
         sa_select(SubTask).where(
             SubTask.session_id == session_id,
-            SubTask.linear_identifier.is_not(None),
+            SubTask.linear_issue_id.is_not(None),
         )
     )
     subtasks = st_result.scalars().all()
@@ -838,9 +838,9 @@ async def sync_linear_states(
         api_key = decrypt(str(user_creds.encrypted_api_key))
         team_id = str(user_creds.team_id)
 
-    # Linear에서 현재 상태 일괄 조회
-    identifiers = [str(st.linear_identifier) for st in subtasks]
-    state_map = fetch_issue_states(api_key, team_id, identifiers)
+    # Linear에서 현재 상태 일괄 조회 (UUID → {identifier: state} 맵)
+    issue_ids = [str(st.linear_issue_id) for st in subtasks]
+    state_map = fetch_issue_states(api_key, team_id, issue_ids)
 
     now = dt.now(UTC)
     changed: list[SyncedSubtask] = []

@@ -92,8 +92,9 @@ async def _reset_stale_queued_issues() -> None:
                     team_id = str(user_creds.team_id)
 
                 # Linear 실제 상태 먼저 확인 — 이미 전진했으면 DB만 갱신하고 복귀하지 않음
+                # UUID(linear_issue_id)로 조회 → {identifier: state} 맵 반환
                 real_states = fetch_issue_states(
-                    api_key, team_id, [str(subtask.linear_identifier)]
+                    api_key, team_id, [str(subtask.linear_issue_id)]
                 )
                 real_state = real_states.get(str(subtask.linear_identifier))
 

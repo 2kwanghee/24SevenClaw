@@ -162,11 +162,11 @@ def update_issue_state_id(api_key: str, issue_id: str, state_id: str) -> bool:
 
 
 
-_ISSUE_STATES_QUERY = """
-query IssueStates($identifiers: [String!]!) {
+_ISSUE_STATES_BY_ID_QUERY = """
+query IssueStatesById($ids: [ID!]!) {
   issues(
     filter: {
-      identifier: { in: $identifiers }
+      id: { in: $ids }
     }
     first: 50
   ) {
@@ -183,20 +183,23 @@ query IssueStates($identifiers: [String!]!) {
 def fetch_issue_states(api_key: str, team_id: str, identifiers: list[str]) -> dict[str, str]:
     """Linear 이슈 목록의 현재 상태를 한 번에 조회한다.
 
+    Args:
+        identifiers: linear_issue_id (UUID) 목록. DB의 subtasks.linear_issue_id 값.
+
     Returns:
-        {identifier: state_name} 매핑. 조회 실패 시 빈 dict 반환.
+        {linear_identifier(예: CLI-15): state_name} 매핑. 조회 실패 시 빈 dict 반환.
     """
     if not identifiers:
         return {}
     try:
-        data = _call(api_key, _ISSUE_STATES_QUERY, {"identifiers": identifiers})
+        data = _call(api_key, _ISSUE_STATES_BY_ID_QUERY, {"ids": identifiers})
         nodes = data.get("issues", {}).get("nodes", [])
         result = {str(n["identifier"]): str(n["state"]["name"]) for n in nodes if n.get("state")}
         if not result:
-            _logger.warning("fetch_issue_states: 결과 없음 identifiers=%s", identifiers)
+            _logger.warning("fetch_issue_states: 결과 없음 ids=%s", identifiers)
         return result
     except RuntimeError as exc:
-        _logger.warning("fetch_issue_states 실패 identifiers=%s: %s", identifiers, exc)
+        _logger.warning("fetch_issue_states 실패 ids=%s: %s", identifiers, exc)
         return {}
 
 
