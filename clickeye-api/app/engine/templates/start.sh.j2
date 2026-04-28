@@ -138,7 +138,6 @@ if _is_running "webhook" || _is_running "watcher"; then
       echo "   기존 프로세스를 유지합니다."
       echo -e "   종료하려면: ${BOLD}bash stop.sh${NC}"
       echo ""
-      {% if platform_id == 'claude-code' -%}exec claude{% endif %}
       exit 0
       ;;
   esac
@@ -249,17 +248,17 @@ echo -e "  종료      : ${BOLD}bash stop.sh${NC}"
 {% endif %}
 echo ""
 
-# ── 9. Claude Code 진입 ────────────────────────────────────────────────────────
-{% if platform_id == 'claude-code' -%}
-echo -e "   Claude Code를 시작합니다."
-echo -e "   진입 후 ${BOLD}/ClickEyeStart${NC} 커맨드로 온보딩을 계속하세요."
+# ── 9. 완료 — 모든 서비스는 백그라운드에서 실행 중 ───────────────────────────────
+echo -e "  모든 서비스가 ${BOLD}백그라운드${NC}에서 실행 중입니다."
+echo -e "  이 창은 이제 닫아도 됩니다."
 echo ""
-# ANTHROPIC_API_KEY는 파이프라인 스크립트용 — Claude Code CLI는 claude.ai 세션 사용
-# 두 인증이 동시에 환경변수에 있으면 "Auth conflict" 경고 발생
-unset ANTHROPIC_API_KEY
-exec claude
+{% if platform_id == 'claude-code' -%}
+echo -e "  ClickEye 웹 대시보드에서 업무를 지시하거나,"
+echo -e "  Claude Code에서 ${BOLD}/ClickEyeStart${NC} 커맨드로 온보딩을 확인하세요."
+echo ""
 {% else -%}
+echo -e "  ClickEye 웹 대시보드에서 업무를 지시하세요."
 echo "   플랫폼: {{ platform_id }}"
-echo "   이제 {{ platform_id }} 에이전트를 직접 실행하세요."
 echo ""
 {% endif -%}
+exit 0
