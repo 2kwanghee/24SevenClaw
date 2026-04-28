@@ -1,0 +1,83 @@
+# {{ project_name }} — Windows 재시작 후 WSL2 자동 기동 설정
+# 관리자 PowerShell에서 실행: powershell -ExecutionPolicy Bypass -File "<이 파일 경로>"
+#
+# 효과: Windows 로그인 시 WSL2가 자동 시작 → systemd --user 서비스 자동 복구
+# 사전 조건: install-service.sh 로 서비스를 먼저 등록해야 합니다.
+
+param(
+    [switch]$Remove
+)
+
+$TaskName = "ClickEye-WSL2-Autostart"
+$Description = "ClickEye: Windows 로그인 시 WSL2(systemd) 자동 기동"
+
+if ($Remove) {
+    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+        Write-Host "✅ 작업 스케줄러 항목 '$TaskName' 삭제 완료" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  '$TaskName' 항목이 존재하지 않습니다." -ForegroundColor Yellow
+    }
+    exit 0
+}
+
+# 관리자 권한 확인
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+if (-not $isAdmin) {
+    Write-Host "❌ 관리자 권한으로 실행해야 합니다." -ForegroundColor Red
+    Write-Host "   PowerShell을 '관리자 권한으로 실행' 후 다시 시도하세요." -ForegroundColor Yellow
+    exit 1
+}
+
+# WSL 실행 파일 경로
+$WslExe = "$env:SystemRoot\System32\wsl.exe"
+if (-not (Test-Path $WslExe)) {
+    Write-Host "❌ WSL이 설치되어 있지 않습니다." -ForegroundColor Red
+    exit 1
+}
+
+# 트리거: 로그온 시
+$Trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+
+# 액션: wsl --exec true  (WSL 인스턴스 기동 → systemd 서비스 자동 복구)
+$Action = New-ScheduledTaskAction `
+    -Execute $WslExe `
+    -Argument "--exec bash -c `"sleep 5 && systemctl --user start clickeye-watcher{% if has_linear %} clickeye-webhook{% endif %} 2>/dev/null || true`""
+
+# 설정: 로그온 후 실행, 실패 시 1분 후 재시도 (최대 3회)
+$Settings = New-ScheduledTaskSettingsSet `
+    -ExecutionTimeLimit (New-TimeSpan -Minutes 2) `
+    -RestartCount 3 `
+    -RestartInterval (New-TimeSpan -Minutes 1) `
+    -StartWhenAvailable
+
+# 기존 항목 제거 후 재등록
+if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+}
+
+Register-ScheduledTask `
+    -TaskName $TaskName `
+    -Description $Description `
+    -Trigger $Trigger `
+    -Action $Action `
+    -Settings $Settings `
+    -RunLevel Highest `
+    -Force | Out-Null
+
+Write-Host ""
+Write-Host "╔══════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║  ✅ 자동 시작 설정 완료                        ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Windows 재시작 후 로그인하면 WSL2가 자동으로 기동되고"
+Write-Host "  ClickEye 서비스가 자동으로 재시작됩니다."
+Write-Host ""
+Write-Host "  등록된 작업: '$TaskName'" -ForegroundColor Cyan
+Write-Host "  확인: 작업 스케줄러(taskschd.msc) → 작업 스케줄러 라이브러리" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  제거하려면:" -ForegroundColor Yellow
+Write-Host "  powershell -ExecutionPolicy Bypass -File `"<이 파일>`" -Remove" -ForegroundColor Yellow
+Write-Host ""

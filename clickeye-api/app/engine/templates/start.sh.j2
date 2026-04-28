@@ -261,4 +261,15 @@ echo -e "  ClickEye 웹 대시보드에서 업무를 지시하세요."
 echo "   플랫폼: {{ platform_id }}"
 echo ""
 {% endif -%}
+
+# ── 💡 systemd 서비스 미설치 시 안내 ───────────────────────────────────────────
+if command -v systemctl > /dev/null 2>&1 && systemctl --user status > /dev/null 2>&1; then
+  if ! systemctl --user is-enabled clickeye-watcher > /dev/null 2>&1; then
+    echo -e "  ${YELLOW}💡 터미널을 닫아도 서비스를 계속 유지하려면:${NC}"
+    echo -e "     ${BOLD}bash scripts/install-service.sh${NC}"
+    echo -e "  (systemd 서비스로 등록 — 재시작 후에도 자동 복구)"
+    echo ""
+  fi
+fi
+
 exit 0

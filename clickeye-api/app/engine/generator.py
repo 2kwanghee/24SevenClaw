@@ -647,6 +647,17 @@ def _emit_first_run_artifacts(
         stopper = _env.get_template("stop.sh.j2")
         files["stop.sh"] = stopper.render(**ctx)
 
+        # systemd 서비스 스크립트 (WSL2 환경)
+        if os_id in ("wsl2", "linux"):
+            install_svc = _env.get_template("scripts/install-service.sh.j2")
+            files["scripts/install-service.sh"] = install_svc.render(**ctx)
+            uninstall_svc = _env.get_template("scripts/uninstall-service.sh.j2")
+            files["scripts/uninstall-service.sh"] = uninstall_svc.render(**ctx)
+
+        # Windows Task Scheduler 자동 시작 스크립트
+        autostart = _env.get_template("scripts/setup-autostart.ps1.j2")
+        files["scripts/setup-autostart.ps1"] = autostart.render(**ctx)
+
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["logs/.gitkeep"] = ""
         files[".run/.gitkeep"] = ""
