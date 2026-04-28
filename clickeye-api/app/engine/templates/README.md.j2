@@ -8,7 +8,27 @@
 bash start.sh
 ```
 
-`start.sh`가 Node.js · Claude Code CLI · `.env` 파일을 자동으로 확인하고 안내합니다.
+`start.sh`가 Node.js · Claude Code CLI · `.env` 파일을 자동으로 확인하고,
+모든 서비스를 **백그라운드에서 기동한 뒤 자동으로 종료**됩니다.
+→ 터미널을 닫아도 파이프라인은 계속 실행됩니다.
+
+---
+
+## 서비스 영구 등록 (권장)
+
+터미널을 닫거나 WSL2를 재시작해도 서비스가 자동 복구되도록 systemd에 등록합니다:
+
+```bash
+bash scripts/install-service.sh
+```
+
+Windows 재부팅 후 WSL2 자동 기동까지 설정하려면, 관리자 PowerShell에서 실행하세요:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "<ZIP 압축 해제 경로>\scripts\setup-autostart.ps1"
+```
+
+서비스 제거: `bash scripts/uninstall-service.sh`
 
 ---
 
@@ -36,21 +56,26 @@ cp .env.example .env
 ### 3) 실행
 
 ```bash
-{% if platform_id == 'claude-code' %}claude
-# 진입 후:
-/ClickEyeStart
-{% else %}# {{ platform_id }} 에이전트를 직접 실행하세요
-{% endif %}```
+bash start.sh
+# 완료 후 스크립트 자동 종료 — 터미널을 닫아도 됩니다
+```
 
 {% if has_linear %}---
 
-## Linear 연동 (Webhook 자동화)
+## Linear 연동 (자동 처리)
 
-```bash
-bash scripts/setup-tunnel.sh      # Cloudflare 터널 생성 → URL 발급
-# ClickEye 설정 > Linear에서 터널 URL 등록
-bash scripts/start-webhook.sh     # 로컬 webhook 서버 기동 (포트 9876)
+`bash start.sh`가 아래 항목을 **자동으로** 처리합니다:
+
 ```
+1. Cloudflare Tunnel 기동 (URL 자동 발급)
+2. Linear Webhook 자동 등록
+3. Webhook 서버 백그라운드 기동
+4. Linear 폴링 Watcher 기동 (폴백)
+```
+
+> ⚠️ **Cloudflare 무료 터널**: WSL2 재시작 시 URL이 바뀝니다.
+> WSL2 재시작 후에는 `bash start.sh`를 다시 실행해 Webhook을 재등록하거나,
+> systemd 서비스(`bash scripts/install-service.sh`)로 프로세스를 유지하세요.
 
 자세한 내용: `docs/WEBHOOK_SETUP.md`
 
@@ -65,5 +90,7 @@ bash scripts/start-webhook.sh     # 로컬 webhook 서버 기동 (포트 9876)
 | `permission denied` | `chmod +x start.sh` 실행 후 재시도 |
 | `.env 파일이 없습니다` | `cp .env.example .env` 후 API 키 입력 |
 | Windows PowerShell에서 실행 불가 | WSL2 Ubuntu 터미널에서 실행 필요 |
+| WSL2 재시작 후 서비스 중단 | `bash scripts/install-service.sh` → systemd 등록 |
+| Windows 재부팅 후 WSL2 미기동 | 관리자 PowerShell에서 `setup-autostart.ps1` 실행 |
 
 도움말: `docs/setup-guide.pptx` · `docs/api-keys/`

@@ -19,17 +19,33 @@ bash start.sh
 ```
 
 `start.sh`가 자동으로 처리하는 항목:
-- 환경 점검 (Node.js, Claude CLI)
+- 환경 점검 (Node.js, Claude CLI, Python3)
 - .env 키 검증
-- 터널 기동 (Cloudflare/ngrok)
+{% if has_linear %}- Cloudflare Tunnel 자동 기동 및 URL 발급
 - Linear Webhook 자동 등록
 - Webhook 서버 백그라운드 기동
-- Linear 폴링 watcher 기동 (폴백)
-- **완료 후 스크립트 자동 종료** (터미널을 닫아도 됩니다)
+- Linear 폴링 Watcher 기동 (폴백)
+{% endif %}- **완료 후 스크립트 자동 종료** — 터미널을 닫아도 됩니다
 
 ---
 
-## Step 2 — 출력 해석 및 개입
+## Step 2 — 서비스 영구 등록 (권장)
+
+WSL2 종료·재시작 후에도 서비스가 자동 복구되도록 systemd에 등록합니다:
+
+```bash
+bash scripts/install-service.sh
+```
+
+Windows 재부팅 후 WSL2 자동 기동을 원한다면, 관리자 PowerShell에서 실행하세요:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts\setup-autostart.ps1"
+```
+
+---
+
+## Step 3 — 출력 해석 및 개입
 
 `start.sh` 실행 중 아래 상황이 발생하면 처리하세요:
 
@@ -48,6 +64,7 @@ cat docs/api-keys/linear-api-key-guide.md
 
 사용자에게 키를 받은 뒤 `.env`에 입력하고 `bash start.sh`를 재실행하세요.
 
+{% if has_linear %}
 ### 터널 기동 실패
 
 ```
@@ -65,9 +82,9 @@ sed -i 's/^TUNNEL_PROVIDER=.*/TUNNEL_PROVIDER=polling/' .env
 bash start.sh
 ```
 
----
+{% endif %}---
 
-## Step 3 — 완료 확인
+## Step 4 — 완료 확인
 
 아래 성공 박스가 출력되면 준비 완료입니다:
 
@@ -96,4 +113,5 @@ ClickEye 웹에서 태스크를 승인(Todo)하면
 Claude가 자동으로 구현을 시작합니다.
 
 서비스 종료: bash stop.sh
+서비스 영구등록: bash scripts/install-service.sh
 ```

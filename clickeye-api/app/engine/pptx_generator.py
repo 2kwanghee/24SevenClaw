@@ -137,57 +137,44 @@ def build_setup_guide_pptx(
               Inches(0.8), Inches(y + 0.2), body_w, Inches(0.6), size=12, color=_GRAY)
 
     if has_linear:
-        # ── 슬라이드 4 (Linear): 터널 설정 ───────────────────────────────────
+        # ── 슬라이드 4 (Linear): 런처 실행 ──────────────────────────────────
         s = prs.slides.add_slide(blank)
         _set_bg(s)
-        _slide_header(s, "Step 3 — 터널 설정 (Linear Webhook용)", slide_w)
-        _add_text(s, "Linear Webhook을 받으려면 외부 접속 가능한 URL이 필요합니다.",
+        _slide_header(s, "Step 3 — 런처 실행", slide_w)
+        _add_text(s, "start.sh 하나로 터널·Webhook·Watcher가 자동 기동됩니다.",
                   Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
         _numbered_items(s, [
-            ("① 새 터미널을 열고 터널 스크립트 실행 (Cloudflare Tunnel 자동 설치)",
-             "bash scripts/setup-tunnel.sh"),
-            ("② 출력된 https://xxxx.trycloudflare.com URL 복사", None),
-            ("③ ClickEye 웹 → 설정 → Linear → Tunnel URL 붙여넣기 후 저장",
-             "→ Linear Webhook이 자동으로 등록됩니다"),
+            ("① 터미널에서 런처 실행", "bash start.sh"),
+            ("② Cloudflare Tunnel 자동 기동 → Linear Webhook 자동 등록", None),
+            ("③ Webhook 서버 + Watcher 백그라운드 기동", None),
+            ("④ 완료 후 스크립트 자동 종료 — 터미널을 닫아도 됩니다", None),
         ], start_y=2.0)
-        _add_text(s, "⚠️  이 터미널을 열어둔 상태를 유지하세요. 닫으면 터널이 종료됩니다.",
-                  Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_AMBER)
+        _add_text(s, "💡  start.sh 완료 후 터미널을 닫아도 파이프라인은 계속 실행됩니다.",
+                  Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_ACCENT)
 
-        # ── 슬라이드 5 (Linear): Webhook 서버 기동 ───────────────────────────
+        # ── 슬라이드 5 (Linear): 서비스 영구 등록 ────────────────────────────
         s = prs.slides.add_slide(blank)
         _set_bg(s)
-        _slide_header(s, "Step 4 — Webhook 서버 기동", slide_w)
-        _add_text(s, "또 다른 터미널을 열어 Webhook 수신 서버를 시작합니다.",
+        _slide_header(s, "Step 4 — 서비스 영구 등록 (권장)", slide_w)
+        _add_text(s, "WSL2 재시작 후에도 서비스가 자동 복구되도록 systemd에 등록합니다.",
                   Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
         _numbered_items(s, [
-            ("① 새 터미널 → 프로젝트 폴더로 이동", f"cd ~/projects/{project_name}"),
-            ("② Webhook 서버 시작 (포트 9876)", "bash scripts/start-webhook.sh"),
-            ("③ 'Listening on :9876' 메시지 확인 → 준비 완료", None),
+            ("① systemd 사용자 서비스 등록", "bash scripts/install-service.sh"),
+            ("② 터미널 종료·WSL2 재시작 후에도 자동 유지 확인", None),
+            ("③ (선택) Windows 재부팅 후 WSL2 자동 기동 — 관리자 PowerShell에서:",
+             "powershell -ExecutionPolicy Bypass -File scripts\\setup-autostart.ps1"),
         ], start_y=2.0)
         _add_text(
             s,
-            "💡  터널(setup-tunnel.sh) + Webhook 서버(start-webhook.sh)"
-            " 두 개 모두 실행 중이어야 합니다.",
-            Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_GRAY,
+            "⚠️  Cloudflare 무료 터널은 WSL2 재시작 시 URL이 바뀝니다."
+            " 재시작 후 bash start.sh를 다시 실행해 Webhook을 재등록하세요.",
+            Inches(0.8), Inches(5.5), body_w, Inches(0.8), size=12, color=_AMBER,
         )
 
-        # ── 슬라이드 6 (Linear): 런처 & /ClickEyeStart ───────────────────────
+        # ── 슬라이드 6 (Linear): AI Team → Linear 자동화 ─────────────────────
         s = prs.slides.add_slide(blank)
         _set_bg(s)
-        _slide_header(s, "Step 5 — 런처 실행 & /ClickEyeStart", slide_w)
-        _numbered_items(s, [
-            ("① 세 번째 터미널 → 프로젝트 폴더에서 런처 실행",
-             "bash start.sh"),
-            ("② Node.js · Claude Code 자동 점검 → Claude Code 자동 진입", None),
-            ("③ Claude Code 프롬프트에서 시작 명령 입력",
-             "/ClickEyeStart"),
-            ("④ .env 검증 → 누락 키 대화형 안내 → 셋업 완료 메시지 출력", None),
-        ], start_y=1.5)
-
-        # ── 슬라이드 7 (Linear): AI Team → Linear 자동화 ─────────────────────
-        s = prs.slides.add_slide(blank)
-        _set_bg(s)
-        _slide_header(s, "Step 6 — AI Team → Linear 자동화", slide_w)
+        _slide_header(s, "Step 5 — AI Team → Linear 자동화", slide_w)
         _add_text(s, "셋업 완료 후 AI Team 메뉴에서 작업 요청을 등록하세요.",
                   Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
         _numbered_items(s, [
@@ -200,19 +187,32 @@ def build_setup_guide_pptx(
         ], start_y=2.0)
 
     else:
-        # ── 슬라이드 4 (No-Linear): 런처 & /ClickEyeStart ────────────────────
+        # ── 슬라이드 4 (No-Linear): 런처 실행 ────────────────────────────────
         s = prs.slides.add_slide(blank)
         _set_bg(s)
-        _slide_header(s, "Step 3 — 런처 실행 & /ClickEyeStart", slide_w)
+        _slide_header(s, "Step 3 — 런처 실행", slide_w)
         _numbered_items(s, [
             ("① 터미널에서 런처 스크립트 실행",
              "bash start.sh"),
-            ("② Node.js · Claude Code 자동 점검 → Claude Code 자동 진입", None),
-            ("③ Claude Code 프롬프트에서 시작 명령 입력",
-             "/ClickEyeStart"),
-            ("④ .env 검증 → 누락 키 대화형 안내", None),
-            ("⑤ 셋업 완료 메시지 출력 → AI 개발 파이프라인 준비 완료!", None),
+            ("② Node.js · Claude Code 자동 점검", None),
+            ("③ .env 검증 → 누락 키 대화형 안내", None),
+            ("④ 완료 후 스크립트 자동 종료 — 터미널을 닫아도 됩니다", None),
         ], start_y=1.5)
+        _add_text(s, "💡  start.sh 완료 후 터미널을 닫아도 됩니다.",
+                  Inches(0.8), Inches(5.8), body_w, Inches(0.6), size=12, color=_ACCENT)
+
+        # ── 슬라이드 5 (No-Linear): 서비스 영구 등록 ─────────────────────────
+        s = prs.slides.add_slide(blank)
+        _set_bg(s)
+        _slide_header(s, "Step 4 — 서비스 영구 등록 (권장)", slide_w)
+        _add_text(s, "WSL2 재시작 후에도 서비스가 자동 복구되도록 systemd에 등록합니다.",
+                  Inches(0.8), Inches(1.35), body_w, Inches(0.55), size=14, color=_GRAY)
+        _numbered_items(s, [
+            ("① systemd 사용자 서비스 등록", "bash scripts/install-service.sh"),
+            ("② 터미널 종료·WSL2 재시작 후에도 자동 유지 확인", None),
+            ("③ (선택) Windows 재부팅 후 WSL2 자동 기동 — 관리자 PowerShell에서:",
+             "powershell -ExecutionPolicy Bypass -File scripts\\setup-autostart.ps1"),
+        ], start_y=2.0)
 
     # ── 마지막 슬라이드: 참고 문서 & 다음 단계 ───────────────────────────────
     s = prs.slides.add_slide(blank)
@@ -221,14 +221,14 @@ def build_setup_guide_pptx(
     if has_linear:
         refs = [
             ("docs/api-keys/", "각 API 키 발급 상세 가이드"),
-            ("scripts/setup-tunnel.sh", "터널 설정 (Cloudflare / ngrok / polling)"),
-            ("ClickEye 웹 → 설정 → Linear", "API 키 · Tunnel URL · Webhook 등록"),
+            ("docs/WEBHOOK_SETUP.md", "Linear Webhook / 터널 / 폴링 설정 상세"),
+            ("scripts/install-service.sh", "systemd 서비스 등록 (영구 유지)"),
             ("ClickEye 웹 → AI Team", "작업 요청 등록 → Linear 이슈 자동 생성"),
         ]
     else:
         refs = [
             ("docs/api-keys/", "각 API 키 발급 상세 가이드"),
-            ("docs/WEBHOOK_SETUP.md", "Webhook 서버 설정"),
+            ("scripts/install-service.sh", "systemd 서비스 등록 (영구 유지)"),
             ("프로젝트 대시보드", "설정 변경 / ZIP 재다운로드"),
         ]
 

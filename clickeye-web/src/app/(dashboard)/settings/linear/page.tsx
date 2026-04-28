@@ -78,38 +78,39 @@ function TunnelGuide() {
     <GuideBlock title="터널 URL은 어떻게 얻나요?">
       <p className="leading-relaxed">
         터널 URL은 로컬 webhook 서버를 인터넷에서 접근 가능하게 해주는 외부 주소입니다.
-        ZIP에 포함된 스크립트로 자동 설치됩니다.
+        <strong> bash start.sh</strong>를 실행하면 자동으로 설정됩니다.
       </p>
       <ol className="space-y-2.5 list-none">
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">1</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">ZIP 압축 해제 후 실행</p>
-            <CodeLine>bash scripts/setup-tunnel.sh</CodeLine>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">ZIP 압축 해제 후 런처 실행 (터널·Webhook 자동 설정)</p>
+            <CodeLine>bash start.sh</CodeLine>
           </div>
         </li>
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">2</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">출력된 URL 복사</p>
-            <div className="rounded-lg border border-[var(--border-subtle)] bg-zinc-50 px-3 py-2 font-mono text-[11px] text-emerald-700">
-              {"https://abc-xyz-123.trycloudflare.com"}
-            </div>
-            <p className="mt-1 text-[var(--text-muted)]">이 URL을 아래 입력란에 붙여넣으세요.</p>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">발급된 터널 URL 확인</p>
+            <CodeLine>{"cat .run/tunnel.url"}</CodeLine>
+            <p className="mt-1 text-[var(--text-muted)]">출력된 URL을 아래 입력란에 붙여넣으세요.</p>
           </div>
         </li>
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">3</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">webhook 서버 실행 (별도 터미널)</p>
-            <CodeLine>bash scripts/start-webhook.sh</CodeLine>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">URL 갱신이 필요할 때 (WSL2 재시작 후)</p>
+            <CodeLine>bash start.sh</CodeLine>
+            <p className="mt-1 text-[var(--text-muted)]">재실행하면 새 URL로 Webhook이 자동 재등록됩니다.</p>
           </div>
         </li>
       </ol>
       <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mt-1">
         <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-700" />
         <p className="text-amber-700">
-          터널 프로세스가 실행 중일 때만 URL이 유효합니다. 재시작하면 URL이 바뀔 수 있으니 그때마다 여기서 업데이트해 주세요.
+          Cloudflare 무료 터널은 WSL2 재시작 시 URL이 변경됩니다.
+          재시작 후 <strong>bash start.sh</strong>를 다시 실행해 주세요.
+          systemd 서비스(<strong>install-service.sh</strong>)로 등록하면 Webhook 서버와 Watcher는 자동 유지됩니다.
         </p>
       </div>
       <a

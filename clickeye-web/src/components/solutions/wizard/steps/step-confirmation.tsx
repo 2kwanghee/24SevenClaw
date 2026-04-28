@@ -18,7 +18,7 @@ import {
   Download,
   Terminal,
   FolderOpen,
-  Sparkles,
+  ShieldCheck,
   KeyRound,
   ExternalLink,
   TrendingDown,
@@ -232,14 +232,17 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
     {
       icon: Terminal,
       label: "런처 스크립트 실행",
-      desc: "런처가 Node.js · Claude Code CLI · .env를 자동으로 확인하고 설치를 안내합니다",
+      desc: "환경 점검·서비스 기동 후 자동 종료됩니다. 터미널을 닫아도 파이프라인이 계속 실행됩니다.",
       command: "bash start.sh",
     },
     {
-      icon: Sparkles,
-      label: "/ClickEyeStart 실행",
-      desc: "Claude Code 프롬프트 안에서 커맨드를 입력하면 .env 검증 → API 키 안내 → 셋업 완료까지 자동으로 진행됩니다",
-      command: "/ClickEyeStart",
+      icon: ShieldCheck,
+      label: isWsl ? "서비스 영구 등록 (권장)" : "셋업 완료 확인",
+      desc: isWsl
+        ? "WSL2 종료·재시작 후에도 서비스가 자동 복구됩니다. systemd 사용자 서비스로 등록합니다."
+        : "ClickEye 웹 AI Team에서 태스크를 등록하면 로컬 파이프라인이 자동으로 실행됩니다.",
+      ...(isWsl ? { command: "bash scripts/install-service.sh" } : {}),
+      ...(isWsl ? { note: "선택사항이지만 안정적인 운영을 위해 권장합니다" } : {}),
     },
   ];
 
@@ -375,27 +378,34 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
             </div>
           )}
 
-          {/* /ClickEyeStart 흐름 안내 */}
+          {/* 셋업 완료 후 워크플로 */}
           <div className="mb-5 space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-              /ClickEyeStart 실행 흐름
+              셋업 완료 후 워크플로
             </p>
             <div className="space-y-1 text-[11px] text-zinc-500">
               <p>
                 ①{" "}
-                <code className="text-emerald-600">bash start.sh</code> 실행 →
-                Node·Claude Code 점검 후 자동 진입
+                <code className="text-emerald-600">bash start.sh</code> → 환경
+                점검·서비스 백그라운드 기동 후 자동 종료
+              </p>
+              {isWsl && (
+                <p>
+                  ②{" "}
+                  <code className="text-emerald-600">
+                    bash scripts/install-service.sh
+                  </code>{" "}
+                  → systemd 서비스 등록 (WSL2 재시작 후 자동 복구)
+                </p>
+              )}
+              <p>
+                {isWsl ? "③" : "②"} ClickEye 웹 → AI Team → 태스크 승인
+                (Todo)
               </p>
               <p>
-                ②{" "}
-                <code className="text-emerald-600">/ClickEyeStart</code> 입력 →
-                자동 셋업 시작
+                {isWsl ? "④" : "③"} 로컬 파이프라인이 자동으로 Claude를
+                호출해 코드를 작성합니다
               </p>
-              <p>
-                ③ <code className="text-zinc-500">.env</code> 검증 → 누락 키
-                대화형 입력 안내
-              </p>
-              <p>④ 셋업 완료 메시지 출력 → 개발 준비 완료</p>
             </div>
             <p className="mt-2 border-t border-emerald-100 pt-2 text-[11px] text-zinc-500">
               팀 공유용 슬라이드 가이드: ZIP 내{" "}
