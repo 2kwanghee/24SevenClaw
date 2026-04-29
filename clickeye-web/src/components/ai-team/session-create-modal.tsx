@@ -170,7 +170,7 @@ export function SessionCreateModal({
                 <label htmlFor="session-desc" className="mb-1.5 block text-xs font-medium text-[var(--text-secondary)]">
                   상세 설명
                 </label>
-                <textarea
+                <textarea data-gramm="false" data-gramm_editor="false"
                   id="session-desc"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

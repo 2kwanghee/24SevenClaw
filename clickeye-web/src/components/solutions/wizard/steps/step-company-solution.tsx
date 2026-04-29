@@ -437,7 +437,7 @@ export function StepCompanySolution() {
           회사 설명{" "}
           <span className="text-xs font-normal text-zinc-500">(선택)</span>
         </label>
-        <textarea
+        <textarea data-gramm="false" data-gramm_editor="false"
           id="company-description"
           {...register("companyDescription")}
           rows={3}
@@ -464,7 +464,7 @@ export function StepCompanySolution() {
         <p className="text-xs text-zinc-500">
           자연어로 자유롭게 작성하세요. AI가 분석하여 최적의 솔루션을 설계합니다.
         </p>
-        <textarea
+        <textarea data-gramm="false" data-gramm_editor="false"
           id="solution-request"
           {...register("solutionRequest")}
           rows={5}

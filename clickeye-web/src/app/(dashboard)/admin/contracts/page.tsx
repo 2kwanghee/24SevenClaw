@@ -265,7 +265,7 @@ function CreateContractDialog({
               <label htmlFor="content" className="mb-1 block text-xs font-medium text-[var(--text-muted)]">
                 콘텐츠 (JSON)
               </label>
-              <textarea
+              <textarea data-gramm="false" data-gramm_editor="false"
                 id="content"
                 value={contentText}
                 onChange={(e) => setContentText(e.target.value)}

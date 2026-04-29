@@ -1,12 +1,15 @@
 """ZIP 생성 서비스 — 위저드 설정 기반 프로젝트 ZIP 패키징."""
 
 import io
+import logging
 import zipfile
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 from app.engine.catalog import prefetch_for_generator
 from app.engine.generator import generate_all
 from app.schemas.generate import GenerateRequest
@@ -46,9 +49,16 @@ async def generate_zip(
 
     clickeye_vars: dict[str, str] | None = None
     if setup_token and clickeye_project_id:
+        api_url = settings.public_api_url
+        if api_url.startswith(("http://localhost", "http://127.0.0.1")):
+            logger.warning(
+                "PUBLIC_API_URL is localhost — ZIP will bake a localhost URL. "
+                "Users on other machines cannot reach it. "
+                "Set PUBLIC_API_URL to a publicly reachable domain in .env."
+            )
         clickeye_vars = {
             "CLICKEYE_PROJECT_ID": clickeye_project_id,
-            "CLICKEYE_API_URL": settings.public_api_url,
+            "CLICKEYE_API_URL": api_url,
             "CLICKEYE_SETUP_TOKEN": setup_token,
         }
 

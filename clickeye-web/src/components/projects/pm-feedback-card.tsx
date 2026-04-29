@@ -161,7 +161,7 @@ export function PMFeedbackCard({
           </div>
 
           {/* 텍스트 피드백 */}
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="어떤 업무를 잘 처리하는지, 어떤 점이 아쉬웠는지 자유롭게 적어주세요. PM 개선에 큰 도움이 됩니다."

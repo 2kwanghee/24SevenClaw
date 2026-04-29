@@ -264,7 +264,7 @@ function BasicTab({ form, set, isEdit }: { form: FormState; set: SetFn; isEdit: 
         <input className={INPUT} value={form.title} onChange={set("title")} required />
       </Field>
       <Field label="설명">
-        <textarea className={TEXTAREA} value={form.description} onChange={set("description")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={TEXTAREA} value={form.description} onChange={set("description")} />
       </Field>
       <Field label="태그" hint="쉼표로 구분 (예: saas, fullstack, multi-tenant)">
         <input className={INPUT} value={form.tags} onChange={set("tags")} />
@@ -308,13 +308,13 @@ function TechTab({ form, set }: { form: FormState; set: SetFn }) {
         <input className={INPUT} value={form.tech_stack_tags} onChange={set("tech_stack_tags")} />
       </Field>
       <Field label="UI Structure (JSON)">
-        <textarea className={`${TEXTAREA} min-h-[120px] font-mono text-xs`} value={form.ui_structure} onChange={set("ui_structure")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[120px] font-mono text-xs`} value={form.ui_structure} onChange={set("ui_structure")} />
       </Field>
       <Field label="Menu Structure (JSON)">
-        <textarea className={`${TEXTAREA} min-h-[80px] font-mono text-xs`} value={form.menu_structure} onChange={set("menu_structure")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[80px] font-mono text-xs`} value={form.menu_structure} onChange={set("menu_structure")} />
       </Field>
       <Field label="Color Palette (JSON)">
-        <textarea className={`${TEXTAREA} min-h-[80px] font-mono text-xs`} value={form.color_palette} onChange={set("color_palette")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[80px] font-mono text-xs`} value={form.color_palette} onChange={set("color_palette")} />
       </Field>
     </>
   );
@@ -324,10 +324,10 @@ function ProsConsTab({ form, set }: { form: FormState; set: SetFn }) {
   return (
     <>
       <Field label="장점 (줄바꿈으로 구분)">
-        <textarea className={`${TEXTAREA} min-h-[120px]`} value={form.pros} onChange={set("pros")} placeholder="예:\nAPI-first 설계로 확장 용이&#10;멀티테넌트 지원" />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[120px]`} value={form.pros} onChange={set("pros")} placeholder="예:\nAPI-first 설계로 확장 용이&#10;멀티테넌트 지원" />
       </Field>
       <Field label="단점 (줄바꿈으로 구분)">
-        <textarea className={`${TEXTAREA} min-h-[120px]`} value={form.cons} onChange={set("cons")} placeholder="예:\n초기 설정 복잡&#10;러닝커브 높음" />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[120px]`} value={form.cons} onChange={set("cons")} placeholder="예:\n초기 설정 복잡&#10;러닝커브 높음" />
       </Field>
     </>
   );
@@ -337,10 +337,10 @@ function AgentTab({ form, set }: { form: FormState; set: SetFn }) {
   return (
     <>
       <Field label="설계 철학">
-        <textarea className={`${TEXTAREA} min-h-[100px]`} value={form.design_philosophy} onChange={set("design_philosophy")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[100px]`} value={form.design_philosophy} onChange={set("design_philosophy")} />
       </Field>
       <Field label="구현 제약사항 (줄바꿈으로 구분)">
-        <textarea className={TEXTAREA} value={form.implementation_constraints} onChange={set("implementation_constraints")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={TEXTAREA} value={form.implementation_constraints} onChange={set("implementation_constraints")} />
       </Field>
       <Field label="권장 에이전트" hint="쉼표로 구분 (예: backend, fullstack, frontend)">
         <input className={INPUT} value={form.recommended_agents} onChange={set("recommended_agents")} />
@@ -355,10 +355,10 @@ function AgentTab({ form, set }: { form: FormState; set: SetFn }) {
         <input className={INPUT} value={form.recommended_skills} onChange={set("recommended_skills")} />
       </Field>
       <Field label="에이전트 전략">
-        <textarea className={`${TEXTAREA} min-h-[100px]`} value={form.agent_strategy} onChange={set("agent_strategy")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[100px]`} value={form.agent_strategy} onChange={set("agent_strategy")} />
       </Field>
       <Field label="작업 분배 가이드">
-        <textarea className={`${TEXTAREA} min-h-[100px]`} value={form.task_distribution_guide} onChange={set("task_distribution_guide")} />
+        <textarea data-gramm="false" data-gramm_editor="false" className={`${TEXTAREA} min-h-[100px]`} value={form.task_distribution_guide} onChange={set("task_distribution_guide")} />
       </Field>
     </>
   );

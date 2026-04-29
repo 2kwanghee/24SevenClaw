@@ -76,7 +76,7 @@ export function ProjectForm({
         </label>
         <div className="relative">
           <FileText className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-[var(--text-muted)]" />
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             id="description"
             rows={3}
             {...register("description")}

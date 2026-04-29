@@ -63,7 +63,7 @@ export function OverrideEditor({
       )}
 
       {/* JSON 에디터 */}
-      <textarea
+      <textarea data-gramm="false" data-gramm_editor="false"
         value={jsonText}
         onChange={(e) => {
           setJsonText(e.target.value);

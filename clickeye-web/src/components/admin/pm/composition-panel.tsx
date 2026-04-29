@@ -194,7 +194,7 @@ function CompositionFormPanel({ form, onChange, onSubmit, onCancel, isPending, i
           body_md_override (마크다운 재정의)
         </button>
         {showBodyMd && (
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             rows={8}
             value={form.body_md_override}
             onChange={(e) => onChange({ ...form, body_md_override: e.target.value })}

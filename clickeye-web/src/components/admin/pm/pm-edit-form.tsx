@@ -302,7 +302,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           <label className="block text-xs text-[var(--text-muted)] mb-1">
             상세 소개 (bio_long) — Claude PM 추천 시 전달
           </label>
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             {...register("bio_long")}
             rows={6}
             placeholder="PM의 전문성, 경험, 스타일을 상세히 기술해 주세요."

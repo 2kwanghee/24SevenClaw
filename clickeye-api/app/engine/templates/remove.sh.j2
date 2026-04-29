@@ -61,7 +61,7 @@ unregister_webhook() {
 
   # 등록된 webhook 목록 조회 후 ClickEye 레이블 webhook 삭제
   python3 - <<PYEOF
-import urllib.request, urllib.error, json, sys
+{% raw %}import urllib.request, urllib.error, json, sys
 
 api_key = "$api_key"
 headers = {"Authorization": api_key, "Content-Type": "application/json"}
@@ -94,7 +94,7 @@ for wh in target:
             print(f"  ⚠️  Webhook 해제 실패 (id: {wh['id']})")
     except Exception as e:
         print(f"  ⚠️  Webhook 삭제 오류: {e}")
-PYEOF
+{% endraw %}PYEOF
 }
 
 # ── .env 초기화 ─────────────────────────────────────────────────────────────────

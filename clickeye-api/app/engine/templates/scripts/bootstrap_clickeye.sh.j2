@@ -26,30 +26,65 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 # ── 필수 변수 검증 ────────────────────────────────────────────────────────────
-if [[ -z "${CLICKEYE_PROJECT_ID:-}" ]] || [[ -z "${CLICKEYE_SETUP_TOKEN:-}" ]] || [[ -z "${CLICKEYE_API_URL:-}" ]]; then
-  echo "[bootstrap] CLICKEYE_* 환경 변수 누락 — 부트스트랩을 건너뜁니다." | tee -a "$BOOTSTRAP_LOG"
-  exit 0
+MISSING_VARS=""
+[[ -z "${CLICKEYE_PROJECT_ID:-}" ]] && MISSING_VARS="${MISSING_VARS} CLICKEYE_PROJECT_ID"
+[[ -z "${CLICKEYE_SETUP_TOKEN:-}" ]] && MISSING_VARS="${MISSING_VARS} CLICKEYE_SETUP_TOKEN"
+[[ -z "${CLICKEYE_API_URL:-}" ]]    && MISSING_VARS="${MISSING_VARS} CLICKEYE_API_URL"
+if [[ -n "${MISSING_VARS# }" ]]; then
+  echo "[bootstrap] CLICKEYE_* 환경 변수 누락:${MISSING_VARS}" | tee -a "$BOOTSTRAP_LOG"
+  echo "[bootstrap] .env 파일: $ENV_FILE — 해당 변수를 채운 후 재실행하세요." | tee -a "$BOOTSTRAP_LOG"
+  exit 1
 fi
 
 BOOTSTRAP_URL="$CLICKEYE_API_URL/api/v1/projects/$CLICKEYE_PROJECT_ID/setup"
 AUTH_HEADER="Authorization: Bearer $CLICKEYE_SETUP_TOKEN"
 
-echo "[bootstrap] 요구사항 조회 중..." | tee -a "$BOOTSTRAP_LOG"
+echo "[bootstrap] 요구사항 조회 중... (URL: $BOOTSTRAP_URL/requirements)" | tee -a "$BOOTSTRAP_LOG"
 
 # ── running 상태 보고 ─────────────────────────────────────────────────────────
-curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+curl -sS -X POST "$BOOTSTRAP_URL/bootstrap-status" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
   -d '{"status":"running"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
 
 # ── 요구사항 fetch ────────────────────────────────────────────────────────────
+# curl -sS: show errors, -o: body to file, -w: capture status code
 REQS_FILE="$PROJECT_ROOT/.run/requirements.json"
-if ! curl -sf -H "$AUTH_HEADER" "$BOOTSTRAP_URL/requirements" -o "$REQS_FILE"; then
-  echo "[bootstrap] 요구사항 조회 실패 — 클라우드 연결을 확인하세요." | tee -a "$BOOTSTRAP_LOG"
-  curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+set +e
+HTTP_STATUS=$(curl -sS \
+  -H "$AUTH_HEADER" \
+  -o "$REQS_FILE" \
+  -w "%{http_code}" \
+  "$BOOTSTRAP_URL/requirements" 2>> "$BOOTSTRAP_LOG")
+CURL_RC=$?
+set -e
+
+if [[ $CURL_RC -ne 0 ]] || [[ "${HTTP_STATUS:0:1}" != "2" ]]; then
+  echo "[bootstrap] 요구사항 조회 실패 (HTTP ${HTTP_STATUS:-000}, curl rc: ${CURL_RC})" | tee -a "$BOOTSTRAP_LOG"
+  echo "[bootstrap] URL: $BOOTSTRAP_URL/requirements" | tee -a "$BOOTSTRAP_LOG"
+  if [[ -s "$REQS_FILE" ]]; then
+    echo "[bootstrap] 서버 응답 (최대 4KB):" >> "$BOOTSTRAP_LOG"
+    head -c 4096 "$REQS_FILE" >> "$BOOTSTRAP_LOG"
+    echo "" >> "$BOOTSTRAP_LOG"
+  fi
+  if [[ "${HTTP_STATUS:-000}" == "000" ]]; then
+    echo "[bootstrap] ↳ 서버에 도달하지 못했습니다. CLICKEYE_API_URL($CLICKEYE_API_URL)이 이 PC에서 접근 가능한지 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+  elif [[ "$HTTP_STATUS" == "404" ]]; then
+    echo "[bootstrap] ↳ 엔드포인트 없음(404). CLICKEYE_API_URL 포트가 올바른지 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+    echo "[bootstrap]   API 서버(FastAPI)는 보통 :8000, 웹 서버(Next.js)는 :3000 — 혼동하지 마세요." | tee -a "$BOOTSTRAP_LOG"
+  elif [[ "$HTTP_STATUS" == "401" ]] || [[ "$HTTP_STATUS" == "403" ]]; then
+    echo "[bootstrap] ↳ 인증 오류($HTTP_STATUS). .env의 CLICKEYE_SETUP_TOKEN이 올바른지 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+  elif [[ "${HTTP_STATUS:0:1}" == "4" ]]; then
+    echo "[bootstrap] ↳ 클라이언트 오류($HTTP_STATUS). CLICKEYE_PROJECT_ID 또는 CLICKEYE_SETUP_TOKEN을 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+  else
+    echo "[bootstrap] ↳ 서버 오류($HTTP_STATUS). API 서버 로그를 확인하거나 잠시 후 재시도하세요." | tee -a "$BOOTSTRAP_LOG"
+  fi
+  curl -sS -X POST "$BOOTSTRAP_URL/bootstrap-status" \
     -H "$AUTH_HEADER" \
     -H "Content-Type: application/json" \
-    -d '{"status":"failed","error":"requirements fetch failed"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
+    -d "{\"status\":\"failed\",\"error\":\"requirements fetch failed, HTTP ${HTTP_STATUS:-000}\"}" \
+    >> "$BOOTSTRAP_LOG" 2>&1 || true
+  echo "[bootstrap] 진단 로그: $BOOTSTRAP_LOG" | tee -a "$BOOTSTRAP_LOG"
   exit 1
 fi
 
@@ -60,7 +95,7 @@ python3 "$SCRIPT_DIR/decompose_local.py" "$REQS_FILE" "$SUBTASKS_FILE" >> "$BOOT
 
 if [[ ! -f "$SUBTASKS_FILE" ]] || [[ ! -s "$SUBTASKS_FILE" ]]; then
   echo "[bootstrap] 분해 실패 — 수동으로 AI Team에서 서브태스크를 추가하세요." | tee -a "$BOOTSTRAP_LOG"
-  curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+  curl -sS -X POST "$BOOTSTRAP_URL/bootstrap-status" \
     -H "$AUTH_HEADER" \
     -H "Content-Type: application/json" \
     -d '{"status":"failed","error":"decompose failed"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
@@ -86,14 +121,30 @@ with open('$SUBTASKS_FILE') as f:
 print(json.dumps({'subtasks': subtasks, 'decompose_method': subtasks[0].get('_method','manual') if subtasks else 'manual'}))
 ")
 
-if RESPONSE=$(curl -sf -X POST "$BOOTSTRAP_URL/orchestrator-bootstrap" \
+REPORT_BODY_FILE="$PROJECT_ROOT/.run/report_response.tmp"
+set +e
+REPORT_STATUS=$(curl -sS -X POST "$BOOTSTRAP_URL/orchestrator-bootstrap" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD"); then
+  -d "$PAYLOAD" \
+  -o "$REPORT_BODY_FILE" \
+  -w "%{http_code}" 2>> "$BOOTSTRAP_LOG")
+REPORT_RC=$?
+set -e
+
+if [[ $REPORT_RC -eq 0 ]] && [[ "${REPORT_STATUS:0:1}" == "2" ]]; then
+  RESPONSE=$(cat "$REPORT_BODY_FILE" 2>/dev/null || echo "")
   echo "[bootstrap] 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
   date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BOOTSTRAP_DONE"
   echo "[bootstrap] ✅ 완료 — AI Team 화면에서 서브태스크를 확인하세요."
 else
-  echo "[bootstrap] 클라우드 보고 실패 — 재시도: bash scripts/bootstrap_clickeye.sh" | tee -a "$BOOTSTRAP_LOG"
+  echo "[bootstrap] 클라우드 보고 실패 (HTTP ${REPORT_STATUS:-000}, curl rc: ${REPORT_RC})" | tee -a "$BOOTSTRAP_LOG"
+  if [[ -s "$REPORT_BODY_FILE" ]]; then
+    echo "[bootstrap] 서버 응답:" >> "$BOOTSTRAP_LOG"
+    head -c 4096 "$REPORT_BODY_FILE" >> "$BOOTSTRAP_LOG"
+    echo "" >> "$BOOTSTRAP_LOG"
+  fi
+  echo "[bootstrap] 진단 로그: $BOOTSTRAP_LOG" | tee -a "$BOOTSTRAP_LOG"
+  echo "[bootstrap] 재시도: bash scripts/bootstrap_clickeye.sh" | tee -a "$BOOTSTRAP_LOG"
   exit 1
 fi

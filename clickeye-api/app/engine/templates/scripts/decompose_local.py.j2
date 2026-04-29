@@ -61,7 +61,7 @@ def _rule_based(requirements_text: str, project_name: str) -> list[dict[str, Any
 
 
 def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:
-    prompt = DECOMPOSE_PROMPT.format(requirements=requirements_text[:3000])
+    prompt = DECOMPOSE_PROMPT.replace("{requirements}", requirements_text[:3000])
     try:
         result = subprocess.run(
             ["claude", "-p", prompt, "--output-format", "json"],

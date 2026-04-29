@@ -17,7 +17,7 @@ export function MarkdownEditor({ value, onChange, rows = 28 }: MarkdownEditorPro
         <div className="border-b border-[var(--border-subtle)] px-3 py-1.5">
           <span className="text-xs text-[var(--text-muted)]">편집</span>
         </div>
-        <textarea
+        <textarea data-gramm="false" data-gramm_editor="false"
           spellCheck={false}
           style={{ height: `${rows * 1.5}rem` }}
           className="w-full flex-1 resize-none bg-zinc-50 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:outline-none"

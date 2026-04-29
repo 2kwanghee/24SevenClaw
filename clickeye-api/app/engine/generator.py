@@ -697,4 +697,5 @@ def _emit_first_run_artifacts(
         files["logs/.gitkeep"] = ""
         files[".run/.gitkeep"] = ""
     except Exception:
-        pass
+        import logging as _logging
+        _logging.getLogger(__name__).exception("_emit_first_run_artifacts 실패")

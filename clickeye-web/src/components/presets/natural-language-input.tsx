@@ -51,7 +51,7 @@ export function NaturalLanguageInput({
         </p>
 
         <div className="relative">
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}

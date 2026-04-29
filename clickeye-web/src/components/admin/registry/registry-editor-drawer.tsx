@@ -184,7 +184,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
             body_md{" "}
             <span className="text-[var(--text-muted)]">(Markdown 상세 설명)</span>
           </label>
-          <textarea
+          <textarea data-gramm="false" data-gramm_editor="false"
             rows={12}
             value={form.body_md}
             onChange={(e) => setForm({ ...form, body_md: e.target.value })}
