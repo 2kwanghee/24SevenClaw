@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className={inter.variable} suppressHydrationWarning>
-      <body className="min-h-screen antialiased">
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
