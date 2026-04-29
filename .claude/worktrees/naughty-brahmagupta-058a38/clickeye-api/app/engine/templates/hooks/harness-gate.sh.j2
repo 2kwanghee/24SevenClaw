@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# 하네스 Gate — lint + typecheck + test 자동 검증
+# Claude Code UserPromptSubmit Hook으로 등록되어 자동 실행됨
+
+set -euo pipefail
+
+ERRORS=()
+
+{% if stack %}
+# ── 백엔드 검증 ──
+{% if stack.lint.backend %}
+echo "🔍 백엔드 린트..."
+if ! {{ stack.lint.backend }} 2>/dev/null; then
+  ERRORS+=("백엔드 린트 실패")
+fi
+{% endif %}
+
+{% if stack.typecheck.backend %}
+echo "🔍 백엔드 타입체크..."
+if ! {{ stack.typecheck.backend }} 2>/dev/null; then
+  ERRORS+=("백엔드 타입체크 실패")
+fi
+{% endif %}
+
+{% if stack.test.backend %}
+echo "🧪 백엔드 테스트..."
+if ! {{ stack.test.backend }} 2>/dev/null; then
+  ERRORS+=("백엔드 테스트 실패")
+fi
+{% endif %}
+
+# ── 프론트엔드 검증 ──
+{% if stack.lint.frontend %}
+echo "🔍 프론트엔드 린트..."
+if ! {{ stack.lint.frontend }} 2>/dev/null; then
+  ERRORS+=("프론트엔드 린트 실패")
+fi
+{% endif %}
+
+{% if stack.typecheck.frontend %}
+echo "🔍 프론트엔드 타입체크..."
+if ! {{ stack.typecheck.frontend }} 2>/dev/null; then
+  ERRORS+=("프론트엔드 타입체크 실패")
+fi
+{% endif %}
+
+{% if stack.test.frontend %}
+echo "🧪 프론트엔드 테스트..."
+if ! {{ stack.test.frontend }} 2>/dev/null; then
+  ERRORS+=("프론트엔드 테스트 실패")
+fi
+{% endif %}
+{% else %}
+echo "⚠️ 기술 스택이 설정되지 않았습니다. 직접 Gate 명령어를 설정하세요."
+exit 0
+{% endif %}
+
+{% raw %}
+# ── 결과 출력 ──
+if [ ${#ERRORS[@]} -gt 0 ]; then
+  echo ""
+  echo "❌ 하네스 Gate 실패:"
+  for err in "${ERRORS[@]}"; do
+    echo "  - $err"
+  done
+  exit 1
+fi
+
+echo "✅ 하네스 Gate 통과"
+{% endraw %}

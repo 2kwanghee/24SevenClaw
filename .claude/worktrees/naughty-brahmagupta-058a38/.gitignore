@@ -1,0 +1,19 @@
+# === Node ===
+node_modules/
+
+# === Flow-Ops 파이프라인 런타임 ===
+.ralph/tasks/
+.ralph/PLAN.md
+.ralph/TASK.md
+.ralph/fix_plan.md
+.ralph/.pipeline_lock
+.ralph/.task_mapping.json
+.ralph/.task_mapping_full.json
+.ralph/.iteration_count
+.ralph/.pipeline_result.json
+.ralph/.task_list.tmp
+.worktrees/
+logs/
+.env
+.mcp.json
+__pycache__/

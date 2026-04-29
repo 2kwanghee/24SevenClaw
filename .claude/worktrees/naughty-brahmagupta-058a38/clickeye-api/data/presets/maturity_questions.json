@@ -1,0 +1,112 @@
+[
+  {
+    "id": "team-size",
+    "text": "개발팀 규모는 어느 정도인가요?",
+    "category": "team",
+    "weight": 1.0,
+    "options": [
+      {"label": "1-3명", "score": 20},
+      {"label": "4-10명", "score": 50},
+      {"label": "11명 이상", "score": 100}
+    ]
+  },
+  {
+    "id": "team-ai-experience",
+    "text": "팀의 AI 코딩 도구 사용 경험은?",
+    "category": "team",
+    "weight": 1.5,
+    "options": [
+      {"label": "처음 사용", "score": 10},
+      {"label": "개인적으로 사용해 봄", "score": 50},
+      {"label": "팀 단위로 활용 중", "score": 100}
+    ]
+  },
+  {
+    "id": "process-code-review",
+    "text": "코드 리뷰 프로세스가 있나요?",
+    "category": "process",
+    "weight": 1.2,
+    "options": [
+      {"label": "없음", "score": 10},
+      {"label": "비정기적으로 수행", "score": 40},
+      {"label": "PR 기반 필수 리뷰", "score": 100}
+    ]
+  },
+  {
+    "id": "process-branching",
+    "text": "브랜치 전략을 사용하나요?",
+    "category": "process",
+    "weight": 1.0,
+    "options": [
+      {"label": "main에 직접 푸시", "score": 10},
+      {"label": "feature 브랜치 사용", "score": 60},
+      {"label": "Git Flow 또는 Trunk-Based", "score": 100}
+    ]
+  },
+  {
+    "id": "tooling-ide",
+    "text": "주로 사용하는 개발 환경은?",
+    "category": "tooling",
+    "weight": 0.8,
+    "options": [
+      {"label": "기본 텍스트 에디터", "score": 10},
+      {"label": "VS Code / JetBrains IDE", "score": 60},
+      {"label": "AI 통합 IDE (Cursor 등)", "score": 100}
+    ]
+  },
+  {
+    "id": "tooling-testing",
+    "text": "자동화된 테스트를 작성하나요?",
+    "category": "tooling",
+    "weight": 1.5,
+    "options": [
+      {"label": "테스트 없음", "score": 10},
+      {"label": "주요 기능만 단위 테스트", "score": 50},
+      {"label": "단위 + 통합 + E2E 테스트", "score": 100}
+    ]
+  },
+  {
+    "id": "ci-pipeline",
+    "text": "CI/CD 파이프라인이 구축되어 있나요?",
+    "category": "ci",
+    "weight": 1.5,
+    "options": [
+      {"label": "없음", "score": 10},
+      {"label": "기본 빌드/테스트 자동화", "score": 50},
+      {"label": "빌드 + 테스트 + 배포 + 모니터링", "score": 100}
+    ]
+  },
+  {
+    "id": "ci-deploy-frequency",
+    "text": "배포 주기는 어느 정도인가요?",
+    "category": "ci",
+    "weight": 1.0,
+    "options": [
+      {"label": "월 1회 이하", "score": 20},
+      {"label": "주 1-2회", "score": 50},
+      {"label": "매일 또는 여러 번", "score": 100}
+    ]
+  },
+  {
+    "id": "ai-usage",
+    "text": "현재 AI 도구를 개발 워크플로에 어떻게 활용하나요?",
+    "category": "ai",
+    "weight": 2.0,
+    "options": [
+      {"label": "사용하지 않음", "score": 10},
+      {"label": "코드 자동완성 수준", "score": 40},
+      {"label": "에이전트 기반 자동화", "score": 100}
+    ]
+  },
+  {
+    "id": "ai-governance",
+    "text": "AI 생성 코드에 대한 품질 관리 체계가 있나요?",
+    "category": "ai",
+    "weight": 1.5,
+    "options": [
+      {"label": "없음", "score": 10},
+      {"label": "수동 검토", "score": 50},
+      {"label": "자동화된 품질 게이트", "score": 100}
+    ]
+  }
+]

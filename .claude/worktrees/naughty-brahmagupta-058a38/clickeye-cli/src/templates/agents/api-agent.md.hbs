@@ -1,0 +1,45 @@
+# API Agent — {{projectName}} Backend Development Guide
+
+> 이 파일은 {{projectName}} 백엔드 모듈 개발 시 Claude Code가 참조하는 전담 가이드입니다.
+
+## Tech Stack
+{{#if stack}}
+- **Backend**: {{stack.backend}}
+{{else}}
+- **Backend**: (프로젝트에 맞게 설정하세요)
+{{/if}}
+- **Testing**: 유닛 테스트 + 통합 테스트
+- **Linting**: 프로젝트 린트 도구
+
+## 핵심 원칙
+
+1. **API 설계**: RESTful 원칙 준수, 일관된 응답 형식
+2. **보안**: 인증/인가 필수, 입력 검증, SQL 인젝션 방지
+3. **에러 처리**: 명확한 에러 코드, 사용자 친화적 메시지
+4. **테스트**: 새 엔드포인트는 반드시 테스트 동반
+5. **문서화**: API 스펙 자동 생성 (OpenAPI)
+
+## 검증 명령어
+
+```bash
+{{#if stack}}
+# 테스트
+{{{stack.test.backend}}}
+
+# 린트
+{{{stack.lint.backend}}}
+
+# 타입 체크
+{{{stack.typecheck.backend}}}
+{{else}}
+# 프로젝트에 맞게 설정하세요
+{{/if}}
+```
+
+## 코딩 규칙
+
+- 모든 함수에 타입 어노테이션 필수
+- 비즈니스 로직은 서비스 레이어에 분리
+- DB 접근은 리포지토리 패턴 사용
+- 환경 변수는 설정 모듈로 중앙 관리
+- 커밋 메시지: `[api] 작업 내용`

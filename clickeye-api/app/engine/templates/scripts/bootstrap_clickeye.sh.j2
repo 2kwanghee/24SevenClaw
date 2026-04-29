@@ -86,12 +86,10 @@ with open('$SUBTASKS_FILE') as f:
 print(json.dumps({'subtasks': subtasks, 'decompose_method': subtasks[0].get('_method','manual') if subtasks else 'manual'}))
 ")
 
-RESPONSE=$(curl -sf -X POST "$BOOTSTRAP_URL/orchestrator-bootstrap" \
+if RESPONSE=$(curl -sf -X POST "$BOOTSTRAP_URL/orchestrator-bootstrap" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD")
-
-if [[ $? -eq 0 ]]; then
+  -d "$PAYLOAD"); then
   echo "[bootstrap] 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
   date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BOOTSTRAP_DONE"
   echo "[bootstrap] ✅ 완료 — AI Team 화면에서 서브태스크를 확인하세요."

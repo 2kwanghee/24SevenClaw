@@ -1,0 +1,18 @@
+{
+  "name": "@clickeye/contracts",
+  "version": "0.1.0",
+  "description": "ClickEye 공유 타입, OpenAPI 스펙, Agent 프로토콜",
+  "main": "generated/typescript/index.ts",
+  "types": "generated/typescript/index.ts",
+  "scripts": {
+    "generate": "./scripts/generate-ts.sh",
+    "validate": "tsc --noEmit",
+    "fetch-spec": "./scripts/fetch-spec.sh",
+    "pipeline": "./scripts/pipeline.sh"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.64.0",
+    "@hey-api/client-fetch": "^0.8.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""Linear Webhook 수신 서버 — {{ project_name }}.
+
+Linear에서 이슈 상태가 Todo로 변경되면
+로컬 Claude Code(또는 커스텀 파이프라인)를 자동 트리거한다.
+
+사용법:
+  python3 scripts/webhook_server.py          # 기본 포트 9876
+  python3 scripts/webhook_server.py --port 8080
+  python3 scripts/webhook_server.py --dry-run  # 트리거 안 함 (로그만)
+
+환경변수 (.env):
+  WEBHOOK_SECRET      Linear 서명 검증 시크릿 (Linear Settings → Webhooks에서 복사)
+  WEBHOOK_PUBLIC_URL  터널 URL (setup-tunnel.sh가 자동 기록)
+"""
+import hashlib
+import hmac
+import json
+import logging
+import os
+import subprocess
+import sys
+import threading
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from logging.handlers import WatchedFileHandler
+from pathlib import Path
+
+DEFAULT_PORT = 9876
+DRY_RUN = False
+WEBHOOK_SECRET: str | None = None
+
+# ── 로거 초기화 ─────────────────────────────────────────────────────────────────
+
+def _setup_logger() -> logging.Logger:
+    log_dir = Path(__file__).parent.parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+
+    logger = logging.getLogger("webhook")
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False  # root logger 핸들러 중복 출력 방지
+
+    fmt = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    # 파일 핸들러 — WatchedFileHandler: 파일 삭제/로테이션 후 자동 재오픈
+    fh = WatchedFileHandler(log_dir / "webhook.log", encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    # 콘솔 핸들러
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+
+    return logger
+
+_logger = _setup_logger()
+
+
+def _log(msg: str) -> None:
+    _logger.info(msg)
+
+
+def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
+def _trigger(issue_identifier: str, title: str) -> None:
+    """이슈 처리 트리거. claude CLI 또는 커스텀 스크립트 실행."""
+    try:
+        if DRY_RUN:
+            _log(f"DRY-RUN: {issue_identifier} — '{title}' (실행 안 함)")
+            return
+        _log(f"TRIGGER: {issue_identifier} — '{title}'")
+        pipeline = os.path.join(os.path.dirname(__file__), "run-pipeline.sh")
+        if os.path.exists(pipeline):
+            cmd = ["bash", pipeline, issue_identifier]
+        else:
+            prompt = f"Linear 이슈 {issue_identifier}를 처리해줘: {title}"
+            cmd = ["claude", "-p", prompt]
+        proc = subprocess.Popen(cmd, cwd=os.path.dirname(os.path.dirname(__file__)))
+
+        def _reap(p: subprocess.Popen) -> None:  # type: ignore[type-arg]
+            p.wait()
+            _log(f"DONE: {issue_identifier}, exit={p.returncode}")
+
+        threading.Thread(target=_reap, args=(proc,), daemon=True).start()
+    except Exception as exc:
+        _log(f"ERROR: {exc}")
+
+
+class _Handler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        if self.path == "/health":
+            self._ok({"status": "ok", "project": "{{ project_name }}"})
+        else:
+            self._send(404, {"error": "not found"})
+
+    def do_POST(self) -> None:
+        if self.path != "/webhook/linear":
+            self._send(404, {"error": "not found"})
+            return
+
+        length = int(self.headers.get("Content-Length", 0))
+        if length == 0:
+            self._send(400, {"error": "empty body"})
+            return
+
+        body = self.rfile.read(length)
+
+        if WEBHOOK_SECRET:
+            sig = self.headers.get("Linear-Signature", "")
+            if not _verify_signature(body, sig, WEBHOOK_SECRET):
+                _log("REJECTED: 서명 검증 실패")
+                self._send(401, {"error": "invalid signature"})
+                return
+
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            self._send(400, {"error": "invalid json"})
+            return
+
+        self._handle(payload)
+        self._ok({"ok": True})
+
+    def _handle(self, payload: dict) -> None:  # type: ignore[type-arg]
+        if payload.get("type") != "Issue":
+            return
+
+        action = payload.get("action")
+        data = payload.get("data", {})
+        identifier = data.get("identifier", "?")
+        title = data.get("title", "")
+        state_name = (data.get("state") or {}).get("name", "")
+
+        _log(f"EVENT: {action} {identifier} '{title}' → {state_name}")
+
+        if state_name == "Todo" and action in ("create", "update"):
+            threading.Thread(target=_trigger, args=(identifier, title), daemon=True).start()
+
+    def _ok(self, body: dict) -> None:  # type: ignore[type-arg]
+        self._send(200, body)
+
+    def _send(self, code: int, body: dict) -> None:  # type: ignore[type-arg]
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(body).encode())
+
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+        pass
+
+
+def _load_secret() -> None:
+    global WEBHOOK_SECRET
+    secret = os.getenv("WEBHOOK_SECRET")
+    if secret:
+        WEBHOOK_SECRET = secret
+        return
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                if line.strip().startswith("WEBHOOK_SECRET="):
+                    WEBHOOK_SECRET = line.strip().split("=", 1)[1]
+                    return
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Linear Webhook 서버")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    global DRY_RUN
+    DRY_RUN = args.dry_run
+    _load_secret()
+
+    server = HTTPServer(("0.0.0.0", args.port), _Handler)
+    _log(f"Linear Webhook 서버 시작 ({{ project_name }}): port={args.port}")
+    _log(f"  Endpoint : POST http://0.0.0.0:{args.port}/webhook/linear")
+    _log(f"  Health   : GET  http://localhost:{args.port}/health")
+    _log(f"  서명 검증 : {'활성' if WEBHOOK_SECRET else '비활성 (WEBHOOK_SECRET 미설정)'}")
+    _log(f"  Dry-run  : {DRY_RUN}")
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        _log("서버 종료")
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

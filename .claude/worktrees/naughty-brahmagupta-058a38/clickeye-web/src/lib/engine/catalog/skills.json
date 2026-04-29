@@ -1,0 +1,60 @@
+[
+  {
+    "id": "tdd",
+    "name": "TDD 스마트 코딩",
+    "description": "Red-Green-Refactor 사이클로 테스트 먼저 작성 → 코드 구현 → 리팩토링을 자동 반복. 커버리지 미달 시 재시도",
+    "whenToUse": "새 기능 구현 시 테스트 커버리지를 확실히 확보하고 싶을 때",
+    "template": "skills/tdd.md.hbs",
+    "outputFile": "tdd-smart-coding.md",
+    "dependencies": [],
+    "hooks": []
+  },
+  {
+    "id": "ai-critique",
+    "name": "AI 코드 리뷰",
+    "description": "코드 변경마다 보안·성능·가독성을 AI가 자동 리뷰하고 구체적 개선안을 제시. PR 품질 향상에 효과적",
+    "whenToUse": "코드 품질을 자동으로 검증하고 사람 리뷰 전에 문제를 잡고 싶을 때",
+    "template": "skills/ai-critique.md.hbs",
+    "outputFile": "ai-critique.md",
+    "dependencies": [],
+    "hooks": ["PostToolUse"]
+  },
+  {
+    "id": "linear",
+    "name": "Linear 연동",
+    "description": "Linear 이슈를 코드 작업과 연동하여 상태를 자동 동기화. 커밋 시 이슈 상태를 In Progress → Done으로 전환",
+    "whenToUse": "Linear로 프로젝트를 관리하며 이슈 상태를 코드 작업과 자동 연동하고 싶을 때",
+    "template": "skills/linear.md.hbs",
+    "outputFile": "linear-sync.md",
+    "dependencies": ["linear"],
+    "hooks": [],
+    "envVars": [
+      {
+        "name": "LINEAR_API_KEY",
+        "description": "Linear API 토큰 (Settings → API → Personal API keys)",
+        "pattern": "^lin_api_[A-Za-z0-9]+$",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "ralph-loop",
+    "name": "Ralph 자율 루프",
+    "description": "fix_plan.md의 태스크 목록을 순서대로 자율 구현 → 테스트 검증 → 커밋하는 무인 개발 루프",
+    "whenToUse": "태스크 목록을 AI에게 맡겨 자율적으로 구현·검증·커밋까지 돌리고 싶을 때",
+    "template": "skills/ralph-loop.md.hbs",
+    "outputFile": "ralph-loop.md",
+    "dependencies": [],
+    "hooks": []
+  },
+  {
+    "id": "harness-gate",
+    "name": "하네스 Gate",
+    "description": "커밋 전 lint, 타입체크, 테스트를 강제 실행하여 품질 기준 미달 코드의 커밋을 차단하는 게이트키퍼",
+    "whenToUse": "품질 기준을 통과하지 못한 코드가 절대 커밋되지 않도록 강제하고 싶을 때",
+    "template": "skills/harness-gate.md.hbs",
+    "outputFile": "harness-gate.md",
+    "dependencies": [],
+    "hooks": ["UserPromptSubmit"]
+  }
+]

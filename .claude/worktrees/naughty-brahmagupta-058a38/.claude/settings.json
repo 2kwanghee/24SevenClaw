@@ -1,0 +1,152 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m pytest *)",
+      "Bash(python3 *)",
+      "Bash(cd clickeye-api && uv run *)",
+      "Bash(cd clickeye-api && alembic *)",
+      "Bash(cd 24SevenClaw-web && npm *)",
+      "Bash(cd 24SevenClaw-web && npx *)",
+      "Bash(cd 24SevenClaw-agent && uv run *)",
+      "Bash(cd 24SevenClaw-contracts && npx *)",
+      "Bash(uv run *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(cd backend && python -m pytest*)",
+      "Bash(cd backend && alembic *)",
+      "Bash(cd backend && ruff *)",
+      "Bash(cd frontend && pnpm *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git checkout -b *)",
+      "Bash(git branch*)",
+      "Bash(git push -u origin ralph/*)",
+      "Bash(git push origin ralph/*)",
+      "Bash(gh pr *)",
+      "Bash(gh auth *)",
+      "Bash(docker ps*)",
+      "Bash(docker compose up -d db*)",
+      "Bash(chmod +x *)",
+      "Bash(bash .claude/hooks/*)",
+      "Bash(bash */scripts/pipeline-trigger.sh*)",
+      "Bash(ps *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin master*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker compose down*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -q 'LINEAR_TEAM_ID_DOCS=.' \"$CLAUDE_PROJECT_DIR/.env\" 2>/dev/null && python3 \"$CLAUDE_PROJECT_DIR/scripts/sync_linear_docs.py\" 2>&1 | tail -5 || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/ralph-stop-hook.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/commit-session.sh",
+            "async": true,
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "source \"$CLAUDE_PROJECT_DIR/scripts/pipeline_config.sh\" 2>/dev/null && is_enabled FLOWOPS_TODO_REMINDER 2>/dev/null && echo '[TODO] 작업 시작 전 TODO.md를 확인/생성하세요. 새 작업이면 기존 TODO.md를 초기화 후 새로 작성하세요.' >&2 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/pipeline-trigger.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/harness-plan-gate.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/harness-gate.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[하네스 리마인더] 코드 수정됨 → 커밋 전 반드시 해당 모듈의 lint/typecheck/test를 실행하세요. Gate 미통과 시 커밋이 차단됩니다.' >&2"
+          }
+        ]
+      }
+    ]
+  }
+}

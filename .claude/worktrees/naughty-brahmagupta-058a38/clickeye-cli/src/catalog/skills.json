@@ -1,0 +1,47 @@
+[
+  {
+    "id": "tdd",
+    "name": "TDD \uc2a4\ub9c8\ud2b8 \ucf54\ub529",
+    "description": "\ud14c\uc2a4\ud2b8 \uba3c\uc800 \uc791\uc131 \u2192 \ucf54\ub4dc \uad6c\ud604 \u2192 \ub9ac\ud329\ud130\ub9c1 \uc6cc\ud06c\ud50c\ub85c",
+    "template": "skills/tdd.md.hbs",
+    "outputFile": "tdd-smart-coding.md",
+    "dependencies": [],
+    "hooks": []
+  },
+  {
+    "id": "ai-critique",
+    "name": "AI \ucf54\ub4dc \ub9ac\ubdf0",
+    "description": "\ucf54\ub4dc \uc791\uc131 \ud6c4 AI \uc790\ub3d9 \ub9ac\ubdf0 + \uac1c\uc120 \uc81c\uc548",
+    "template": "skills/ai-critique.md.hbs",
+    "outputFile": "ai-critique.md",
+    "dependencies": [],
+    "hooks": ["PostToolUse"]
+  },
+  {
+    "id": "linear",
+    "name": "Linear \uc5f0\ub3d9",
+    "description": "Linear \uc774\uc288 \uae30\ubc18 \uc791\uc5c5 \ucd94\uc801 + \uc0c1\ud0dc \ub3d9\uae30\ud654",
+    "template": "skills/linear.md.hbs",
+    "outputFile": "linear-sync.md",
+    "dependencies": ["linear"],
+    "hooks": []
+  },
+  {
+    "id": "ralph-loop",
+    "name": "Ralph \uc790\uc728 \ub8e8\ud504",
+    "description": "fix_plan.md \uae30\ubc18 \uc790\uc728 \uac1c\ubc1c \ub8e8\ud504 (\uad6c\ud604\u2192\uac80\uc99d\u2192\ucee4\ubc0b)",
+    "template": "skills/ralph-loop.md.hbs",
+    "outputFile": "ralph-loop.md",
+    "dependencies": [],
+    "hooks": []
+  },
+  {
+    "id": "harness-gate",
+    "name": "\ud558\ub124\uc2a4 Gate",
+    "description": "lint + typecheck + test \ud1b5\uacfc \ud6c4\uc5d0\ub9cc \ucee4\ubc0b \ud5c8\uc6a9",
+    "template": "skills/harness-gate.md.hbs",
+    "outputFile": "harness-gate.md",
+    "dependencies": [],
+    "hooks": ["UserPromptSubmit"]
+  }
+]

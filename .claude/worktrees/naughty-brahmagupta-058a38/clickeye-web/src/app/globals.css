@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 uses OKLCH colors. The default `zinc` palette carries a
+ * blue-purple hue (~264°) that causes text like `text-zinc-500` to render
+ * with a visible teal tint on light backgrounds. Override every zinc step
+ * to chroma=0 so they render as true neutral grays.
+ */
+@theme inline {
+  --color-zinc-50:  oklch(0.985 0 0);
+  --color-zinc-100: oklch(0.967 0 0);
+  --color-zinc-200: oklch(0.922 0 0);
+  --color-zinc-300: oklch(0.872 0 0);
+  --color-zinc-400: oklch(0.705 0 0);
+  --color-zinc-500: oklch(0.553 0 0);
+  --color-zinc-600: oklch(0.442 0 0);
+  --color-zinc-700: oklch(0.374 0 0);
+  --color-zinc-800: oklch(0.274 0 0);
+  --color-zinc-900: oklch(0.210 0 0);
+  --color-zinc-950: oklch(0.145 0 0);
+}
+
+/* ===== Design Tokens — Light ===== */
+:root {
+  /* Backgrounds */
+  --bg-base: #fafafa;
+  --bg-surface: #ffffff;
+  --bg-header: rgba(255, 255, 255, 0.85);
+  --bg-elevated: #ffffff;
+  --bg-hover: #f4f4f5;
+  --bg-hover-danger: #fef2f2;
+
+  /* Text */
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+
+  /* Borders */
+  --border-subtle: #e4e4e7;
+  --border-medium: #d4d4d8;
+
+  /* Nav */
+  --nav-active-bg: #f4f4f5;
+  --nav-active-text: #09090b;
+  --nav-active-icon: #09090b;
+
+  /* Accent (ink) */
+  --accent-bg: #f4f4f5;
+  --accent-text: #18181b;
+
+  /* Logo */
+  --logo-bg: #18181b;
+  --logo-text: #fafafa;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+
+/* Prevent browser autofill from applying blue/yellow overlay */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  -webkit-text-fill-color: #09090b;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out;
+}
+
+@keyframes recommend-glow {
+  0% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+  30% { box-shadow: 0 0 12px 4px rgba(99, 102, 241, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+.animate-recommend-glow {
+  animation: recommend-glow 1.5s ease-out;
+}
+
+/* ===== SetupGuideModal ===== */
+.setup-guide-modal {
+  background-color: var(--bg-elevated);
+}
+
+.setup-guide-modal-code {
+  background-color: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.setup-guide-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.setup-guide-scroll::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "harness",
+    "name": "Harness Pipeline",
+    "description": "하네스 엔지니어링 파이프라인 (라우팅 → 컨텍스트 → 코드작성 → 테스트 → 리뷰)",
+    "steps": ["route", "context", "implement", "test", "review"],
+    "category": "development",
+    "compatible_agents": ["claude-code"],
+    "tags": ["harness", "quality", "automation"]
+  },
+  {
+    "id": "tdd",
+    "name": "TDD Pipeline",
+    "description": "테스트 주도 개발 파이프라인 (테스트 작성 → 구현 → 리팩토링 → 검증)",
+    "steps": ["write-test", "implement", "refactor", "validate"],
+    "category": "development",
+    "compatible_agents": ["claude-code", "gemini-cli", "codex"],
+    "tags": ["tdd", "testing", "quality"]
+  },
+  {
+    "id": "ai-critique",
+    "name": "AI Critique Pipeline",
+    "description": "AI 코드 리뷰 파이프라인 (코드 작성 → AI 리뷰 → 개선 → 최종 검증)",
+    "steps": ["implement", "ai-review", "improve", "validate"],
+    "category": "quality",
+    "compatible_agents": ["claude-code", "gemini-cli", "cursor"],
+    "tags": ["review", "ai", "quality"]
+  },
+  {
+    "id": "telegram",
+    "name": "Telegram Notification Pipeline",
+    "description": "Telegram 봇 알림 파이프라인 (작업 완료 → 결과 포맷 → 봇 전송)",
+    "steps": ["execute", "format-result", "notify"],
+    "category": "notification",
+    "compatible_agents": ["claude-code", "gemini-cli"],
+    "tags": ["telegram", "notification", "bot"]
+  },
+  {
+    "id": "lint-gate",
+    "name": "Lint Gate Pipeline",
+    "description": "린트 게이트 파이프라인 (린트 → 타입체크 → 포맷 → 통과 시 커밋)",
+    "steps": ["lint", "typecheck", "format", "commit"],
+    "category": "quality",
+    "compatible_agents": ["claude-code", "gemini-cli", "codex", "cursor"],
+    "tags": ["lint", "gate", "ci"]
+  },
+  {
+    "id": "ralph-loop",
+    "name": "Ralph Loop Pipeline",
+    "description": "Ralph 자율 개발 루프 (fix_plan 읽기 → 구현 → 검증 → 커밋 → 반복)",
+    "steps": ["read-plan", "implement", "test", "commit", "next"],
+    "category": "automation",
+    "compatible_agents": ["claude-code"],
+    "tags": ["ralph", "autonomous", "loop"]
+  }
+]

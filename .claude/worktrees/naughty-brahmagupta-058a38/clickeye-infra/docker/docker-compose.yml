@@ -1,0 +1,60 @@
+# ClickEye - 로컬 개발 환경
+# 기본: docker compose up -d (DB + Redis만)
+# 전체: docker compose --profile full up -d (API 포함)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clickeye-db
+    environment:
+      POSTGRES_DB: clickeye
+      POSTGRES_USER: clickeye
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clickeye"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: clickeye-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../../clickeye-api
+      dockerfile: ../clickeye-infra/docker/Dockerfile.api
+    container_name: clickeye-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://clickeye:devpassword@db:5432/clickeye
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET_KEY: dev-secret-key
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - full
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "harness",
+    "label": "Harness",
+    "description": "코드 품질 게이트"
+  },
+  {
+    "id": "architect",
+    "label": "Architect",
+    "description": "시스템 설계"
+  },
+  {
+    "id": "frontend",
+    "label": "Frontend",
+    "description": "UI/UX 구현"
+  },
+  {
+    "id": "backend",
+    "label": "Backend",
+    "description": "API/서버"
+  },
+  {
+    "id": "qa",
+    "label": "QA",
+    "description": "테스트 자동화"
+  },
+  {
+    "id": "devops",
+    "label": "DevOps",
+    "description": "인프라/배포"
+  },
+  {
+    "id": "security",
+    "label": "Security",
+    "description": "보안 감사"
+  }
+]

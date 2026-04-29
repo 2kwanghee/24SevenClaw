@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# {{ project_name }} — 로컬 파이프라인 프로세스 종료
+# 사용법: bash stop.sh
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+echo ""
+echo -e "${BOLD}{{ project_name }} 파이프라인 종료${NC}"
+echo ""
+
+_stop_pid() {
+  local name="$1"
+  local pid_file="$PROJECT_ROOT/.run/${name}.pid"
+
+  if [[ -f "$pid_file" ]]; then
+    local pid
+    pid=$(cat "$pid_file")
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+      echo -e "  ${GREEN}✅ $name (PID $pid) 종료됨${NC}"
+    else
+      echo -e "  ${YELLOW}ℹ  $name: PID $pid 이미 종료됨${NC}"
+    fi
+    rm -f "$pid_file"
+  else
+    # PID 파일 없으면 pgrep 폴백
+    local pattern
+    case "$name" in
+      tunnel)   pattern="cloudflared|ngrok" ;;
+      webhook)  pattern="webhook_server.py" ;;
+      watcher)  pattern="linear_watcher.py" ;;
+      *)        pattern="$name" ;;
+    esac
+    local pids
+    pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+    if [[ -n "$pids" ]]; then
+      echo "$pids" | xargs kill -TERM 2>/dev/null || true
+      echo -e "  ${GREEN}✅ $name 종료됨 (pgrep 폴백)${NC}"
+    else
+      echo -e "  ${YELLOW}ℹ  $name: 실행 중인 프로세스 없음${NC}"
+    fi
+  fi
+
+  # 터널은 중복 기동 가능 — PID 파일 여부와 무관하게 잔여 인스턴스 정리
+  if [[ "$name" == "tunnel" ]]; then
+    local _extra
+    _extra=$(pgrep -f "cloudflared|ngrok" 2>/dev/null || true)
+    if [[ -n "$_extra" ]]; then
+      echo "$_extra" | xargs kill -TERM 2>/dev/null || true
+      echo -e "  ${GREEN}✅ 잔여 터널 프로세스 정리됨${NC}"
+    fi
+  fi
+}
+
+_stop_pid "tunnel"
+_stop_pid "webhook"
+_stop_pid "watcher"
+
+echo ""
+echo -e "${BOLD}완료.${NC} 다시 시작하려면: ${BOLD}bash start.sh${NC}"
+echo ""

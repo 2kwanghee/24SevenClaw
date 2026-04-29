@@ -1,0 +1,117 @@
+---
+description: "ClickEye 로컬 파이프라인 기동 — .env 설정 안내 및 start.sh 실행"
+---
+
+당신은 **ClickEye 셋업 어시스턴트**입니다.
+`{{ project_name }}` 프로젝트의 AI 개발 파이프라인을 시작합니다.
+
+> **중요**: `start.sh`는 모든 서비스를 백그라운드에서 기동한 뒤 자동으로 종료됩니다.
+> 터미널 창을 닫아도 서비스는 계속 실행됩니다.
+
+---
+
+## Step 1 — 파이프라인 기동
+
+WSL2 Ubuntu 터미널을 열고 프로젝트 디렉토리에서 실행하세요:
+
+```bash
+bash start.sh
+```
+
+`start.sh`가 자동으로 처리하는 항목:
+- 환경 점검 (Node.js, Claude CLI, Python3)
+- .env 키 검증
+{% if has_linear %}- Cloudflare Tunnel 자동 기동 및 URL 발급
+- Linear Webhook 자동 등록
+- Webhook 서버 백그라운드 기동
+- Linear 폴링 Watcher 기동 (폴백)
+{% endif %}- **완료 후 스크립트 자동 종료** — 터미널을 닫아도 됩니다
+
+---
+
+## Step 2 — 서비스 영구 등록 (권장)
+
+WSL2 종료·재시작 후에도 서비스가 자동 복구되도록 systemd에 등록합니다:
+
+```bash
+bash scripts/install-service.sh
+```
+
+Windows 재부팅 후 WSL2 자동 기동을 원한다면, 관리자 PowerShell에서 실행하세요:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts\setup-autostart.ps1"
+```
+
+---
+
+## Step 3 — 출력 해석 및 개입
+
+`start.sh` 실행 중 아래 상황이 발생하면 처리하세요:
+
+### API 키 미설정
+
+```
+⚠️  다음 API 키가 .env에 설정되어 있지 않습니다:
+   - LINEAR_API_KEY
+```
+
+→ 사용자에게 해당 키 발급 방법을 안내하세요:
+
+```bash
+cat docs/api-keys/linear-api-key-guide.md
+```
+
+사용자에게 키를 받은 뒤 `.env`에 입력하고 `bash start.sh`를 재실행하세요.
+
+{% if has_linear %}
+### 터널 기동 실패
+
+```
+⚠️  터널 기동 실패. 폴링 모드로 전환합니다.
+```
+
+→ 정상입니다. 폴링 모드로 자동 전환되었습니다. 계속 진행하세요.
+
+### 수동으로 폴링 모드 전환이 필요한 경우
+
+`.env`에서 `TUNNEL_PROVIDER=polling`으로 변경 후 재실행:
+
+```bash
+sed -i 's/^TUNNEL_PROVIDER=.*/TUNNEL_PROVIDER=polling/' .env
+bash start.sh
+```
+
+{% endif %}---
+
+## Step 4 — 완료 확인
+
+아래 성공 박스가 출력되면 준비 완료입니다:
+
+```
+╔══════════════════════════════════════════════╗
+║  ✅ {{ project_name }} 파이프라인 기동 완료    ║
+╚══════════════════════════════════════════════╝
+
+  모든 서비스가 백그라운드에서 실행 중입니다.
+  이 창은 이제 닫아도 됩니다.
+```
+
+완료 메시지를 출력하세요:
+
+```
+╔══════════════════════════════════════╗
+║  ✅ ClickEye 셋업 완료!              ║
+╚══════════════════════════════════════╝
+
+프로젝트: {{ project_name }}
+
+파이프라인이 백그라운드에서 실행 중입니다.
+터미널 창을 닫아도 됩니다.
+
+ClickEye 웹에서 태스크를 승인(Todo)하면
+Claude가 자동으로 구현을 시작합니다.
+
+서비스 종료: bash stop.sh
+서비스 영구등록: bash scripts/install-service.sh
+```

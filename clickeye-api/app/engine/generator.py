@@ -532,22 +532,38 @@ def _generate_env_files(
     env_var_definitions = get_env_var_definitions(workflow_ids, catalog_prefetch)
 
     # ì¹´íë¡ê·¸ ?ìê° ?ê³  ?¬ì©???ë ¥???ì¼ë©??¤íµ
-    if not env_var_definitions and not env_vars:
+    if not env_var_definitions and not env_vars and not clickeye_vars:
         return
 
-    env_files = generate_env_files(
-        env_var_definitions=env_var_definitions,
-        env_vars=env_vars,
-    )
+    env_files: dict[str, str]
+    if env_var_definitions or env_vars:
+        env_files = generate_env_files(
+            env_var_definitions=env_var_definitions,
+            env_vars=env_vars,
+        )
+    else:
+        # clickeye_vars만 있을 때 — 최소 베이스 파일 생성
+        env_files = {
+            ".env": "# 환경 변수 — 이 파일을 .gitignore에 추가하세요\n# 자동 생성됨 (ClickEye)\n",
+            ".env.example": "# 환경 변수 템플릿 — 복사하여 .env로 사용\n# cp .env.example .env\n",
+        }
+
     if clickeye_vars:
-        for key, val in env_files.items():
-            if isinstance(val, str):
-                section = (
-                    "\n# ── ClickEye 클라우드 연동 (최초 셋업에만 사용, 완료 후 토큰은 만료됨) ──\n"
-                    + "\n".join(f"{k}={v}" for k, v in clickeye_vars.items())
-                    + "\n"
-                )
-                env_files[key] = val + section
+        clickeye_env_section = (
+            "\n# ── ClickEye 클라우드 연동 (최초 셋업에만 사용, 완료 후 토큰은 만료됨) ──\n"
+            + "\n".join(f"{k}={v}" for k, v in clickeye_vars.items())
+            + "\n"
+        )
+        clickeye_example_section = (
+            "\n# ── ClickEye 클라우드 연동 (최초 셋업에만 사용, 완료 후 토큰은 만료됨) ──\n"
+            + "\n".join(f"{k}=" for k in clickeye_vars)
+            + "\n"
+        )
+        if ".env" in env_files:
+            env_files[".env"] = str(env_files[".env"]) + clickeye_env_section
+        if ".env.example" in env_files:
+            env_files[".env.example"] = str(env_files[".env.example"]) + clickeye_example_section
+
     files.update(env_files)
 
 

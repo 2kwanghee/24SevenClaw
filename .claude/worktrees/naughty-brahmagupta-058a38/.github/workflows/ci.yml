@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 변경 감지 ──
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+      contracts: ${{ steps.filter.outputs.contracts }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'clickeye-web/**'
+            api:
+              - 'clickeye-api/**'
+            contracts:
+              - 'clickeye-contracts/**'
+            scripts:
+              - 'scripts/**'
+              - 'CLAUDE.md'
+              - 'PjPlan.md'
+              - 'docs/**'
+
+  # ── Web: lint + typecheck + build ──
+  web:
+    name: Web (lint / typecheck / build)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clickeye-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: clickeye-web/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          AUTH_SECRET: ci-test-secret
+
+  # ── API: lint + typecheck ──
+  api:
+    name: API (lint / typecheck)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clickeye-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Mypy type check
+        run: uv run mypy app/ --ignore-missing-imports
+
+  # ── OpenAPI Contract 파이프라인 ──
+  openapi-sync:
+    name: OpenAPI Sync (export → generate → validate)
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install API dependencies
+        working-directory: clickeye-api
+        run: uv sync
+
+      - name: Export OpenAPI spec
+        working-directory: clickeye-api
+        run: uv run python -m scripts.export_openapi
+
+      - name: Install contracts dependencies
+        working-directory: clickeye-contracts
+        run: npm install
+
+      - name: Generate TypeScript client
+        working-directory: clickeye-contracts
+        run: npx @hey-api/openapi-ts -i openapi/openapi.json -o generated/typescript -c @hey-api/client-fetch
+
+      - name: TypeScript type check
+        working-directory: clickeye-contracts
+        run: npx tsc --noEmit
+
+  # ── Scripts: 기존 검증 ──
+  scripts:
+    name: Scripts Validation
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check shell scripts syntax
+        run: |
+          for f in scripts/*.sh; do
+            bash -n "$f" && echo "✅ $f" || echo "❌ $f"
+          done
+
+      - name: Check Python scripts syntax
+        run: |
+          for f in scripts/*.py; do
+            python3 -m py_compile "$f" && echo "✅ $f" || echo "❌ $f"
+          done
+
+      - name: Validate docs exist
+        run: |
+          test -f CLAUDE.md && echo "✅ CLAUDE.md"
+          test -f PjPlan.md && echo "✅ PjPlan.md"
+          test -d docs && echo "✅ docs/"

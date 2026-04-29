@@ -1,0 +1,26 @@
+{% if catalog_entry and (catalog_entry.get('agent_strategy') or catalog_entry.get('task_distribution_guide') or catalog_entry.get('recommended_agents')) %}
+## 프로토타입 구현 컨텍스트
+
+**프로토타입 유형**: {{ catalog_entry.get('title', '') }}{% if catalog_entry.get('primary_tag') %} ({{ catalog_entry.get('primary_tag') }}){% endif %}
+
+{% if catalog_entry.get('agent_strategy') %}
+**에이전트 전략**:
+{{ catalog_entry.get('agent_strategy') }}
+
+{% endif %}
+{% if catalog_entry.get('task_distribution_guide') %}
+**작업 분배 가이드**:
+{{ catalog_entry.get('task_distribution_guide') }}
+
+{% endif %}
+{% if catalog_entry.get('recommended_agents') %}
+**권장 에이전트**: {{ catalog_entry.get('recommended_agents', []) | join(', ') }}
+{% endif %}
+{% if catalog_entry.get('excluded_agents') %}
+**제외 에이전트**: {{ catalog_entry.get('excluded_agents', []) | join(', ') }}
+{% endif %}
+
+---
+
+{% endif %}
+{{ pm_markdown -}}

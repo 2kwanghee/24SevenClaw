@@ -1,0 +1,34 @@
+[
+  {
+    "id": "linear",
+    "label": "Linear",
+    "description": "Linear 이슈 트래킹 연동",
+    "category": "ticket_source"
+  },
+  {
+    "id": "telegram",
+    "label": "Telegram",
+    "description": "Telegram 봇 알림 연동"
+  },
+  {
+    "id": "github",
+    "label": "GitHub",
+    "description": "GitHub 리포지토리 연동"
+  },
+  {
+    "id": "slack",
+    "label": "Slack",
+    "description": "Slack 채널 알림 연동"
+  },
+  {
+    "id": "jira",
+    "label": "Jira",
+    "description": "Jira 이슈 트래킹 연동"
+  },
+  {
+    "id": "notion",
+    "label": "Notion",
+    "description": "Notion 워크스페이스 연동",
+    "category": "ticket_source"
+  }
+]

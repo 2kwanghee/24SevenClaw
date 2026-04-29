@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""Linear 폴링 클라이언트 — {{ project_name }}.
+
+webhook 없이 30초마다 Linear를 폴링하여 Todo 이슈를 처리한다.
+webhook 환경 구성이 어려울 때 폴백으로 사용한다.
+
+사용법:
+  python3 scripts/linear_watcher.py          # 백그라운드 폴링
+  python3 scripts/linear_watcher.py --once   # 1회만 실행
+  python3 scripts/linear_watcher.py --dry-run  # 트리거 안 함
+
+환경변수 (.env):
+  LINEAR_API_KEY   Linear API 키
+  LINEAR_TEAM_ID   Linear 팀 ID
+"""
+import json
+import logging
+import os
+import subprocess
+import sys
+import threading
+import time
+from datetime import datetime
+from logging.handlers import WatchedFileHandler
+from pathlib import Path
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+POLL_INTERVAL = 30  # 초
+LINEAR_API = "https://api.linear.app/graphql"
+
+def _setup_logger() -> logging.Logger:
+    log_dir = Path(__file__).parent.parent / "logs"
+    log_dir.mkdir(exist_ok=True)
+
+    logger = logging.getLogger("watcher")
+    logger.setLevel(logging.DEBUG)
+
+    fmt = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    # WatchedFileHandler: 파일 삭제/로테이션 후 자동 재오픈 (로그 유실 방지)
+    fh = WatchedFileHandler(log_dir / "watcher.log", encoding="utf-8")
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+
+    return logger
+
+_logger = _setup_logger()
+
+
+def _log(msg: str) -> None:
+    _logger.info(msg)
+
+
+def _load_env() -> dict:
+    env: dict = {}
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    env[k.strip()] = v.strip()
+    for k, v in os.environ.items():
+        env.setdefault(k, v)
+    return env
+
+
+def _graphql(api_key: str, query: str, variables: dict | None = None) -> dict:
+    body = {"query": query}
+    if variables:
+        body["variables"] = variables
+    data = json.dumps(body).encode()
+    req = Request(LINEAR_API, data=data, method="POST")
+    req.add_header("Authorization", api_key)
+    req.add_header("Content-Type", "application/json")
+    with urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read())["data"]
+
+
+TODO_ISSUES_QUERY = """
+query TodoIssues($teamId: ID!) {
+  issues(
+    filter: {
+      team: { id: { eq: $teamId } }
+      state: { name: { in: ["Todo"] } }
+    }
+    first: 10
+    orderBy: updatedAt
+  ) {
+    nodes { id identifier title }
+  }
+}
+"""
+
+
+def _trigger(identifier: str, title: str, dry_run: bool) -> None:
+    try:
+        if dry_run:
+            _log(f"DRY-RUN: {identifier} — '{title}'")
+            return
+        _log(f"TRIGGER: {identifier} — '{title}'")
+        pipeline = os.path.join(os.path.dirname(__file__), "run-pipeline.sh")
+        if os.path.exists(pipeline):
+            cmd = ["bash", pipeline, identifier]
+        else:
+            cmd = ["claude", "-p", f"Linear 이슈 {identifier}를 처리해줘: {title}"]
+        proc = subprocess.Popen(cmd, cwd=os.path.dirname(os.path.dirname(__file__)))
+
+        def _reap(p: subprocess.Popen) -> None:  # type: ignore[type-arg]
+            p.wait()
+            _log(f"DONE: {identifier}, exit={p.returncode}")
+
+        threading.Thread(target=_reap, args=(proc,), daemon=True).start()
+    except Exception as exc:
+        _log(f"ERROR: {exc}")
+
+
+def poll_once(api_key: str, team_id: str, dry_run: bool) -> int:
+    try:
+        data = _graphql(api_key, TODO_ISSUES_QUERY, {"teamId": team_id})
+        issues = data.get("issues", {}).get("nodes", [])
+        if not issues:
+            return 0
+        for issue in issues:
+            _trigger(issue["identifier"], issue["title"], dry_run)
+        return len(issues)
+    except Exception as exc:
+        _log(f"POLL ERROR: {exc}")
+        return 0
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Linear 폴링 워처")
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--interval", type=int, default=POLL_INTERVAL)
+    args = parser.parse_args()
+
+    env = _load_env()
+    api_key = env.get("LINEAR_API_KEY", "")
+    team_id = env.get("LINEAR_TEAM_ID", "")
+
+    if not api_key or not team_id:
+        print("Error: .env에 LINEAR_API_KEY, LINEAR_TEAM_ID 필요", file=sys.stderr)
+        sys.exit(1)
+
+    _log(f"Linear Watcher 시작 ({{ project_name }}), 폴링 간격={args.interval}초")
+
+    if args.once:
+        count = poll_once(api_key, team_id, args.dry_run)
+        _log(f"발견된 Todo 이슈: {count}")
+        sys.exit(0 if count > 0 else 1)
+
+    while True:
+        count = poll_once(api_key, team_id, args.dry_run)
+        if count:
+            _log(f"처리 중: {count}개")
+        time.sleep(args.interval)
+
+
+if __name__ == "__main__":
+    main()

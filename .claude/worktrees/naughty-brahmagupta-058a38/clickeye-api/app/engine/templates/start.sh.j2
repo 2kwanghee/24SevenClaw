@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+# {{ project_name }} — 로컬 AI 개발 파이프라인 원클릭 기동
+# 사용법: bash start.sh
+set -euo pipefail
+
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT"
+
+echo ""
+echo -e "${BOLD}🚀 {{ project_name }} — AI 파이프라인 기동${NC}"
+echo "============================================"
+
+# ── 1. 실행 환경 확인 ──────────────────────────────────────────────────────────
+if [[ "$(uname -s)" != "Linux" ]]; then
+  echo -e "${RED}❌ 오류: 이 스크립트는 Linux / WSL2 환경에서만 실행 가능합니다.${NC}"
+  echo ""
+  echo "   Windows 사용자는 WSL2 Ubuntu 터미널에서 실행하세요."
+  echo "   WSL2 설치 가이드:"
+  echo "   https://learn.microsoft.com/ko-kr/windows/wsl/install"
+  echo ""
+  exit 1
+fi
+
+# ── 2. Node.js 확인 ────────────────────────────────────────────────────────────
+if ! command -v node >/dev/null 2>&1; then
+  echo -e "${YELLOW}⚠️  Node.js가 설치되어 있지 않습니다.${NC}"
+  read -rp "   지금 설치할까요? (y/N): " yn
+  case "$yn" in
+    [Yy]*)
+      echo "📦 Node.js LTS 설치 중 (nodesource)..."
+      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - 2>/dev/null
+      sudo apt-get install -y nodejs 2>/dev/null
+      echo -e "${GREEN}✅ Node.js $(node -v) 설치 완료${NC}"
+      ;;
+    *)
+      echo "   수동 설치 후 다시 실행하세요: https://nodejs.org/ko/download"
+      exit 1
+      ;;
+  esac
+fi
+
+# ── 3. Claude Code CLI 확인 ────────────────────────────────────────────────────
+if ! command -v claude >/dev/null 2>&1; then
+  echo -e "${YELLOW}⚠️  Claude Code CLI가 설치되어 있지 않습니다.${NC}"
+  read -rp "   지금 설치할까요? (y/N): " yn
+  case "$yn" in
+    [Yy]*)
+      echo "📦 Claude Code 설치 중..."
+      npm install -g @anthropic-ai/claude-code
+      echo -e "${GREEN}✅ Claude Code $(claude --version) 설치 완료${NC}"
+      ;;
+    *)
+      echo "   수동 설치 후 다시 실행하세요: npm install -g @anthropic-ai/claude-code"
+      exit 1
+      ;;
+  esac
+fi
+
+# ── 4. .env 파일 확인 ──────────────────────────────────────────────────────────
+if [[ ! -f .env ]]; then
+  if [[ -f .env.example ]]; then
+    cp .env.example .env
+    echo ""
+    echo -e "${YELLOW}📋 .env 파일이 생성되었습니다.${NC}"
+    echo "   아래 파일에 API 키를 입력한 뒤 다시 실행하세요:"
+    echo "   $(pwd)/.env"
+    echo ""
+    echo "   필수 설정:"
+    echo "   - ANTHROPIC_API_KEY: https://console.anthropic.com"
+{% if has_linear %}    echo "   - LINEAR_API_KEY · LINEAR_TEAM_ID:"
+    echo "     docs/api-keys/linear-api-key-guide.md 참고"
+{% endif %}    echo ""
+    echo "   설정 완료 후: bash start.sh"
+    exit 0
+  fi
+fi
+
+# .env 로드 (BASH_REMATCH — 값에 '='가 포함돼도 안전)
+if [[ -f .env ]]; then
+  while IFS= read -r _line; do
+    [[ "$_line" =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] || continue
+    _k="${BASH_REMATCH[1]}"
+    _v="${BASH_REMATCH[2]}"
+    _v="${_v#\"}" ; _v="${_v%\"}"
+    _v="${_v#\'}" ; _v="${_v%\'}"
+    export "$_k=$_v"
+  done < <(grep -E '^[A-Z_][A-Z0-9_]*=' .env 2>/dev/null)
+fi
+
+# ── 5. 필수 API 키 검증 ────────────────────────────────────────────────────────
+_missing_keys=()
+_has_missing=0
+# ANTHROPIC_API_KEY는 선택사항 — claude.ai 구독 사용자는 불필요
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+  echo -e "${CYAN}ℹ  ANTHROPIC_API_KEY 미설정 — claude.ai 구독 세션으로 실행합니다.${NC}"
+fi
+{% if has_linear %}_LINEAR_OK=true
+[[ -z "${LINEAR_API_KEY:-}" ]]  && { _missing_keys+=("LINEAR_API_KEY");  _LINEAR_OK=false; _has_missing=1; }
+[[ -z "${LINEAR_TEAM_ID:-}" ]]  && { _missing_keys+=("LINEAR_TEAM_ID");  _LINEAR_OK=false; _has_missing=1; }
+{% endif %}
+if [[ "$_has_missing" -eq 1 ]]; then
+  echo ""
+  echo -e "${YELLOW}⚠️  다음 API 키가 .env에 설정되어 있지 않습니다:${NC}"
+  for _k in "${_missing_keys[@]}"; do
+    echo "   - $_k"
+  done
+  echo ""
+  echo "   .env 파일을 편집한 뒤 다시 실행하세요: bash start.sh"
+  echo "   가이드: docs/api-keys/ 디렉토리 참고"
+  exit 1
+fi
+
+echo -e "${GREEN}✅ 환경 확인 완료${NC}"
+echo ""
+
+# ── 6. 이미 실행 중인 프로세스 감지 ──────────────────────────────────────────────
+mkdir -p .run
+
+_is_running() {
+  local pid_file=".run/${1}.pid"
+  [[ -f "$pid_file" ]] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+}
+
+if _is_running "webhook" || _is_running "watcher"; then
+  echo -e "${YELLOW}⚠️  파이프라인이 이미 실행 중입니다.${NC}"
+  read -rp "   재시작할까요? (y/N): " _yn
+  case "$_yn" in
+    [Yy]*) bash "$PROJECT_ROOT/stop.sh" ;;
+    *)
+      echo ""
+      echo "   기존 프로세스를 유지합니다."
+      echo -e "   종료하려면: ${BOLD}bash stop.sh${NC}"
+      echo ""
+      exit 0
+      ;;
+  esac
+  echo ""
+fi
+
+# ── 7. 터널 기동 ────────────────────────────────────────────────────────────────
+TUNNEL_PROVIDER="${TUNNEL_PROVIDER:-cloudflare}"
+TUNNEL_URL="${WEBHOOK_PUBLIC_URL:-}"
+_WEBHOOK_REGISTERED=false
+_USE_POLLING=false
+
+{% if has_linear %}
+if [[ "$TUNNEL_PROVIDER" == "polling" ]]; then
+  _USE_POLLING=true
+elif [[ "$_LINEAR_OK" == "true" ]]; then
+  echo -e "${CYAN}[1/3]${NC} 터널 기동 중 ($TUNNEL_PROVIDER)..."
+
+  # URL 파일 초기화 후 setup-tunnel.sh를 직접 실행 (출력이 터미널에 실시간 표시됨)
+  rm -f "$PROJECT_ROOT/.run/tunnel.url"
+  bash "$PROJECT_ROOT/scripts/setup-tunnel.sh" --detach || {
+    echo -e "${YELLOW}⚠️  터널 기동 실패. 폴링 모드로 전환합니다.${NC}"
+    _USE_POLLING=true
+  }
+
+  if [[ "$_USE_POLLING" == "false" ]]; then
+    # setup-tunnel.sh가 .run/tunnel.url 파일에 URL을 기록
+    TUNNEL_URL=$(cat "$PROJECT_ROOT/.run/tunnel.url" 2>/dev/null || true)
+    if [[ -z "$TUNNEL_URL" ]]; then
+      echo -e "${YELLOW}⚠️  터널 URL 파싱 실패. 폴링 모드로 전환합니다.${NC}"
+      _USE_POLLING=true
+    fi
+  fi
+
+  # Linear webhook 자동 등록
+  if [[ "$_USE_POLLING" == "false" ]]; then
+    echo -e "${CYAN}[2/3]${NC} Linear webhook 등록 중..."
+    _wh_out=$(python3 "$PROJECT_ROOT/scripts/register-webhook.py" \
+      --api-key "$LINEAR_API_KEY" \
+      --team-id "$LINEAR_TEAM_ID" \
+      --url "$TUNNEL_URL/webhook/linear" \
+      ${WEBHOOK_SECRET:+--secret "$WEBHOOK_SECRET"} 2>&1) || true
+    _WH_ID=$(echo "$_wh_out" | grep -oP 'WEBHOOK_ID=\K\S+' | head -1 || true)
+    if [[ -n "$_WH_ID" ]]; then
+      echo -e "   ✅ Webhook 등록됨 (id: $_WH_ID)"
+      _WEBHOOK_REGISTERED=true
+    else
+      echo -e "${YELLOW}   ⚠️  Webhook 등록 실패 — 폴링으로 보완합니다.${NC}"
+      _USE_POLLING=true
+    fi
+  fi
+
+  # webhook_server.py 기동
+  if [[ "$_USE_POLLING" == "false" ]]; then
+    echo -e "${CYAN}[3/3]${NC} Webhook 서버 기동 중..."
+    mkdir -p logs
+    nohup python3 "$PROJECT_ROOT/scripts/webhook_server.py" \
+      --port "${WEBHOOK_PORT:-9876}" \
+      >> logs/webhook.log 2>&1 &
+    echo $! > .run/webhook.pid
+    sleep 1
+    if _is_running "webhook"; then
+      echo -e "   ✅ Webhook 서버 기동됨 (포트: ${WEBHOOK_PORT:-9876})"
+    else
+      echo -e "${YELLOW}   ⚠️  Webhook 서버 기동 실패 — 폴링으로 보완합니다.${NC}"
+      _USE_POLLING=true
+    fi
+  fi
+fi
+
+# linear_watcher.py — polling 모드이거나 WATCHER_ALWAYS_ON=1
+if [[ "$_USE_POLLING" == "true" ]] || [[ "${WATCHER_ALWAYS_ON:-0}" == "1" ]]; then
+  echo -e "${CYAN}[●]${NC} Linear 폴링 watcher 기동 중 (30초 간격)..."
+  mkdir -p logs
+  nohup python3 "$PROJECT_ROOT/scripts/linear_watcher.py" \
+    >> logs/watcher.log 2>&1 &
+  echo $! > .run/watcher.pid
+  sleep 1
+  if _is_running "watcher"; then
+    echo -e "   ✅ Watcher 기동됨"
+  else
+    echo -e "${RED}   ❌ Watcher 기동 실패. 수동으로 실행하세요:${NC}"
+    echo "      python3 scripts/linear_watcher.py"
+  fi
+fi
+{% endif %}
+
+# ── 8-pre. ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) ─────────────────────
+if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]] && [[ ! -f ".run/bootstrap_done" ]]; then
+  echo -e "${CYAN}[●]${NC} ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) 진행 중..."
+  bash scripts/bootstrap_clickeye.sh || \
+    echo -e "${YELLOW}⚠️  부트스트랩 실패 — 재시도: bash scripts/bootstrap_clickeye.sh${NC}"
+fi
+
+# ── 8. 완료 상태 출력 ──────────────────────────────────────────────────────────
+echo ""
+echo -e "╔══════════════════════════════════════════════╗"
+echo -e "║  ${GREEN}✅ {{ project_name }} 파이프라인 기동 완료${NC}    ║"
+echo -e "╚══════════════════════════════════════════════╝"
+echo ""
+{% if has_linear %}
+if [[ "$_USE_POLLING" == "false" ]]; then
+  echo -e "  터널 URL  : ${BOLD}$TUNNEL_URL${NC}"
+  echo -e "  Webhook   : ${_WEBHOOK_REGISTERED:+등록됨}${_WEBHOOK_REGISTERED:-미등록 (폴링 대체)}"
+  echo -e "  포트      : ${WEBHOOK_PORT:-9876}"
+  echo -e "  로그      : logs/webhook.log"
+else
+  echo -e "  모드      : ${BOLD}폴링 (30초 간격)${NC}"
+  echo -e "  로그      : logs/watcher.log"
+fi
+echo ""
+echo -e "  Todo 이슈 → 자동 감지 → Claude 구현 → Done"
+echo ""
+echo -e "  종료      : ${BOLD}bash stop.sh${NC}"
+{% endif %}
+echo ""
+
+# ── 9. 완료 — 모든 서비스는 백그라운드에서 실행 중 ───────────────────────────────
+echo -e "  모든 서비스가 ${BOLD}백그라운드${NC}에서 실행 중입니다."
+echo -e "  이 창은 이제 닫아도 됩니다."
+echo ""
+{% if platform_id == 'claude-code' -%}
+echo -e "  ClickEye 웹 대시보드에서 업무를 지시하거나,"
+echo -e "  Claude Code에서 ${BOLD}/ClickEyeStart${NC} 커맨드로 온보딩을 확인하세요."
+echo ""
+{% else -%}
+echo -e "  ClickEye 웹 대시보드에서 업무를 지시하세요."
+echo "   플랫폼: {{ platform_id }}"
+echo ""
+{% endif -%}
+
+# ── 💡 systemd 서비스 미설치 시 안내 ───────────────────────────────────────────
+if command -v systemctl > /dev/null 2>&1 && systemctl --user status > /dev/null 2>&1; then
+  if ! systemctl --user is-enabled clickeye-watcher > /dev/null 2>&1; then
+    echo -e "  ${YELLOW}💡 터미널을 닫아도 서비스를 계속 유지하려면:${NC}"
+    echo -e "     ${BOLD}bash scripts/install-service.sh${NC}"
+    echo -e "  (systemd 서비스로 등록 — 재시작 후에도 자동 복구)"
+    echo ""
+  fi
+fi
+
+exit 0

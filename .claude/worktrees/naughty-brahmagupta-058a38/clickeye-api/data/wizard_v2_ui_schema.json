@@ -1,0 +1,278 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.0",
+  "title": "Solution Wizard v2 UI Structure",
+  "description": "AI 주도 프로토타입 생성 + PM 매칭 기반 위저드 UI 구조 정의",
+  "steps": [
+    {
+      "id": "company-info",
+      "order": 1,
+      "label": "회사 정보",
+      "description": "회사 정보와 원하는 솔루션을 자연어로 설명합니다",
+      "type": "form",
+      "required": true,
+      "fields": [
+        {
+          "id": "company_name",
+          "type": "text",
+          "label": "회사명",
+          "placeholder": "회사 또는 팀 이름",
+          "required": true,
+          "validation": { "min_length": 1, "max_length": 200 }
+        },
+        {
+          "id": "company_size",
+          "type": "select",
+          "label": "회사 규모",
+          "required": true,
+          "options": [
+            { "value": "solo", "label": "1인 개발자" },
+            { "value": "small", "label": "소규모 (2~10명)" },
+            { "value": "medium", "label": "중규모 (11~50명)" },
+            { "value": "enterprise", "label": "대규모 (51명 이상)" }
+          ]
+        },
+        {
+          "id": "industry",
+          "type": "select",
+          "label": "업종",
+          "required": true,
+          "options": [
+            { "value": "it", "label": "IT / 소프트웨어" },
+            { "value": "finance", "label": "금융 / 핀테크" },
+            { "value": "commerce", "label": "커머스 / 리테일" },
+            { "value": "healthcare", "label": "헬스케어 / 바이오" },
+            { "value": "education", "label": "교육 / 에듀테크" },
+            { "value": "other", "label": "기타" }
+          ]
+        },
+        {
+          "id": "main_product",
+          "type": "text",
+          "label": "주요 제품/서비스",
+          "placeholder": "현재 운영 중인 주요 제품이나 서비스",
+          "required": false,
+          "validation": { "max_length": 500 }
+        },
+        {
+          "id": "business_type",
+          "type": "select",
+          "label": "사업 유형",
+          "required": true,
+          "options": [
+            { "value": "b2b", "label": "B2B" },
+            { "value": "b2c", "label": "B2C" },
+            { "value": "internal", "label": "사내 도구" }
+          ]
+        },
+        {
+          "id": "solution_description",
+          "type": "textarea",
+          "label": "어떤 솔루션을 만들고 싶으신가요?",
+          "placeholder": "만들고 싶은 솔루션을 자유롭게 설명해주세요. 예: '고객 문의를 자동 분류하고 답변하는 AI 챗봇 시스템을 만들고 싶습니다. Slack과 연동되고, 답변 품질을 모니터링할 수 있는 대시보드도 필요합니다.'",
+          "required": true,
+          "validation": { "min_length": 20, "max_length": 2000 }
+        },
+        {
+          "id": "tech_stack",
+          "type": "tag-input",
+          "label": "기술 스택 (선택)",
+          "placeholder": "사용 중이거나 원하는 기술 스택",
+          "required": false,
+          "suggestions": [
+            "Python", "TypeScript", "JavaScript", "Go", "Rust", "Java",
+            "React", "Next.js", "Vue", "Angular", "Svelte",
+            "FastAPI", "Django", "Express", "NestJS", "Spring",
+            "PostgreSQL", "MySQL", "MongoDB", "Redis",
+            "Docker", "Kubernetes", "AWS", "GCP", "Azure"
+          ]
+        }
+      ],
+      "submit_action": "create_prototype_session",
+      "next_step": "prototype-loading"
+    },
+    {
+      "id": "prototype-loading",
+      "order": 2,
+      "label": "프로토타입 생성",
+      "description": "AI가 입력을 분석하고 최적의 프로토타입을 생성합니다",
+      "type": "loading",
+      "required": true,
+      "fields": [],
+      "loading_config": {
+        "phases": [
+          { "id": "analyzing", "label": "요구사항 분석 중...", "duration_hint_sec": 5 },
+          { "id": "designing", "label": "아키텍처 설계 중...", "duration_hint_sec": 10 },
+          { "id": "generating", "label": "프로토타입 생성 중...", "duration_hint_sec": 15 }
+        ],
+        "polling_interval_ms": 2000,
+        "timeout_sec": 60,
+        "retry_enabled": true,
+        "max_retries": 2
+      },
+      "status_endpoint": "GET /api/v1/prototype-sessions/{sessionId}/status",
+      "next_step": "prototype-select"
+    },
+    {
+      "id": "prototype-select",
+      "order": 3,
+      "label": "프로토타입 선택",
+      "description": "AI가 생성한 프로토타입 중 하나를 선택합니다",
+      "type": "card-select",
+      "required": true,
+      "fields": [
+        {
+          "id": "selected_prototype_id",
+          "type": "card-radio",
+          "label": "프로토타입 선택",
+          "required": true,
+          "card_layout": "grid-3",
+          "card_fields": [
+            { "id": "name", "type": "heading", "label": "프로토타입 이름" },
+            { "id": "solution_type", "type": "badge", "label": "솔루션 유형" },
+            { "id": "tech_stack", "type": "tag-list", "label": "기술 스택" },
+            { "id": "agents", "type": "icon-list", "label": "에이전트 구성" },
+            { "id": "skills", "type": "chip-list", "label": "스킬 구성" },
+            { "id": "pipelines", "type": "chip-list", "label": "파이프라인" },
+            { "id": "reasoning", "type": "text-block", "label": "AI 추천 사유" }
+          ]
+        }
+      ],
+      "data_endpoint": "GET /api/v1/prototype-sessions/{sessionId}/prototypes",
+      "submit_action": "select_prototype",
+      "next_step": "pm-recommend"
+    },
+    {
+      "id": "pm-recommend",
+      "order": 4,
+      "label": "PM 추천",
+      "description": "선택한 프로토타입에 적합한 AI PM을 추천합니다",
+      "type": "card-list",
+      "required": true,
+      "fields": [],
+      "data_endpoint": "POST /api/v1/pm-profiles/recommend",
+      "display_config": {
+        "card_layout": "list",
+        "sort_by": "match_score",
+        "sort_order": "desc",
+        "card_fields": [
+          { "id": "name", "type": "heading", "label": "PM 이름" },
+          { "id": "avatar_url", "type": "avatar", "label": "아바타" },
+          { "id": "title", "type": "subtitle", "label": "전문 분야" },
+          { "id": "description", "type": "text-block", "label": "소개" },
+          { "id": "match_score", "type": "progress-bar", "label": "매칭 점수", "max": 100 },
+          { "id": "reasoning", "type": "text-block", "label": "추천 사유" },
+          { "id": "experience_areas", "type": "chip-list", "label": "경험 영역" }
+        ]
+      },
+      "next_step": "pm-select"
+    },
+    {
+      "id": "pm-select",
+      "order": 5,
+      "label": "PM 선택",
+      "description": "프로젝트를 이끌 PM을 선택합니다",
+      "type": "card-select",
+      "required": true,
+      "fields": [
+        {
+          "id": "selected_pm_ids",
+          "type": "card-checkbox",
+          "label": "PM 선택 (복수 선택 가능)",
+          "required": true,
+          "min_select": 1,
+          "max_select": 3,
+          "card_layout": "grid-2"
+        }
+      ],
+      "submit_action": "select_pms",
+      "next_step": "pm-config"
+    },
+    {
+      "id": "pm-config",
+      "order": 6,
+      "label": "PM 구성 확인",
+      "description": "선택한 PM의 역할 배정을 확인하고 조정합니다",
+      "type": "config-editor",
+      "required": true,
+      "fields": [
+        {
+          "id": "pm_compositions",
+          "type": "composition-table",
+          "label": "PM 역할 배정",
+          "editable": true,
+          "columns": [
+            { "id": "pm_name", "label": "PM", "editable": false },
+            { "id": "role", "label": "역할", "editable": true, "type": "text" },
+            { "id": "assigned_agents", "label": "담당 에이전트", "editable": true, "type": "multi-select" },
+            { "id": "assigned_skills", "label": "담당 스킬", "editable": true, "type": "multi-select" }
+          ]
+        }
+      ],
+      "data_endpoint": "GET /api/v1/prototype-sessions/{sessionId}/pm-composition",
+      "submit_action": "confirm_pm_config",
+      "next_step": "final-confirm"
+    },
+    {
+      "id": "final-confirm",
+      "order": 7,
+      "label": "최종 확인",
+      "description": "전체 설정을 확인하고 프로젝트를 생성합니다",
+      "type": "summary",
+      "required": true,
+      "fields": [],
+      "summary_sections": [
+        {
+          "id": "company",
+          "label": "회사 정보",
+          "source_step": "company-info",
+          "display": "key-value"
+        },
+        {
+          "id": "prototype",
+          "label": "선택한 프로토타입",
+          "source_step": "prototype-select",
+          "display": "card"
+        },
+        {
+          "id": "pm_team",
+          "label": "PM 구성",
+          "source_step": "pm-config",
+          "display": "table"
+        },
+        {
+          "id": "deliverables",
+          "label": "예상 산출물",
+          "computed": true,
+          "display": "checklist"
+        }
+      ],
+      "submit_action": "finalize_and_create_project",
+      "submit_label": "프로젝트 생성",
+      "success_redirect": "/projects/{projectId}"
+    }
+  ],
+  "navigation": {
+    "allow_back": true,
+    "allow_skip": false,
+    "show_stepper": true,
+    "stepper_style": "horizontal",
+    "auto_save": true
+  },
+  "error_handling": {
+    "prototype_generation_failed": {
+      "action": "show_retry",
+      "message": "프로토타입 생성에 실패했습니다. 다시 시도해주세요.",
+      "max_retries": 2
+    },
+    "pm_recommendation_failed": {
+      "action": "show_fallback_list",
+      "message": "PM 추천에 실패했습니다. PM 목록에서 직접 선택해주세요."
+    },
+    "session_expired": {
+      "action": "redirect",
+      "target": "/solutions/new",
+      "message": "세션이 만료되었습니다. 처음부터 다시 시작해주세요."
+    }
+  }
+}

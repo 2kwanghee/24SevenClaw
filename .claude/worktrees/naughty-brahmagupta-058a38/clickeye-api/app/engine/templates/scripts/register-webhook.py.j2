@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Linear Webhook 자동 등록/갱신 — {{ project_name }}.
+
+사용법:
+  python3 scripts/register-webhook.py \\
+      --api-key $LINEAR_API_KEY \\
+      --team-id $LINEAR_TEAM_ID \\
+      --url $WEBHOOK_PUBLIC_URL/webhook/linear \\
+      [--secret $WEBHOOK_SECRET]
+
+성공 시 stdout: WEBHOOK_ID=<id>
+실패 시 stderr에 오류 출력 + exit 1
+"""
+import argparse
+import json
+import sys
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+LINEAR_API = "https://api.linear.app/graphql"
+LABEL = "ClickEye"
+
+_WEBHOOKS_QUERY = '{ webhooks { nodes { id url label } } }'
+
+_WEBHOOK_CREATE = """
+mutation WebhookCreate($input: WebhookCreateInput!) {
+  webhookCreate(input: $input) {
+    success
+    webhook { id url }
+  }
+}
+"""
+
+_WEBHOOK_UPDATE = """
+mutation WebhookUpdate($id: String!, $input: WebhookUpdateInput!) {
+  webhookUpdate(id: $id, input: $input) {
+    success
+    webhook { id url }
+  }
+}
+"""
+
+
+def _call(api_key: str, query: str, variables: dict | None = None) -> dict:
+    body = json.dumps({"query": query, "variables": variables or {}}).encode()
+    req = Request(LINEAR_API, data=body, method="POST")
+    req.add_header("Authorization", api_key)
+    req.add_header("Content-Type", "application/json")
+    try:
+        with urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+    except HTTPError as exc:
+        print(f"Linear API HTTP 오류 {exc.code}: {exc.read().decode()[:200]}", file=sys.stderr)
+        sys.exit(1)
+    if "errors" in data:
+        msgs = [e.get("message", "") for e in data["errors"]]
+        print(f"Linear GraphQL 오류: {'; '.join(msgs)}", file=sys.stderr)
+        sys.exit(1)
+    return data.get("data", {})
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Linear webhook 등록/갱신")
+    parser.add_argument("--api-key", required=True)
+    parser.add_argument("--team-id", required=True)
+    parser.add_argument("--url", required=True)
+    parser.add_argument("--secret", default="")
+    args = parser.parse_args()
+
+    # 기존 webhook 목록 조회
+    data = _call(args.api_key, _WEBHOOKS_QUERY)
+    existing = data.get("webhooks", {}).get("nodes", [])
+
+    for wh in existing:
+        if wh.get("label") == LABEL:
+            # 기존 ClickEye webhook URL 갱신
+            update_input: dict = {"url": args.url}
+            if args.secret:
+                update_input["secret"] = args.secret
+            result = _call(
+                args.api_key,
+                _WEBHOOK_UPDATE,
+                {"id": wh["id"], "input": update_input},
+            )
+            webhook = result.get("webhookUpdate", {}).get("webhook") or {}
+            wid = webhook.get("id", wh["id"])
+            print(f"WEBHOOK_ID={wid}")
+            return
+
+    # 신규 등록
+    create_input: dict = {
+        "teamId": args.team_id,
+        "url": args.url,
+        "label": LABEL,
+        "resourceTypes": ["Issue"],
+        "allPublicTeams": False,
+    }
+    if args.secret:
+        create_input["secret"] = args.secret
+
+    result = _call(args.api_key, _WEBHOOK_CREATE, {"input": create_input})
+    webhook = result.get("webhookCreate", {}).get("webhook") or {}
+    wid = webhook.get("id", "")
+    if not wid:
+        print("Webhook 생성 실패: webhook id가 반환되지 않음", file=sys.stderr)
+        sys.exit(1)
+    print(f"WEBHOOK_ID={wid}")
+
+
+if __name__ == "__main__":
+    main()
