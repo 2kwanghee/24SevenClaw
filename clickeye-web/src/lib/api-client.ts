@@ -126,6 +126,7 @@ export interface ProjectResponse {
   settings: Record<string, unknown>;
   wizard_data: WizardConfigData | null;
   project_type: string | null;
+  bootstrap_status: "pending" | "running" | "failed" | "completed" | "skipped";
   pm_profile_id: string | null;
   prototype_session_id: string | null;
   created_at: string;

@@ -38,6 +38,7 @@ import {
   useSyncLinearStates,
   useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
+import { useProject } from "@/hooks/use-projects";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
 
@@ -62,6 +63,9 @@ export default function AITeamDashboardPage() {
   const [linearPushResult, setLinearPushResult] = useState<PushToLinearResponse | null>(null);
   const [linearPushError, setLinearPushError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+
+  const { data: projectData, refetch: refetchProject } = useProject(projectId);
+  const bootstrapStatus = projectData?.bootstrap_status ?? "skipped";
 
   const {
     data: sessions,
@@ -129,7 +133,24 @@ export default function AITeamDashboardPage() {
   const phaseHistory = summary?.phase_history ?? [];
   const reviewRounds = reviewData?.items ?? [];
 
+  // 부트스트랩 running 상태일 때 10초마다 프로젝트 재조회
+  useEffect(() => {
+    if (bootstrapStatus !== "running") return;
+    const timer = setInterval(() => {
+      void refetchProject();
+    }, 10_000);
+    return () => clearInterval(timer);
+  }, [bootstrapStatus, refetchProject]);
+
+  // 부트스트랩 완료 시 세션 목록 자동 갱신
+  useEffect(() => {
+    if (bootstrapStatus === "completed") {
+      void refetchSessions();
+    }
+  }, [bootstrapStatus, refetchSessions]);
+
   const handleRefresh = () => {
+    void refetchProject();
     refetchSessions();
     refetchSummary();
     if (
@@ -229,6 +250,38 @@ export default function AITeamDashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* 부트스트랩 배너 */}
+      {bootstrapStatus === "pending" && (
+        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+          <Terminal className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            셋업 대기 중 — 다운로드한 ZIP을 압축 해제 후{" "}
+            <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-xs dark:bg-blue-900">
+              bash start.sh
+            </code>
+            을 실행하면 요구사항이 자동으로 등록됩니다.
+          </span>
+        </div>
+      )}
+      {bootstrapStatus === "running" && (
+        <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-300">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          <span>요구사항 분석 및 Linear 이슈 등록 진행 중입니다…</span>
+        </div>
+      )}
+      {bootstrapStatus === "failed" && (
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            자동 등록 중 오류가 발생했습니다. 재시도하려면 로컬 터미널에서{" "}
+            <code className="rounded bg-red-100 px-1 py-0.5 font-mono text-xs dark:bg-red-900">
+              bash scripts/bootstrap_clickeye.sh
+            </code>
+            을 실행하세요.
+          </span>
+        </div>
+      )}
 
       {/* 세션 선택 탭 */}
       {sessions && sessions.items.length > 0 && (

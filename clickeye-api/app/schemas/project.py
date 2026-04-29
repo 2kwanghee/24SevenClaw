@@ -30,6 +30,7 @@ class ProjectResponse(BaseModel):
     prototype_session_id: UUID | None = None
     pm_profile_id: UUID | None = None
     project_type: str | None = None
+    bootstrap_status: str = "skipped"
     created_at: datetime
     updated_at: datetime
 
