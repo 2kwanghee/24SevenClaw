@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""위저드 요구사항 → 서브태스크 분해기.
+
+입력: requirements.json  ({"requirements_text": "...", "project_name": "..."})
+출력: subtasks.json      ([{role, title, description, _method}, ...])
+
+분해 우선순위:
+  1. claude CLI 헤드리스 (구독 사용)
+  2. 키워드 기반 룰 (rule-based)
+  3. 단일 wrap (manual)
+"""
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+from typing import Any
+
+DECOMPOSE_PROMPT = """\
+당신은 소프트웨어 개발 태스크를 역할별로 분해하는 전문가입니다.
+아래 요구사항을 읽고, 개발에 필요한 서브태스크를 JSON 배열로만 반환하세요.
+다른 텍스트 없이 JSON만 출력하세요.
+
+각 서브태스크는 다음 형식을 따릅니다:
+{"role": "<역할>", "title": "<제목>", "description": "<상세 설명>"}
+
+가능한 role 값: backend, frontend, qa, architect, designer, devops, pm, fullstack
+서브태스크는 최소 2개, 최대 10개.
+
+요구사항:
+{requirements}
+"""
+
+ROLE_KEYWORDS: dict[str, list[str]] = {
+    "backend": ["api", "서버", "백엔드", "db", "데이터베이스", "endpoint", "rest", "graphql"],
+    "frontend": ["ui", "화면", "프론트", "컴포넌트", "뷰", "react", "vue", "next", "화면"],
+    "qa": ["테스트", "test", "qa", "품질", "검증", "버그"],
+    "devops": ["배포", "deploy", "ci", "cd", "docker", "인프라", "클라우드"],
+    "designer": ["디자인", "ux", "ui/ux", "figma", "와이어프레임"],
+}
+
+
+def _detect_roles(text: str) -> list[str]:
+    t = text.lower()
+    found = [r for r, kws in ROLE_KEYWORDS.items() if any(k in t for k in kws)]
+    return found or ["architect", "backend", "qa"]
+
+
+def _rule_based(requirements_text: str, project_name: str) -> list[dict[str, Any]]:
+    roles = _detect_roles(requirements_text)
+    subtasks = []
+    for r in roles:
+        subtasks.append({
+            "role": r,
+            "title": f"[{r}] {project_name} 초기 구현",
+            "description": requirements_text[:500],
+            "_method": "rule-based",
+        })
+    return subtasks
+
+
+def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:
+    prompt = DECOMPOSE_PROMPT.format(requirements=requirements_text[:3000])
+    try:
+        result = subprocess.run(
+            ["claude", "-p", prompt, "--output-format", "json"],
+            capture_output=True, text=True, timeout=60
+        )
+        if result.returncode != 0:
+            return None
+        # JSON 배열 추출 (claude가 감싸는 JSON wrapper에서 꺼내기)
+        stdout = result.stdout.strip()
+        # claude --output-format json: {"type":"result","subtype":"success","result":"..."}
+        try:
+            wrapper = json.loads(stdout)
+            if isinstance(wrapper, dict) and "result" in wrapper:
+                inner = wrapper["result"]
+                if isinstance(inner, str):
+                    inner = inner.strip()
+                    # 코드블록 제거
+                    inner = re.sub(r"^```[a-z]*\n?", "", inner)
+                    inner = re.sub(r"\n?```$", "", inner)
+                    subtasks = json.loads(inner)
+                elif isinstance(inner, list):
+                    subtasks = inner
+                else:
+                    return None
+            elif isinstance(wrapper, list):
+                subtasks = wrapper
+            else:
+                return None
+        except (json.JSONDecodeError, KeyError):
+            return None
+
+        if not isinstance(subtasks, list) or not subtasks:
+            return None
+        result_list = []
+        for item in subtasks[:10]:
+            if not isinstance(item, dict):
+                continue
+            result_list.append({
+                "role": str(item.get("role", "architect"))[:50],
+                "title": str(item.get("title", ""))[:500],
+                "description": str(item.get("description", ""))[:2000],
+                "_method": "claude-cli",
+            })
+        return result_list if result_list else None
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return None
+
+
+def main(reqs_path: str, out_path: str) -> None:
+    with open(reqs_path, encoding="utf-8") as f:
+        data = json.load(f)
+    requirements_text: str = data.get("requirements_text") or ""
+    project_name: str = data.get("project_name") or "프로젝트"
+
+    if not requirements_text.strip():
+        subtasks = [{
+            "role": "architect",
+            "title": f"[architect] {project_name} 초기 설계",
+            "description": "위저드에 요구사항이 입력되지 않았습니다. AI Team에서 서브태스크를 직접 추가하세요.",
+            "_method": "manual",
+        }]
+    else:
+        print("[decompose] claude CLI 시도 중...", file=sys.stderr)
+        subtasks = _claude_cli(requirements_text, project_name)
+        if subtasks is None:
+            print("[decompose] claude CLI 실패 — 키워드 분해로 폴백합니다.", file=sys.stderr)
+            subtasks = _rule_based(requirements_text, project_name)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(subtasks, f, ensure_ascii=False, indent=2)
+    print(f"[decompose] {len(subtasks)}개 서브태스크 생성 완료.", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: decompose_local.py <requirements.json> <subtasks.json>", file=sys.stderr)
+        sys.exit(1)
+    main(sys.argv[1], sys.argv[2])

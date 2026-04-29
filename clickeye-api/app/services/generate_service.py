@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.engine.catalog import prefetch_for_generator
 from app.engine.generator import generate_all
 from app.schemas.generate import GenerateRequest
@@ -19,6 +20,8 @@ async def generate_zip(
     pm_markdown: str | None = None,
     pm_compositions: list[dict[str, Any]] | None = None,
     catalog_entry: dict[str, Any] | None = None,
+    setup_token: str | None = None,
+    clickeye_project_id: str | None = None,
 ) -> io.BytesIO:
     """위저드 설정 기반 프로젝트 파일을 ZIP으로 패키징하여 BytesIO로 반환.
 
@@ -41,6 +44,14 @@ async def generate_zip(
             db, agent_ids=agent_ids, skill_ids=workflow_ids, hook_ids=hook_ids
         )
 
+    clickeye_vars: dict[str, str] | None = None
+    if setup_token and clickeye_project_id:
+        clickeye_vars = {
+            "CLICKEYE_PROJECT_ID": clickeye_project_id,
+            "CLICKEYE_API_URL": settings.public_api_url,
+            "CLICKEYE_SETUP_TOKEN": setup_token,
+        }
+
     files = generate_all(
         project_name=engine_project_name,
         project_type=project_type,
@@ -56,6 +67,7 @@ async def generate_zip(
         catalog_entry=catalog_entry,
         catalog_prefetch=catalog_prefetch,
         hook_ids=hook_ids or None,
+        clickeye_vars=clickeye_vars,
     )
 
     buffer = io.BytesIO()

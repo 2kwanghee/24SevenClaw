@@ -758,6 +758,8 @@ class PrototypeService:
             prototype_session_id=session_id,
             pm_profile_id=session.selected_pm_id,
             project_type="wizard",
+            requirements_text=session.solution_prompt,
+            bootstrap_status="pending",
         )
         self.db.add(project)
 

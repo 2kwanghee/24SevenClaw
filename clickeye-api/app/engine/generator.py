@@ -77,6 +77,7 @@ def generate_all(
     catalog_entry: dict[str, Any] | None = None,
     catalog_prefetch: CatalogPrefetch | None = None,
     hook_ids: list[str] | None = None,
+    clickeye_vars: dict[str, str] | None = None,
 ) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -123,7 +124,7 @@ def generate_all(
         _generate_webhook_files(files, project_name, dirs["config_dir"])
 
     # .env / .env.example ?ì±
-    _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch)
+    _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch, clickeye_vars)
 
     # PM ?ì¼ ì£¼ì
     if pm_slug and pm_markdown:
@@ -525,6 +526,7 @@ def _generate_env_files(
     workflow_ids: list[str],
     env_vars: dict[str, str],
     catalog_prefetch: CatalogPrefetch | None = None,
+    clickeye_vars: dict[str, str] | None = None,
 ) -> None:
     """스킬별 API 키 매핑 기반 .env / .env.example 생성."""
     env_var_definitions = get_env_var_definitions(workflow_ids, catalog_prefetch)
@@ -537,6 +539,15 @@ def _generate_env_files(
         env_var_definitions=env_var_definitions,
         env_vars=env_vars,
     )
+    if clickeye_vars:
+        for key, val in env_files.items():
+            if isinstance(val, str):
+                section = (
+                    "\n# ── ClickEye 클라우드 연동 (최초 셋업에만 사용, 완료 후 토큰은 만료됨) ──\n"
+                    + "\n".join(f"{k}={v}" for k, v in clickeye_vars.items())
+                    + "\n"
+                )
+                env_files[key] = val + section
     files.update(env_files)
 
 
@@ -657,6 +668,14 @@ def _emit_first_run_artifacts(
         # Windows Task Scheduler 자동 시작 스크립트
         autostart = _env.get_template("scripts/setup-autostart.ps1.j2")
         files["scripts/setup-autostart.ps1"] = autostart.render(**ctx)
+
+        # 부트스트랩 스크립트 (ClickEye 클라우드 연동)
+        bootstrap_sh = _env.get_template("scripts/bootstrap_clickeye.sh.j2")
+        files["scripts/bootstrap_clickeye.sh"] = bootstrap_sh.render(**ctx)
+        decompose_py = _env.get_template("scripts/decompose_local.py.j2")
+        files["scripts/decompose_local.py"] = decompose_py.render(**ctx)
+        push_linear_py = _env.get_template("scripts/push_to_linear_local.py.j2")
+        files["scripts/push_to_linear_local.py"] = push_linear_py.render(**ctx)
 
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["logs/.gitkeep"] = ""

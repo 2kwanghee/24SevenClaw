@@ -18,6 +18,7 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 from app.schemas.wizard_config import WizardConfigResponse, WizardConfigSave, WizardData
+from app.services import setup_token_service
 from app.services.generate_service import generate_zip
 from app.services.pm_markdown_service import serialize_pm_to_markdown
 from app.services.preview_service import generate_preview
@@ -235,6 +236,7 @@ async def generate_project(
     catalog_entry = await _resolve_catalog_entry(
         db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
     )
+    setup_token = await setup_token_service.issue_for_project(db, project_id, user.id)  # type: ignore[arg-type]
     buffer = await generate_zip(
         data, project_name,
         db=db,
@@ -242,6 +244,8 @@ async def generate_project(
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
         catalog_entry=catalog_entry,
+        setup_token=setup_token,
+        clickeye_project_id=str(project_id),
     )
 
     # catalogEntrySlug 를 solution에 병합하여 재다운로드 시 복원 가능하게 저장
@@ -322,6 +326,7 @@ async def redownload_project(
     catalog_slug = wd.get("solution", {}).get("catalogEntrySlug")
     catalog_entry = await _resolve_catalog_entry(db, catalog_slug)
 
+    redownload_setup_token = await setup_token_service.issue_for_project(db, project_id, user.id)  # type: ignore[arg-type]
     buffer = await generate_zip(
         gen_request, project_name,
         db=db,
@@ -329,6 +334,8 @@ async def redownload_project(
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
         catalog_entry=catalog_entry,
+        setup_token=redownload_setup_token,
+        clickeye_project_id=str(project_id),
     )
 
     filename = f"{project_name}.zip"

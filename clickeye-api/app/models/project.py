@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, ForeignKey, String, Text, Uuid, text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text, Uuid, text
 
 from app.database import Base
 from app.models.mixins import TimestampMixin, UUIDPKMixin
@@ -36,3 +36,10 @@ class Project(UUIDPKMixin, TimestampMixin, Base):
     organization_id = Column(
         Uuid, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # 부트스트랩: 위저드 요구사항 → 로컬 분해 → Linear 자동 등록
+    requirements_text = Column(Text, nullable=True)
+    setup_token_hash = Column(String(128), nullable=True)
+    bootstrap_status = Column(
+        String(32), nullable=False, default="skipped", server_default=text("'skipped'")
+    )
+    bootstrap_completed_at = Column(DateTime(timezone=True), nullable=True)

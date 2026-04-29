@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# ClickEye 부트스트랩 — 위저드 요구사항 → 로컬 분해 → Linear 자동 등록
+# 멱등 실행 가능: .run/bootstrap_done 마커가 있으면 no-op
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+BOOTSTRAP_DONE="$PROJECT_ROOT/.run/bootstrap_done"
+BOOTSTRAP_LOG="$PROJECT_ROOT/logs/bootstrap.log"
+
+mkdir -p "$PROJECT_ROOT/.run" "$PROJECT_ROOT/logs"
+
+# ── 멱등 가드 ────────────────────────────────────────────────────────────────
+if [[ -f "$BOOTSTRAP_DONE" ]]; then
+  echo "[bootstrap] 이미 완료됨 ($(cat "$BOOTSTRAP_DONE")). 건너뜁니다."
+  exit 0
+fi
+
+# ── .env 로드 ────────────────────────────────────────────────────────────────
+ENV_FILE="$PROJECT_ROOT/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ENV_FILE"
+  set +a
+fi
+
+# ── 필수 변수 검증 ────────────────────────────────────────────────────────────
+if [[ -z "${CLICKEYE_PROJECT_ID:-}" ]] || [[ -z "${CLICKEYE_SETUP_TOKEN:-}" ]] || [[ -z "${CLICKEYE_API_URL:-}" ]]; then
+  echo "[bootstrap] CLICKEYE_* 환경 변수 누락 — 부트스트랩을 건너뜁니다." | tee -a "$BOOTSTRAP_LOG"
+  exit 0
+fi
+
+BOOTSTRAP_URL="$CLICKEYE_API_URL/api/v1/projects/$CLICKEYE_PROJECT_ID/setup"
+AUTH_HEADER="Authorization: Bearer $CLICKEYE_SETUP_TOKEN"
+
+echo "[bootstrap] 요구사항 조회 중..." | tee -a "$BOOTSTRAP_LOG"
+
+# ── running 상태 보고 ─────────────────────────────────────────────────────────
+curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"running"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
+
+# ── 요구사항 fetch ────────────────────────────────────────────────────────────
+REQS_FILE="$PROJECT_ROOT/.run/requirements.json"
+if ! curl -sf -H "$AUTH_HEADER" "$BOOTSTRAP_URL/requirements" -o "$REQS_FILE"; then
+  echo "[bootstrap] 요구사항 조회 실패 — 클라우드 연결을 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+  curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+    -H "$AUTH_HEADER" \
+    -H "Content-Type: application/json" \
+    -d '{"status":"failed","error":"requirements fetch failed"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
+  exit 1
+fi
+
+# ── 요구사항 분해 ─────────────────────────────────────────────────────────────
+echo "[bootstrap] 요구사항 분해 중..." | tee -a "$BOOTSTRAP_LOG"
+SUBTASKS_FILE="$PROJECT_ROOT/.run/subtasks.json"
+python3 "$SCRIPT_DIR/decompose_local.py" "$REQS_FILE" "$SUBTASKS_FILE" >> "$BOOTSTRAP_LOG" 2>&1
+
+if [[ ! -f "$SUBTASKS_FILE" ]] || [[ ! -s "$SUBTASKS_FILE" ]]; then
+  echo "[bootstrap] 분해 실패 — 수동으로 AI Team에서 서브태스크를 추가하세요." | tee -a "$BOOTSTRAP_LOG"
+  curl -sf -X POST "$BOOTSTRAP_URL/bootstrap-status" \
+    -H "$AUTH_HEADER" \
+    -H "Content-Type: application/json" \
+    -d '{"status":"failed","error":"decompose failed"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
+  exit 1
+fi
+
+# ── Linear 이슈 등록 (선택 — LINEAR_API_KEY 있을 때만) ───────────────────────
+if [[ -n "${LINEAR_API_KEY:-}" ]] && [[ -n "${LINEAR_TEAM_ID:-}" ]]; then
+  echo "[bootstrap] Linear 이슈 등록 중..." | tee -a "$BOOTSTRAP_LOG"
+  python3 "$SCRIPT_DIR/push_to_linear_local.py" "$SUBTASKS_FILE" >> "$BOOTSTRAP_LOG" 2>&1 || {
+    echo "[bootstrap] Linear 등록 실패 — 서브태스크만 클라우드에 저장합니다." | tee -a "$BOOTSTRAP_LOG"
+  }
+else
+  echo "[bootstrap] LINEAR_API_KEY 미설정 — Linear 이슈 생성 스킵." | tee -a "$BOOTSTRAP_LOG"
+fi
+
+# ── 클라우드에 결과 보고 ──────────────────────────────────────────────────────
+echo "[bootstrap] 클라우드에 결과 보고 중..." | tee -a "$BOOTSTRAP_LOG"
+PAYLOAD=$(python3 -c "
+import json, sys
+with open('$SUBTASKS_FILE') as f:
+    subtasks = json.load(f)
+print(json.dumps({'subtasks': subtasks, 'decompose_method': subtasks[0].get('_method','manual') if subtasks else 'manual'}))
+")
+
+RESPONSE=$(curl -sf -X POST "$BOOTSTRAP_URL/orchestrator-bootstrap" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD")
+
+if [[ $? -eq 0 ]]; then
+  echo "[bootstrap] 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
+  date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BOOTSTRAP_DONE"
+  echo "[bootstrap] ✅ 완료 — AI Team 화면에서 서브태스크를 확인하세요."
+else
+  echo "[bootstrap] 클라우드 보고 실패 — 재시도: bash scripts/bootstrap_clickeye.sh" | tee -a "$BOOTSTRAP_LOG"
+  exit 1
+fi

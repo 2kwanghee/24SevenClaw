@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # Queued/Backlog 이슈 자동 Wait 복귀 타임아웃 (분)
     queue_stale_minutes: int = 60
 
+    # 부트스트랩: 로컬 ZIP에 베이크되는 클라우드 API 공개 URL
+    public_api_url: str = "http://localhost:8000"
+    # setup_token TTL (일)
+    setup_token_expire_days: int = 30
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

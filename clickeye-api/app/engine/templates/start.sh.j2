@@ -225,6 +225,13 @@ if [[ "$_USE_POLLING" == "true" ]] || [[ "${WATCHER_ALWAYS_ON:-0}" == "1" ]]; th
 fi
 {% endif %}
 
+# ── 8-pre. ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) ─────────────────────
+if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]] && [[ ! -f ".run/bootstrap_done" ]]; then
+  echo -e "${CYAN}[●]${NC} ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) 진행 중..."
+  bash scripts/bootstrap_clickeye.sh || \
+    echo -e "${YELLOW}⚠️  부트스트랩 실패 — 재시도: bash scripts/bootstrap_clickeye.sh${NC}"
+fi
+
 # ── 8. 완료 상태 출력 ──────────────────────────────────────────────────────────
 echo ""
 echo -e "╔══════════════════════════════════════════════╗"
