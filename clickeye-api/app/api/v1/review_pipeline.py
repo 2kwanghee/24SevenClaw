@@ -580,9 +580,13 @@ async def approve_subtask(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
 
     if not subtask.linear_issue_id:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Linear 이슈가 아직 생성되지 않았습니다. push-to-linear를 먼저 실행하세요.",
+        # 2-pass 부트스트랩: Linear 이슈 없이 승인만 표시 (--push 단계에서 등록)
+        subtask.status = "approved"  # type: ignore[assignment]
+        subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]
+        await db.commit()
+        return ApproveSubtaskResponse(
+            subtask_id=subtask.id,
+            message="승인됨 (Linear 미등록 — bash scripts/bootstrap_clickeye.sh --push 실행 후 등록됩니다)",
         )
 
     # 세션 조회 (project_id 필요)

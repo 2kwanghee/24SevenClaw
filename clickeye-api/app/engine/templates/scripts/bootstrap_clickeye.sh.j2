@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
 # ClickEye 부트스트랩 — 위저드 요구사항 → 로컬 분해 → Linear 자동 등록
-# 멱등 실행 가능: .run/bootstrap_done 마커가 있으면 no-op
+#
+# 실행 모드:
+#   1-pass (기본):  bash scripts/bootstrap_clickeye.sh
+#       요구사항 fetch → 분해 → 클라우드에 pending_review 보고
+#       AI Team에서 검토·승인 후 2-pass 실행 필요
+#
+#   2-pass (--push): bash scripts/bootstrap_clickeye.sh --push
+#       승인된 서브태스크 fetch → Linear 이슈 생성 → 결과 보고
+#
+# 멱등 실행 가능:
+#   .run/decomposed_done — 1-pass 완료 마커
+#   .run/bootstrap_done  — 2-pass 완료 마커
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+DECOMPOSED_DONE="$PROJECT_ROOT/.run/decomposed_done"
 BOOTSTRAP_DONE="$PROJECT_ROOT/.run/bootstrap_done"
 BOOTSTRAP_LOG="$PROJECT_ROOT/logs/bootstrap.log"
 
 mkdir -p "$PROJECT_ROOT/.run" "$PROJECT_ROOT/logs"
 
-# ── 멱등 가드 ────────────────────────────────────────────────────────────────
-if [[ -f "$BOOTSTRAP_DONE" ]]; then
-  echo "[bootstrap] 이미 완료됨 ($(cat "$BOOTSTRAP_DONE")). 건너뜁니다."
-  exit 0
+# ── 모드 감지 ─────────────────────────────────────────────────────────────────
+MODE="${1:-decompose}"
+if [[ "$MODE" == "--push" ]]; then
+  MODE="push"
 fi
 
 # ── .env 로드 ────────────────────────────────────────────────────────────────
@@ -39,6 +51,110 @@ fi
 BOOTSTRAP_URL="$CLICKEYE_API_URL/api/v1/projects/$CLICKEYE_PROJECT_ID/setup"
 AUTH_HEADER="Authorization: Bearer $CLICKEYE_SETUP_TOKEN"
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 2-pass (--push): 승인된 서브태스크 fetch → Linear 등록 → 결과 보고
+# ══════════════════════════════════════════════════════════════════════════════
+if [[ "$MODE" == "push" ]]; then
+  # 멱등 가드
+  if [[ -f "$BOOTSTRAP_DONE" ]]; then
+    echo "[bootstrap] 이미 완료됨 ($(cat "$BOOTSTRAP_DONE")). 건너뜁니다."
+    exit 0
+  fi
+
+  if [[ ! -f "$DECOMPOSED_DONE" ]]; then
+    echo "[bootstrap] 분해가 아직 완료되지 않았습니다. 먼저 bash scripts/bootstrap_clickeye.sh 를 실행하세요." | tee -a "$BOOTSTRAP_LOG"
+    exit 1
+  fi
+
+  echo "[bootstrap][push] 승인된 서브태스크 조회 중..." | tee -a "$BOOTSTRAP_LOG"
+
+  APPROVED_FILE="$PROJECT_ROOT/.run/approved_subtasks.json"
+  set +e
+  APPROVED_STATUS=$(curl -sS \
+    -H "$AUTH_HEADER" \
+    -o "$APPROVED_FILE" \
+    -w "%{http_code}" \
+    "$BOOTSTRAP_URL/approved-subtasks" 2>> "$BOOTSTRAP_LOG")
+  APPROVED_RC=$?
+  set -e
+
+  if [[ $APPROVED_RC -ne 0 ]] || [[ "${APPROVED_STATUS:0:1}" != "2" ]]; then
+    echo "[bootstrap][push] 승인 서브태스크 조회 실패 (HTTP ${APPROVED_STATUS:-000}, curl rc: ${APPROVED_RC})" | tee -a "$BOOTSTRAP_LOG"
+    exit 1
+  fi
+
+  APPROVED_COUNT=$(python3 -c "import json,sys; d=json.load(open('$APPROVED_FILE')); print(len(d))" 2>/dev/null) || {
+    echo "[bootstrap][push] 승인 서브태스크 파싱 실패 — $APPROVED_FILE 를 확인하세요." | tee -a "$BOOTSTRAP_LOG"
+    exit 1
+  }
+  if [[ "$APPROVED_COUNT" == "0" ]]; then
+    echo "[bootstrap][push] 승인된 서브태스크가 없습니다." | tee -a "$BOOTSTRAP_LOG"
+    echo "[bootstrap][push] AI Team(${CLICKEYE_API_URL}/projects/${CLICKEYE_PROJECT_ID}/ai-team) 에서 카드를 승인한 후 다시 실행하세요." | tee -a "$BOOTSTRAP_LOG"
+    exit 0
+  fi
+
+  echo "[bootstrap][push] ${APPROVED_COUNT}개 서브태스크를 Linear에 등록 중..." | tee -a "$BOOTSTRAP_LOG"
+
+  # Linear 등록 (LOCAL_API_KEY 있을 때만)
+  LINEAR_RESULT_FILE="$PROJECT_ROOT/.run/linear_results.json"
+  if [[ -n "${LINEAR_API_KEY:-}" ]] && [[ -n "${LINEAR_TEAM_ID:-}" ]]; then
+    python3 "$SCRIPT_DIR/push_to_linear_local.py" "$APPROVED_FILE" "$LINEAR_RESULT_FILE" >> "$BOOTSTRAP_LOG" 2>&1 || {
+      echo "[bootstrap][push] Linear 등록 실패 — 결과 없이 완료 처리합니다." | tee -a "$BOOTSTRAP_LOG"
+      echo "[]" > "$LINEAR_RESULT_FILE"
+    }
+  else
+    echo "[bootstrap][push] LINEAR_API_KEY 미설정 — Linear 이슈 생성 스킵." | tee -a "$BOOTSTRAP_LOG"
+    echo "[]" > "$LINEAR_RESULT_FILE"
+  fi
+
+  # 결과를 클라우드에 보고
+  echo "[bootstrap][push] 클라우드에 결과 보고 중..." | tee -a "$BOOTSTRAP_LOG"
+  REPORT_BODY_FILE="$PROJECT_ROOT/.run/linear_push_response.tmp"
+  set +e
+  REPORT_STATUS=$(curl -sS -X POST "$BOOTSTRAP_URL/linear-pushed" \
+    -H "$AUTH_HEADER" \
+    -H "Content-Type: application/json" \
+    -d "@$LINEAR_RESULT_FILE" \
+    -o "$REPORT_BODY_FILE" \
+    -w "%{http_code}" 2>> "$BOOTSTRAP_LOG")
+  REPORT_RC=$?
+  set -e
+
+  if [[ $REPORT_RC -eq 0 ]] && [[ "${REPORT_STATUS:0:1}" == "2" ]]; then
+    RESPONSE=$(cat "$REPORT_BODY_FILE" 2>/dev/null || echo "{}")
+    echo "[bootstrap][push] 보고 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
+
+    # remaining_unregistered == 0 일 때만 완료 마커 기록
+    REMAINING=$(python3 -c "import json,sys; print(json.load(sys.stdin).get('remaining_unregistered',1))" < "$REPORT_BODY_FILE" 2>/dev/null || echo "1")
+    if [[ "$REMAINING" == "0" ]]; then
+      date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BOOTSTRAP_DONE"
+      echo ""
+      echo "[bootstrap] ✅ Linear 등록 완료 — AI Team에서 이슈를 확인하세요."
+    else
+      echo ""
+      echo "[bootstrap] ⚠️  ${REMAINING}개 서브태스크 미등록 남아있음 — 승인 후 다시 실행하세요:" | tee -a "$BOOTSTRAP_LOG"
+      echo "[bootstrap]    bash scripts/bootstrap_clickeye.sh --push"
+    fi
+  else
+    echo "[bootstrap][push] 클라우드 보고 실패 (HTTP ${REPORT_STATUS:-000}, curl rc: ${REPORT_RC})" | tee -a "$BOOTSTRAP_LOG"
+    echo "[bootstrap][push] 재시도: bash scripts/bootstrap_clickeye.sh --push" | tee -a "$BOOTSTRAP_LOG"
+    exit 1
+  fi
+
+  exit 0
+fi
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1-pass (기본): 요구사항 fetch → 분해 → pending_review 보고
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 멱등 가드
+if [[ -f "$DECOMPOSED_DONE" ]]; then
+  echo "[bootstrap] 분해가 이미 완료됨 ($(cat "$DECOMPOSED_DONE"))."
+  echo "[bootstrap] AI Team에서 승인 후: bash scripts/bootstrap_clickeye.sh --push"
+  exit 0
+fi
+
 echo "[bootstrap] 요구사항 조회 중... (URL: $BOOTSTRAP_URL/requirements)" | tee -a "$BOOTSTRAP_LOG"
 
 # ── running 상태 보고 ─────────────────────────────────────────────────────────
@@ -48,7 +164,6 @@ curl -sS -X POST "$BOOTSTRAP_URL/bootstrap-status" \
   -d '{"status":"running"}' >> "$BOOTSTRAP_LOG" 2>&1 || true
 
 # ── 요구사항 fetch ────────────────────────────────────────────────────────────
-# curl -sS: show errors, -o: body to file, -w: capture status code
 REQS_FILE="$PROJECT_ROOT/.run/requirements.json"
 set +e
 HTTP_STATUS=$(curl -sS \
@@ -102,23 +217,15 @@ if [[ ! -f "$SUBTASKS_FILE" ]] || [[ ! -s "$SUBTASKS_FILE" ]]; then
   exit 1
 fi
 
-# ── Linear 이슈 등록 (선택 — LINEAR_API_KEY 있을 때만) ───────────────────────
-if [[ -n "${LINEAR_API_KEY:-}" ]] && [[ -n "${LINEAR_TEAM_ID:-}" ]]; then
-  echo "[bootstrap] Linear 이슈 등록 중..." | tee -a "$BOOTSTRAP_LOG"
-  python3 "$SCRIPT_DIR/push_to_linear_local.py" "$SUBTASKS_FILE" >> "$BOOTSTRAP_LOG" 2>&1 || {
-    echo "[bootstrap] Linear 등록 실패 — 서브태스크만 클라우드에 저장합니다." | tee -a "$BOOTSTRAP_LOG"
-  }
-else
-  echo "[bootstrap] LINEAR_API_KEY 미설정 — Linear 이슈 생성 스킵." | tee -a "$BOOTSTRAP_LOG"
-fi
-
-# ── 클라우드에 결과 보고 ──────────────────────────────────────────────────────
-echo "[bootstrap] 클라우드에 결과 보고 중..." | tee -a "$BOOTSTRAP_LOG"
+# ── 클라우드에 pending_review 보고 ───────────────────────────────────────────
+echo "[bootstrap] 클라우드에 분해 결과 보고 중 (pending_review)..." | tee -a "$BOOTSTRAP_LOG"
 PAYLOAD=$(python3 -c "
 import json, sys
 with open('$SUBTASKS_FILE') as f:
     subtasks = json.load(f)
-print(json.dumps({'subtasks': subtasks, 'decompose_method': subtasks[0].get('_method','manual') if subtasks else 'manual'}))
+method = subtasks[0].get('_method', 'manual') if subtasks else 'manual'
+clean = [{'role': s.get('role','architect'), 'title': s.get('title',''), 'description': s.get('description','')} for s in subtasks]
+print(json.dumps({'subtasks': clean, 'decompose_method': method, 'state': 'pending_review'}))
 ")
 
 REPORT_BODY_FILE="$PROJECT_ROOT/.run/report_response.tmp"
@@ -134,9 +241,12 @@ set -e
 
 if [[ $REPORT_RC -eq 0 ]] && [[ "${REPORT_STATUS:0:1}" == "2" ]]; then
   RESPONSE=$(cat "$REPORT_BODY_FILE" 2>/dev/null || echo "")
-  echo "[bootstrap] 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
-  date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BOOTSTRAP_DONE"
-  echo "[bootstrap] ✅ 완료 — AI Team 화면에서 서브태스크를 확인하세요."
+  echo "[bootstrap] 분해 보고 완료: $RESPONSE" | tee -a "$BOOTSTRAP_LOG"
+  date -u +"%Y-%m-%dT%H:%M:%SZ" > "$DECOMPOSED_DONE"
+  echo ""
+  echo "[bootstrap] ✅ 분해 완료 — AI Team에서 서브태스크를 검토하고 승인하세요."
+  echo "[bootstrap]    검토 URL: ${CLICKEYE_API_URL}/projects/${CLICKEYE_PROJECT_ID}/ai-team"
+  echo "[bootstrap]    승인 후 Linear 등록: bash scripts/bootstrap_clickeye.sh --push"
 else
   echo "[bootstrap] 클라우드 보고 실패 (HTTP ${REPORT_STATUS:-000}, curl rc: ${REPORT_RC})" | tee -a "$BOOTSTRAP_LOG"
   if [[ -s "$REPORT_BODY_FILE" ]]; then

@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""서브태스크를 Linear 이슈로 등록하고 subtasks.json에 ID를 기록한다.
+"""서브태스크를 Linear 이슈로 등록한다.
 
-입력/출력: subtasks.json (in-place 업데이트)
+사용법:
+  push_to_linear_local.py <input.json> <output.json>
+    input.json:  [{id, role, title, description}, ...]  (approved_subtasks.json)
+    output.json: [{subtask_id, linear_issue_id, linear_identifier, linear_url, linear_state}, ...]
+
+  push_to_linear_local.py <subtasks.json>   (레거시 — in-place 업데이트)
+
 의존: LINEAR_API_KEY, LINEAR_TEAM_ID (.env 로드됨)
 """
 from __future__ import annotations
@@ -53,20 +59,25 @@ def _get_backlog_state_id(api_key: str, team_id: str) -> str | None:
         return None
 
 
-def main(subtasks_path: str) -> None:
+def main(input_path: str, output_path: str | None = None) -> None:
     api_key = os.environ.get("LINEAR_API_KEY", "")
     team_id = os.environ.get("LINEAR_TEAM_ID", "")
     if not api_key or not team_id:
         print("[linear] LINEAR_API_KEY 또는 LINEAR_TEAM_ID 미설정 — 스킵합니다.", file=sys.stderr)
+        if output_path:
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump([], f)
         return
 
-    with open(subtasks_path, encoding="utf-8") as f:
+    with open(input_path, encoding="utf-8") as f:
         subtasks = json.load(f)
 
     state_id = _get_backlog_state_id(api_key, team_id)
+    two_pass = output_path is not None
 
-    updated = []
+    results = []
     for st in subtasks:
+        subtask_id = st.get("id")
         title = f"[{st.get('role','architect')}] {st.get('title','')}"
         description = st.get("description") or ""
         variables: dict = {
@@ -81,22 +92,43 @@ def main(subtasks_path: str) -> None:
         try:
             data = _call(api_key, _ISSUE_CREATE, variables)
             issue = data.get("issueCreate", {}).get("issue") or {}
-            st["linear_issue_id"] = issue.get("id")
-            st["linear_identifier"] = issue.get("identifier")
-            st["linear_state"] = "Backlog"
-            st["linear_url"] = issue.get("url")
-            print(f"[linear] 등록됨: {issue.get('identifier')} — {title[:60]}", file=sys.stderr)
+            linear_issue_id = issue.get("id")
+            linear_identifier = issue.get("identifier")
+            linear_url = issue.get("url")
+            print(f"[linear] 등록됨: {linear_identifier} — {title[:60]}", file=sys.stderr)
+            if two_pass and subtask_id:
+                results.append({
+                    "subtask_id": subtask_id,
+                    "linear_issue_id": linear_issue_id,
+                    "linear_identifier": linear_identifier,
+                    "linear_url": linear_url,
+                    "linear_state": "Backlog",
+                })
+            else:
+                st["linear_issue_id"] = linear_issue_id
+                st["linear_identifier"] = linear_identifier
+                st["linear_state"] = "Backlog"
+                st["linear_url"] = linear_url
         except Exception as exc:
             print(f"[linear] 등록 실패 ({title[:40]}): {exc}", file=sys.stderr)
-        updated.append(st)
 
-    with open(subtasks_path, "w", encoding="utf-8") as f:
-        json.dump(updated, f, ensure_ascii=False, indent=2)
-    print(f"[linear] 완료: {len(updated)}개 처리.", file=sys.stderr)
+        if not two_pass:
+            results.append(st)
+
+    if two_pass and output_path:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+    elif not two_pass:
+        with open(input_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+
+    count = len(subtasks)
+    print(f"[linear] 완료: {count}개 처리.", file=sys.stderr)
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: push_to_linear_local.py <subtasks.json>", file=sys.stderr)
+        print("Usage: push_to_linear_local.py <input.json> [output.json]", file=sys.stderr)
         sys.exit(1)
-    main(sys.argv[1])
+    out = sys.argv[2] if len(sys.argv) >= 3 else None
+    main(sys.argv[1], out)

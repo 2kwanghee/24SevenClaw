@@ -72,6 +72,7 @@ class OrchestratorBootstrapRequest(BaseModel):
     subtasks: list[BootstrapSubtask] = Field(..., min_length=1, max_length=50)
     decompose_method: Literal["claude-cli", "rule-based", "manual"] = "manual"
     notes: str | None = None
+    state: Literal["pending_review", "completed"] = "pending_review"
 
 
 class OrchestratorBootstrapResponse(BaseModel):
@@ -82,6 +83,21 @@ class OrchestratorBootstrapResponse(BaseModel):
 class BootstrapStatusRequest(BaseModel):
     status: Literal["running", "failed"]
     error: str | None = None
+
+
+class ApprovedSubtaskItem(BaseModel):
+    id: UUID
+    role: str
+    title: str
+    description: str | None
+
+
+class LinearPushedItem(BaseModel):
+    subtask_id: UUID
+    linear_issue_id: str
+    linear_identifier: str | None = None
+    linear_url: str | None = None
+    linear_state: str | None = None
 
 
 # ── 엔드포인트 ────────────────────────────────────────────────────────────────
@@ -142,12 +158,15 @@ async def orchestrator_bootstrap(
                 },
             )
 
+    is_pending_review = body.state == "pending_review"
+    session_phase = "reviewing" if is_pending_review else "integrating"
+
     session = OrchestratorSession(
         id=uuid.uuid4(),
         project_id=project.id,
         title=f"[자동] {project.name} 초기 요구사항 분해",
         description=(body.notes or project.requirements_text or "")[:2000],
-        phase="integrating",
+        phase=session_phase,
         created_by=user_id,
     )
     db.add(session)
@@ -170,9 +189,13 @@ async def orchestrator_bootstrap(
         db.add(subtask)
 
     now = datetime.now(UTC)
-    project.bootstrap_status = "completed"  # type: ignore[assignment]
-    project.bootstrap_completed_at = now  # type: ignore[assignment]
-    project.setup_token_hash = None  # type: ignore[assignment]  # 완료 후 즉시 무효화
+    if is_pending_review:
+        project.bootstrap_status = "pending_review"  # type: ignore[assignment]
+        # setup_token_hash 유지 — 2-pass --push 단계에서 재사용
+    else:
+        project.bootstrap_status = "completed"  # type: ignore[assignment]
+        project.bootstrap_completed_at = now  # type: ignore[assignment]
+        project.setup_token_hash = None  # type: ignore[assignment]  # 완료 후 즉시 무효화
 
     await db.commit()
     return OrchestratorBootstrapResponse(
@@ -193,3 +216,114 @@ async def update_bootstrap_status(
         return
     project.bootstrap_status = body.status  # type: ignore[assignment]
     await db.commit()
+
+
+@router.get(
+    "/{project_id}/setup/approved-subtasks",
+    response_model=list[ApprovedSubtaskItem],
+)
+async def get_approved_subtasks(
+    auth: tuple[Project, UUID] = Depends(_verify_setup_token),
+    db: AsyncSession = Depends(get_db),
+) -> list[ApprovedSubtaskItem]:
+    """사용자가 AI Team에서 승인한 서브태스크를 반환한다 (Linear 미등록 항목만).
+
+    로컬 --push 단계에서 호출해 Linear에 등록할 목록을 가져간다.
+    """
+    project, _ = auth
+
+    result = await db.execute(
+        select(OrchestratorSession).where(
+            OrchestratorSession.project_id == project.id
+        ).order_by(OrchestratorSession.created_at.asc()).limit(1)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="부트스트랩 세션이 없습니다. 먼저 orchestrator-bootstrap을 실행하세요.",
+        )
+
+    subtasks_result = await db.execute(
+        select(SubTask).where(
+            SubTask.session_id == session.id,
+            SubTask.status == "approved",
+            SubTask.linear_issue_id.is_(None),
+        ).order_by(SubTask.order_index)
+    )
+    subtasks = subtasks_result.scalars().all()
+
+    return [
+        ApprovedSubtaskItem(
+            id=st.id,
+            role=str(st.assigned_role),
+            title=str(st.title),
+            description=str(st.description) if st.description else None,
+        )
+        for st in subtasks
+    ]
+
+
+@router.post(
+    "/{project_id}/setup/linear-pushed",
+    status_code=status.HTTP_200_OK,
+)
+async def report_linear_pushed(
+    body: list[LinearPushedItem],
+    auth: tuple[Project, UUID] = Depends(_verify_setup_token),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """로컬에서 Linear 이슈를 생성한 결과를 수신해 SubTask를 업데이트한다.
+
+    모든 approved SubTask에 linear_issue_id가 채워지면 bootstrap_status='completed'로 전환.
+    """
+    project, _ = auth
+
+    updated = 0
+    for item in body:
+        result = await db.execute(
+            select(SubTask)
+            .join(OrchestratorSession, SubTask.session_id == OrchestratorSession.id)
+            .where(
+                SubTask.id == item.subtask_id,
+                OrchestratorSession.project_id == project.id,
+            )
+        )
+        subtask = result.scalar_one_or_none()
+        if subtask is None:
+            continue
+        subtask.linear_issue_id = item.linear_issue_id  # type: ignore[assignment]
+        subtask.linear_identifier = item.linear_identifier  # type: ignore[assignment]
+        subtask.linear_state = item.linear_state or "Backlog"  # type: ignore[assignment]
+        updated += 1
+
+    await db.flush()
+
+    all_subtasks_result = await db.execute(
+        select(SubTask).join(
+            OrchestratorSession, SubTask.session_id == OrchestratorSession.id
+        ).where(
+            OrchestratorSession.project_id == project.id,
+            SubTask.status == "approved",
+            SubTask.linear_issue_id.is_(None),
+        )
+    )
+    remaining = all_subtasks_result.scalars().all()
+
+    if not remaining:
+        now = datetime.now(UTC)
+        project.bootstrap_status = "completed"  # type: ignore[assignment]
+        project.bootstrap_completed_at = now  # type: ignore[assignment]
+        project.setup_token_hash = None  # type: ignore[assignment]
+
+        session_result = await db.execute(
+            select(OrchestratorSession).where(
+                OrchestratorSession.project_id == project.id
+            ).order_by(OrchestratorSession.created_at.asc()).limit(1)
+        )
+        session = session_result.scalar_one_or_none()
+        if session is not None:
+            session.phase = "approved"  # type: ignore[assignment]
+
+    await db.commit()
+    return {"updated": updated, "remaining_unregistered": len(remaining)}

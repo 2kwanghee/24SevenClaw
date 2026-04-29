@@ -162,11 +162,15 @@ class PushToLinearResponse(BaseModel):
 
 
 class ApproveSubtaskResponse(BaseModel):
-    """subtask 큐 등록(Backlog → Todo) 결과."""
+    """subtask 큐 등록(Backlog → Todo) 결과.
+
+    linear_identifier / transitioned_to는 Linear 이슈가 없을 때 None.
+    """
 
     subtask_id: UUID
-    linear_identifier: str
-    transitioned_to: str
+    linear_identifier: str | None = None
+    transitioned_to: str | None = None
+    message: str | None = None
 
 
 class ResetToWaitResponse(BaseModel):

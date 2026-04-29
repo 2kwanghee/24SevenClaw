@@ -20,13 +20,26 @@ from typing import Any
 DECOMPOSE_PROMPT = """\
 당신은 소프트웨어 개발 태스크를 역할별로 분해하는 전문가입니다.
 아래 요구사항을 읽고, 개발에 필요한 서브태스크를 JSON 배열로만 반환하세요.
-다른 텍스트 없이 JSON만 출력하세요.
+다른 텍스트 없이 JSON 배열만 출력하세요.
 
-각 서브태스크는 다음 형식을 따릅니다:
-{"role": "<역할>", "title": "<제목>", "description": "<상세 설명>"}
+각 서브태스크는 다음 형식의 JSON 객체를 따릅니다:
+{
+  "role": "<backend|frontend|qa|architect|designer|devops|pm|fullstack>",
+  "title": "<50자 이내, 명령형 동사로 시작 (예: '~를 구현한다', '~를 설정한다')>",
+  "description": "<상세 작업 설명. 왜 필요한지 + 어떻게 시작하는지 2~5문장. 마크다운 허용>",
+  "phase": "<mvp|v2|future>",
+  "priority": "<high|medium|low>",
+  "estimate_hours": <정수, 1~40>,
+  "depends_on": ["<선행 서브태스크 title 그대로 인용>"],
+  "acceptance_criteria": ["<완료 기준 한 줄씩>"]
+}
 
-가능한 role 값: backend, frontend, qa, architect, designer, devops, pm, fullstack
-서브태스크는 최소 2개, 최대 10개.
+규칙:
+- phase: mvp=핵심 사용자 가치, v2=보강, future=nice-to-have
+- depends_on: 선행 서브태스크의 title을 정확히 인용 (오타 주의)
+- acceptance_criteria: 테스트 가능한 완료 조건 2~5개
+- 서브태스크는 최소 2개, 최대 10개
+- architect 태스크는 항상 mvp에 포함하고 다른 태스크의 선행 조건으로 설정
 
 요구사항:
 {requirements}
@@ -50,11 +63,22 @@ def _detect_roles(text: str) -> list[str]:
 def _rule_based(requirements_text: str, project_name: str) -> list[dict[str, Any]]:
     roles = _detect_roles(requirements_text)
     subtasks = []
-    for r in roles:
+    for i, r in enumerate(roles):
+        title = f"[{r}] {project_name} 초기 구현"
+        desc_base = requirements_text[:500]
+        md_desc = (
+            f"{desc_base}\n\n"
+            f"**Phase**: mvp | **Priority**: medium | **Estimate**: ?h"
+        )
         subtasks.append({
             "role": r,
-            "title": f"[{r}] {project_name} 초기 구현",
-            "description": requirements_text[:500],
+            "title": title,
+            "description": md_desc,
+            "_phase": "mvp",
+            "_priority": "medium",
+            "_estimate_hours": None,
+            "_depends_on": [],
+            "_acceptance_criteria": [],
             "_method": "rule-based",
         })
     return subtasks
@@ -99,10 +123,33 @@ def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any
         for item in subtasks[:10]:
             if not isinstance(item, dict):
                 continue
+            desc_base = str(item.get("description", ""))
+            depends_on = item.get("depends_on") or []
+            ac_list = item.get("acceptance_criteria") or []
+            phase = str(item.get("phase", "mvp"))
+            priority = str(item.get("priority", "medium"))
+            estimate = item.get("estimate_hours")
+
+            md_parts = [desc_base]
+            md_parts.append(
+                f"\n**Phase**: {phase} | **Priority**: {priority}"
+                + (f" | **Estimate**: {estimate}h" if estimate is not None else "")
+            )
+            if depends_on:
+                md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
+            if ac_list:
+                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))
+            md_desc = "\n".join(md_parts)
+
             result_list.append({
                 "role": str(item.get("role", "architect"))[:50],
                 "title": str(item.get("title", ""))[:500],
-                "description": str(item.get("description", ""))[:2000],
+                "description": md_desc[:2000],
+                "_phase": phase,
+                "_priority": priority,
+                "_estimate_hours": estimate,
+                "_depends_on": list(depends_on),
+                "_acceptance_criteria": list(ac_list),
                 "_method": "claude-cli",
             })
         return result_list if result_list else None

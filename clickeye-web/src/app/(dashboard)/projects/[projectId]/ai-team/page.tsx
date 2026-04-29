@@ -270,6 +270,19 @@ export default function AITeamDashboardPage() {
           <span>요구사항 분석 및 Linear 이슈 등록 진행 중입니다…</span>
         </div>
       )}
+      {bootstrapStatus === "pending_review" && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            분해된 서브태스크를 검토하고 각 카드를 <strong>승인</strong>하세요.
+            모두 승인한 후 로컬 터미널에서{" "}
+            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
+              bash scripts/bootstrap_clickeye.sh --push
+            </code>
+            을 실행하면 Linear에 이슈가 등록됩니다.
+          </span>
+        </div>
+      )}
       {bootstrapStatus === "failed" && (
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

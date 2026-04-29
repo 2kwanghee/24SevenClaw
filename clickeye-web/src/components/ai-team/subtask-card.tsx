@@ -125,7 +125,12 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
   const resetMutation = useResetSubtaskToWait();
   const syncLinearStates = useSyncLinearStates(sessionId ?? "");
 
-  const canApprove = !!subtask.linear_issue_id && subtask.linear_state === "Backlog" && !!sessionId;
+  const isLinearUnregistered = !subtask.linear_issue_id;
+  // 2-pass 부트스트랩: Linear 미등록 상태도 승인 가능 (--push 단계에서 등록)
+  const canApprove = !!sessionId && (
+    (!!subtask.linear_issue_id && subtask.linear_state === "Backlog") ||
+    (isLinearUnregistered && subtask.status === "pending")
+  );
   const canReset =
     !!subtask.linear_issue_id &&
     !!sessionId &&
@@ -164,74 +169,82 @@ export function SubTaskCard({ subtask, sessionId, teamStates = [] }: SubTaskCard
         </div>
       )}
 
-      {/* Linear 연동 정보 */}
-      {subtask.linear_identifier && (
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-mono text-[var(--text-muted)]">
-              {subtask.linear_identifier}
+      {/* Linear 연동 정보 / 미등록 배지 */}
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+        <div className="flex items-center gap-1.5">
+          {subtask.linear_identifier ? (
+            <>
+              <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                {subtask.linear_identifier}
+              </span>
+              {linearStateName && linearStateCls && (
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${linearStateCls}`}>
+                  {linearStateName}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+              subtask.status === "approved"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-amber-50 text-amber-700 border border-amber-200"
+            }`}>
+              {subtask.status === "approved" ? "승인됨 — --push 대기" : "Linear 미등록(검토 중)"}
             </span>
-            {linearStateName && linearStateCls && (
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${linearStateCls}`}>
-                {linearStateName}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {canApprove && (
-              <button
-                type="button"
-                disabled={approveMutation.isPending}
-                onClick={() =>
-                  approveMutation.mutate(
-                    { sessionId, subtaskId: subtask.id },
-                    {
-                      onSuccess: () => {
-                        // Linear 로컬 watcher가 Todo → In Progress로 즉시 전이할 수 있으므로
-                        // approve 직후 Linear 실제 상태를 즉시 동기화한다.
-                        if (sessionId && !syncLinearStates.isPending) {
-                          syncLinearStates.mutate();
-                        }
-                      },
-                    },
-                  )
-                }
-                className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
-              >
-                {approveMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <ExternalLink className="h-3 w-3" />
-                )}
-                큐 등록
-              </button>
-            )}
-            {canReset && (
-              <button
-                type="button"
-                disabled={resetMutation.isPending}
-                onClick={() =>
-                  resetMutation.mutate({ sessionId, subtaskId: subtask.id })
-                }
-                className="flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
-              >
-                {resetMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-3 w-3" />
-                )}
-                대기로 복귀
-              </button>
-            )}
-            {!canApprove && !canReset && linearStateName && linearStateName !== "Backlog" && (
-              <span className="text-[10px] text-[var(--text-muted)]">
-                {linearStateName}
-              </span>
-            )}
-          </div>
+          )}
         </div>
-      )}
+
+        <div className="flex items-center gap-1.5">
+          {canApprove && (
+            <button
+              type="button"
+              disabled={approveMutation.isPending}
+              onClick={() =>
+                approveMutation.mutate(
+                  { sessionId, subtaskId: subtask.id },
+                  {
+                    onSuccess: () => {
+                      if (sessionId && !isLinearUnregistered && !syncLinearStates.isPending) {
+                        syncLinearStates.mutate();
+                      }
+                    },
+                  },
+                )
+              }
+              className="flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
+            >
+              {approveMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <ExternalLink className="h-3 w-3" />
+              )}
+              {isLinearUnregistered ? "승인" : "큐 등록"}
+            </button>
+          )}
+          {canReset && (
+            <button
+              type="button"
+              disabled={resetMutation.isPending}
+              onClick={() =>
+                resetMutation.mutate({ sessionId, subtaskId: subtask.id })
+              }
+              className="flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
+            >
+              {resetMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCcw className="h-3 w-3" />
+              )}
+              대기로 복귀
+            </button>
+          )}
+          {!canApprove && !canReset && linearStateName && linearStateName !== "Backlog" && (
+            <span className="text-[10px] text-[var(--text-muted)]">
+              {linearStateName}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

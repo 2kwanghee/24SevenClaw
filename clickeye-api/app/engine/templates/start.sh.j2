@@ -225,11 +225,20 @@ if [[ "$_USE_POLLING" == "true" ]] || [[ "${WATCHER_ALWAYS_ON:-0}" == "1" ]]; th
 fi
 {% endif %}
 
-# ── 8-pre. ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) ─────────────────────
-if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]] && [[ ! -f ".run/bootstrap_done" ]]; then
-  echo -e "${CYAN}[●]${NC} ClickEye 부트스트랩 (요구사항 → Linear 자동 등록) 진행 중..."
-  bash scripts/bootstrap_clickeye.sh || \
-    echo -e "${YELLOW}⚠️  부트스트랩 실패 — 재시도: bash scripts/bootstrap_clickeye.sh${NC}"
+# ── 8-pre. ClickEye 부트스트랩 (요구사항 분해 → AI Team 검토 → Linear 등록) ──────
+if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]]; then
+  if [[ -f ".run/bootstrap_done" ]]; then
+    : # 이미 완료 — no-op
+  elif [[ -f ".run/decomposed_done" ]]; then
+    echo ""
+    echo -e "${YELLOW}[bootstrap] 분해 완료 — AI Team에서 검토 후 Linear 등록이 필요합니다.${NC}"
+    echo -e "  검토 URL: ${CYAN}${CLICKEYE_API_URL:-}/projects/${CLICKEYE_PROJECT_ID:-}/ai-team${NC}"
+    echo -e "  승인 후:  ${CYAN}bash scripts/bootstrap_clickeye.sh --push${NC}"
+  else
+    echo -e "${CYAN}[●]${NC} ClickEye 부트스트랩 (요구사항 분해) 진행 중..."
+    bash scripts/bootstrap_clickeye.sh || \
+      echo -e "${YELLOW}⚠️  부트스트랩 실패 — 재시도: bash scripts/bootstrap_clickeye.sh${NC}"
+  fi
 fi
 
 # ── 8. 완료 상태 출력 ──────────────────────────────────────────────────────────
