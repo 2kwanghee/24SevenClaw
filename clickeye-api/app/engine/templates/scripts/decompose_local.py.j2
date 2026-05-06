@@ -206,9 +206,6 @@ def _run_claude(claude_bin: str, prompt: str, *, use_json_format: bool) -> list[
     if not isinstance(subtasks, list) or not subtasks:
         return None
 
-    if not isinstance(subtasks, list) or not subtasks:
-        return None
-
     result_list = []
     for item in subtasks[:10]:
         if not isinstance(item, dict):

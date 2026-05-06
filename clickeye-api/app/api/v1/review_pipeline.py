@@ -97,6 +97,57 @@ async def _resolve_linear_credentials(db: AsyncSession, session_id: UUID) -> _Li
     )
 
 
+# === 부트스트랩 완료 헬퍼 ===
+
+
+async def _maybe_complete_bootstrap(
+    db: AsyncSession,
+    session_id: UUID,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """모든 서브태스크가 approved 상태가 되면 부트스트랩을 completed로 전환한다.
+
+    bootstrap_status="pending_review"인 프로젝트에만 동작한다.
+    """
+    from datetime import UTC  # noqa: PLC0415
+    from datetime import datetime as dt  # noqa: PLC0415
+
+    from sqlalchemy import select as sa_select  # noqa: PLC0415
+
+    from app.api.v1.orchestrator import _auto_complete_pipeline  # noqa: PLC0415
+    from app.models.orchestrator import OrchestratorSession  # noqa: PLC0415
+    from app.models.orchestrator import SubTask as _SubTask  # noqa: PLC0415
+    from app.models.project import Project  # noqa: PLC0415
+
+    all_st_result = await db.execute(
+        sa_select(_SubTask).where(_SubTask.session_id == session_id)
+    )
+    all_sts = all_st_result.scalars().all()
+    if not all_sts or any(s.status != "approved" for s in all_sts):
+        return
+
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    sess = sess_result.scalar_one_or_none()
+    if sess is None:
+        return
+
+    proj_result = await db.execute(
+        sa_select(Project).where(Project.id == sess.project_id)
+    )
+    proj = proj_result.scalar_one_or_none()
+    if proj is None or proj.bootstrap_status != "pending_review":
+        return
+
+    proj.bootstrap_status = "completed"  # type: ignore[assignment]
+    proj.bootstrap_completed_at = dt.now(UTC)  # type: ignore[assignment]
+    proj.setup_token_hash = None  # type: ignore[assignment]
+    sess.phase = "approved"  # type: ignore[assignment]
+    await db.commit()
+    background_tasks.add_task(_auto_complete_pipeline, session_id)
+
+
 # === 파이프라인 자동 진행 (BackgroundTask) ===
 
 
@@ -607,6 +658,7 @@ async def get_review_prompt(
 async def approve_subtask(
     session_id: UUID,
     subtask_id: UUID,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApproveSubtaskResponse:
@@ -641,6 +693,7 @@ async def approve_subtask(
             subtask.status = "approved"  # type: ignore[assignment]
             subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]
             await db.commit()
+            await _maybe_complete_bootstrap(db, session_id, background_tasks)
             return ApproveSubtaskResponse(
                 subtask_id=subtask.id,
                 message="승인됨 (Linear 미연결 — 설정에서 Linear API 키를 등록하면 자동으로 이슈가 생성됩니다)",
@@ -684,6 +737,7 @@ async def approve_subtask(
         subtask.status = "approved"  # type: ignore[assignment]
         subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]
         await db.commit()
+        await _maybe_complete_bootstrap(db, session_id, background_tasks)
 
         if not subtask.linear_issue_id:
             return ApproveSubtaskResponse(

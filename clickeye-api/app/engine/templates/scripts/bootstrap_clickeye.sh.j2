@@ -2,16 +2,17 @@
 # ClickEye 부트스트랩 — 위저드 요구사항 → 로컬 분해 → Linear 자동 등록
 #
 # 실행 모드:
-#   1-pass (기본):  bash scripts/bootstrap_clickeye.sh
-#       요구사항 fetch → 분해 → 클라우드에 pending_review 보고
-#       AI Team에서 검토·승인 후 2-pass 실행 필요
+#   기본 (1-pass):  bash scripts/bootstrap_clickeye.sh
+#       요구사항 fetch → 로컬 claude CLI 분해 → pending_review 보고
+#       AI Team에서 각 카드를 승인하면 서버가 자동으로 Linear 이슈를 생성합니다.
 #
-#   2-pass (--push): bash scripts/bootstrap_clickeye.sh --push
-#       승인된 서브태스크 fetch → Linear 이슈 생성 → 결과 보고
+#   레거시 (--push): bash scripts/bootstrap_clickeye.sh --push
+#       (구버전 호환용) 승인된 서브태스크 fetch → 로컬에서 Linear 이슈 생성 → 결과 보고
+#       현재는 서버 자동 등록으로 대체되어 일반적으로 실행 불필요.
 #
 # 멱등 실행 가능:
 #   .run/decomposed_done — 1-pass 완료 마커
-#   .run/bootstrap_done  — 2-pass 완료 마커
+#   .run/bootstrap_done  — 레거시 2-pass 완료 마커
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
