@@ -299,6 +299,9 @@ async def report_linear_pushed(
 
     await db.flush()
 
+    # Linear을 사용하지 않는 경우(body=[])엔 Linear ID 미등록 서브태스크를 remaining에서 제외
+    skip_linear_check = len(body) == 0 and updated == 0
+
     all_subtasks_result = await db.execute(
         select(SubTask).join(
             OrchestratorSession, SubTask.session_id == OrchestratorSession.id
@@ -310,7 +313,7 @@ async def report_linear_pushed(
     )
     remaining = all_subtasks_result.scalars().all()
 
-    if not remaining:
+    if not remaining or skip_linear_check:
         now = datetime.now(UTC)
         project.bootstrap_status = "completed"  # type: ignore[assignment]
         project.bootstrap_completed_at = now  # type: ignore[assignment]

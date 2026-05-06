@@ -79,9 +79,14 @@ export default function AITeamDashboardPage() {
     refetch: refetchSummary,
   } = useSessionSummary(selectedSessionId);
 
-  const isAutoProgressPhase = ["drafting", "reviewing", "integrating", "approved", "transitioning"].includes(
-    summary?.session?.phase ?? "",
-  );
+  // 부트스트랩 세션(pending_review)은 "reviewing"이어도 수동 검토가 필요 — 자동 진행 아님
+  const isBootstrapReviewing =
+    bootstrapStatus === "pending_review" && summary?.session?.phase === "reviewing";
+  const isAutoProgressPhase =
+    !isBootstrapReviewing &&
+    ["drafting", "reviewing", "integrating", "approved", "transitioning"].includes(
+      summary?.session?.phase ?? "",
+    );
 
   const { data: reviewData } = useReviewRounds(selectedSessionId, isAutoProgressPhase);
 
@@ -412,6 +417,14 @@ export default function AITeamDashboardPage() {
                   )}
                   AI 초안 생성
                 </button>
+              )}
+
+              {/* 부트스트랩 수동 검토 안내 (pending_review + reviewing) */}
+              {isBootstrapReviewing && (
+                <div className="ml-auto flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
+                  <CheckCircle2 className="h-3 w-3 text-amber-600" />
+                  <span className="text-xs text-amber-700">각 카드 승인 후 <code className="rounded bg-amber-100 px-1 font-mono text-[10px]">--push</code> 실행</span>
+                </div>
               )}
 
               {/* 자동 진행 중 표시 (drafting/reviewing/integrating) */}
