@@ -227,7 +227,7 @@ with open('$SUBTASKS_FILE') as f:
 method = subtasks[0].get('_method', 'manual') if subtasks else 'manual'
 if method not in {'claude-cli', 'manual'}:
     method = 'manual'
-clean = [{'role': s.get('role','architect'), 'title': s.get('title',''), 'description': s.get('description','')} for s in subtasks]
+clean = [{'role': s.get('role','architect'), 'title': s.get('title',''), 'description': s.get('description',''), 'depends_on': s.get('_depends_on') or []} for s in subtasks]
 print(json.dumps({'subtasks': clean, 'decompose_method': method, 'state': 'pending_review'}))
 ")
 

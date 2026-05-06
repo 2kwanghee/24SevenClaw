@@ -648,34 +648,68 @@ export default function AITeamDashboardPage() {
             className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             aria-label="AI Team 계층"
           >
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100">
-                  <Bot className="h-3.5 w-3.5 text-zinc-700" />
-                </div>
-                <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-                  AI Team
-                </h2>
-                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
-                  {subtasks.length}개 태스크
-                </span>
-              </div>
-              <span className="text-[10px] text-[var(--text-muted)]">
-                {isAutoProgressPhase ? "Linear 10초 동기화" : "Linear 30초 동기화"}
-              </span>
-            </div>
+            {(() => {
+              const approvedCount = subtasks.filter((s) => s.status === "approved").length;
+              const dependencyMap = new Map(subtasks.map((s) => [s.title, s]));
+              const sortedByOrder = [...subtasks].sort((a, b) => a.order_index - b.order_index);
+              const nextRecommended = sortedByOrder.find(
+                (s) =>
+                  s.status !== "approved" &&
+                  s.depends_on.every((t) => dependencyMap.get(t)?.status === "approved"),
+              );
+              const nextRecommendedId = nextRecommended?.id ?? null;
 
-            {subtasks.length === 0 ? (
-              <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-                아직 서브태스크가 없습니다
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {subtasks.map((st) => (
-                  <SubTaskCard key={st.id} subtask={st} sessionId={selectedSessionId} teamStates={teamStates ?? []} />
-                ))}
-              </div>
-            )}
+              return (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100">
+                        <Bot className="h-3.5 w-3.5 text-zinc-700" />
+                      </div>
+                      <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+                        AI Team
+                      </h2>
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                        {subtasks.length}개 태스크
+                      </span>
+                      {subtasks.length > 0 && (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          approvedCount === subtasks.length
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-violet-50 text-violet-700"
+                        }`}>
+                          {approvedCount} / {subtasks.length} 승인 완료
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-[var(--text-muted)]">
+                      {isAutoProgressPhase ? "Linear 10초 동기화" : "Linear 30초 동기화"}
+                    </span>
+                  </div>
+
+                  {subtasks.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+                      아직 서브태스크가 없습니다
+                    </p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {sortedByOrder.map((st, idx) => (
+                        <SubTaskCard
+                          key={st.id}
+                          subtask={st}
+                          sessionId={selectedSessionId}
+                          teamStates={teamStates ?? []}
+                          orderNum={idx + 1}
+                          total={subtasks.length}
+                          dependencyMap={dependencyMap}
+                          isNextRecommended={st.id === nextRecommendedId}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </section>
         </div>
       )}

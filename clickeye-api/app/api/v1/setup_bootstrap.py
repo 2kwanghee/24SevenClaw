@@ -62,6 +62,7 @@ class BootstrapSubtask(BaseModel):
     role: str = Field(..., max_length=50)
     title: str = Field(..., min_length=1, max_length=500)
     description: str | None = None
+    depends_on: list[str] = Field(default_factory=list)
     linear_issue_id: str | None = None
     linear_identifier: str | None = None
     linear_state: str | None = None
@@ -182,6 +183,7 @@ async def orchestrator_bootstrap(
             assigned_role=role,
             status="pending",
             order_index=idx,
+            depends_on=st.depends_on or [],
             linear_identifier=st.linear_identifier,
             linear_issue_id=st.linear_issue_id,
             linear_state=st.linear_state or ("Backlog" if st.linear_issue_id else None),
