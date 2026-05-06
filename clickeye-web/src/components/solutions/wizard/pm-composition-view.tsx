@@ -17,7 +17,6 @@ const MCP_SKILL_NAMES = new Set([
   "linear",
   "github",
   "slack",
-  "jira",
   "notion",
   "telegram",
   "figma",

@@ -21,11 +21,6 @@
     "description": "Slack 채널 알림 연동"
   },
   {
-    "id": "jira",
-    "label": "Jira",
-    "description": "Jira 이슈 트래킹 연동"
-  },
-  {
     "id": "notion",
     "label": "Notion",
     "description": "Notion 워크스페이스 연동",
