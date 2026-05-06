@@ -39,6 +39,64 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/orchestrator", tags=["review-pipeline"])
 
 
+# === 자격증명 헬퍼 ===
+
+
+from dataclasses import dataclass  # noqa: E402
+
+
+@dataclass
+class _LinearCreds:
+    api_key: str
+    team_id: str
+
+
+async def _resolve_linear_credentials(db: AsyncSession, session_id: UUID) -> _LinearCreds | None:
+    """세션 ID → project_id → Linear 자격증명을 조회한다.
+
+    ProjectLinearCredentials 우선, 없으면 UserLinearCredentials(세션 생성자) 폴백.
+    자격증명이 전혀 없으면 None을 반환한다.
+    """
+    from sqlalchemy import select as sa_select  # noqa: PLC0415
+
+    from app.core.crypto import decrypt  # noqa: PLC0415
+    from app.models.orchestrator import OrchestratorSession  # noqa: PLC0415
+    from app.models.project_linear_credentials import ProjectLinearCredentials  # noqa: PLC0415
+    from app.models.user_linear_credentials import UserLinearCredentials  # noqa: PLC0415
+
+    sess_result = await db.execute(
+        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+    )
+    session = sess_result.scalar_one_or_none()
+    if session is None:
+        return None
+
+    proj_result = await db.execute(
+        sa_select(ProjectLinearCredentials).where(
+            ProjectLinearCredentials.project_id == session.project_id
+        )
+    )
+    proj_creds = proj_result.scalar_one_or_none()
+    if proj_creds is not None:
+        return _LinearCreds(
+            api_key=decrypt(str(proj_creds.encrypted_api_key)),
+            team_id=str(proj_creds.team_id),
+        )
+
+    user_result = await db.execute(
+        sa_select(UserLinearCredentials).where(
+            UserLinearCredentials.user_id == session.created_by
+        )
+    )
+    user_creds = user_result.scalar_one_or_none()
+    if user_creds is None:
+        return None
+    return _LinearCreds(
+        api_key=decrypt(str(user_creds.encrypted_api_key)),
+        team_id=str(user_creds.team_id),
+    )
+
+
 # === 파이프라인 자동 진행 (BackgroundTask) ===
 
 
@@ -366,7 +424,7 @@ async def push_to_linear(
     # 생성된 Linear 이슈 정보를 subtask 행에 저장
     from datetime import UTC
     from datetime import datetime as dt
-    for subtask, issue in zip(subtasks, created):
+    for subtask, issue in zip(subtasks, created, strict=False):
         subtask.linear_identifier = issue.get("identifier") or None
         subtask.linear_issue_id = issue.get("id") or None
         subtask.linear_state = "Backlog" if initial_state_id else None
@@ -562,10 +620,7 @@ async def approve_subtask(
 
     from sqlalchemy import select as sa_select
 
-    from app.core.crypto import decrypt
     from app.models.orchestrator import OrchestratorSession, SubTask
-    from app.models.project_linear_credentials import ProjectLinearCredentials
-    from app.models.user_linear_credentials import UserLinearCredentials
     from app.services.linear_service import get_queued_state_id, update_issue_state_id
 
     # subtask 조회 + 세션 소유권 확인
@@ -580,48 +635,76 @@ async def approve_subtask(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
 
     if not subtask.linear_issue_id:
-        # 2-pass 부트스트랩: Linear 이슈 없이 승인만 표시 (--push 단계에서 등록)
+        # Linear 자격증명이 있으면 즉시 이슈 생성, 없으면 단순 승인
+        creds = await _resolve_linear_credentials(db, session_id)
+        if creds is None:
+            subtask.status = "approved"  # type: ignore[assignment]
+            subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]
+            await db.commit()
+            return ApproveSubtaskResponse(
+                subtask_id=subtask.id,
+                message="승인됨 (Linear 미연결 — 설정에서 Linear API 키를 등록하면 자동으로 이슈가 생성됩니다)",
+            )
+
+        # Linear 이슈 자동 생성
+        from app.schemas.review_pipeline import LinearSyncHintSubtask  # noqa: PLC0415
+        from app.services.linear_service import create_issues, get_initial_state_id  # noqa: PLC0415
+
+        # 세션 설명을 이슈 본문 컨텍스트로 사용
+        sess_for_desc_result = await db.execute(
+            sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
+        )
+        sess_for_desc = sess_for_desc_result.scalar_one_or_none()
+        session_description = str(sess_for_desc.description) if sess_for_desc and sess_for_desc.description else None
+
+        backlog_state_id = get_initial_state_id(creds.api_key, creds.team_id)
+        hint = LinearSyncHintSubtask(
+            title=str(subtask.title),
+            role=str(subtask.assigned_role),
+            draft_summary=str(subtask.description or subtask.title),
+        )
+        try:
+            created = create_issues(
+                creds.api_key,
+                creds.team_id,
+                [hint],
+                state_id=backlog_state_id,
+                session_description=session_description,
+            )
+        except Exception as exc:
+            logger.warning("Linear 이슈 자동 생성 실패 subtask=%s: %s", subtask_id, exc)
+            created = []
+
+        if created:
+            info = created[0]
+            subtask.linear_issue_id = info.get("id") or None  # type: ignore[assignment]
+            subtask.linear_identifier = info.get("identifier") or None  # type: ignore[assignment]
+            subtask.linear_state = "Backlog"  # type: ignore[assignment]
+
         subtask.status = "approved"  # type: ignore[assignment]
         subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]
         await db.commit()
+
+        if not subtask.linear_issue_id:
+            return ApproveSubtaskResponse(
+                subtask_id=subtask.id,
+                message="승인됨 (Linear 이슈 생성 실패 — API 키 권한을 확인하세요)",
+            )
         return ApproveSubtaskResponse(
             subtask_id=subtask.id,
-            message="승인됨 (Linear 미등록 — bash scripts/bootstrap_clickeye.sh --push 실행 후 등록됩니다)",
+            linear_identifier=str(subtask.linear_identifier or ""),
+            transitioned_to="Backlog",
         )
 
-    # 세션 조회 (project_id 필요)
-    sess_result = await db.execute(
-        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
-    )
-    session = sess_result.scalar_one_or_none()
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
-
-    # Linear 자격증명 조회 — 프로젝트 전용 우선, 없으면 사용자 자격증명으로 폴백
-    proj_creds_result = await db.execute(
-        sa_select(ProjectLinearCredentials).where(
-            ProjectLinearCredentials.project_id == session.project_id
+    # 자격증명 조회 (헬퍼 사용)
+    resolved = await _resolve_linear_credentials(db, session_id)
+    if resolved is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
         )
-    )
-    proj_creds = proj_creds_result.scalar_one_or_none()
-
-    if proj_creds is not None:
-        api_key = decrypt(str(proj_creds.encrypted_api_key))
-        team_id = str(proj_creds.team_id)
-    else:
-        user_creds_result = await db.execute(
-            sa_select(UserLinearCredentials).where(
-                UserLinearCredentials.user_id == session.created_by
-            )
-        )
-        user_creds = user_creds_result.scalar_one_or_none()
-        if user_creds is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
-            )
-        api_key = decrypt(str(user_creds.encrypted_api_key))
-        team_id = str(user_creds.team_id)
+    api_key = resolved.api_key
+    team_id = resolved.team_id
 
     # Todo 상태 ID 조회 → 이슈 상태 전이
     queued_state_id = get_queued_state_id(api_key, team_id)
@@ -676,10 +759,7 @@ async def reset_subtask_to_wait(
 
     from sqlalchemy import select as sa_select
 
-    from app.core.crypto import decrypt
-    from app.models.orchestrator import OrchestratorSession, SubTask
-    from app.models.project_linear_credentials import ProjectLinearCredentials
-    from app.models.user_linear_credentials import UserLinearCredentials
+    from app.models.orchestrator import SubTask
     from app.services.linear_service import get_initial_state_id, update_issue_state_id
 
     st_result = await db.execute(
@@ -690,7 +770,10 @@ async def reset_subtask_to_wait(
     )
     subtask = st_result.scalar_one_or_none()
     if subtask is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="서브태스크를 찾을 수 없습니다",
+        )
 
     if not subtask.linear_issue_id:
         raise HTTPException(
@@ -703,7 +786,10 @@ async def reset_subtask_to_wait(
     if current_state in _LOCKED_STATES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"'{current_state}' 상태는 되돌릴 수 없습니다. In Progress 이후 항목은 변경이 금지됩니다.",
+            detail=(
+                f"'{current_state}' 상태는 되돌릴 수 없습니다. "
+                "In Progress 이후 항목은 변경이 금지됩니다."
+            ),
         )
 
     if current_state not in _RESETTABLE_STATES:
@@ -712,37 +798,14 @@ async def reset_subtask_to_wait(
             detail=f"'{current_state}' 상태는 Backlog 복귀 대상이 아닙니다.",
         )
 
-    sess_result = await db.execute(
-        sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
-    )
-    session = sess_result.scalar_one_or_none()
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="세션을 찾을 수 없습니다")
-
-    proj_creds_result = await db.execute(
-        sa_select(ProjectLinearCredentials).where(
-            ProjectLinearCredentials.project_id == session.project_id
+    resolved = await _resolve_linear_credentials(db, session_id)
+    if resolved is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Linear 자격증명이 설정되지 않았습니다.",
         )
-    )
-    proj_creds = proj_creds_result.scalar_one_or_none()
-
-    if proj_creds is not None:
-        api_key = decrypt(str(proj_creds.encrypted_api_key))
-        team_id = str(proj_creds.team_id)
-    else:
-        user_creds_result = await db.execute(
-            sa_select(UserLinearCredentials).where(
-                UserLinearCredentials.user_id == session.created_by
-            )
-        )
-        user_creds = user_creds_result.scalar_one_or_none()
-        if user_creds is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
-            )
-        api_key = decrypt(str(user_creds.encrypted_api_key))
-        team_id = str(user_creds.team_id)
+    api_key = resolved.api_key
+    team_id = resolved.team_id
 
     wait_state_id = get_initial_state_id(api_key, team_id)
     if not wait_state_id:

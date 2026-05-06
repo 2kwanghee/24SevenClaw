@@ -280,11 +280,7 @@ export default function AITeamDashboardPage() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             분해된 서브태스크를 검토하고 각 카드를 <strong>승인</strong>하세요.
-            모두 승인한 후 로컬 터미널에서{" "}
-            <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs dark:bg-amber-900">
-              bash scripts/bootstrap_clickeye.sh --push
-            </code>
-            을 실행하면 Linear에 이슈가 등록됩니다.
+            승인하면 Linear에 이슈가 <strong>자동으로 등록</strong>됩니다.
           </span>
         </div>
       )}
@@ -423,7 +419,7 @@ export default function AITeamDashboardPage() {
               {isBootstrapReviewing && (
                 <div className="ml-auto flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
                   <CheckCircle2 className="h-3 w-3 text-amber-600" />
-                  <span className="text-xs text-amber-700">각 카드 승인 후 <code className="rounded bg-amber-100 px-1 font-mono text-[10px]">--push</code> 실행</span>
+                  <span className="text-xs text-amber-700">각 카드를 승인하면 Linear에 자동 등록됩니다</span>
                 </div>
               )}
 

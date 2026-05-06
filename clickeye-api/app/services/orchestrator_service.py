@@ -163,8 +163,23 @@ class OrchestratorService:
                 422,
             )
 
-        # 키워드 기반 서브태스크 생성 (실제 구현은 로컬 파이프라인에서 처리)
-        subtasks = self._generate_subtasks(session, data.hints)
+        # Claude AI 서브태스크 생성 (실패 시 키워드 규칙으로 폴백)
+        try:
+            from app.services.claude_service import ClaudeService  # noqa: PLC0415
+
+            raw = await ClaudeService().decompose_tasks(
+                session_title=str(session.title),
+                session_description=str(session.description) if session.description else None,
+                hints=data.hints,
+            )
+            if raw:
+                subtasks = [self._build_subtask_from_dict(session, item, idx) for idx, item in enumerate(raw)]
+            else:
+                subtasks = self._generate_subtasks(session, data.hints)
+        except Exception as exc:
+            import logging  # noqa: PLC0415
+            logging.getLogger(__name__).warning("Claude 분해 실패, 키워드 규칙 폴백: %s", exc)
+            subtasks = self._generate_subtasks(session, data.hints)
         for st in subtasks:
             self.db.add(st)
         await self.db.flush()  # subtask.id 확정 (depends_on 참조용)
@@ -374,6 +389,26 @@ class OrchestratorService:
                 )
 
         return event
+
+    def _build_subtask_from_dict(
+        self,
+        session: OrchestratorSession,
+        item: dict,  # type: ignore[type-arg]
+        idx: int,
+    ) -> SubTask:
+        """Claude decompose_tasks 결과 딕셔너리로 SubTask를 생성한다."""
+        role = str(item.get("assigned_role", item.get("role", "architect")))
+        valid_roles = {"architect", "frontend", "backend", "qa", "security", "devops", "reviewer"}
+        if role not in valid_roles:
+            role = "architect"
+        return SubTask(
+            session_id=session.id,
+            title=str(item.get("title", ""))[:500] or f"[{role}] 서브태스크",
+            description=str(item.get("description", ""))[:2000] or None,
+            assigned_role=role,
+            order_index=idx,
+            depends_on=[],
+        )
 
     def _generate_subtasks(
         self, session: OrchestratorSession, hints: list[str] | None

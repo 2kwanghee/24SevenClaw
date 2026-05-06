@@ -151,7 +151,7 @@ fi
 # 멱등 가드
 if [[ -f "$DECOMPOSED_DONE" ]]; then
   echo "[bootstrap] 분해가 이미 완료됨 ($(cat "$DECOMPOSED_DONE"))."
-  echo "[bootstrap] AI Team에서 승인 후: bash scripts/bootstrap_clickeye.sh --push"
+  echo "[bootstrap] AI Team에서 각 카드를 승인하면 Linear에 자동으로 등록됩니다."
   exit 0
 fi
 
@@ -246,7 +246,7 @@ if [[ $REPORT_RC -eq 0 ]] && [[ "${REPORT_STATUS:0:1}" == "2" ]]; then
   echo ""
   echo "[bootstrap] ✅ 분해 완료 — AI Team에서 서브태스크를 검토하고 승인하세요."
   echo "[bootstrap]    검토 URL: ${CLICKEYE_API_URL}/projects/${CLICKEYE_PROJECT_ID}/ai-team"
-  echo "[bootstrap]    승인 후 Linear 등록: bash scripts/bootstrap_clickeye.sh --push"
+  echo "[bootstrap]    각 카드를 승인하면 Linear에 자동으로 이슈가 등록됩니다."
 else
   echo "[bootstrap] 클라우드 보고 실패 (HTTP ${REPORT_STATUS:-000}, curl rc: ${REPORT_RC})" | tee -a "$BOOTSTRAP_LOG"
   if [[ -s "$REPORT_BODY_FILE" ]]; then

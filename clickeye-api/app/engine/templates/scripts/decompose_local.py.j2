@@ -6,15 +6,18 @@
 
 분해 우선순위:
   1. claude CLI 헤드리스 (구독 사용)
-  2. 키워드 기반 룰 (rule-based)
+  2. 서버측 Claude AI (CLICKEYE_API_URL/setup/decompose-server)
   3. 단일 wrap (manual)
 """
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from typing import Any
 
 DECOMPOSE_PROMPT = """\
@@ -45,43 +48,43 @@ DECOMPOSE_PROMPT = """\
 {requirements}
 """
 
-ROLE_KEYWORDS: dict[str, list[str]] = {
-    "backend": ["api", "서버", "백엔드", "db", "데이터베이스", "endpoint", "rest", "graphql"],
-    "frontend": ["ui", "화면", "프론트", "컴포넌트", "뷰", "react", "vue", "next", "화면"],
-    "qa": ["테스트", "test", "qa", "품질", "검증", "버그"],
-    "devops": ["배포", "deploy", "ci", "cd", "docker", "인프라", "클라우드"],
-    "designer": ["디자인", "ux", "ui/ux", "figma", "와이어프레임"],
-}
 
-
-def _detect_roles(text: str) -> list[str]:
-    t = text.lower()
-    found = [r for r, kws in ROLE_KEYWORDS.items() if any(k in t for k in kws)]
-    return found or ["architect", "backend", "qa"]
-
-
-def _rule_based(requirements_text: str, project_name: str) -> list[dict[str, Any]]:
-    roles = _detect_roles(requirements_text)
-    subtasks = []
-    for i, r in enumerate(roles):
-        title = f"[{r}] {project_name} 초기 구현"
-        desc_base = requirements_text[:500]
-        md_desc = (
-            f"{desc_base}\n\n"
-            f"**Phase**: mvp | **Priority**: medium | **Estimate**: ?h"
-        )
-        subtasks.append({
-            "role": r,
-            "title": title,
-            "description": md_desc,
-            "_phase": "mvp",
-            "_priority": "medium",
-            "_estimate_hours": None,
-            "_depends_on": [],
-            "_acceptance_criteria": [],
-            "_method": "rule-based",
-        })
-    return subtasks
+def _server_decompose(
+    requirements_text: str,
+    api_url: str,
+    project_id: str,
+    setup_token: str,
+) -> list[dict[str, Any]] | None:
+    """서버측 Claude AI로 분해 요청 (claude CLI 없는 환경 폴백)."""
+    url = f"{api_url.rstrip('/')}/api/v1/projects/{project_id}/setup/decompose-server"
+    payload = json.dumps({"requirements_text": requirements_text}).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {setup_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+            subtasks = body.get("subtasks", [])
+            method = body.get("method", "claude-server")
+            result = []
+            for item in subtasks:
+                if not isinstance(item, dict):
+                    continue
+                result.append({
+                    "role": str(item.get("role", "architect"))[:50],
+                    "title": str(item.get("title", ""))[:500],
+                    "description": str(item.get("description", ""))[:2000],
+                    "_method": method,
+                })
+            return result if result else None
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, KeyError):
+        return None
 
 
 def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:
@@ -164,18 +167,37 @@ def main(reqs_path: str, out_path: str) -> None:
     project_name: str = data.get("project_name") or "프로젝트"
 
     if not requirements_text.strip():
-        subtasks = [{
+        subtasks: list[dict[str, Any]] = [{
             "role": "architect",
             "title": f"[architect] {project_name} 초기 설계",
             "description": "위저드에 요구사항이 입력되지 않았습니다. AI Team에서 서브태스크를 직접 추가하세요.",
             "_method": "manual",
         }]
     else:
+        # 1순위: claude CLI
         print("[decompose] claude CLI 시도 중...", file=sys.stderr)
-        subtasks = _claude_cli(requirements_text, project_name)
-        if subtasks is None:
-            print("[decompose] claude CLI 실패 — 키워드 분해로 폴백합니다.", file=sys.stderr)
-            subtasks = _rule_based(requirements_text, project_name)
+        subtasks = _claude_cli(requirements_text, project_name) or []
+
+        # 2순위: 서버측 Claude AI (claude CLI 미설치 환경)
+        if not subtasks:
+            api_url = os.environ.get("CLICKEYE_API_URL", "")
+            project_id = os.environ.get("CLICKEYE_PROJECT_ID", "")
+            setup_token = os.environ.get("CLICKEYE_SETUP_TOKEN", "")
+            if api_url and project_id and setup_token:
+                print("[decompose] claude CLI 실패 — 서버측 AI 분해로 폴백합니다.", file=sys.stderr)
+                subtasks = _server_decompose(requirements_text, api_url, project_id, setup_token) or []
+            else:
+                print("[decompose] claude CLI 실패 — 환경 변수 누락으로 서버 폴백 불가.", file=sys.stderr)
+
+        # 3순위: manual (단일 architect 태스크)
+        if not subtasks:
+            print("[decompose] 서버 분해 실패 — 단일 서브태스크로 폴백합니다.", file=sys.stderr)
+            subtasks = [{
+                "role": "architect",
+                "title": f"[architect] {project_name} 초기 설계",
+                "description": requirements_text[:500],
+                "_method": "manual",
+            }]
 
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(subtasks, f, ensure_ascii=False, indent=2)

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -70,7 +70,7 @@ class BootstrapSubtask(BaseModel):
 
 class OrchestratorBootstrapRequest(BaseModel):
     subtasks: list[BootstrapSubtask] = Field(..., min_length=1, max_length=50)
-    decompose_method: Literal["claude-cli", "rule-based", "manual"] = "manual"
+    decompose_method: Literal["claude-cli", "rule-based", "manual", "claude-server"] = "manual"
     notes: str | None = None
     state: Literal["pending_review", "completed"] = "pending_review"
 
@@ -100,6 +100,15 @@ class LinearPushedItem(BaseModel):
     linear_state: str | None = None
 
 
+class DecomposeServerRequest(BaseModel):
+    requirements_text: str = Field(..., min_length=1, max_length=10000)
+
+
+class DecomposeServerResponse(BaseModel):
+    subtasks: list[BootstrapSubtask]
+    method: Literal["claude-server", "fallback"]
+
+
 # ── 엔드포인트 ────────────────────────────────────────────────────────────────
 
 @router.get("/{project_id}/setup/requirements", response_model=RequirementsResponse)
@@ -124,6 +133,58 @@ async def get_requirements(
         project_name=str(project.name),
         has_linear_credentials=has_linear,
     )
+
+
+@router.post(
+    "/{project_id}/setup/decompose-server",
+    response_model=DecomposeServerResponse,
+)
+async def decompose_server_side(
+    body: DecomposeServerRequest,
+    auth: tuple[Project, UUID] = Depends(_verify_setup_token),
+) -> DecomposeServerResponse:
+    """서버측 Claude AI로 요구사항을 정밀 분해한다.
+
+    로컬 claude CLI가 없을 때 클라이언트가 폴백으로 호출하는 엔드포인트.
+    ANTHROPIC_API_KEY가 서버에 설정되어 있어야 한다.
+    """
+    from app.services.claude_service import ClaudeService  # noqa: PLC0415
+
+    project, _ = auth
+
+    try:
+        claude = ClaudeService()
+        raw: list[dict[str, Any]] = await claude.decompose_tasks(
+            session_title=str(project.name),
+            session_description=body.requirements_text,
+        )
+    except Exception:
+        raw = []
+
+    if not raw:
+        # Claude 실패 시 단일 architect 서브태스크로 폴백
+        return DecomposeServerResponse(
+            subtasks=[
+                BootstrapSubtask(
+                    role="architect",
+                    title=f"[architect] {project.name} 초기 설계",
+                    description=body.requirements_text[:500],
+                )
+            ],
+            method="fallback",
+        )
+
+    subtasks = [
+        BootstrapSubtask(
+            role=str(item.get("assigned_role", item.get("role", "architect")))[:50],
+            title=str(item.get("title", ""))[:500],
+            description=str(item.get("description", ""))[:2000] or None,
+        )
+        for item in raw
+        if item.get("title")
+    ]
+
+    return DecomposeServerResponse(subtasks=subtasks, method="claude-server")
 
 
 @router.post(
@@ -191,7 +252,7 @@ async def orchestrator_bootstrap(
     now = datetime.now(UTC)
     if is_pending_review:
         project.bootstrap_status = "pending_review"  # type: ignore[assignment]
-        # setup_token_hash 유지 — 2-pass --push 단계에서 재사용
+        # setup_token_hash 유지 — --push 호환 및 재시도용
     else:
         project.bootstrap_status = "completed"  # type: ignore[assignment]
         project.bootstrap_completed_at = now  # type: ignore[assignment]
@@ -228,7 +289,8 @@ async def get_approved_subtasks(
 ) -> list[ApprovedSubtaskItem]:
     """사용자가 AI Team에서 승인한 서브태스크를 반환한다 (Linear 미등록 항목만).
 
-    로컬 --push 단계에서 호출해 Linear에 등록할 목록을 가져간다.
+    DEPRECATED: 승인 시 서버가 자동으로 Linear 이슈를 생성하므로 별도 --push 실행이 불필요합니다.
+    레거시 호환을 위해 엔드포인트는 유지합니다.
     """
     project, _ = auth
 
@@ -270,13 +332,19 @@ async def get_approved_subtasks(
 )
 async def report_linear_pushed(
     body: list[LinearPushedItem],
+    background_tasks: BackgroundTasks,
     auth: tuple[Project, UUID] = Depends(_verify_setup_token),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """로컬에서 Linear 이슈를 생성한 결과를 수신해 SubTask를 업데이트한다.
 
     모든 approved SubTask에 linear_issue_id가 채워지면 bootstrap_status='completed'로 전환.
+
+    DEPRECATED: 승인 시 서버가 자동으로 Linear 이슈를 생성하므로 별도 --push 실행이 불필요합니다.
+    레거시 호환을 위해 엔드포인트는 유지합니다.
     """
+    from app.api.v1.orchestrator import _auto_complete_pipeline  # noqa: PLC0415
+
     project, _ = auth
 
     updated = 0
@@ -327,6 +395,10 @@ async def report_linear_pushed(
         session = session_result.scalar_one_or_none()
         if session is not None:
             session.phase = "approved"  # type: ignore[assignment]
+            await db.commit()
+            # approved → transitioning → completed 자동 전이
+            background_tasks.add_task(_auto_complete_pipeline, session.id)
+            return {"updated": updated, "remaining_unregistered": len(remaining)}
 
     await db.commit()
     return {"updated": updated, "remaining_unregistered": len(remaining)}

@@ -112,23 +112,33 @@ _GENERATE_UI_STRUCTURE_SYSTEM = (
 )
 
 _DECOMPOSE_TASKS_SYSTEM = (
-    "You are a software project orchestrator specializing in decomposing "
-    "development sessions into focused subtasks for an AI team.\n\n"
-    "Given a session title and description, create 2-5 focused subtasks. "
-    "Each subtask must be assigned to exactly one of these roles: "
-    "architect, frontend, backend, qa, security, devops, reviewer.\n\n"
-    "Rules:\n"
-    "- Cover all clearly implied technical domains; omit unrelated ones.\n"
-    "- If unsure, use the default set: architect → backend → qa.\n"
-    "- Write titles and descriptions in Korean.\n\n"
-    "IMPORTANT: Always respond with valid JSON only "
-    "— no markdown, no code blocks, no extra text.\n\n"
-    "Return exactly this JSON structure (array):\n"
+    "당신은 소프트웨어 프로젝트 오케스트레이터입니다. "
+    "Claude Plan 모드처럼 요구사항을 정밀하게 분석하여 AI 팀이 실행 가능한 서브태스크로 분해합니다.\n\n"
+    "분석 절차:\n"
+    "1. 핵심 도메인과 기술 스택을 식별하세요.\n"
+    "2. 구현 단계(setup→core→polish)로 분해하세요.\n"
+    "3. 서브태스크 간 의존성을 매핑하세요.\n"
+    "4. 각 서브태스크에 측정 가능한 완료 기준(AC)을 2~5개 작성하세요.\n\n"
+    "규칙:\n"
+    "- 사용자 입력을 그대로 옮기지 마세요. 실행 가능한 단위로 재구성하세요.\n"
+    "- architect 태스크는 항상 포함하고 다른 태스크의 선행 조건으로 설정하세요.\n"
+    "- 서브태스크는 최소 2개, 최대 10개.\n"
+    "- 제목: 50자 이내, 명령형 동사로 시작 (예: '~를 구현한다', '~를 설계한다').\n"
+    "- 설명: 무엇을, 왜, 어떻게 — 3~5문장 한국어.\n"
+    "- phase: mvp=핵심 사용자 가치, v2=보강, future=nice-to-have.\n"
+    "- 모든 텍스트를 한국어로 작성하세요.\n\n"
+    "IMPORTANT: 유효한 JSON 배열만 반환하세요 — 마크다운, 코드블록, 추가 텍스트 없이.\n\n"
+    "반환 형식 (JSON 배열):\n"
     "[\n"
     "  {\n"
-    '    "title": "<concise subtask title in Korean>",\n'
-    '    "description": "<what this subtask should accomplish, 1-2 sentences>",\n'
-    '    "assigned_role": "<one of: architect, frontend, backend, qa, security, devops, reviewer>"\n'
+    '    "assigned_role": "<architect|frontend|backend|qa|security|devops|reviewer>",\n'
+    '    "title": "<50자 이내, 명령형 동사로 시작>",\n'
+    '    "description": "<무엇을, 왜, 어떻게 — 3~5문장>",\n'
+    '    "phase": "<mvp|v2|future>",\n'
+    '    "priority": "<high|medium|low>",\n'
+    '    "estimate_hours": <정수 1~40>,\n'
+    '    "depends_on": ["<선행 서브태스크 title 정확히 인용>"],\n'
+    '    "acceptance_criteria": ["<측정 가능한 완료 조건>", "..."]\n'
     "  }\n"
     "]"
 )
@@ -527,12 +537,40 @@ class ClaudeService:
 
         raw = _extract_text(message)
         try:
-            result: list[dict[str, Any]] = json.loads(raw)
-            if not isinstance(result, list):
+            parsed: list[dict[str, Any]] = json.loads(raw)
+            if not isinstance(parsed, list):
                 raise ValueError("응답이 배열이 아님")
         except (json.JSONDecodeError, ValueError):
             logger.warning("decompose_tasks: Claude 응답 파싱 실패, 빈 목록 반환")
-            result = []
+            return []
+
+        # phase/priority/estimate_hours/depends_on/acceptance_criteria를 description 마크다운에 병합
+        result: list[dict[str, Any]] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            desc_base = str(item.get("description", ""))
+            phase = str(item.get("phase", "mvp"))
+            priority = str(item.get("priority", "medium"))
+            estimate = item.get("estimate_hours")
+            depends_on: list[str] = list(item.get("depends_on") or [])
+            ac_list: list[str] = list(item.get("acceptance_criteria") or [])
+
+            md_parts = [desc_base]
+            md_parts.append(
+                f"\n**Phase**: {phase} | **Priority**: {priority}"
+                + (f" | **Estimate**: {estimate}h" if estimate is not None else "")
+            )
+            if depends_on:
+                md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
+            if ac_list:
+                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))
+
+            result.append({
+                "assigned_role": str(item.get("assigned_role", item.get("role", "architect"))),
+                "title": str(item.get("title", ""))[:500],
+                "description": "\n".join(md_parts)[:2000],
+            })
         return result
 
     async def generate_draft(
