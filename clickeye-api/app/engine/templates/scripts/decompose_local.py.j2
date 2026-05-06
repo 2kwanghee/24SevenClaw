@@ -90,7 +90,7 @@ def _find_claude() -> str | None:
 def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:  # noqa: ARG001
     """로컬 claude CLI로 요구사항을 분해한다.
 
-    프롬프트를 stdin으로 전달해 인자 길이 제한을 우회한다.
+    -p 플래그로 프롬프트를 인자로 전달 (stdin 방식보다 호환성 높음).
     ANTHROPIC_API_KEY 또는 claude.ai 구독 세션 모두 지원.
     """
     claude_bin = _find_claude()
@@ -101,10 +101,23 @@ def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any
     prompt = DECOMPOSE_PROMPT.replace("{requirements}", requirements_text[:4000])
     print(f"[decompose] claude CLI 실행: {claude_bin}", file=sys.stderr)
 
+    # 1차 시도: -p 인자 방식 + JSON 출력 포맷
+    subtasks = _run_claude(claude_bin, prompt, use_json_format=True)
+    if subtasks is None:
+        # 2차 시도: -p 인자 방식, plain text 출력 (구버전 CLI 호환)
+        print("[decompose] JSON 포맷 실패 — plain text 모드 재시도.", file=sys.stderr)
+        subtasks = _run_claude(claude_bin, prompt, use_json_format=False)
+    return subtasks
+
+
+def _run_claude(claude_bin: str, prompt: str, *, use_json_format: bool) -> list[dict[str, Any]] | None:
+    cmd = [claude_bin, "-p", prompt]
+    if use_json_format:
+        cmd += ["--output-format", "json"]
+
     try:
         result = subprocess.run(
-            [claude_bin, "--print", "--output-format", "json"],
-            input=prompt,
+            cmd,
             capture_output=True,
             text=True,
             timeout=120,
@@ -118,37 +131,56 @@ def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any
         return None
 
     if result.returncode != 0:
-        err_preview = (result.stderr or result.stdout or "")[:300].strip()
+        err_preview = (result.stderr or result.stdout or "")[:400].strip()
         print(f"[decompose] claude CLI 오류 (rc={result.returncode}): {err_preview}", file=sys.stderr)
         return None
 
     stdout = result.stdout.strip()
     if not stdout:
-        print("[decompose] claude CLI 출력 없음.", file=sys.stderr)
+        stderr_preview = (result.stderr or "")[:200].strip()
+        print(f"[decompose] claude CLI 출력 없음. stderr: {stderr_preview}", file=sys.stderr)
         return None
 
-    # claude --output-format json 응답: {"type":"result","subtype":"success","result":"..."}
+    # JSON 포맷: {"type":"result","subtype":"success","result":"[...]"}
+    # Plain text: 직접 JSON 배열 또는 마크다운 펜스 내 JSON
     try:
-        wrapper = json.loads(stdout)
-        if isinstance(wrapper, dict) and "result" in wrapper:
-            inner = wrapper["result"]
-            if isinstance(inner, str):
-                inner = inner.strip()
-                inner = re.sub(r"^```[a-z]*\n?", "", inner)
-                inner = re.sub(r"\n?```$", "", inner)
-                subtasks = json.loads(inner)
-            elif isinstance(inner, list):
-                subtasks = inner
-            else:
-                print("[decompose] claude 응답 'result' 형식 불명확.", file=sys.stderr)
-                return None
-        elif isinstance(wrapper, list):
-            subtasks = wrapper
-        else:
-            print(f"[decompose] claude 응답 파싱 실패: {stdout[:200]}", file=sys.stderr)
+        parsed = json.loads(stdout)
+    except json.JSONDecodeError:
+        parsed = None
+
+    if parsed is None:
+        # plain text — 마크다운 펜스 제거 후 재시도
+        cleaned = re.sub(r"^```[a-z]*\n?", "", stdout.strip())
+        cleaned = re.sub(r"\n?```$", "", cleaned)
+        try:
+            parsed = json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            print(f"[decompose] JSON 파싱 오류: {e} — 응답: {stdout[:200]}", file=sys.stderr)
             return None
-    except (json.JSONDecodeError, KeyError) as e:
-        print(f"[decompose] JSON 파싱 오류: {e} — 응답: {stdout[:200]}", file=sys.stderr)
+
+    if isinstance(parsed, dict) and "result" in parsed:
+        inner = parsed["result"]
+        if isinstance(inner, str):
+            inner = inner.strip()
+            inner = re.sub(r"^```[a-z]*\n?", "", inner)
+            inner = re.sub(r"\n?```$", "", inner)
+            try:
+                subtasks = json.loads(inner)
+            except json.JSONDecodeError as e:
+                print(f"[decompose] result 필드 파싱 오류: {e} — 내용: {inner[:200]}", file=sys.stderr)
+                return None
+        elif isinstance(inner, list):
+            subtasks = inner
+        else:
+            print(f"[decompose] claude 응답 'result' 형식 불명확: {type(inner)}", file=sys.stderr)
+            return None
+    elif isinstance(parsed, list):
+        subtasks = parsed
+    else:
+        print(f"[decompose] claude 응답 파싱 실패 (type={type(parsed).__name__}): {stdout[:200]}", file=sys.stderr)
+        return None
+
+    if not isinstance(subtasks, list) or not subtasks:
         return None
 
     if not isinstance(subtasks, list) or not subtasks:
