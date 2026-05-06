@@ -5,161 +5,188 @@
 출력: subtasks.json      ([{role, title, description, _method}, ...])
 
 분해 우선순위:
-  1. claude CLI 헤드리스 (구독 사용)
-  2. 서버측 Claude AI (CLICKEYE_API_URL/setup/decompose-server)
-  3. 단일 wrap (manual)
+  1. 로컬 claude CLI (구독 / ANTHROPIC_API_KEY 모두 지원)
+  2. 단일 wrap (manual) — claude 미설치·미인증 시 폴백
 """
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 from typing import Any
 
 DECOMPOSE_PROMPT = """\
-당신은 소프트웨어 개발 태스크를 역할별로 분해하는 전문가입니다.
-아래 요구사항을 읽고, 개발에 필요한 서브태스크를 JSON 배열로만 반환하세요.
-다른 텍스트 없이 JSON 배열만 출력하세요.
+당신은 소프트웨어 프로젝트 오케스트레이터입니다.
+Claude Plan 모드처럼 아래 요구사항을 정밀하게 분석하여 AI 팀이 실행 가능한 서브태스크로 분해하세요.
 
-각 서브태스크는 다음 형식의 JSON 객체를 따릅니다:
-{
-  "role": "<backend|frontend|qa|architect|designer|devops|pm|fullstack>",
-  "title": "<50자 이내, 명령형 동사로 시작 (예: '~를 구현한다', '~를 설정한다')>",
-  "description": "<상세 작업 설명. 왜 필요한지 + 어떻게 시작하는지 2~5문장. 마크다운 허용>",
-  "phase": "<mvp|v2|future>",
-  "priority": "<high|medium|low>",
-  "estimate_hours": <정수, 1~40>,
-  "depends_on": ["<선행 서브태스크 title 그대로 인용>"],
-  "acceptance_criteria": ["<완료 기준 한 줄씩>"]
-}
+분석 절차:
+1. 핵심 도메인과 기술 스택을 식별하세요.
+2. 구현 단계(mvp→v2→future)로 분해하세요.
+3. 서브태스크 간 의존성을 매핑하세요.
+4. 각 서브태스크에 측정 가능한 완료 기준(AC)을 2~5개 작성하세요.
 
 규칙:
-- phase: mvp=핵심 사용자 가치, v2=보강, future=nice-to-have
-- depends_on: 선행 서브태스크의 title을 정확히 인용 (오타 주의)
-- acceptance_criteria: 테스트 가능한 완료 조건 2~5개
-- 서브태스크는 최소 2개, 최대 10개
-- architect 태스크는 항상 mvp에 포함하고 다른 태스크의 선행 조건으로 설정
+- 사용자 입력을 그대로 옮기지 마세요. 실행 가능한 단위로 재구성하세요.
+- architect 태스크는 항상 포함하고 다른 태스크의 선행 조건으로 설정하세요.
+- 서브태스크는 최소 3개, 최대 10개.
+- 제목: 50자 이내, 명령형 동사로 시작 (예: '~를 구현한다', '~를 설계한다').
+- 설명: 무엇을, 왜, 어떻게 — 3~5문장 한국어.
+- 모든 텍스트를 한국어로 작성하세요.
+
+IMPORTANT: 유효한 JSON 배열만 반환하세요 — 마크다운, 코드블록, 추가 텍스트 없이.
+
+반환 형식 (JSON 배열):
+[
+  {
+    "role": "<architect|frontend|backend|qa|security|devops>",
+    "title": "<50자 이내, 명령형 동사로 시작>",
+    "description": "<무엇을, 왜, 어떻게 — 3~5문장>",
+    "phase": "<mvp|v2|future>",
+    "priority": "<high|medium|low>",
+    "estimate_hours": <정수 1~40>,
+    "depends_on": ["<선행 서브태스크 title 정확히 인용>"],
+    "acceptance_criteria": ["<측정 가능한 완료 조건>", "..."]
+  }
+]
 
 요구사항:
 {requirements}
 """
 
 
-def _server_decompose(
-    requirements_text: str,
-    api_url: str,
-    project_id: str,
-    setup_token: str,
-) -> list[dict[str, Any]] | None:
-    """서버측 Claude AI로 분해 요청 (claude CLI 없는 환경 폴백)."""
-    url = f"{api_url.rstrip('/')}/api/v1/projects/{project_id}/setup/decompose-server"
-    payload = json.dumps({"requirements_text": requirements_text}).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {setup_token}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-            subtasks = body.get("subtasks", [])
-            _VALID_METHODS = {"claude-cli", "rule-based", "manual", "claude-server"}
-            raw_method = body.get("method", "claude-server")
-            method = raw_method if raw_method in _VALID_METHODS else "manual"
-            result = []
-            for item in subtasks:
-                if not isinstance(item, dict):
-                    continue
-                result.append({
-                    "role": str(item.get("role", "architect"))[:50],
-                    "title": str(item.get("title", ""))[:500],
-                    "description": str(item.get("description", ""))[:2000],
-                    "_method": method,
-                })
-            return result if result else None
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, KeyError):
+def _find_claude() -> str | None:
+    """로컬 claude CLI 실행 파일의 절대 경로를 반환한다.
+
+    shutil.which 우선, 이후 npm global 일반 경로를 순서대로 탐색.
+    """
+    found = shutil.which("claude")
+    if found:
+        return found
+
+    home = os.path.expanduser("~")
+    candidates = [
+        "/usr/local/bin/claude",
+        "/usr/bin/claude",
+        f"{home}/.npm-global/bin/claude",
+        f"{home}/.npm/bin/claude",
+        f"{home}/.local/bin/claude",
+        f"{home}/bin/claude",
+        # nvm 경로 (와일드카드)
+        f"{home}/.nvm/versions/node/*/bin/claude",
+        # volta
+        f"{home}/.volta/bin/claude",
+    ]
+    for pattern in candidates:
+        for path in glob.glob(pattern):
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                return path
+    return None
+
+
+def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:  # noqa: ARG001
+    """로컬 claude CLI로 요구사항을 분해한다.
+
+    프롬프트를 stdin으로 전달해 인자 길이 제한을 우회한다.
+    ANTHROPIC_API_KEY 또는 claude.ai 구독 세션 모두 지원.
+    """
+    claude_bin = _find_claude()
+    if not claude_bin:
+        print("[decompose] claude CLI를 찾을 수 없습니다. PATH를 확인하세요.", file=sys.stderr)
         return None
 
+    prompt = DECOMPOSE_PROMPT.replace("{requirements}", requirements_text[:4000])
+    print(f"[decompose] claude CLI 실행: {claude_bin}", file=sys.stderr)
 
-def _claude_cli(requirements_text: str, project_name: str) -> list[dict[str, Any]] | None:
-    prompt = DECOMPOSE_PROMPT.replace("{requirements}", requirements_text[:3000])
     try:
         result = subprocess.run(
-            ["claude", "-p", prompt, "--output-format", "json"],
-            capture_output=True, text=True, timeout=60
+            [claude_bin, "--print", "--output-format", "json"],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env={**os.environ, "TERM": "dumb"},  # 터미널 감지 오류 방지
         )
-        if result.returncode != 0:
-            return None
-        # JSON 배열 추출 (claude가 감싸는 JSON wrapper에서 꺼내기)
-        stdout = result.stdout.strip()
-        # claude --output-format json: {"type":"result","subtype":"success","result":"..."}
-        try:
-            wrapper = json.loads(stdout)
-            if isinstance(wrapper, dict) and "result" in wrapper:
-                inner = wrapper["result"]
-                if isinstance(inner, str):
-                    inner = inner.strip()
-                    # 코드블록 제거
-                    inner = re.sub(r"^```[a-z]*\n?", "", inner)
-                    inner = re.sub(r"\n?```$", "", inner)
-                    subtasks = json.loads(inner)
-                elif isinstance(inner, list):
-                    subtasks = inner
-                else:
-                    return None
-            elif isinstance(wrapper, list):
-                subtasks = wrapper
-            else:
-                return None
-        except (json.JSONDecodeError, KeyError):
-            return None
-
-        if not isinstance(subtasks, list) or not subtasks:
-            return None
-        result_list = []
-        for item in subtasks[:10]:
-            if not isinstance(item, dict):
-                continue
-            desc_base = str(item.get("description", ""))
-            depends_on = item.get("depends_on") or []
-            ac_list = item.get("acceptance_criteria") or []
-            phase = str(item.get("phase", "mvp"))
-            priority = str(item.get("priority", "medium"))
-            estimate = item.get("estimate_hours")
-
-            md_parts = [desc_base]
-            md_parts.append(
-                f"\n**Phase**: {phase} | **Priority**: {priority}"
-                + (f" | **Estimate**: {estimate}h" if estimate is not None else "")
-            )
-            if depends_on:
-                md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
-            if ac_list:
-                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))
-            md_desc = "\n".join(md_parts)
-
-            result_list.append({
-                "role": str(item.get("role", "architect"))[:50],
-                "title": str(item.get("title", ""))[:500],
-                "description": md_desc[:2000],
-                "_phase": phase,
-                "_priority": priority,
-                "_estimate_hours": estimate,
-                "_depends_on": list(depends_on),
-                "_acceptance_criteria": list(ac_list),
-                "_method": "claude-cli",
-            })
-        return result_list if result_list else None
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except subprocess.TimeoutExpired:
+        print("[decompose] claude CLI 타임아웃 (120s).", file=sys.stderr)
         return None
+    except (FileNotFoundError, OSError) as e:
+        print(f"[decompose] claude CLI 실행 실패: {e}", file=sys.stderr)
+        return None
+
+    if result.returncode != 0:
+        err_preview = (result.stderr or result.stdout or "")[:300].strip()
+        print(f"[decompose] claude CLI 오류 (rc={result.returncode}): {err_preview}", file=sys.stderr)
+        return None
+
+    stdout = result.stdout.strip()
+    if not stdout:
+        print("[decompose] claude CLI 출력 없음.", file=sys.stderr)
+        return None
+
+    # claude --output-format json 응답: {"type":"result","subtype":"success","result":"..."}
+    try:
+        wrapper = json.loads(stdout)
+        if isinstance(wrapper, dict) and "result" in wrapper:
+            inner = wrapper["result"]
+            if isinstance(inner, str):
+                inner = inner.strip()
+                inner = re.sub(r"^```[a-z]*\n?", "", inner)
+                inner = re.sub(r"\n?```$", "", inner)
+                subtasks = json.loads(inner)
+            elif isinstance(inner, list):
+                subtasks = inner
+            else:
+                print("[decompose] claude 응답 'result' 형식 불명확.", file=sys.stderr)
+                return None
+        elif isinstance(wrapper, list):
+            subtasks = wrapper
+        else:
+            print(f"[decompose] claude 응답 파싱 실패: {stdout[:200]}", file=sys.stderr)
+            return None
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"[decompose] JSON 파싱 오류: {e} — 응답: {stdout[:200]}", file=sys.stderr)
+        return None
+
+    if not isinstance(subtasks, list) or not subtasks:
+        return None
+
+    result_list = []
+    for item in subtasks[:10]:
+        if not isinstance(item, dict):
+            continue
+        desc_base = str(item.get("description", ""))
+        depends_on = item.get("depends_on") or []
+        ac_list = item.get("acceptance_criteria") or []
+        phase = str(item.get("phase", "mvp"))
+        priority = str(item.get("priority", "medium"))
+        estimate = item.get("estimate_hours")
+
+        md_parts = [desc_base]
+        md_parts.append(
+            f"\n**Phase**: {phase} | **Priority**: {priority}"
+            + (f" | **Estimate**: {estimate}h" if estimate is not None else "")
+        )
+        if depends_on:
+            md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
+        if ac_list:
+            md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))
+
+        result_list.append({
+            "role": str(item.get("role", "architect"))[:50],
+            "title": str(item.get("title", ""))[:500],
+            "description": "\n".join(md_parts)[:2000],
+            "_phase": phase,
+            "_priority": priority,
+            "_estimate_hours": estimate,
+            "_depends_on": list(depends_on),
+            "_acceptance_criteria": list(ac_list),
+            "_method": "claude-cli",
+        })
+    return result_list if result_list else None
 
 
 def main(reqs_path: str, out_path: str) -> None:
@@ -176,28 +203,25 @@ def main(reqs_path: str, out_path: str) -> None:
             "_method": "manual",
         }]
     else:
-        # 1순위: claude CLI
-        print("[decompose] claude CLI 시도 중...", file=sys.stderr)
+        print("[decompose] 로컬 claude CLI로 요구사항 분해 시도 중...", file=sys.stderr)
         subtasks = _claude_cli(requirements_text, project_name) or []
 
-        # 2순위: 서버측 Claude AI (claude CLI 미설치 환경)
         if not subtasks:
-            api_url = os.environ.get("CLICKEYE_API_URL", "")
-            project_id = os.environ.get("CLICKEYE_PROJECT_ID", "")
-            setup_token = os.environ.get("CLICKEYE_SETUP_TOKEN", "")
-            if api_url and project_id and setup_token:
-                print("[decompose] claude CLI 실패 — 서버측 AI 분해로 폴백합니다.", file=sys.stderr)
-                subtasks = _server_decompose(requirements_text, api_url, project_id, setup_token) or []
-            else:
-                print("[decompose] claude CLI 실패 — 환경 변수 누락으로 서버 폴백 불가.", file=sys.stderr)
-
-        # 3순위: manual (단일 architect 태스크)
-        if not subtasks:
-            print("[decompose] 서버 분해 실패 — 단일 서브태스크로 폴백합니다.", file=sys.stderr)
+            print(
+                "[decompose] claude CLI 분해 실패 — AI Team에서 서브태스크를 직접 추가하세요.\n"
+                "  • claude 미설치: npm install -g @anthropic-ai/claude-code\n"
+                "  • 미인증: claude (로그인 후 재시도)",
+                file=sys.stderr,
+            )
             subtasks = [{
                 "role": "architect",
                 "title": f"[architect] {project_name} 초기 설계",
-                "description": requirements_text[:500],
+                "description": (
+                    "로컬 claude CLI 분해에 실패했습니다. "
+                    "AI Team에서 서브태스크를 직접 추가하거나, "
+                    "claude CLI 설치·인증 후 bootstrap을 재실행하세요.\n\n"
+                    f"원본 요구사항:\n{requirements_text[:800]}"
+                ),
                 "_method": "manual",
             }]
 

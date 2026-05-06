@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -70,7 +70,7 @@ class BootstrapSubtask(BaseModel):
 
 class OrchestratorBootstrapRequest(BaseModel):
     subtasks: list[BootstrapSubtask] = Field(..., min_length=1, max_length=50)
-    decompose_method: Literal["claude-cli", "rule-based", "manual", "claude-server", "fallback"] = "manual"
+    decompose_method: Literal["claude-cli", "manual"] = "manual"
     notes: str | None = None
     state: Literal["pending_review", "completed"] = "pending_review"
 
@@ -100,15 +100,6 @@ class LinearPushedItem(BaseModel):
     linear_state: str | None = None
 
 
-class DecomposeServerRequest(BaseModel):
-    requirements_text: str = Field(..., min_length=1, max_length=10000)
-
-
-class DecomposeServerResponse(BaseModel):
-    subtasks: list[BootstrapSubtask]
-    method: Literal["claude-server", "fallback"]
-
-
 # ── 엔드포인트 ────────────────────────────────────────────────────────────────
 
 @router.get("/{project_id}/setup/requirements", response_model=RequirementsResponse)
@@ -133,62 +124,6 @@ async def get_requirements(
         project_name=str(project.name),
         has_linear_credentials=has_linear,
     )
-
-
-@router.post(
-    "/{project_id}/setup/decompose-server",
-    response_model=DecomposeServerResponse,
-)
-async def decompose_server_side(
-    body: DecomposeServerRequest,
-    auth: tuple[Project, UUID] = Depends(_verify_setup_token),
-) -> DecomposeServerResponse:
-    """서버측 Claude AI로 요구사항을 정밀 분해한다.
-
-    로컬 claude CLI가 없을 때 클라이언트가 폴백으로 호출하는 엔드포인트.
-    ANTHROPIC_API_KEY가 서버에 설정되어 있어야 한다.
-    """
-    from app.services.claude_service import ClaudeService  # noqa: PLC0415
-
-    project, _ = auth
-
-    import logging  # noqa: PLC0415
-    _log = logging.getLogger(__name__)
-
-    try:
-        claude = ClaudeService()
-        raw: list[dict[str, Any]] = await claude.decompose_tasks(
-            session_title=str(project.name),
-            session_description=body.requirements_text,
-        )
-    except Exception as exc:
-        _log.warning("decompose_server_side: Claude 분해 실패 (%s: %s)", type(exc).__name__, exc)
-        raw = []
-
-    if not raw:
-        # Claude 실패 시 단일 architect 서브태스크로 폴백
-        return DecomposeServerResponse(
-            subtasks=[
-                BootstrapSubtask(
-                    role="architect",
-                    title=f"[architect] {project.name} 초기 설계",
-                    description=body.requirements_text[:500],
-                )
-            ],
-            method="fallback",
-        )
-
-    subtasks = [
-        BootstrapSubtask(
-            role=str(item.get("assigned_role", item.get("role", "architect")))[:50],
-            title=str(item.get("title", ""))[:500],
-            description=str(item.get("description", ""))[:2000] or None,
-        )
-        for item in raw
-        if item.get("title")
-    ]
-
-    return DecomposeServerResponse(subtasks=subtasks, method="claude-server")
 
 
 @router.post(
