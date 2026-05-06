@@ -141,6 +141,14 @@ _reload_env() {
 _check_claude_auth() {
   # 첫 호출은 모델 초기화 등으로 60s 이상 소요 가능 — 90s 여유
   timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1
+  local _rc=$?
+  # ANTHROPIC_API_KEY 잔액 부족 → 구독 세션(키 제거)으로 재시도
+  if [[ $_rc -ne 0 ]] && grep -qi "credit balance\|too low" "$CLAUDE_AUTH_LOG" 2>/dev/null; then
+    printf '[auth-retry] ANTHROPIC_API_KEY 잔액 부족 — claude.ai 구독 인증으로 재시도\n' >> "$CLAUDE_AUTH_LOG"
+    timeout 90 env -u ANTHROPIC_API_KEY claude -p "1" --output-format json >> "$CLAUDE_AUTH_LOG" 2>&1
+    _rc=$?
+  fi
+  return $_rc
 }
 
 echo -ne "${CYAN}[●]${NC} Claude 인증 상태 확인 중..."

@@ -115,13 +115,15 @@ def _run_claude(claude_bin: str, prompt: str, *, use_json_format: bool) -> list[
     if use_json_format:
         cmd += ["--output-format", "json"]
 
+    base_env = {**os.environ, "TERM": "dumb"}
+
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=120,
-            env={**os.environ, "TERM": "dumb"},  # 터미널 감지 오류 방지
+            env=base_env,
         )
     except subprocess.TimeoutExpired:
         print("[decompose] claude CLI 타임아웃 (120s).", file=sys.stderr)
@@ -129,6 +131,27 @@ def _run_claude(claude_bin: str, prompt: str, *, use_json_format: bool) -> list[
     except (FileNotFoundError, OSError) as e:
         print(f"[decompose] claude CLI 실행 실패: {e}", file=sys.stderr)
         return None
+
+    # ANTHROPIC_API_KEY 잔액 부족 → 구독 세션(키 제거)으로 재시도
+    if result.returncode != 0:
+        out_lower = (result.stdout + result.stderr).lower()
+        if "credit balance" in out_lower or "too low" in out_lower:
+            print("[decompose] ANTHROPIC_API_KEY 잔액 부족 — claude.ai 구독 인증으로 재시도합니다.", file=sys.stderr)
+            retry_env = {k: v for k, v in base_env.items() if k != "ANTHROPIC_API_KEY"}
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                    env=retry_env,
+                )
+            except subprocess.TimeoutExpired:
+                print("[decompose] claude CLI 타임아웃 (재시도, 120s).", file=sys.stderr)
+                return None
+            except (FileNotFoundError, OSError) as e:
+                print(f"[decompose] claude CLI 실행 실패 (재시도): {e}", file=sys.stderr)
+                return None
 
     if result.returncode != 0:
         err_preview = (result.stderr or result.stdout or "")[:400].strip()
