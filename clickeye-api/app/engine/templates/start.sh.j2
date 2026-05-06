@@ -120,6 +120,41 @@ fi
 echo -e "${GREEN}✅ 환경 확인 완료${NC}"
 echo ""
 
+# ── 5.5. Claude 인증 확인 ─────────────────────────────────────────────────────
+echo -ne "${CYAN}[●]${NC} Claude 인증 상태 확인 중..."
+
+_check_claude_auth() {
+  timeout 30 claude -p "1" --output-format json >/dev/null 2>&1
+}
+
+if _check_claude_auth; then
+  echo -e " ${GREEN}✅${NC}"
+else
+  echo ""
+  echo ""
+  echo -e "${YELLOW}⚠️  Claude 인증이 필요합니다.${NC}"
+  echo "   요구사항 자동 분해 및 AI 개발 파이프라인에 Claude가 필요합니다."
+  echo ""
+  echo "   인증 방법을 선택하세요:"
+  echo "   ① ${BOLD}새 터미널에서  claude  실행${NC} → 브라우저 로그인  (claude.ai 구독 사용자)"
+  echo "   ② ${BOLD}.env 파일에  ANTHROPIC_API_KEY=sk-ant-...  추가${NC}  (API 키 사용자)"
+  echo ""
+  while true; do
+    read -rp "   인증 완료 후 Enter / 건너뛰기: skip : " _auth_in
+    if [[ "$_auth_in" == "skip" ]]; then
+      echo -e "${YELLOW}   ⚠️  건너뜁니다. 요구사항 분해 단계가 실패할 수 있습니다.${NC}"
+      break
+    fi
+    if _check_claude_auth; then
+      echo -e "   ${GREEN}✅ Claude 인증 확인됨${NC}"
+      break
+    else
+      echo -e "${RED}   ❌ 인증 실패. 다시 시도해주세요.${NC}"
+    fi
+  done
+fi
+echo ""
+
 # ── 6. 이미 실행 중인 프로세스 감지 ──────────────────────────────────────────────
 mkdir -p .run
 
