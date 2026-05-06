@@ -524,7 +524,7 @@ class ClaudeService:
         client = self._get_client()
         message = await client.messages.create(
             model=self._model,
-            max_tokens=1024,
+            max_tokens=4096,
             system=[
                 {
                     "type": "text",

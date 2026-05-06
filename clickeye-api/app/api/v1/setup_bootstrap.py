@@ -152,13 +152,17 @@ async def decompose_server_side(
 
     project, _ = auth
 
+    import logging  # noqa: PLC0415
+    _log = logging.getLogger(__name__)
+
     try:
         claude = ClaudeService()
         raw: list[dict[str, Any]] = await claude.decompose_tasks(
             session_title=str(project.name),
             session_description=body.requirements_text,
         )
-    except Exception:
+    except Exception as exc:
+        _log.warning("decompose_server_side: Claude 분해 실패 (%s: %s)", type(exc).__name__, exc)
         raw = []
 
     if not raw:
