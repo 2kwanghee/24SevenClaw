@@ -115,7 +115,7 @@ export function PMProfileCard({
           </div>
           <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-zinc-950">
-              {(successRate * 100).toFixed(0)}%
+              {successRate.toFixed(0)}%
             </p>
             <p className="text-[10px] text-zinc-500">성공률</p>
           </div>
