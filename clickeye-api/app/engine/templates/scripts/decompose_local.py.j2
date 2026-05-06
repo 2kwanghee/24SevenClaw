@@ -71,7 +71,9 @@ def _server_decompose(
         with urllib.request.urlopen(req, timeout=120) as resp:
             body = json.loads(resp.read().decode("utf-8"))
             subtasks = body.get("subtasks", [])
-            method = body.get("method", "claude-server")
+            _VALID_METHODS = {"claude-cli", "rule-based", "manual", "claude-server"}
+            raw_method = body.get("method", "claude-server")
+            method = raw_method if raw_method in _VALID_METHODS else "manual"
             result = []
             for item in subtasks:
                 if not isinstance(item, dict):

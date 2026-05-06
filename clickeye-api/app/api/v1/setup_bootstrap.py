@@ -70,7 +70,7 @@ class BootstrapSubtask(BaseModel):
 
 class OrchestratorBootstrapRequest(BaseModel):
     subtasks: list[BootstrapSubtask] = Field(..., min_length=1, max_length=50)
-    decompose_method: Literal["claude-cli", "rule-based", "manual", "claude-server"] = "manual"
+    decompose_method: Literal["claude-cli", "rule-based", "manual", "claude-server", "fallback"] = "manual"
     notes: str | None = None
     state: Literal["pending_review", "completed"] = "pending_review"
 
