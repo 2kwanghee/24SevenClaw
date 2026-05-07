@@ -260,15 +260,31 @@ if [[ -z "$CLAUDE_BIN" ]]; then
   exit 1
 fi
 
-# Claude 인증 확인 — API 키 없으면 OAuth 토큰 동작 여부 검증
-if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  log "ANTHROPIC_API_KEY 미설정 — OAuth 토큰으로 인증 시도..."
-  if ! timeout 30 "$CLAUDE_BIN" -p "1" --output-format json >/dev/null 2>&1; then
-    log "ERROR: Claude 인증 실패 — .env에 ANTHROPIC_API_KEY를 설정하거나 'claude' 명령으로 재로그인 필요"
+# Claude 인증 확인 — API 키 크레딧 부족 시 OAuth 구독 세션으로 자동 전환
+_AUTH_TEST_LOG="$PROJECT_DIR/.run/claude_auth_test.log"
+_use_api_key=true
+
+if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+  # API 키가 있으면 크레딧 잔액 확인
+  timeout 30 "$CLAUDE_BIN" -p "1" --output-format json > "$_AUTH_TEST_LOG" 2>&1 || true
+  if grep -qi "credit balance\|too low\|insufficient" "$_AUTH_TEST_LOG" 2>/dev/null; then
+    log "WARN: ANTHROPIC_API_KEY 크레딧 부족 — claude.ai 구독 세션으로 전환"
+    unset ANTHROPIC_API_KEY
+    _use_api_key=false
+  fi
+fi
+
+if [[ "$_use_api_key" == "false" ]] || [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+  # OAuth 토큰 동작 여부 검증
+  if ! timeout 30 env -u ANTHROPIC_API_KEY "$CLAUDE_BIN" -p "1" --output-format json >/dev/null 2>&1; then
+    log "ERROR: Claude 인증 실패 — API 크레딧 부족 + OAuth 인증도 실패"
+    log "       해결 방법: claude.ai 구독 확인 또는 API 크레딧 충전 후 재시도"
     update_linear_state "$ISSUE_ID" "In Review"
     exit 1
   fi
-  log "OAuth 인증 확인됨"
+  log "OAuth 구독 세션으로 실행"
+else
+  log "API 키 세션으로 실행"
 fi
 
 CLAUDE_TIMEOUT="${CLAUDE_TIMEOUT:-3600}"  # 기본 1시간 (대형 작업 고려)
@@ -280,6 +296,19 @@ timeout "$CLAUDE_TIMEOUT" "$CLAUDE_BIN" -p "$PROMPT" \
   2>&1 | tee "$CLAUDE_LOG"
 CLAUDE_EXIT="${PIPESTATUS[0]}"
 set -e
+
+# 크레딧 부족 오류가 로그에 남은 경우 OAuth로 재시도
+if grep -qi "credit balance\|too low\|insufficient" "$CLAUDE_LOG" 2>/dev/null; then
+  log "WARN: Claude 실행 중 크레딧 부족 감지 — OAuth 세션으로 재시도"
+  unset ANTHROPIC_API_KEY
+  set +e
+  timeout "$CLAUDE_TIMEOUT" env -u ANTHROPIC_API_KEY "$CLAUDE_BIN" -p "$PROMPT" \
+    --dangerously-skip-permissions \
+    </dev/null \
+    2>&1 | tee "$CLAUDE_LOG"
+  CLAUDE_EXIT="${PIPESTATUS[0]}"
+  set -e
+fi
 
 if [[ "$CLAUDE_EXIT" -eq 124 ]]; then
   log "WARN: Claude 타임아웃 (${CLAUDE_TIMEOUT}초 초과)"
