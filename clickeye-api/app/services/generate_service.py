@@ -78,6 +78,7 @@ async def generate_zip(
         catalog_prefetch=catalog_prefetch,
         hook_ids=hook_ids or None,
         clickeye_vars=clickeye_vars,
+        enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
     )
 
     buffer = io.BytesIO()

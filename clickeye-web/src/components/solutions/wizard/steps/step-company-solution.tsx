@@ -126,6 +126,7 @@ const schema = z.object({
     .string()
     .min(50, "솔루션 요구사항을 50자 이상 입력하세요")
     .max(2000, "2000자 이내로 입력하세요"),
+  enableAutoDecompose: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -155,6 +156,7 @@ export function StepCompanySolution() {
       businessType: initialCompany.businessType ?? undefined,
       companyDescription: initialCompany.companyDescription,
       solutionRequest: initialCompany.solutionRequest,
+      enableAutoDecompose: initialCompany.enableAutoDecompose ?? false,
     },
   });
 
@@ -179,6 +181,7 @@ export function StepCompanySolution() {
       businessType: v.businessType ?? null,
       companyDescription: v.companyDescription ?? "",
       solutionRequest: v.solutionRequest ?? "",
+      enableAutoDecompose: v.enableAutoDecompose ?? false,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valuesJson, setCompany]);
@@ -496,6 +499,42 @@ export function StepCompanySolution() {
           </span>
         </div>
       </div>
+
+      {/* 자동 분석/분해 토글 */}
+      <Controller
+        name="enableAutoDecompose"
+        control={control}
+        render={({ field }) => (
+          <div className="flex items-start justify-between rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="space-y-1 pr-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-zinc-900">
+                <Sparkles className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                ClickEye 자동 분석/분해
+              </div>
+              <p className="text-xs text-zinc-500">
+                ON 시 다운로드 후 <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">bash start.sh</code> 실행하면 솔루션 요구사항을 자동 분석·분해해 AI Team 검수 카드를 생성합니다.
+                직접 설계하려면 OFF로 두세요.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={field.value}
+              aria-label="ClickEye 자동 분석/분해"
+              onClick={() => field.onChange(!field.value)}
+              className={`relative mt-0.5 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
+                field.value ? "bg-emerald-500" : "bg-zinc-300"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  field.value ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+        )}
+      />
     </div>
   );
 }

@@ -44,6 +44,12 @@ stop_processes() {
   if [ "$stopped" -eq 0 ]; then
     echo -e "  ${YELLOW}ℹ  실행 중인 프로세스 없음${NC}"
   fi
+
+{% if enable_auto_decompose %}
+  # 부트스트랩 센티널 파일 초기화 — 재실행 시 분해 재진행 가능하도록
+  rm -f "$SCRIPT_DIR/.run/bootstrap_done" "$SCRIPT_DIR/.run/decomposed_done"
+  echo -e "  ${GREEN}✅ Bootstrap 상태 초기화됨${NC}"
+{% endif %}
 }
 
 # ── Linear Webhook 해제 ─────────────────────────────────────────────────────────

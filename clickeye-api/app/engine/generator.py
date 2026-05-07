@@ -78,6 +78,7 @@ def generate_all(
     catalog_prefetch: CatalogPrefetch | None = None,
     hook_ids: list[str] | None = None,
     clickeye_vars: dict[str, str] | None = None,
+    enable_auto_decompose: bool = False,
 ) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -135,7 +136,10 @@ def generate_all(
     _emit_start_command(files, platform_id, project_name, workflow_ids, catalog_prefetch)
     _emit_remove_command(files, platform_id, project_name)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
-    _emit_first_run_artifacts(files, platform_id, os_id, workflow_ids, project_name)
+    _emit_first_run_artifacts(
+        files, platform_id, os_id, workflow_ids, project_name,
+        enable_auto_decompose=enable_auto_decompose,
+    )
 
     return files
 
@@ -648,6 +652,8 @@ def _emit_first_run_artifacts(
     os_id: str,
     workflow_ids: list[str],
     project_name: str,
+    *,
+    enable_auto_decompose: bool = False,
 ) -> None:
     """first-run 런처(start.sh)와 README.md를 ZIP에 포함.
 
@@ -660,6 +666,7 @@ def _emit_first_run_artifacts(
             "platform_id": platform_id,
             "os_id": os_id,
             "has_linear": "linear" in workflow_ids,
+            "enable_auto_decompose": enable_auto_decompose,
         }
         launcher = _env.get_template("start.sh.j2")
         files["start.sh"] = launcher.render(**ctx)
@@ -685,13 +692,14 @@ def _emit_first_run_artifacts(
         autostart = _env.get_template("scripts/setup-autostart.ps1.j2")
         files["scripts/setup-autostart.ps1"] = autostart.render(**ctx)
 
-        # 부트스트랩 스크립트 (ClickEye 클라우드 연동)
-        bootstrap_sh = _env.get_template("scripts/bootstrap_clickeye.sh.j2")
-        files["scripts/bootstrap_clickeye.sh"] = bootstrap_sh.render(**ctx)
-        decompose_py = _env.get_template("scripts/decompose_local.py.j2")
-        files["scripts/decompose_local.py"] = decompose_py.render(**ctx)
-        push_linear_py = _env.get_template("scripts/push_to_linear_local.py.j2")
-        files["scripts/push_to_linear_local.py"] = push_linear_py.render(**ctx)
+        # 부트스트랩 스크립트 — 자동 분해 ON 시에만 ZIP에 포함
+        if enable_auto_decompose:
+            bootstrap_sh = _env.get_template("scripts/bootstrap_clickeye.sh.j2")
+            files["scripts/bootstrap_clickeye.sh"] = bootstrap_sh.render(**ctx)
+            decompose_py = _env.get_template("scripts/decompose_local.py.j2")
+            files["scripts/decompose_local.py"] = decompose_py.render(**ctx)
+            push_linear_py = _env.get_template("scripts/push_to_linear_local.py.j2")
+            files["scripts/push_to_linear_local.py"] = push_linear_py.render(**ctx)
 
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["logs/.gitkeep"] = ""

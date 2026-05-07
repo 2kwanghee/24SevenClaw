@@ -368,6 +368,7 @@ if [[ "$_USE_POLLING" == "true" ]] || [[ "${WATCHER_ALWAYS_ON:-0}" == "1" ]]; th
 fi
 {% endif %}
 
+{% if enable_auto_decompose %}
 # ── 8-pre. ClickEye 부트스트랩 (요구사항 분해 → AI Team 검토 → Linear 등록) ──────
 if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]]; then
   if [[ -f ".run/bootstrap_done" ]]; then
@@ -382,6 +383,7 @@ if [[ -n "${CLICKEYE_SETUP_TOKEN:-}" ]]; then
       echo -e "${YELLOW}⚠️  부트스트랩 실패 — 재시도: bash scripts/bootstrap_clickeye.sh${NC}"
   fi
 fi
+{% endif %}
 
 # ── 8. 완료 상태 출력 ──────────────────────────────────────────────────────────
 echo ""

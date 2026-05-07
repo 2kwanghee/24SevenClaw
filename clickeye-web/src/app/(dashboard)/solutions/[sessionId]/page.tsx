@@ -237,6 +237,7 @@ export default function SolutionSessionPage() {
             },
             solution: {
               solutionRequest: data.company.solutionRequest,
+              enableAutoDecompose: data.company.enableAutoDecompose,
             },
             agents: data.agents.selectedAgents.map((id) => ({ id })),
             skills: data.agents.selectedSkills.map((id) => ({ id })),

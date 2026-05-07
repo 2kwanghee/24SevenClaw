@@ -73,6 +73,7 @@ async def generate_preview(
         workflow_ids=workflow_ids,
         platform_id=platform_id,
         catalog_prefetch=catalog_prefetch,
+        enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
     )
 
     # 파일 트리 구축

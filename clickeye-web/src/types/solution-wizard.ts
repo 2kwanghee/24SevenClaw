@@ -72,6 +72,8 @@ export interface SolutionPrompt {
 export interface CompanyStep extends CompanyInfo {
   /** 필요한 솔루션 설명 (자연어) */
   solutionRequest: string;
+  /** ZIP start.sh에 자동 분석/분해(bootstrap_clickeye.sh) 포함 여부. 기본 false. */
+  enableAutoDecompose: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +299,7 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
     businessType: null,
     companyDescription: "",
     solutionRequest: "",
+    enableAutoDecompose: false,
   },
   prototypes: {
     selectedPrototypeId: null,
