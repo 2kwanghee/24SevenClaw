@@ -28,6 +28,41 @@ if [[ "$(uname -s)" != "Linux" ]]; then
   exit 1
 fi
 
+# ── 1.5. WSL2 systemd 활성 검증 ────────────────────────────────────────────────
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if ! systemctl --user status >/dev/null 2>&1; then
+    echo ""
+    echo -e "${YELLOW}⚠️  WSL2에 systemd가 활성화되어 있지 않습니다.${NC}"
+    echo -e "    터미널을 닫으면 백그라운드 작업이 중단됩니다."
+    echo ""
+    if [[ ! -f /etc/wsl.conf ]] || ! grep -q "systemd=true" /etc/wsl.conf 2>/dev/null; then
+      read -rp "    /etc/wsl.conf에 systemd=true를 자동 추가할까요? (sudo 필요) [y/N]: " _yn
+      case "$_yn" in
+        [Yy]*)
+          if sudo bash -c 'grep -q "^\[boot\]" /etc/wsl.conf 2>/dev/null && \
+              sed -i "/^\[boot\]/a systemd=true" /etc/wsl.conf || \
+              printf "[boot]\nsystemd=true\n" >> /etc/wsl.conf'; then
+            echo -e "${GREEN}✅ /etc/wsl.conf 패치 완료${NC}"
+            echo ""
+            echo -e "${BOLD}    Windows PowerShell에서 다음을 실행 후 WSL을 재시작하세요:${NC}"
+            echo -e "      ${CYAN}wsl --shutdown${NC}"
+            echo -e "    그 후 본 디렉토리에서 ${BOLD}bash start.sh${NC} 다시 실행."
+            exit 0
+          else
+            echo -e "${RED}❌ 자동 패치 실패 — 수동으로 설정해주세요.${NC}"
+            echo -e "    가이드: ${CYAN}cat docs/wsl-systemd-setup.md${NC}"
+            exit 1
+          fi
+          ;;
+        *)
+          echo -e "${YELLOW}    수동 패치 가이드: ${CYAN}cat docs/wsl-systemd-setup.md${NC}"
+          exit 1
+          ;;
+      esac
+    fi
+  fi
+fi
+
 # ── 2. Node.js 확인 ────────────────────────────────────────────────────────────
 if ! command -v node >/dev/null 2>&1; then
   echo -e "${YELLOW}⚠️  Node.js가 설치되어 있지 않습니다.${NC}"
@@ -192,6 +227,33 @@ else
 fi
 echo ""
 
+# ── 5.6. Claude 신뢰 디렉토리 자동 등록 (trust prompt 차단) ──────────────────────
+echo -ne "${CYAN}[●]${NC} Claude 신뢰 디렉토리 등록..."
+python3 - "$PROJECT_ROOT" 2>/dev/null <<'PYEOF' || true
+import json, sys, shutil
+from pathlib import Path
+root = sys.argv[1]
+cfg = Path.home() / ".claude.json"
+data = {}
+if cfg.exists():
+    try:
+        shutil.copy2(str(cfg), str(cfg) + ".bak")
+        data = json.loads(cfg.read_text())
+    except Exception:
+        data = {}
+projects = data.setdefault("projects", {})
+proj = projects.setdefault(root, {})
+changed = False
+for k in ("hasTrustDialogAccepted", "hasCompletedProjectOnboarding"):
+    if not proj.get(k):
+        proj[k] = True
+        changed = True
+if changed:
+    cfg.write_text(json.dumps(data, indent=2))
+PYEOF
+echo -e " ${GREEN}✅${NC}"
+echo ""
+
 # ── 6. 이미 실행 중인 프로세스 감지 ──────────────────────────────────────────────
 mkdir -p .run
 
@@ -335,7 +397,28 @@ echo -e "  종료      : ${BOLD}bash stop.sh${NC}"
 {% endif %}
 echo ""
 
-# ── 9. 완료 — 모든 서비스는 백그라운드에서 실행 중 ───────────────────────────────
+# ── 9. systemd --user 서비스 자동 등록 (터미널 종료 후 동작 유지) ──────────────
+if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; then
+  if ! systemctl --user is-active clickeye-watcher >/dev/null 2>&1 \
+     {% if has_linear %}|| ! systemctl --user is-active clickeye-webhook >/dev/null 2>&1{% endif %}; then
+    echo ""
+    echo -e "${CYAN}[●]${NC} 백그라운드 서비스 자동 등록 중..."
+    bash "$PROJECT_ROOT/stop.sh" >/dev/null 2>&1 || true
+    mkdir -p logs
+    if bash "$PROJECT_ROOT/scripts/install-service.sh" 2>&1 | tee -a logs/install-service.log; then
+      echo -e "${GREEN}✅ systemd-user 서비스 등록 완료 — 터미널을 닫아도 동작 유지${NC}"
+    else
+      echo -e "${YELLOW}⚠️  서비스 등록 실패 — 수동 실행: bash scripts/install-service.sh${NC}"
+    fi
+  else
+    echo -e "${GREEN}✅ systemd-user 서비스 이미 활성${NC}"
+  fi
+else
+  echo -e "${YELLOW}⚠️  systemd-user 미사용 — 터미널 종료 시 작업 중단됩니다.${NC}"
+  echo -e "    가이드: ${CYAN}cat docs/wsl-systemd-setup.md${NC}"
+fi
+echo ""
+
 echo -e "  모든 서비스가 ${BOLD}백그라운드${NC}에서 실행 중입니다."
 echo -e "  이 창은 이제 닫아도 됩니다."
 echo ""
@@ -348,15 +431,5 @@ echo -e "  ClickEye 웹 대시보드에서 업무를 지시하세요."
 echo "   플랫폼: {{ platform_id }}"
 echo ""
 {% endif -%}
-
-# ── 💡 systemd 서비스 미설치 시 안내 ───────────────────────────────────────────
-if command -v systemctl > /dev/null 2>&1 && systemctl --user status > /dev/null 2>&1; then
-  if ! systemctl --user is-enabled clickeye-watcher > /dev/null 2>&1; then
-    echo -e "  ${YELLOW}💡 터미널을 닫아도 서비스를 계속 유지하려면:${NC}"
-    echo -e "     ${BOLD}bash scripts/install-service.sh${NC}"
-    echo -e "  (systemd 서비스로 등록 — 재시작 후에도 자동 복구)"
-    echo ""
-  fi
-fi
 
 exit 0

@@ -254,9 +254,20 @@ fi
 # Linear 등 다른 스크립트는 .env를 직접 읽으므로 영향 없음
 unset ANTHROPIC_API_KEY
 
+# claude 명령어 fallback 검색 (systemd 환경의 PATH 누락 대비)
+CLAUDE_BIN="$(command -v claude 2>/dev/null || true)"
+[[ -z "$CLAUDE_BIN" ]] && [[ -x "$HOME/.npm-global/bin/claude" ]] && CLAUDE_BIN="$HOME/.npm-global/bin/claude"
+[[ -z "$CLAUDE_BIN" ]] && [[ -x "/usr/local/bin/claude" ]] && CLAUDE_BIN="/usr/local/bin/claude"
+if [[ -z "$CLAUDE_BIN" ]]; then
+  log "ERROR: claude 명령어를 찾을 수 없음 — npm install -g @anthropic-ai/claude-code 필요"
+  update_linear_state "$ISSUE_ID" "In Review"
+  exit 1
+fi
+
 set +e
-claude -p "$PROMPT" \
+"$CLAUDE_BIN" -p "$PROMPT" \
   --dangerously-skip-permissions \
+  </dev/null \
   2>&1 | tee "$CLAUDE_LOG"
 CLAUDE_EXIT="${PIPESTATUS[0]}"
 set -e
