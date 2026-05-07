@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MonitorDown, ChevronDown, ChevronUp } from "lucide-react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
@@ -40,6 +40,12 @@ export function StepSolutionOS() {
   const osId = useSolutionWizardStore((s) => s.data.os.osId);
   const setOs = useSolutionWizardStore((s) => s.setOs);
   const [wslGuideOpen, setWslGuideOpen] = useState(false);
+
+  useEffect(() => {
+    if (!osId) {
+      setOs({ osId: "wsl2" });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-4">
