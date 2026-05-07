@@ -29,8 +29,10 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 fi
 
 # ── 1.5. WSL2 systemd 활성 검증 ────────────────────────────────────────────────
+# /run/systemd/system 디렉토리 존재 여부 = systemd가 PID 1으로 실행 중인지의 신뢰 지표.
+# systemctl --user status는 user session D-Bus 미초기화 시 오탐(false negative)이 있어 사용 안 함.
 if grep -qi microsoft /proc/version 2>/dev/null; then
-  if ! systemctl --user status >/dev/null 2>&1; then
+  if ! [ -d /run/systemd/system ]; then
     echo ""
     echo -e "${YELLOW}⚠️  WSL2에 systemd가 활성화되어 있지 않습니다.${NC}"
     echo -e "    터미널을 닫으면 백그라운드 작업이 중단됩니다."
@@ -405,7 +407,7 @@ echo -e "  종료      : ${BOLD}bash stop.sh${NC}"
 echo ""
 
 # ── 9. systemd --user 서비스 자동 등록 (터미널 종료 후 동작 유지) ──────────────
-if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; then
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
   if ! systemctl --user is-active clickeye-watcher >/dev/null 2>&1 \
      {% if has_linear %}|| ! systemctl --user is-active clickeye-webhook >/dev/null 2>&1{% endif %}; then
     echo ""
