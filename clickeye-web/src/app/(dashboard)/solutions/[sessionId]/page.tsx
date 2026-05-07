@@ -80,11 +80,9 @@ export default function SolutionSessionPage() {
         setSessionId(ps.id);
         setOrganizationId(ps.organization_id);
 
+        // API는 company 상세 정보를 반환하지 않으므로 solutionRequest만 병합
+        // companyName / mainProduct / businessType 등은 step 1에서 입력한 store 값을 유지
         setCompany({
-          companyName: "",
-          mainProduct: "",
-          businessType: null,
-          companyDescription: "",
           solutionRequest: ps.solution_prompt ?? "",
         });
 
