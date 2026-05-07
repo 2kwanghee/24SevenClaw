@@ -4,6 +4,7 @@ import {
   SOLUTION_WIZARD_STEPS,
   INITIAL_SOLUTION_WIZARD_DATA,
   type SolutionWizardData,
+  type SolutionWizardStepId,
   type CompanyStep,
   type PrototypesStep,
   type PMStep,
@@ -41,6 +42,14 @@ interface SolutionWizardState {
   createdProjectId: string | null;
   /** Step 8 (환경변수) Linear/Notion API 키 검증 상태 */
   envValidation: EnvValidationState;
+  /** 라이브 프리뷰 — step별 Claude 분석 결과 */
+  previewByStep: Partial<Record<SolutionWizardStepId, Record<string, unknown>>>;
+  /** 현재 프리뷰 로딩 중인 step */
+  previewLoadingStep: SolutionWizardStepId | null;
+  /** step별 프리뷰 에러 메시지 */
+  previewErrorByStep: Partial<Record<SolutionWizardStepId, string>>;
+  /** 모바일 프리뷰 패널 열림 상태 */
+  previewPanelOpen: boolean;
 }
 
 interface SolutionWizardActions {
@@ -66,6 +75,10 @@ interface SolutionWizardActions {
   setIsGenerating: (v: boolean) => void;
   setCreatedProjectId: (id: string) => void;
   setEnvValidation: (data: Partial<EnvValidationState>) => void;
+  setPreview: (step: SolutionWizardStepId, data: Record<string, unknown>) => void;
+  setPreviewLoading: (step: SolutionWizardStepId | null) => void;
+  setPreviewError: (step: SolutionWizardStepId, message: string | null) => void;
+  togglePreviewPanel: () => void;
   reset: () => void;
 }
 
@@ -83,6 +96,10 @@ const initialState: SolutionWizardState = {
     notionStatus: "idle",
     notionMessage: "",
   },
+  previewByStep: {},
+  previewLoadingStep: null,
+  previewErrorByStep: {},
+  previewPanelOpen: false,
 };
 
 export const useSolutionWizardStore = create<
@@ -207,6 +224,26 @@ export const useSolutionWizardStore = create<
     set((state) => ({
       envValidation: { ...state.envValidation, ...data },
     })),
+
+  setPreview: (step, data) =>
+    set((state) => ({
+      previewByStep: { ...state.previewByStep, [step]: data },
+      previewErrorByStep: { ...state.previewErrorByStep, [step]: undefined },
+    })),
+
+  setPreviewLoading: (step) => set({ previewLoadingStep: step }),
+
+  setPreviewError: (step, message) =>
+    set((state) => ({
+      previewErrorByStep: {
+        ...state.previewErrorByStep,
+        [step]: message ?? undefined,
+      },
+      previewLoadingStep: null,
+    })),
+
+  togglePreviewPanel: () =>
+    set((state) => ({ previewPanelOpen: !state.previewPanelOpen })),
 
   reset: () => set(initialState),
 }));

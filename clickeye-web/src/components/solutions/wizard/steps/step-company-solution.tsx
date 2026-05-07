@@ -16,6 +16,7 @@ import { useEffect } from "react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import type { BusinessType, CompanySize, IndustryType } from "@/types/solution-wizard";
+import { useWizardPreview } from "@/hooks/use-wizard-preview";
 
 /* -- 상수 -- */
 
@@ -187,6 +188,13 @@ export function StepCompanySolution() {
   }, [valuesJson, setCompany]);
 
   const solutionRequest = watch("solutionRequest");
+
+  // ③ 라이브 프리뷰 — 입력 안정 후 700ms 디바운스로 Claude 분석 호출
+  useWizardPreview(
+    "company",
+    JSON.parse(valuesJson) as Record<string, unknown>,
+    (d) => typeof d.solutionRequest === "string" && (d.solutionRequest as string).length >= 50,
+  );
 
   return (
     <div className="space-y-6">

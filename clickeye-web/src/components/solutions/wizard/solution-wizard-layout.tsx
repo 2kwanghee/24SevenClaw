@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, HelpCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles, HelpCircle, PanelRightOpen } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +13,7 @@ import {
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
 import { SolutionWizardStepper } from "./solution-wizard-stepper";
+import { WizardArtifactPanel } from "./artifact-panel/wizard-artifact-panel";
 
 const WizardTourWrapper = dynamic(
   () =>
@@ -43,7 +44,7 @@ export function SolutionWizardLayout({
   canProceed = true,
   nextLabel,
 }: SolutionWizardLayoutProps) {
-  const { currentStep, nextStep, prevStep, isGenerating } =
+  const { currentStep, nextStep, prevStep, isGenerating, togglePreviewPanel } =
     useSolutionWizardStore();
   const { restartWizardTour } = useOnboardingStore();
 
@@ -71,9 +72,11 @@ export function SolutionWizardLayout({
   const defaultNextLabel = isLast ? "이대로 진행" : "다음";
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-[1280px]">
       {/* 위저드 온보딩 투어 (SSR 비활성화, 첫 방문 시 자동 시작) */}
       <WizardTourWrapper />
+      {/* 모바일 프리뷰 패널 (sheet 모드 — xl 미만에서만 렌더) */}
+      <WizardArtifactPanel sheetMode />
 
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between">
@@ -84,6 +87,16 @@ export function SolutionWizardLayout({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* 모바일 프리뷰 토글 버튼 (xl 미만에서만 표시) */}
+          <button
+            type="button"
+            onClick={togglePreviewPanel}
+            aria-label="라이브 프리뷰 열기"
+            title="라이브 프리뷰"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 xl:hidden"
+          >
+            <PanelRightOpen className="h-4 w-4" aria-hidden="true" />
+          </button>
           <button
             type="button"
             onClick={restartWizardTour}
@@ -109,83 +122,97 @@ export function SolutionWizardLayout({
         <SolutionWizardStepper />
       </div>
 
-      {/* 스텝 콘텐츠 */}
-      <section
-        aria-labelledby="wizard-step-heading"
-        data-tour="wizard-content"
-        className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8"
-      >
-        <h2
-          id="wizard-step-heading"
-          ref={stepHeadingRef}
-          tabIndex={-1}
-          className="mb-1 text-lg font-semibold text-zinc-950 outline-none"
-        >
-          {SOLUTION_WIZARD_STEPS[currentStep].label}
-        </h2>
-        <p className="mb-6 text-sm text-zinc-500">
-          {SOLUTION_WIZARD_STEPS[currentStep].description}
-        </p>
+      {/* 메인 영역 — 데스크탑(xl+): 폼(좌) + 프리뷰 패널(우) split view */}
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start xl:gap-6">
+        {/* 좌측: 폼 + 네비게이션 */}
+        <div>
+          {/* 스텝 콘텐츠 */}
+          <section
+            aria-labelledby="wizard-step-heading"
+            data-tour="wizard-content"
+            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8"
+          >
+            <h2
+              id="wizard-step-heading"
+              ref={stepHeadingRef}
+              tabIndex={-1}
+              className="mb-1 text-lg font-semibold text-zinc-950 outline-none"
+            >
+              {SOLUTION_WIZARD_STEPS[currentStep].label}
+            </h2>
+            <p className="mb-6 text-sm text-zinc-500">
+              {SOLUTION_WIZARD_STEPS[currentStep].description}
+            </p>
 
-        <div key={currentStep} className="animate-fade-in-up">
-          {children}
+            <div key={currentStep} className="animate-fade-in-up">
+              {children}
+            </div>
+          </section>
+
+          {/* 네비게이션 버튼 */}
+          <div
+            className="mt-6 flex items-center justify-between"
+            role="group"
+            aria-label="위저드 네비게이션"
+            data-tour="wizard-nav"
+          >
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={isFirst || isBlocked}
+              aria-label="이전 단계로 이동"
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
+                isFirst || isBlocked
+                  ? "cursor-not-allowed text-zinc-300"
+                  : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900",
+              )}
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              이전
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!canProceed || isBlocked}
+              aria-label={
+                isLast
+                  ? "프로젝트 생성하기"
+                  : `다음 단계로 이동 (${SOLUTION_WIZARD_STEPS[currentStep + 1]?.label ?? ""})`
+              }
+              aria-busy={isSubmitting || isGenerating}
+              className={cn(
+                "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
+                !canProceed || isBlocked
+                  ? "cursor-not-allowed bg-zinc-200 text-zinc-400"
+                  : "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800",
+              )}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  생성 중...
+                </>
+              ) : isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  분석 중...
+                </>
+              ) : isLast ? (
+                nextLabel ?? defaultNextLabel
+              ) : (
+                <>
+                  {nextLabel ?? defaultNextLabel}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </section>
 
-      {/* 네비게이션 버튼 */}
-      <div className="mt-6 flex items-center justify-between" role="group" aria-label="위저드 네비게이션" data-tour="wizard-nav">
-        <button
-          type="button"
-          onClick={prevStep}
-          disabled={isFirst || isBlocked}
-          aria-label="이전 단계로 이동"
-          className={cn(
-            "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
-            isFirst || isBlocked
-              ? "cursor-not-allowed text-zinc-300"
-              : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900",
-          )}
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          이전
-        </button>
-
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={!canProceed || isBlocked}
-          aria-label={
-            isLast
-              ? "프로젝트 생성하기"
-              : `다음 단계로 이동 (${SOLUTION_WIZARD_STEPS[currentStep + 1]?.label ?? ""})`
-          }
-          aria-busy={isSubmitting || isGenerating}
-          className={cn(
-            "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
-            !canProceed || isBlocked
-              ? "cursor-not-allowed bg-zinc-200 text-zinc-400"
-              : "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800",
-          )}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              생성 중...
-            </>
-          ) : isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              분석 중...
-            </>
-          ) : isLast ? (
-            nextLabel ?? defaultNextLabel
-          ) : (
-            <>
-              {nextLabel ?? defaultNextLabel}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </>
-          )}
-        </button>
+        {/* 우측: 라이브 프리뷰 패널 (xl+ 에서만 표시) */}
+        <WizardArtifactPanel />
       </div>
     </div>
   );

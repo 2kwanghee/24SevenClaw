@@ -30,6 +30,7 @@ from app.api.v1.review_pipeline import router as review_pipeline_router
 from app.api.v1.roi import router as roi_router
 from app.api.v1.roi_admin import router as roi_admin_router
 from app.api.v1.setup_bootstrap import router as setup_bootstrap_router
+from app.api.v1.wizard_preview import router as wizard_preview_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(admin_recommendations_router)
@@ -62,3 +63,4 @@ api_v1_router.include_router(control_tower_router)
 api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)
 api_v1_router.include_router(setup_bootstrap_router)
+api_v1_router.include_router(wizard_preview_router)

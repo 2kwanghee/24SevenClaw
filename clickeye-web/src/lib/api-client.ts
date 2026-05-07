@@ -2337,4 +2337,27 @@ export const roi = {
     }),
 };
 
+// ---------------------------------------------------------------------------
+// Wizard Preview
+// ---------------------------------------------------------------------------
+
+export interface WizardPreviewRequest {
+  step: string;
+  data: Record<string, unknown>;
+}
+
+export interface WizardPreviewResponse {
+  step: string;
+  result: Record<string, unknown> | null;
+  supported: boolean;
+}
+
+export const wizardPreview = {
+  fetch: (token: string, data: WizardPreviewRequest) =>
+    authRequest<WizardPreviewResponse>("/api/v1/wizard/preview", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
 export { ApiClientError, NetworkError };
