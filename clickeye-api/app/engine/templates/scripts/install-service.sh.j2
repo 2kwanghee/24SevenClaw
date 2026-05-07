@@ -35,8 +35,8 @@ fi
 
 mkdir -p "$SYSTEMD_USER_DIR" "$PROJECT_ROOT/logs"
 
-# ── [1/{% if has_linear %}3{% else %}2{% endif %}] clickeye-watcher 서비스 ────────────────────────────────────────────
-echo -e "${CYAN}[1/{% if has_linear %}3{% else %}2{% endif %}]${NC} clickeye-watcher 서비스 파일 생성..."
+# ── [1/{% if has_linear %}4{% else %}2{% endif %}] clickeye-watcher 서비스 ────────────────────────────────────────────
+echo -e "${CYAN}[1/{% if has_linear %}4{% else %}2{% endif %}]${NC} clickeye-watcher 서비스 파일 생성..."
 cat > "$SYSTEMD_USER_DIR/clickeye-watcher.service" << UNIT
 [Unit]
 Description=ClickEye Linear Watcher ({{ project_name }})
@@ -63,8 +63,8 @@ UNIT
 echo -e "   ${GREEN}✅ clickeye-watcher.service${NC}"
 
 {% if has_linear %}
-# ── [2/3] clickeye-webhook 서비스 ────────────────────────────────────────────
-echo -e "${CYAN}[2/3]${NC} clickeye-webhook 서비스 파일 생성..."
+# ── [2/4] clickeye-webhook 서비스 ────────────────────────────────────────────
+echo -e "${CYAN}[2/4]${NC} clickeye-webhook 서비스 파일 생성..."
 cat > "$SYSTEMD_USER_DIR/clickeye-webhook.service" << UNIT
 [Unit]
 Description=ClickEye Webhook Server ({{ project_name }})
@@ -90,9 +90,37 @@ WantedBy=default.target
 UNIT
 echo -e "   ${GREEN}✅ clickeye-webhook.service${NC}"
 
+# ── [3/4] clickeye-tunnel 서비스 ─────────────────────────────────────────────
+echo -e "${CYAN}[3/4]${NC} clickeye-tunnel 서비스 파일 생성..."
+cat > "$SYSTEMD_USER_DIR/clickeye-tunnel.service" << UNIT
+[Unit]
+Description=ClickEye Cloudflare Tunnel ({{ project_name }})
+After=network-online.target clickeye-webhook.service
+Wants=network-online.target
+Requires=clickeye-webhook.service
+
+[Service]
+Type=simple
+WorkingDirectory=${PROJECT_ROOT}
+Environment="HOME=${USER_HOME}"
+Environment="USER=${RUN_USER}"
+Environment="PATH=${USER_PATH}"
+Environment="LANG=C.UTF-8"
+ExecStart=/usr/bin/env bash ${PROJECT_ROOT}/scripts/run-tunnel.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:${PROJECT_ROOT}/logs/tunnel.log
+StandardError=append:${PROJECT_ROOT}/logs/tunnel.log
+EnvironmentFile=-${PROJECT_ROOT}/.env
+
+[Install]
+WantedBy=default.target
+UNIT
+echo -e "   ${GREEN}✅ clickeye-tunnel.service${NC}"
+
 {% endif %}
-# ── [{% if has_linear %}3{% else %}2{% endif %}/{% if has_linear %}3{% else %}2{% endif %}] 서비스 활성화 및 시작 ─────────────────────────────────────────────
-echo -e "${CYAN}[{% if has_linear %}3{% else %}2{% endif %}/{% if has_linear %}3{% else %}2{% endif %}]${NC} 서비스 활성화..."
+# ── [{% if has_linear %}4{% else %}2{% endif %}/{% if has_linear %}4{% else %}2{% endif %}] 서비스 활성화 및 시작 ─────────────────────────────────────────────
+echo -e "${CYAN}[{% if has_linear %}4{% else %}2{% endif %}/{% if has_linear %}4{% else %}2{% endif %}]${NC} 서비스 활성화..."
 systemctl --user daemon-reload
 
 systemctl --user enable  clickeye-watcher 2>/dev/null || true
@@ -103,6 +131,10 @@ echo -e "   ${GREEN}✅ clickeye-watcher 시작됨${NC}"
 systemctl --user enable  clickeye-webhook 2>/dev/null || true
 systemctl --user restart clickeye-webhook
 echo -e "   ${GREEN}✅ clickeye-webhook 시작됨${NC}"
+
+systemctl --user enable  clickeye-tunnel 2>/dev/null || true
+systemctl --user restart clickeye-tunnel
+echo -e "   ${GREEN}✅ clickeye-tunnel 시작됨${NC}"
 
 {% endif %}
 # ── linger 활성화 — WSL2 재시작 후에도 서비스 자동 복구 ─────────────────────

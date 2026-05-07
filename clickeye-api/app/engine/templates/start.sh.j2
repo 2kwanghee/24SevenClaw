@@ -59,6 +59,13 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
           exit 1
           ;;
       esac
+    else
+      echo -e "${YELLOW}    /etc/wsl.conf에 systemd=true가 이미 설정되어 있지만 systemd가 활성화되지 않았습니다.${NC}"
+      echo -e "    WSL을 아직 재시작하지 않은 것 같습니다."
+      echo -e "    Windows PowerShell(관리자)에서 다음 명령을 실행 후 WSL을 다시 열어주세요:"
+      echo -e "      ${CYAN}wsl --shutdown${NC}"
+      echo -e "    그 후 본 디렉토리에서 ${BOLD}bash start.sh${NC} 재실행."
+      exit 1
     fi
   fi
 fi

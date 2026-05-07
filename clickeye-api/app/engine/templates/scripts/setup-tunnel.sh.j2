@@ -79,8 +79,11 @@ if [[ "$TUNNEL_PROVIDER" == "cloudflare" ]]; then
     echo "   터널 기동 중 (포트 $WEBHOOK_PORT)..."
     # URL 파싱을 위해 임시 로그 파일 사용
     TMP_LOG=$(mktemp)
-    cloudflared tunnel --url "http://localhost:$WEBHOOK_PORT" 2>"$TMP_LOG" &
+    mkdir -p "$PROJECT_ROOT/logs"
+    nohup cloudflared tunnel --url "http://localhost:$WEBHOOK_PORT" </dev/null \
+        >>"$PROJECT_ROOT/logs/cloudflared.log" 2>"$TMP_LOG" &
     CF_PID=$!
+    disown "$CF_PID" 2>/dev/null || true
 
     # URL 발급까지 최대 20초 대기
     TUNNEL_URL=""
@@ -139,8 +142,11 @@ if [[ "$TUNNEL_PROVIDER" == "ngrok" ]]; then
     fi
 
     TMP_LOG=$(mktemp)
-    ngrok http "$WEBHOOK_PORT" --log=stdout 2>"$TMP_LOG" &
+    mkdir -p "$PROJECT_ROOT/logs"
+    nohup ngrok http "$WEBHOOK_PORT" --log=stdout </dev/null \
+        >>"$PROJECT_ROOT/logs/ngrok.log" 2>"$TMP_LOG" &
     NGROK_PID=$!
+    disown "$NGROK_PID" 2>/dev/null || true
 
     TUNNEL_URL=""
     for _ in $(seq 1 40); do

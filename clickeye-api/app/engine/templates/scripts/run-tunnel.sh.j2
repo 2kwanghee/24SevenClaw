@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# {{ project_name }} — systemd-user 모드 전용 터널 실행 래퍼
+# clickeye-tunnel.service의 ExecStart에서 호출된다.
+# cloudflared/ngrok을 포그라운드로 실행 — systemd가 프로세스 수명을 관리한다.
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEBHOOK_PORT="${WEBHOOK_PORT:-9876}"
+TUNNEL_PROVIDER="${TUNNEL_PROVIDER:-cloudflare}"
+LOG_FILE="$PROJECT_ROOT/logs/cloudflared.log"
+
+mkdir -p "$PROJECT_ROOT/.run" "$PROJECT_ROOT/logs"
+
+if [[ "$TUNNEL_PROVIDER" == "cloudflare" ]]; then
+    exec cloudflared tunnel --url "http://localhost:$WEBHOOK_PORT" \
+        2>>"$LOG_FILE"
+fi
+
+if [[ "$TUNNEL_PROVIDER" == "ngrok" ]]; then
+    exec ngrok http "$WEBHOOK_PORT" --log=stdout \
+        2>>"$LOG_FILE"
+fi
+
+if [[ "$TUNNEL_PROVIDER" == "polling" ]]; then
+    echo "polling 모드 — 터널 불필요, 서비스 즉시 종료"
+    exit 0
+fi
+
+echo "ERROR: 알 수 없는 TUNNEL_PROVIDER '$TUNNEL_PROVIDER'" >&2
+exit 1
