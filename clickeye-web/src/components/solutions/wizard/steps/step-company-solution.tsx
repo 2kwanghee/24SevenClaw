@@ -522,13 +522,13 @@ export function StepCompanySolution() {
               aria-checked={field.value}
               aria-label="ClickEye 자동 분석/분해"
               onClick={() => field.onChange(!field.value)}
-              className={`relative mt-0.5 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
+              className={`mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400/20 ${
                 field.value ? "bg-emerald-500" : "bg-zinc-300"
               }`}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  field.value ? "translate-x-5" : "translate-x-0.5"
+                className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  field.value ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
