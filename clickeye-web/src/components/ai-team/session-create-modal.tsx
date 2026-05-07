@@ -5,7 +5,7 @@ import { X, Loader2, Sparkles, Check, Link2, AlertTriangle } from "lucide-react"
 import Link from "next/link";
 
 import { useCreateSession, useDecompose, useAssign, useGenerateDrafts, usePushToLinear } from "@/hooks/use-orchestrator";
-import type { SubTaskResponse, SubTaskRole, PushToLinearResponse } from "@/lib/api-client";
+import type { AnalysisResult, SubTaskResponse, SubTaskRole, PushToLinearResponse } from "@/lib/api-client";
 
 type ModalStep = "form" | "decomposing" | "review" | "assigning" | "drafting" | "pushing" | "done";
 
@@ -27,6 +27,7 @@ export function SessionCreateModal({
   const [description, setDescription] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [subtasks, setSubtasks] = useState<SubTaskResponse[]>([]);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [linearResult, setLinearResult] = useState<PushToLinearResponse | null>(null);
   const [linearError, setLinearError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function SessionCreateModal({
     setDescription("");
     setSessionId("");
     setSubtasks([]);
+    setAnalysisResult(null);
     setError(null);
     setLinearResult(null);
     setLinearError(null);
@@ -69,6 +71,7 @@ export function SessionCreateModal({
         sessionId: session.id,
       });
       setSubtasks(decomposeResult.subtasks);
+      setAnalysisResult(decomposeResult.session.analysis_result ?? null);
       setStep("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "세션 생성에 실패했습니다");
@@ -210,9 +213,9 @@ export function SessionCreateModal({
         {step === "decomposing" && (
           <div className="flex flex-col items-center gap-3 py-10">
             <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-            <p className="text-sm text-[var(--text-secondary)]">작업을 분해하는 중...</p>
+            <p className="text-sm text-[var(--text-secondary)]">요구사항 분석 후 서브태스크 생성 중...</p>
             <p className="text-xs text-[var(--text-muted)]">
-              AI가 서브태스크를 생성하고 있습니다
+              AI가 요구사항을 분석하고 서브태스크를 생성하고 있습니다
             </p>
           </div>
         )}
@@ -226,6 +229,43 @@ export function SessionCreateModal({
             <p className="mb-4 text-xs text-[var(--text-muted)]">
               {subtasks.length}개의 태스크가 생성되었습니다. 배정을 확정하면 Linear 이슈가 자동 등록됩니다.
             </p>
+
+            {/* 분석 요약 카드 */}
+            {analysisResult && (
+              <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+                  <span className="font-medium text-zinc-700">요구사항 분석 결과</span>
+                  <span className="ml-auto rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                    {analysisResult.primary_tag}
+                  </span>
+                  {analysisResult.complexity && (
+                    <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                      {analysisResult.complexity}
+                    </span>
+                  )}
+                </div>
+                {analysisResult.features && analysisResult.features.length > 0 && (
+                  <div className="mb-1">
+                    <span className="text-zinc-500">주요 기능: </span>
+                    <span className="text-zinc-700">
+                      {analysisResult.features.slice(0, 5).join(", ")}
+                      {analysisResult.features.length > 5 && ` 외 ${analysisResult.features.length - 5}개`}
+                    </span>
+                  </div>
+                )}
+                {analysisResult.key_requirements && analysisResult.key_requirements.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {analysisResult.key_requirements.slice(0, 3).map((req, i) => (
+                      <li key={i} className="flex items-start gap-1 text-zinc-600">
+                        <span className="mt-0.5 shrink-0">•</span>
+                        <span>{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">

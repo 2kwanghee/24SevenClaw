@@ -509,6 +509,7 @@ class ClaudeService:
         session_title: str,
         session_description: str | None,
         hints: list[str] | None = None,
+        analysis_result: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """세션 제목/설명을 분석해 서브태스크 목록을 생성한다.
 
@@ -520,6 +521,12 @@ class ClaudeService:
             user_text += f"Description: {session_description}\n"
         if hints:
             user_text += f"Hints: {', '.join(hints)}\n"
+        if analysis_result:
+            user_text += (
+                "\nPre-analyzed requirements (이 정보를 활용해 분해 정확도를 높일 것):\n"
+                + json.dumps(analysis_result, ensure_ascii=False, indent=2)
+                + "\n"
+            )
 
         client = self._get_client()
         message = await client.messages.create(

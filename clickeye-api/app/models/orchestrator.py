@@ -19,6 +19,7 @@ class OrchestratorSession(Base):
     created_by = Column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     prompt_template = Column(Text, nullable=True)
     risk_flags = Column(JSON, nullable=False, default=list)
+    analysis_result = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 

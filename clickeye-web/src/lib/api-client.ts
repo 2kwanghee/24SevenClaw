@@ -1500,6 +1500,17 @@ export type SubTaskRole =
 
 export type MergeStrategy = "accept_draft" | "accept_review" | "manual_merge";
 
+export interface AnalysisResult {
+  primary_tag: string;
+  tags?: string[];
+  solution_type?: string;
+  features?: string[];
+  tech_stack?: Record<string, string>;
+  complexity?: string;
+  target_users?: string;
+  key_requirements?: string[];
+}
+
 export interface OrchestratorSessionResponse {
   id: string;
   project_id: string;
@@ -1509,6 +1520,7 @@ export interface OrchestratorSessionResponse {
   created_by: string | null;
   prompt_template: string | null;
   risk_flags: string[];
+  analysis_result: AnalysisResult | null;
   created_at: string;
   updated_at: string;
 }

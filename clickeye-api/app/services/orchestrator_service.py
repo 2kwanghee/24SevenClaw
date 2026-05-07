@@ -167,18 +167,35 @@ class OrchestratorService:
         try:
             from app.services.claude_service import ClaudeService  # noqa: PLC0415
 
-            raw = await ClaudeService().decompose_tasks(
+            claude = ClaudeService()
+
+            # 위저드와 동일: analyze_solution으로 자연어 요구사항 풍부화
+            analysis_result: dict | None = None
+            try:
+                analysis_result = await claude.analyze_solution(
+                    prompt=f"{session.title}\n\n{session.description or ''}".strip(),
+                    org_context={},
+                )
+                session.analysis_result = analysis_result
+            except Exception as exc:
+                logger.warning("analyze_solution 실패, 분석 없이 분해 진행: %s", exc)
+
+            raw = await claude.decompose_tasks(
                 session_title=str(session.title),
                 session_description=str(session.description) if session.description else None,
                 hints=data.hints,
+                analysis_result=analysis_result,
             )
             if raw:
                 subtasks = [self._build_subtask_from_dict(session, item, idx) for idx, item in enumerate(raw)]
             else:
+                # Claude 분해 빈 응답 → 키워드 폴백, 분석 결과도 무효화
+                session.analysis_result = None
                 subtasks = self._generate_subtasks(session, data.hints)
         except Exception as exc:
-            import logging  # noqa: PLC0415
-            logging.getLogger(__name__).warning("Claude 분해 실패, 키워드 규칙 폴백: %s", exc)
+            # Claude 전체 실패 → 키워드 폴백, 분석 결과도 무효화
+            logger.warning("Claude 분해 실패, 키워드 규칙 폴백: %s", exc)
+            session.analysis_result = None
             subtasks = self._generate_subtasks(session, data.hints)
         for st in subtasks:
             self.db.add(st)

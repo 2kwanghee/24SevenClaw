@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -53,6 +53,7 @@ class SessionResponse(BaseModel):
     created_by: UUID | None
     prompt_template: str | None
     risk_flags: list[str]
+    analysis_result: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
 
