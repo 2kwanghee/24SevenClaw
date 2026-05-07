@@ -105,13 +105,48 @@ systemctl --user restart clickeye-webhook
 echo -e "   ${GREEN}✅ clickeye-webhook 시작됨${NC}"
 
 {% endif %}
-# ── linger 활성화 — 세션 종료 후에도 서비스 유지 ─────────────────────────────
+# ── linger 활성화 — WSL2 재시작 후에도 서비스 자동 복구 ─────────────────────
+_linger_ok=false
 if loginctl enable-linger "$USER" 2>/dev/null; then
-  echo -e "   ${GREEN}✅ linger 활성화 — 터미널 종료 후에도 자동 유지${NC}"
-else
-  echo -e "   ${YELLOW}⚠️  linger 활성화 실패 (선택사항)${NC}"
-  echo "      수동 실행: sudo loginctl enable-linger $USER"
+  _linger_ok=true
+elif sudo loginctl enable-linger "$USER" 2>/dev/null; then
+  _linger_ok=true
 fi
+
+# linger 실제 적용 여부 검증
+if loginctl show-user "$USER" 2>/dev/null | grep -q "Linger=yes"; then
+  _linger_ok=true
+fi
+
+if [[ "$_linger_ok" == "true" ]]; then
+  echo -e "   ${GREEN}✅ linger 활성화 — WSL2 재시작 후에도 서비스 자동 복구${NC}"
+else
+  echo -e "   ${RED}❌ linger 활성화 실패 — WSL2 재시작 시 서비스가 자동 복구되지 않습니다.${NC}"
+  echo -e "   ${YELLOW}   WSL 터미널에서 아래 명령을 실행하세요:${NC}"
+  echo "      sudo loginctl enable-linger $USER"
+  echo "      bash scripts/install-service.sh  # 재실행"
+fi
+
+# ── WSL2 keepalive 서비스 — 유휴 상태에서 WSL이 종료되는 것을 방지 ────────────
+cat > "$SYSTEMD_USER_DIR/clickeye-keepalive.service" << UNIT
+[Unit]
+Description=ClickEye WSL2 Keepalive
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env bash -c 'while true; do sleep 60; done'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+UNIT
+
+systemctl --user daemon-reload
+systemctl --user enable  clickeye-keepalive 2>/dev/null || true
+systemctl --user restart clickeye-keepalive 2>/dev/null || true
+echo -e "   ${GREEN}✅ keepalive 서비스 등록 — WSL2 유휴 종료 방지${NC}"
 
 # ── 완료 ─────────────────────────────────────────────────────────────────────
 echo ""
@@ -122,11 +157,12 @@ echo ""
 echo -e "  터미널을 닫아도 파이프라인이 계속 실행됩니다."
 echo ""
 echo -e "  상태 확인  : ${BOLD}systemctl --user status clickeye-watcher${NC}"
+echo -e "  linger 확인: ${BOLD}loginctl show-user $USER | grep Linger${NC}"
 echo -e "  로그 확인  : ${BOLD}tail -f logs/watcher.log${NC}"
-echo -e "  서비스 중지: ${BOLD}systemctl --user stop clickeye-watcher${NC}"
+echo -e "  서비스 중지: ${BOLD}systemctl --user stop clickeye-watcher clickeye-keepalive${NC}"
 echo -e "  서비스 제거: ${BOLD}bash scripts/uninstall-service.sh${NC}"
 echo ""
-echo -e "  ${CYAN}💡 Windows 재시작 후 자동 기동 설정${NC}"
+echo -e "  ${CYAN}💡 Windows 재시작 후 자동 기동 설정 (선택사항)${NC}"
 echo -e "  Windows PowerShell(관리자)에서 아래 명령 실행:"
 echo ""
 echo -e "  ${BOLD}powershell -ExecutionPolicy Bypass -File \"\$(wslpath -w ${PROJECT_ROOT}/scripts/setup-autostart.ps1)\"${NC}"
