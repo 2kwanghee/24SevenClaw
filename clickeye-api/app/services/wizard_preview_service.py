@@ -11,6 +11,8 @@ import json
 import logging
 from typing import Any
 
+import anthropic
+
 from app.services.claude_service import ClaudeService
 
 logger = logging.getLogger(__name__)
@@ -64,7 +66,26 @@ class WizardPreviewService:
         except Exception:
             pass
 
-        result = await self._claude.analyze_solution(prompt=prompt, org_context=org_context)
+        try:
+            result = await self._claude.analyze_solution(prompt=prompt, org_context=org_context)
+        except anthropic.AuthenticationError:
+            logger.warning("wizard_preview: Anthropic API 인증 실패 — API 키를 확인하세요")
+            return {"status": "api_auth_error"}
+        except anthropic.BadRequestError as exc:
+            # 크레딧 부족 등 400 에러 — 서버 500 대신 graceful fallback
+            msg = str(exc)
+            if "credit balance is too low" in msg:
+                logger.warning("wizard_preview: Anthropic API 크레딧 부족")
+                return {"status": "api_credit_error"}
+            logger.warning("wizard_preview: Anthropic API 400 에러 — %s", msg)
+            return {"status": "api_error"}
+        except anthropic.APIError as exc:
+            logger.warning("wizard_preview: Anthropic API 에러 — %s", exc)
+            return {"status": "api_error"}
+        except Exception as exc:
+            logger.exception("wizard_preview: 예기치 않은 에러 — %s", exc)
+            return {"status": "error"}
+
         result["status"] = "ok"
         result["cached"] = False
 

@@ -25,6 +25,30 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
     );
   }
 
+  if (result.status === "api_credit_error") {
+    return (
+      <p className="text-xs text-amber-600">
+        Anthropic API 크레딧이 부족합니다. Plans &amp; Billing에서 충전 후 다시 시도하세요.
+      </p>
+    );
+  }
+
+  if (result.status === "api_auth_error") {
+    return (
+      <p className="text-xs text-red-600">
+        API 키 인증에 실패했습니다. ANTHROPIC_API_KEY 설정을 확인하세요.
+      </p>
+    );
+  }
+
+  if (result.status === "api_error" || result.status === "error") {
+    return (
+      <p className="text-xs text-zinc-400">
+        일시적인 오류가 발생했습니다. 잠시 후 다시 입력해 보세요.
+      </p>
+    );
+  }
+
   const primaryTag = (result.primary_tag as string) ?? "";
   const tags = (result.tags as string[]) ?? [];
   const features = (result.features as string[]) ?? [];
