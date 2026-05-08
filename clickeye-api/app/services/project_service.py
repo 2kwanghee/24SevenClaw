@@ -24,7 +24,9 @@ class ProjectService(BaseService):
     def __init__(self, db: AsyncSession):
         super().__init__(db)
 
-    async def create(self, owner_id: UUID, data: ProjectCreate) -> Project:
+    async def create(
+        self, owner_id: UUID, data: ProjectCreate, organization_id: UUID | None = None
+    ) -> Project:
         slug = _slugify(data.name)
 
         # slug 중복 시 숫자 접미사 추가
@@ -45,6 +47,7 @@ class ProjectService(BaseService):
             name=data.name,
             slug=slug,
             description=data.description,
+            organization_id=organization_id,
         )
         self.db.add(project)
         await self.db.commit()

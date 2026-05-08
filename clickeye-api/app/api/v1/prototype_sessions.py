@@ -228,7 +228,10 @@ async def finalize_session(
     """
     service = PrototypeService(db)
     project = await service.finalize_session(
-        session_id=session_id, user_id=user.id, data=data  # type: ignore[arg-type]
+        session_id=session_id,
+        user_id=user.id,  # type: ignore[arg-type]
+        data=data,
+        organization_id=user.organization_id,  # type: ignore[arg-type]
     )
     return FinalizeResponse(
         project_id=project.id,

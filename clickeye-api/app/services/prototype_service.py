@@ -713,7 +713,11 @@ class PrototypeService:
         return _default_component_recommendation(prototype, valid_agent_ids, valid_skill_ids)
 
     async def finalize_session(
-        self, session_id: UUID, user_id: UUID, data: FinalizeRequest
+        self,
+        session_id: UUID,
+        user_id: UUID,
+        data: FinalizeRequest,
+        organization_id: UUID | None = None,
     ) -> Project:
         """세션을 확정하고 최종 프로젝트를 생성한다.
 
@@ -760,6 +764,7 @@ class PrototypeService:
             project_type="wizard",
             requirements_text=session.solution_prompt,
             bootstrap_status="pending",
+            organization_id=organization_id,
         )
         self.db.add(project)
 
