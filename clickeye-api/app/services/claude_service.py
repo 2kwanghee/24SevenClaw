@@ -222,8 +222,8 @@ class ClaudeService:
         recommend_pm(requirements, prototype_style, pm_catalog) → dict
     """
 
-    def __init__(self) -> None:
-        self._api_key = settings.anthropic_api_key
+    def __init__(self, api_key: str | None = None) -> None:
+        self._api_key = api_key or settings.anthropic_api_key
         self._model = settings.anthropic_model_default
         self._timeout = settings.prototype_generation_timeout
 

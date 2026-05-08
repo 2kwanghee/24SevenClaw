@@ -1766,6 +1766,25 @@ export interface LinearConnectionStatus {
   team_name: string | null;
 }
 
+export interface AnthropicCredentialsResponse {
+  api_key_masked: string;
+  updated_at: string;
+}
+
+export const anthropicCredentials = {
+  save: (token: string, api_key: string) =>
+    authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token, {
+      method: "POST",
+      body: JSON.stringify({ api_key }),
+    }),
+
+  get: (token: string) =>
+    authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token),
+
+  delete: (token: string) =>
+    authRequest<void>("/api/v1/me/anthropic-credentials/", token, { method: "DELETE" }),
+};
+
 export const linearCredentials = {
   save: (token: string, data: LinearCredentialsSave) =>
     authRequest<LinearCredentialsResponse>("/api/v1/me/linear-credentials/", token, {

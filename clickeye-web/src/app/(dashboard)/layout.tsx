@@ -21,6 +21,7 @@ import {
   BarChart3,
   BookOpen,
   Calculator,
+  Key,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -58,6 +59,7 @@ const adminItems = [
 
 const settingsItems = [
   { href: "/settings/members", label: "조직 멤버", icon: Users2 },
+  { href: "/settings/anthropic", label: "Anthropic API 키", icon: Key },
 ];
 
 function NavLink({

@@ -1,4 +1,5 @@
-import { Zap, Users, Layers, Code2, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Zap, Users, Layers, Code2, CheckCircle2, KeyRound } from "lucide-react";
 
 interface CompanyBlueprintViewProps {
   result: Record<string, unknown>;
@@ -27,17 +28,41 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
 
   if (result.status === "api_credit_error") {
     return (
-      <p className="text-xs text-amber-600">
-        Anthropic API 크레딧이 부족합니다. Plans &amp; Billing에서 충전 후 다시 시도하세요.
-      </p>
+      <div className="space-y-2">
+        <p className="text-xs text-amber-600">
+          Anthropic API 크레딧이 부족합니다.
+          {result.key_source === "server" ? " 서버 공용 키의 크레딧이 소진되었습니다." : " Plans & Billing에서 충전 후 다시 시도하세요."}
+        </p>
+        {result.key_source === "server" && (
+          <Link
+            href="/settings/anthropic"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
+          >
+            <KeyRound className="h-3 w-3" aria-hidden="true" />
+            내 API 키 등록하기 →
+          </Link>
+        )}
+      </div>
     );
   }
 
   if (result.status === "api_auth_error") {
     return (
-      <p className="text-xs text-red-600">
-        API 키 인증에 실패했습니다. ANTHROPIC_API_KEY 설정을 확인하세요.
-      </p>
+      <div className="space-y-2">
+        <p className="text-xs text-red-600">
+          API 키 인증에 실패했습니다.
+          {result.key_source === "user" ? " 설정 페이지에서 키를 확인하세요." : " ANTHROPIC_API_KEY 설정을 확인하세요."}
+        </p>
+        {result.key_source === "user" && (
+          <Link
+            href="/settings/anthropic"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            <KeyRound className="h-3 w-3" aria-hidden="true" />
+            API 키 재설정 →
+          </Link>
+        )}
+      </div>
     );
   }
 
