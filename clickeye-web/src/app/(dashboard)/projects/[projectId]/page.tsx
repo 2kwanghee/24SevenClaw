@@ -28,11 +28,13 @@ import {
   RefreshCw,
   ExternalLink,
   Zap,
+  RotateCcw,
 } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
+import { ResetProjectDialog } from "@/components/projects/reset-project-dialog";
 import { ProjectForm } from "@/components/projects/project-form";
 import { PMFeedbackCard } from "@/components/projects/pm-feedback-card";
 import {
@@ -70,6 +72,9 @@ export default function ProjectDetailPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<{ new_license_key: string | null } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -132,6 +137,20 @@ export default function ProjectDetailPage() {
       // 실패 시 재다운로드 경로 유도
     } finally {
       setEnvDownloading(false);
+    }
+  }, [token, projectId]);
+
+  const handleReset = useCallback(async () => {
+    if (!token || !projectId) return;
+    setResetting(true);
+    try {
+      const result = await apiClient.projects.reset(token, projectId);
+      setResetResult({ new_license_key: result.new_license_key });
+      setResetOpen(false);
+    } catch {
+      setResetOpen(false);
+    } finally {
+      setResetting(false);
     }
   }, [token, projectId]);
 
@@ -320,13 +339,6 @@ export default function ProjectDetailPage() {
                 <Settings className="h-3.5 w-3.5" />
                 설정
               </Link>
-              <button
-                onClick={() => setDeleteOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all hover:bg-red-100"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                삭제
-              </button>
             </div>
           </div>
 
@@ -520,6 +532,69 @@ export default function ProjectDetailPage() {
           isFetching={linearFetching}
           onRefresh={() => void refetchLinearStatus()}
         />
+
+        {/* 위험 구역 */}
+        <div className="mt-6 rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="mb-1 text-base font-semibold text-red-700">위험 구역</h2>
+          <p className="mb-5 text-xs text-[var(--text-muted)]">
+            아래 작업은 되돌릴 수 없습니다. 신중하게 진행하세요.
+          </p>
+
+          {/* 초기화 완료 메시지 */}
+          {resetResult && (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <p className="font-medium">프로젝트가 초기화되었습니다.</p>
+              {resetResult.new_license_key && (
+                <p className="mt-1 text-xs">
+                  새 라이선스 키:{" "}
+                  <code className="font-mono text-emerald-900">{resetResult.new_license_key}</code>
+                  <br />
+                  로컬 .env 파일의 <code>LICENSE_KEY</code>를 위 값으로 업데이트하세요.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex-1 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">프로젝트 초기화</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    위자드 설정, 티켓, 산출물, 세션 등 진행 데이터를 삭제합니다.
+                    프로젝트 ID와 이름은 유지됩니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setResetOpen(true)}
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 transition-colors"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  초기화
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 rounded-xl border border-red-200 bg-red-50/50 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">프로젝트 삭제</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    프로젝트와 모든 연관 데이터를 완전히 삭제합니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(true)}
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         </>
       )}
 
@@ -534,6 +609,13 @@ export default function ProjectDetailPage() {
             onError: () => setDeleteOpen(false),
           });
         }}
+      />
+      <ResetProjectDialog
+        projectName={project.name}
+        isOpen={resetOpen}
+        isResetting={resetting}
+        onCancel={() => setResetOpen(false)}
+        onConfirm={() => void handleReset()}
       />
     </div>
   );

@@ -401,6 +401,21 @@ export const apiClient = {
       }
       return res.blob();
     },
+
+    reset: async (
+      token: string,
+      projectId: string,
+    ): Promise<{ project_id: string; new_license_key: string | null; deleted_counts: Record<string, number> }> => {
+      const res = await fetch(`${API_URL}/api/v1/projects/${projectId}/reset`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: "프로젝트 초기화에 실패했습니다" }));
+        throw new ApiClientError(res.status, extractDetail(body.detail));
+      }
+      return res.json();
+    },
   },
 };
 

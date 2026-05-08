@@ -6,9 +6,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 import structlog
 from fastapi import WebSocket
@@ -95,6 +97,26 @@ class AgentHub:
             {"agent_id": aid, **info}
             for aid, info in self._agent_info.items()
         ]
+
+    async def disconnect_project(self, project_id: UUID) -> int:
+        """특정 프로젝트에 속한 모든 WS 연결을 강제 해제한다."""
+        target_ids = [
+            aid for aid, info in self._agent_info.items()
+            if info.get("project_id") == str(project_id)
+        ]
+        for agent_id in target_ids:
+            ws = self._connections.get(agent_id)
+            if ws is not None:
+                with contextlib.suppress(Exception):
+                    await ws.close(code=1001)
+            self.unregister(agent_id)
+        if target_ids:
+            logger.info(
+                "project_connections_closed",
+                project_id=str(project_id),
+                count=len(target_ids),
+            )
+        return len(target_ids)
 
 
 # 싱글턴 인스턴스

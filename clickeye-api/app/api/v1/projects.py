@@ -15,6 +15,7 @@ from app.schemas.preview import PreviewRequest, PreviewResponse
 from app.schemas.project import (
     ProjectCreate,
     ProjectListResponse,
+    ProjectResetResponse,
     ProjectResponse,
     ProjectUpdate,
 )
@@ -105,6 +106,21 @@ async def delete_project(
 ) -> None:
     service = ProjectService(db)
     await service.delete(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
+
+
+@router.post("/{project_id}/reset", response_model=ProjectResetResponse)
+async def reset_project(
+    project_id: UUID,
+    user: User = Depends(require_permission("project:delete")),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectResetResponse:
+    """프로젝트를 초기 상태로 초기화한다.
+    위자드/부트스트랩/티켓/산출물/오케스트레이터 세션 등 진행 데이터를 삭제하고
+    프로젝트 식별자(id, name, slug, owner)는 보존한다.
+    라이선스가 있으면 새 키로 재발급된다.
+    """
+    service = ProjectService(db)
+    return await service.reset(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
 
 @router.post("/draft/preview", response_model=PreviewResponse)

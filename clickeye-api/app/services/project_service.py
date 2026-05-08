@@ -1,16 +1,24 @@
 import re
+import secrets
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.agent_connection import AgentConnection
+from app.models.artifact import Artifact
+from app.models.central_contract import CustomerContractOverride
+from app.models.license import License
+from app.models.orchestrator import OrchestratorSession
 from app.models.project import Project
+from app.models.project_config import ProjectConfig
 from app.models.project_linear_credentials import ProjectLinearCredentials
+from app.models.ticket import Ticket
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.models.user_linear_credentials import UserLinearCredentials
-from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.schemas.project import ProjectCreate, ProjectResetResponse, ProjectResponse, ProjectUpdate
 from app.schemas.wizard_config import WizardConfigSave
 from app.services.base import BaseService
 from app.utils.db import get_or_404
@@ -219,6 +227,71 @@ class ProjectService(BaseService):
 
     async def get_wizard_config(self, project_id: UUID, owner_id: UUID) -> Project:
         return await self.get_by_id(project_id, owner_id)
+
+    async def reset(self, project_id: UUID, owner_id: UUID) -> ProjectResetResponse:
+        """프로젝트를 초기 상태로 되돌린다. 식별자/소유자/이름/조직은 보존."""
+        from app.ws.hub import agent_hub
+
+        project = await self.get_by_id(project_id, owner_id)
+
+        # 1. 활성 WS 소켓 해제 (agent_connections row 삭제 전)
+        await agent_hub.disconnect_project(project_id)
+
+        # 2. 자식 row 삭제 (라이선스 제외 — 별도 처리)
+        counts: dict[str, int] = {}
+        child_models = (
+            AgentConnection, Artifact, OrchestratorSession,
+            ProjectConfig, Ticket, CustomerContractOverride,
+        )
+        for model in child_models:
+            result = await self.db.execute(
+                delete(model).where(model.project_id == project_id)  # type: ignore[attr-defined]
+            )
+            counts[model.__tablename__] = result.rowcount  # type: ignore[union-attr]
+
+        # 3. 라이선스 재발급 (없으면 스킵)
+        new_key: str | None = None
+        old_license = (
+            await self.db.execute(select(License).where(License.project_id == project_id))
+        ).scalar_one_or_none()
+        if old_license is not None:
+            plan = old_license.plan
+            max_agents = old_license.max_agents
+            expires_at = old_license.expires_at
+            await self.db.delete(old_license)
+            await self.db.flush()
+            new_key = secrets.token_urlsafe(32)
+            self.db.add(License(
+                project_id=project_id,
+                license_key=new_key,
+                plan=plan,
+                max_agents=max_agents,
+                expires_at=expires_at,
+            ))
+        counts["licenses"] = 1 if old_license is not None else 0
+
+        # 4. 프로젝트 컬럼 리셋
+        project.wizard_data = None  # type: ignore[assignment]
+        project.settings = {}  # type: ignore[assignment]
+        project.prototype_session_id = None  # type: ignore[assignment]
+        project.pm_profile_id = None  # type: ignore[assignment]
+        project.requirements_text = None  # type: ignore[assignment]
+        project.setup_token_hash = None  # type: ignore[assignment]
+        project.bootstrap_status = "skipped"  # type: ignore[assignment]
+        project.bootstrap_completed_at = None  # type: ignore[assignment]
+        project.last_zip_downloaded_at = None  # type: ignore[assignment]
+        project.last_env_downloaded_at = None  # type: ignore[assignment]
+        project.initial_task_url = None  # type: ignore[assignment]
+        project.project_type = "legacy"  # type: ignore[assignment]
+        project.status = "active"  # type: ignore[assignment]
+        project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+
+        await self.db.commit()
+        return ProjectResetResponse(
+            project_id=project_id,
+            new_license_key=new_key,
+            deleted_counts=counts,
+        )
 
     async def get_for_admin(self, project_id: UUID) -> Project:
         """관리자 전용 — owner 체크 없이 프로젝트 조회."""

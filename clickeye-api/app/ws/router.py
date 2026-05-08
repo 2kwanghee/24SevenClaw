@@ -40,7 +40,7 @@ async def agent_websocket(
         return
 
     await ws.accept()
-    agent_hub.register(agent_id, ws)
+    agent_hub.register(agent_id, ws, info={"project_id": str(conn.project_id)})
 
     try:
         while True:
