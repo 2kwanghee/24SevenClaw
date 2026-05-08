@@ -1,8 +1,9 @@
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,10 +20,11 @@ from app.schemas.project import (
 )
 from app.schemas.wizard_config import WizardConfigResponse, WizardConfigSave, WizardData
 from app.services import setup_token_service
+from app.services.env_resolver import merge_saved_credentials_into_env
 from app.services.generate_service import generate_zip
 from app.services.pm_markdown_service import serialize_pm_to_markdown
 from app.services.preview_service import generate_preview
-from app.services.project_service import ProjectService
+from app.services.project_service import ProjectService, annotate_key_status
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -59,10 +61,13 @@ async def list_projects(
         search=search,
         status_filter=status_filter,
     )
-    return ProjectListResponse(
-        items=[ProjectResponse.model_validate(p) for p in projects],
-        total=total,
-    )
+    anthropic_ts, linear_ts = await service.get_user_creds_timestamps(user.id)  # type: ignore[arg-type]
+    items = []
+    for p in projects:
+        resp = ProjectResponse.model_validate(p)
+        annotate_key_status(resp, p, anthropic_ts, linear_ts)
+        items.append(resp)
+    return ProjectListResponse(items=items, total=total)
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -73,7 +78,9 @@ async def get_project(
 ) -> ProjectResponse:
     service = ProjectService(db)
     project = await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
-    return ProjectResponse.model_validate(project)
+    anthropic_ts, linear_ts = await service.get_user_creds_timestamps(user.id)  # type: ignore[arg-type]
+    resp = ProjectResponse.model_validate(project)
+    return annotate_key_status(resp, project, anthropic_ts, linear_ts)
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -197,6 +204,15 @@ async def generate_draft(
 ) -> StreamingResponse:
     """프로젝트 생성 전 드래프트 ZIP 다운로드 (project ID 불필요)."""
     project_name = data.solution.get("projectName", "project")
+
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    data.env_vars = await merge_saved_credentials_into_env(
+        user_id=user.id,  # type: ignore[arg-type]
+        project_id=None,
+        db=db,
+        env_vars=dict(data.env_vars or {}),
+    )
+
     pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
         db, pm_slug=data.pm_slug, pm_profile_id=data.pm_profile_id
     )
@@ -228,8 +244,6 @@ async def generate_project(
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     """위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드."""
-    from datetime import UTC, datetime
-
     service = ProjectService(db)
     project = await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
@@ -240,6 +254,15 @@ async def generate_project(
     catalog_entry = await _resolve_catalog_entry(
         db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
     )
+
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    data.env_vars = await merge_saved_credentials_into_env(
+        user_id=user.id,  # type: ignore[arg-type]
+        project_id=project_id,
+        db=db,
+        env_vars=dict(data.env_vars or {}),
+    )
+
     setup_token = await setup_token_service.issue_for_project(db, project_id, user.id)  # type: ignore[arg-type]
     buffer = await generate_zip(
         data, project_name,
@@ -272,11 +295,13 @@ async def generate_project(
         project_id=project_id, owner_id=user.id, data=wizard_data  # type: ignore[arg-type]
     )
 
-    # pm_profile_id 영속화
+    # pm_profile_id 영속화 + 다운로드 timestamp 갱신
+    now = datetime.now(UTC)
     if data.pm_profile_id is not None:
         project.pm_profile_id = data.pm_profile_id  # type: ignore[assignment]
-        project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
-        await db.commit()
+    project.last_zip_downloaded_at = now  # type: ignore[assignment]
+    project.updated_at = now  # type: ignore[assignment]
+    await db.commit()
 
     filename = f"{project_name}.zip"
     return StreamingResponse(
@@ -307,6 +332,15 @@ async def redownload_project(
         )
 
     wd = project.wizard_data
+
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    merged_env = await merge_saved_credentials_into_env(
+        user_id=user.id,  # type: ignore[arg-type]
+        project_id=project_id,
+        db=db,
+        env_vars=dict(data.env_vars or {}),
+    )
+
     gen_request = GenerateRequest(
         organization=wd.get("organization", {}),
         solution=wd.get("solution", {}),
@@ -315,7 +349,7 @@ async def redownload_project(
         pipelines=[p["id"] for p in wd.get("pipelines", []) if "id" in p],
         hook_ids=[h["id"] for h in wd.get("hooks", []) if "id" in h],
         platform=wd.get("platform", {}),
-        env_vars=data.env_vars,
+        env_vars=merged_env,
     )
 
     project_name = gen_request.solution.get("projectName", project.name)
@@ -342,11 +376,74 @@ async def redownload_project(
         clickeye_project_id=str(project_id),
     )
 
+    # 다운로드 timestamp 갱신
+    project.last_zip_downloaded_at = datetime.now(UTC)  # type: ignore[assignment]
+    project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+    await db.commit()
+
     filename = f"{project_name}.zip"
     return StreamingResponse(
         buffer,
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"},
+    )
+
+
+@router.get("/{project_id}/env")
+async def download_project_env(
+    project_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """최신 자격증명이 적용된 .env 파일만 단독 다운로드 (ZIP 재다운로드 불필요)."""
+    from app.core.exceptions import AppError
+    from app.engine.env_generator import generate_env_files
+
+    service = ProjectService(db)
+    project = await service.get_wizard_config(
+        project_id=project_id, owner_id=user.id  # type: ignore[arg-type]
+    )
+
+    if not project.wizard_data:
+        raise AppError("CONFIG_NOT_FOUND", "저장된 위저드 설정이 없습니다", 400)
+
+    wd = project.wizard_data
+    skill_ids = [s["id"] for s in wd.get("skills", []) if "id" in s]
+    pipeline_ids = [p["id"] for p in wd.get("pipelines", []) if "id" in p]
+    workflow_ids = skill_ids + pipeline_ids
+
+    # 카탈로그 정의에서 env_var 수집
+    from app.engine.catalog import get_env_var_definitions
+    env_var_definitions = get_env_var_definitions(workflow_ids)
+
+    # 등록된 API 키로 빈 항목 자동 채움
+    stored_env: dict[str, str] = {}
+    merged_env = await merge_saved_credentials_into_env(
+        user_id=user.id,  # type: ignore[arg-type]
+        project_id=project_id,
+        db=db,
+        env_vars=stored_env,
+    )
+
+    env_files = generate_env_files(
+        env_var_definitions=env_var_definitions,
+        env_vars=merged_env,
+    )
+    env_content = env_files.get(".env", "# 환경 변수\n")
+
+    # 다운로드 timestamp 갱신
+    project.last_env_downloaded_at = datetime.now(UTC)  # type: ignore[assignment]
+    project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+    await db.commit()
+
+    return Response(
+        content=env_content,
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": "attachment; filename=.env",
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+        },
     )
 
 

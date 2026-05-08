@@ -1,12 +1,16 @@
 import re
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
-from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.models.project_linear_credentials import ProjectLinearCredentials
+from app.models.user_anthropic_credentials import UserAnthropicCredentials
+from app.models.user_linear_credentials import UserLinearCredentials
+from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.schemas.wizard_config import WizardConfigSave
 from app.services.base import BaseService
 from app.utils.db import get_or_404
@@ -20,9 +24,85 @@ def _slugify(text: str) -> str:
     return re.sub(r"-+", "-", slug).strip("-")
 
 
+KeyStatus = Literal["fresh", "stale", "no_saved_key", "never_downloaded"]
+
+
+def _compute_key_status(
+    last_zip_at: datetime | None,
+    last_env_at: datetime | None,
+    creds_updated_at: datetime | None,
+) -> KeyStatus:
+    """creds_updated_at과 마지막 다운로드 시각을 비교하여 키 상태를 반환."""
+    if creds_updated_at is None:
+        return "no_saved_key"
+    last_dl = max(
+        (t for t in [last_zip_at, last_env_at] if t is not None),
+        default=None,
+    )
+    if last_dl is None:
+        return "never_downloaded"
+    if creds_updated_at.tzinfo is None:
+        creds_ts = creds_updated_at.replace(tzinfo=UTC)
+    else:
+        creds_ts = creds_updated_at
+    dl_ts = last_dl.replace(tzinfo=UTC) if last_dl.tzinfo is None else last_dl
+    return "fresh" if dl_ts >= creds_ts else "stale"
+
+
+def annotate_key_status(
+    resp: ProjectResponse,
+    project: "Project",
+    anthropic_creds_updated_at: datetime | None,
+    linear_creds_updated_at: datetime | None,
+) -> ProjectResponse:
+    """ProjectResponse에 key status 필드를 채운다."""
+    resp.anthropic_key_status = _compute_key_status(
+        project.last_zip_downloaded_at,  # type: ignore[arg-type]
+        project.last_env_downloaded_at,  # type: ignore[arg-type]
+        anthropic_creds_updated_at,
+    )
+    resp.linear_key_status = _compute_key_status(
+        project.last_zip_downloaded_at,  # type: ignore[arg-type]
+        project.last_env_downloaded_at,  # type: ignore[arg-type]
+        linear_creds_updated_at,
+    )
+    return resp
+
+
 class ProjectService(BaseService):
     def __init__(self, db: AsyncSession):
         super().__init__(db)
+
+    async def get_user_creds_timestamps(
+        self, user_id: UUID
+    ) -> tuple[datetime | None, datetime | None]:
+        """사용자의 (anthropic_updated_at, linear_updated_at) 반환. N+1 방지용."""
+        anthropic_result = await self.db.execute(
+            select(UserAnthropicCredentials.updated_at).where(
+                UserAnthropicCredentials.user_id == user_id
+            )
+        )
+        anthropic_ts = anthropic_result.scalar_one_or_none()
+
+        linear_result = await self.db.execute(
+            select(UserLinearCredentials.updated_at).where(
+                UserLinearCredentials.user_id == user_id
+            )
+        )
+        linear_ts = linear_result.scalar_one_or_none()
+
+        return anthropic_ts, linear_ts
+
+    async def get_project_linear_creds_timestamp(
+        self, project_id: UUID
+    ) -> datetime | None:
+        """프로젝트별 Linear 자격증명의 updated_at 반환."""
+        result = await self.db.execute(
+            select(ProjectLinearCredentials.updated_at).where(
+                ProjectLinearCredentials.project_id == project_id
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def create(
         self, owner_id: UUID, data: ProjectCreate, organization_id: UUID | None = None

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FolderKanban, Calendar, ArrowUpRight, Cpu, ThumbsUp, FileCheck } from "lucide-react";
+import { FolderKanban, Calendar, ArrowUpRight, Cpu, ThumbsUp, FileCheck, AlertTriangle } from "lucide-react";
 
 import type { ProjectResponse } from "@/lib/api-client";
 
@@ -17,6 +17,8 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, kpi }: ProjectCardProps) {
   const isActive = project.status === "active";
+  const isStale =
+    project.anthropic_key_status === "stale" || project.linear_key_status === "stale";
 
   const formattedDate = new Date(project.created_at).toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -87,9 +89,17 @@ export function ProjectCard({ project, kpi }: ProjectCardProps) {
         </div>
       )}
 
-      <div className="mt-4 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-        <Calendar className="h-3 w-3" />
-        {formattedDate}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+          <Calendar className="h-3 w-3" />
+          {formattedDate}
+        </div>
+        {isStale && (
+          <div className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-200">
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            키 갱신 필요
+          </div>
+        )}
       </div>
     </Link>
   );

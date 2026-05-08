@@ -14,9 +14,12 @@ import {
 
 import {
   anthropicCredentials,
+  apiClient,
   type AnthropicCredentialsResponse,
+  type ProjectResponse,
   ApiClientError,
 } from "@/lib/api-client";
+import { PostKeyChangeGuide } from "@/components/credentials/post-key-change-guide";
 
 export default function AnthropicSettingsPage() {
   const { data: session } = useSession();
@@ -29,6 +32,8 @@ export default function AnthropicSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [staleProjects, setStaleProjects] = useState<ProjectResponse[]>([]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -61,6 +66,15 @@ export default function AnthropicSettingsPage() {
       setSaved(data);
       setApiKey("");
       setSuccess("Anthropic API 키가 저장되었습니다.");
+      // 키 변경 후 stale 프로젝트 조회 → 가이드 모달 표시
+      try {
+        const resp = await apiClient.projects.list(token, { limit: 100 });
+        const stale = resp.items.filter((p) => p.anthropic_key_status === "stale");
+        setStaleProjects(stale);
+        setGuideOpen(true);
+      } catch {
+        // 프로젝트 조회 실패는 저장 자체의 실패가 아니므로 무시
+      }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.detail : "저장에 실패했습니다.");
     } finally {
@@ -93,6 +107,14 @@ export default function AnthropicSettingsPage() {
   }
 
   return (
+    <>
+    <PostKeyChangeGuide
+      open={guideOpen}
+      onClose={() => setGuideOpen(false)}
+      channel="anthropic"
+      staleProjects={staleProjects}
+      token={token}
+    />
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-bold text-[var(--text-primary)]">Anthropic API 키</h1>
@@ -203,5 +225,6 @@ export default function AnthropicSettingsPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

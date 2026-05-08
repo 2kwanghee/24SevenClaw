@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -31,6 +31,10 @@ class ProjectResponse(BaseModel):
     pm_profile_id: UUID | None = None
     project_type: str | None = None
     bootstrap_status: str = "skipped"
+    last_zip_downloaded_at: datetime | None = None
+    last_env_downloaded_at: datetime | None = None
+    anthropic_key_status: Literal["fresh", "stale", "no_saved_key", "never_downloaded"] = "no_saved_key"
+    linear_key_status: Literal["fresh", "stale", "no_saved_key", "never_downloaded"] = "no_saved_key"
     created_at: datetime
     updated_at: datetime
 

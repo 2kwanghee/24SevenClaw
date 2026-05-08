@@ -701,6 +701,12 @@ def _emit_first_run_artifacts(
             push_linear_py = _env.get_template("scripts/push_to_linear_local.py.j2")
             files["scripts/push_to_linear_local.py"] = push_linear_py.render(**ctx)
 
+        # API 키 갱신 스크립트 (항상 포함)
+        refresh_sh = _env.get_template("scripts/refresh-env.sh.j2")
+        files["scripts/refresh-env.sh"] = refresh_sh.render(**ctx)
+        scripts_readme = _env.get_template("scripts/README.md.j2")
+        files["scripts/README.md"] = scripts_readme.render(**ctx)
+
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["logs/.gitkeep"] = ""
         files[".run/.gitkeep"] = ""

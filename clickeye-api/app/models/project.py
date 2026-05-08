@@ -43,3 +43,6 @@ class Project(UUIDPKMixin, TimestampMixin, Base):
         String(32), nullable=False, default="skipped", server_default=text("'skipped'")
     )
     bootstrap_completed_at = Column(DateTime(timezone=True), nullable=True)
+    # 키 staleness 판정용: 마지막 ZIP / .env 다운로드 시각
+    last_zip_downloaded_at = Column(DateTime(timezone=True), nullable=True)
+    last_env_downloaded_at = Column(DateTime(timezone=True), nullable=True)

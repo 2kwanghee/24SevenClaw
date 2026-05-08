@@ -12,6 +12,7 @@ import {
   Pencil,
   X,
   AlertCircle,
+  AlertTriangle,
   Calendar,
   Activity,
   Download,
@@ -72,6 +73,7 @@ export default function ProjectDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [envDownloading, setEnvDownloading] = useState(false);
   const [envVars, setEnvVars] = useState<Record<string, string>>(() => {
     const stored = useSolutionWizardStore.getState().data.env.envVars;
     return { ...stored };
@@ -113,6 +115,26 @@ export default function ProjectDetailPage() {
     }
   }, [token, projectId, project?.name, envVars]);
 
+  const handleDownloadEnv = useCallback(async () => {
+    if (!token || !projectId) return;
+    setEnvDownloading(true);
+    try {
+      const blob = await apiClient.projects.downloadEnv(token, projectId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = ".env";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // 실패 시 재다운로드 경로 유도
+    } finally {
+      setEnvDownloading(false);
+    }
+  }, [token, projectId]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -140,6 +162,8 @@ export default function ProjectDetailPage() {
   );
 
   const isActive = project.status === "active";
+  const isStale =
+    project.anthropic_key_status === "stale" || project.linear_key_status === "stale";
 
   return (
     <div>
@@ -153,6 +177,50 @@ export default function ProjectDetailPage() {
           프로젝트 목록
         </Link>
       </div>
+
+      {/* Stale 키 갱신 배너 */}
+      {isStale && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">API 키가 변경되었습니다</p>
+              <p className="mt-0.5 text-xs text-amber-700">
+                로컬 .env 파일을 갱신해야 새 키가 적용됩니다.{" "}
+                {project.anthropic_key_status === "stale" && "Anthropic "}
+                {project.linear_key_status === "stale" && "Linear "}
+                키가 오래됐습니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 pl-7 sm:pl-0">
+            <button
+              onClick={handleDownloadEnv}
+              disabled={envDownloading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-50"
+            >
+              {envDownloading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              .env 다운로드
+            </button>
+            <button
+              onClick={handleRedownload}
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+            >
+              {downloading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              ZIP 재다운로드
+            </button>
+          </div>
+        </div>
+      )}
 
       {isEditing ? (
         /* 수정 모드 */

@@ -116,6 +116,8 @@ export interface WizardConfigData {
   platform: Record<string, unknown>;
 }
 
+export type KeyStatus = "fresh" | "stale" | "no_saved_key" | "never_downloaded";
+
 export interface ProjectResponse {
   id: string;
   owner_id: string;
@@ -129,6 +131,10 @@ export interface ProjectResponse {
   bootstrap_status: "pending" | "running" | "pending_review" | "failed" | "completed" | "skipped";
   pm_profile_id: string | null;
   prototype_session_id: string | null;
+  last_zip_downloaded_at: string | null;
+  last_env_downloaded_at: string | null;
+  anthropic_key_status: KeyStatus;
+  linear_key_status: KeyStatus;
   created_at: string;
   updated_at: string;
 }
@@ -375,6 +381,21 @@ export const apiClient = {
       if (!res.ok) {
         const body = await res.json().catch(() => ({
           detail: "재다운로드 중 오류가 발생했습니다",
+        }));
+        throw new ApiClientError(res.status, extractDetail(body.detail));
+      }
+      return res.blob();
+    },
+
+    downloadEnv: async (token: string, projectId: string): Promise<Blob> => {
+      const url = `${API_URL}/api/v1/projects/${projectId}/env`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({
+          detail: ".env 다운로드 중 오류가 발생했습니다",
         }));
         throw new ApiClientError(res.status, extractDetail(body.detail));
       }

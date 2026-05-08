@@ -20,11 +20,14 @@ import {
 
 import {
   linearCredentials,
+  apiClient,
   type LinearCredentialsSave,
   type LinearCredentialsResponse,
+  type ProjectResponse,
   ApiClientError,
 } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { PostKeyChangeGuide } from "@/components/credentials/post-key-change-guide";
 
 /* ── 설정 방법 아코디언 ── */
 
@@ -167,6 +170,8 @@ export default function LinearSettingsPage() {
   const [teamId, setTeamId] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
   const [tunnelUrl, setTunnelUrl] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [staleProjects, setStaleProjects] = useState<ProjectResponse[]>([]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -214,6 +219,17 @@ export default function LinearSettingsPage() {
           ? "저장 완료. Linear Webhook이 자동으로 등록되었습니다."
           : "Linear 자격증명이 저장되었습니다.",
       );
+      // 키 변경 후 stale 프로젝트 조회 → 가이드 모달 표시 (API 키가 포함된 경우만)
+      if (payload.api_key) {
+        try {
+          const resp = await apiClient.projects.list(token, { limit: 100 });
+          const stale = resp.items.filter((p) => p.linear_key_status === "stale");
+          setStaleProjects(stale);
+          setGuideOpen(true);
+        } catch {
+          // 프로젝트 조회 실패는 저장 자체의 실패가 아니므로 무시
+        }
+      }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.detail : "저장에 실패했습니다.");
     } finally {
@@ -249,6 +265,14 @@ export default function LinearSettingsPage() {
   }
 
   return (
+    <>
+    <PostKeyChangeGuide
+      open={guideOpen}
+      onClose={() => setGuideOpen(false)}
+      channel="linear"
+      staleProjects={staleProjects}
+      token={token}
+    />
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-bold text-[var(--text-primary)]">Linear 연동</h1>
@@ -422,5 +446,6 @@ export default function LinearSettingsPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

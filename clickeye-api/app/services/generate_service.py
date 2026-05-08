@@ -8,11 +8,11 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-
-logger = logging.getLogger(__name__)
 from app.engine.catalog import prefetch_for_generator
 from app.engine.generator import generate_all
 from app.schemas.generate import GenerateRequest
+
+logger = logging.getLogger(__name__)
 
 
 async def generate_zip(
@@ -84,7 +84,13 @@ async def generate_zip(
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for path, content in sorted(files.items()):
-            zf.writestr(path, content)  # str | bytes 모두 허용
+            if path.endswith(".sh"):
+                info = zipfile.ZipInfo(path)
+                info.external_attr = 0o755 << 16  # unix 실행 권한
+                data = content.encode() if isinstance(content, str) else content
+                zf.writestr(info, data)
+            else:
+                zf.writestr(path, content)  # str | bytes 모두 허용
 
     buffer.seek(0)
     return buffer
