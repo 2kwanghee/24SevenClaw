@@ -15,14 +15,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.crypto import decrypt
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.models.user_anthropic_credentials import UserAnthropicCredentials
+from app.services.anthropic_key_resolver import resolve_user_anthropic_key
 from app.services.claude_service import ClaudeService
 from app.services.wizard_preview_service import WizardPreviewService
 
@@ -46,19 +44,7 @@ async def wizard_preview(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WizardPreviewResponse:
-    # 사용자 저장 API 키 우선 사용
-    user_api_key: str | None = None
-    try:
-        result = await db.execute(
-            select(UserAnthropicCredentials).where(
-                UserAnthropicCredentials.user_id == current_user.id
-            )
-        )
-        creds = result.scalar_one_or_none()
-        if creds is not None:
-            user_api_key = decrypt(str(creds.encrypted_api_key))
-    except Exception:
-        pass  # DB 조회 실패 시 서버 키로 폴백
+    user_api_key = await resolve_user_anthropic_key(current_user.id, db)  # type: ignore[arg-type]
 
     service = WizardPreviewService(claude=ClaudeService(api_key=user_api_key))
     preview_result = await service.preview(step=req.step, data=req.data)

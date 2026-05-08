@@ -153,8 +153,11 @@ class OrchestratorService:
     # === 1. 작업 분해 ===
 
     async def decompose(
-        self, session_id: UUID, data: DecomposeRequest
-    ) -> tuple[OrchestratorSession, list[SubTask]]:
+        self,
+        session_id: UUID,
+        data: DecomposeRequest,
+        user_api_key: str | None = None,
+    ) -> tuple[OrchestratorSession, list[SubTask], str]:
         session = await self.get_session(session_id)
         if session.phase != "requested":
             raise AppError(
@@ -163,11 +166,13 @@ class OrchestratorService:
                 422,
             )
 
+        key_source = "user" if user_api_key else "server"
+
         # Claude AI 서브태스크 생성 (실패 시 키워드 규칙으로 폴백)
         try:
             from app.services.claude_service import ClaudeService  # noqa: PLC0415
 
-            claude = ClaudeService()
+            claude = ClaudeService(api_key=user_api_key)
 
             # 위저드와 동일: analyze_solution으로 자연어 요구사항 풍부화
             analysis_result: dict | None = None
@@ -187,7 +192,7 @@ class OrchestratorService:
                 analysis_result=analysis_result,
             )
             if raw:
-                subtasks = [self._build_subtask_from_dict(session, item, idx) for idx, item in enumerate(raw)]
+                subtasks = [self._build_subtask_from_dict(session, item, idx) for idx, item in enumerate(raw)]  # noqa: E501
             else:
                 # Claude 분해 빈 응답 → 키워드 폴백, 분석 결과도 무효화
                 session.analysis_result = None
@@ -211,7 +216,7 @@ class OrchestratorService:
         await self.db.refresh(session)
         for st in subtasks:
             await self.db.refresh(st)
-        return session, subtasks
+        return session, subtasks, key_source
 
     # === 2. AI 팀 배정 ===
 

@@ -22,6 +22,7 @@ from app.schemas.orchestrator import (
     SubTaskResponse,
     SubTaskUpdate,
 )
+from app.services.anthropic_key_resolver import resolve_user_anthropic_key
 from app.services.orchestrator_service import OrchestratorService
 from app.services.project_service import ProjectService
 
@@ -161,15 +162,19 @@ async def get_session_summary(
 async def decompose_session(
     session_id: UUID,
     data: DecomposeRequest,
-    user: User = Depends(get_current_user),  # noqa: ARG001
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DecomposeResponse:
     """세션의 작업을 분해하여 서브태스크를 자동 생성한다."""
+    user_api_key = await resolve_user_anthropic_key(user.id, db)  # type: ignore[arg-type]
     service = OrchestratorService(db)
-    session, subtasks = await service.decompose(session_id=session_id, data=data)
+    session, subtasks, key_source = await service.decompose(
+        session_id=session_id, data=data, user_api_key=user_api_key
+    )
     return DecomposeResponse(
         session=SessionResponse.model_validate(session),
         subtasks=[SubTaskResponse.model_validate(st) for st in subtasks],
+        key_source=key_source,
     )
 
 

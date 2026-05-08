@@ -134,6 +134,7 @@ class DecomposeRequest(BaseModel):
 class DecomposeResponse(BaseModel):
     session: SessionResponse
     subtasks: list[SubTaskResponse]
+    key_source: Literal["user", "server"] = "server"
 
 
 # === 팀 배정 ===
