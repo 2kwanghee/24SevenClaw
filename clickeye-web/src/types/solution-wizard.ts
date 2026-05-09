@@ -230,8 +230,12 @@ export interface OsStep {
 }
 
 /** Step 7: 환경변수 */
+export type AuthMethod = "api_key" | "oauth_browser" | "oauth_setup_token";
+
 export interface EnvStep {
   envVars: Record<string, string>;
+  authMethod: AuthMethod;
+  oauthSetupToken?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -322,6 +326,7 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   },
   env: {
     envVars: {},
+    authMethod: "api_key",
   },
   roi: {
     overrides: {},

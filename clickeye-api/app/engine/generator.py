@@ -79,6 +79,7 @@ def generate_all(
     hook_ids: list[str] | None = None,
     clickeye_vars: dict[str, str] | None = None,
     enable_auto_decompose: bool = False,
+    auth_method: str = "api_key",
 ) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -139,6 +140,7 @@ def generate_all(
     _emit_first_run_artifacts(
         files, platform_id, os_id, workflow_ids, project_name,
         enable_auto_decompose=enable_auto_decompose,
+        auth_method=auth_method,
     )
 
     return files
@@ -654,6 +656,7 @@ def _emit_first_run_artifacts(
     project_name: str,
     *,
     enable_auto_decompose: bool = False,
+    auth_method: str = "api_key",
 ) -> None:
     """first-run 런처(start.sh)와 README.md를 ZIP에 포함.
 
@@ -667,6 +670,7 @@ def _emit_first_run_artifacts(
             "os_id": os_id,
             "has_linear": "linear" in workflow_ids,
             "enable_auto_decompose": enable_auto_decompose,
+            "auth_method": auth_method,
         }
         launcher = _env.get_template("start.sh.j2")
         files["start.sh"] = launcher.render(**ctx)

@@ -260,12 +260,12 @@ if [[ -z "$CLAUDE_BIN" ]]; then
   exit 1
 fi
 
-# Claude 인증 확인 — API 키 크레딧 부족 시 OAuth 구독 세션으로 자동 전환
+{% if auth_method == "api_key" %}
+# api_key 모드: 크레딧 부족 시 OAuth 구독 세션으로 자동 전환
 _AUTH_TEST_LOG="$PROJECT_DIR/.run/claude_auth_test.log"
 _use_api_key=true
 
 if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
-  # API 키가 있으면 크레딧 잔액 확인
   timeout 30 "$CLAUDE_BIN" -p "1" --output-format json > "$_AUTH_TEST_LOG" 2>&1 || true
   if grep -qi "credit balance\|too low\|insufficient" "$_AUTH_TEST_LOG" 2>/dev/null; then
     log "WARN: ANTHROPIC_API_KEY 크레딧 부족 — claude.ai 구독 세션으로 전환"
@@ -275,7 +275,6 @@ if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
 fi
 
 if [[ "$_use_api_key" == "false" ]] || [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-  # OAuth 토큰 동작 여부 검증
   if ! timeout 30 env -u ANTHROPIC_API_KEY "$CLAUDE_BIN" -p "1" --output-format json >/dev/null 2>&1; then
     log "ERROR: Claude 인증 실패 — API 크레딧 부족 + OAuth 인증도 실패"
     log "       해결 방법: claude.ai 구독 확인 또는 API 크레딧 충전 후 재시도"
@@ -286,6 +285,32 @@ if [[ "$_use_api_key" == "false" ]] || [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
 else
   log "API 키 세션으로 실행"
 fi
+{% elif auth_method == "oauth_setup_token" %}
+# oauth_setup_token 모드: 셸 프로필 ANTHROPIC_API_KEY 충돌 방지 후 토큰 검증
+unset ANTHROPIC_API_KEY
+export CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN:-}"
+_AUTH_TEST_LOG="$PROJECT_DIR/.run/claude_auth_test.log"
+if ! timeout 30 "$CLAUDE_BIN" -p "1" --output-format json > "$_AUTH_TEST_LOG" 2>&1; then
+  if grep -qi "unauthori\|expired\|invalid.*token\|token.*invalid" "$_AUTH_TEST_LOG" 2>/dev/null; then
+    log "ERROR: Setup Token 만료 또는 유효하지 않음 — 토큰을 재발급하세요 (claude setup-token)"
+  else
+    log "ERROR: Claude Setup Token 인증 실패 — 토큰을 확인하세요"
+  fi
+  update_linear_state "$ISSUE_ID" "In Review"
+  exit 1
+fi
+log "OAuth Setup Token 세션으로 실행"
+{% elif auth_method == "oauth_browser" %}
+# oauth_browser 모드: 셸 프로필 ANTHROPIC_API_KEY 충돌 방지 후 세션 검증
+unset ANTHROPIC_API_KEY
+_AUTH_TEST_LOG="$PROJECT_DIR/.run/claude_auth_test.log"
+if ! timeout 30 "$CLAUDE_BIN" -p "1" --output-format json > "$_AUTH_TEST_LOG" 2>&1; then
+  log "ERROR: Claude 브라우저 OAuth 세션 없음 — 별도 터미널에서 'claude login' 실행 후 재시도"
+  update_linear_state "$ISSUE_ID" "In Review"
+  exit 1
+fi
+log "OAuth 브라우저 세션으로 실행"
+{% endif %}
 
 CLAUDE_TIMEOUT="${CLAUDE_TIMEOUT:-3600}"  # 기본 1시간 (대형 작업 고려)
 
@@ -297,7 +322,8 @@ timeout "$CLAUDE_TIMEOUT" "$CLAUDE_BIN" -p "$PROMPT" \
 CLAUDE_EXIT="${PIPESTATUS[0]}"
 set -e
 
-# 크레딧 부족 오류가 로그에 남은 경우 OAuth로 재시도
+{% if auth_method == "api_key" %}
+# api_key 모드: 크레딧 부족 오류가 로그에 남은 경우 OAuth로 재시도
 if grep -qi "credit balance\|too low\|insufficient" "$CLAUDE_LOG" 2>/dev/null; then
   log "WARN: Claude 실행 중 크레딧 부족 감지 — OAuth 세션으로 재시도"
   unset ANTHROPIC_API_KEY
@@ -309,6 +335,7 @@ if grep -qi "credit balance\|too low\|insufficient" "$CLAUDE_LOG" 2>/dev/null; t
   CLAUDE_EXIT="${PIPESTATUS[0]}"
   set -e
 fi
+{% endif %}
 
 if [[ "$CLAUDE_EXIT" -eq 124 ]]; then
   log "WARN: Claude 타임아웃 (${CLAUDE_TIMEOUT}초 초과)"

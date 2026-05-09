@@ -438,7 +438,13 @@ export function StepConfirmation() {
 
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
-  const { company, prototypes, pm, roi } = data;
+  const { company, prototypes, pm, roi, env } = data;
+  const authMethodLabel =
+    env.authMethod === "oauth_browser"
+      ? "OAuth 브라우저 로그인"
+      : env.authMethod === "oauth_setup_token"
+        ? "OAuth Setup Token"
+        : "API 키";
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -490,6 +496,7 @@ export function StepConfirmation() {
             label="주력 제품"
             value={company.mainProduct || "미설정"}
           />
+          <SummaryRow label="Claude 인증 방식" value={authMethodLabel} />
           {company.solutionRequest && (
             <div className="mt-2 rounded-lg bg-zinc-50 p-3">
               <p className="text-xs leading-relaxed text-zinc-500">

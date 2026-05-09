@@ -34,7 +34,7 @@ class ProjectResponse(BaseModel):
     last_zip_downloaded_at: datetime | None = None
     last_env_downloaded_at: datetime | None = None
     anthropic_key_status: Literal[
-        "fresh", "stale", "no_saved_key", "never_downloaded"
+        "fresh", "stale", "no_saved_key", "never_downloaded", "n/a"
     ] = "no_saved_key"
     linear_key_status: Literal[
         "fresh", "stale", "no_saved_key", "never_downloaded"

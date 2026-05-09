@@ -62,6 +62,19 @@ async def generate_zip(
             "CLICKEYE_SETUP_TOKEN": setup_token,
         }
 
+    auth_method: str = getattr(request, "auth_method", "api_key") or "api_key"
+
+    # OAuth 모드: ANTHROPIC_API_KEY는 절대 .env에 포함하지 않음
+    env_vars = dict(request.env_vars or {})
+    if auth_method != "api_key":
+        env_vars.pop("ANTHROPIC_API_KEY", None)
+
+    # oauth_setup_token: CLAUDE_CODE_OAUTH_TOKEN 주입
+    if auth_method == "oauth_setup_token":
+        raw_token: str | None = getattr(request, "oauth_setup_token", None)
+        if raw_token and not env_vars.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip():
+            env_vars["CLAUDE_CODE_OAUTH_TOKEN"] = raw_token
+
     files = generate_all(
         project_name=engine_project_name,
         project_type=project_type,
@@ -70,7 +83,7 @@ async def generate_zip(
         workflow_ids=workflow_ids,
         platform_id=platform_id,
         os_id=getattr(request, "os_id", "wsl2"),
-        env_vars=request.env_vars if request.env_vars else None,
+        env_vars=env_vars if env_vars else None,
         pm_slug=pm_slug,
         pm_markdown=pm_markdown,
         pm_compositions=pm_compositions,
@@ -79,6 +92,7 @@ async def generate_zip(
         hook_ids=hook_ids or None,
         clickeye_vars=clickeye_vars,
         enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
+        auth_method=auth_method,
     )
 
     buffer = io.BytesIO()

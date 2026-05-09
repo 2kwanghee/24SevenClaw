@@ -103,6 +103,8 @@ export interface GenerateRequest extends PreviewRequest {
   env_vars: Record<string, string>;
   hook_ids?: string[];
   os_id?: "wsl2";
+  auth_method?: "api_key" | "oauth_browser" | "oauth_setup_token";
+  oauth_setup_token?: string | null;
 }
 
 // --- Projects ---
@@ -116,7 +118,7 @@ export interface WizardConfigData {
   platform: Record<string, unknown>;
 }
 
-export type KeyStatus = "fresh" | "stale" | "no_saved_key" | "never_downloaded";
+export type KeyStatus = "fresh" | "stale" | "no_saved_key" | "never_downloaded" | "n/a";
 
 export interface ProjectResponse {
   id: string;
@@ -1804,6 +1806,7 @@ export interface LinearConnectionStatus {
 
 export interface AnthropicCredentialsResponse {
   api_key_masked: string;
+  credential_type?: string;
   updated_at: string;
 }
 
@@ -1811,14 +1814,40 @@ export const anthropicCredentials = {
   save: (token: string, api_key: string) =>
     authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token, {
       method: "POST",
-      body: JSON.stringify({ api_key }),
+      body: JSON.stringify({ api_key, credential_type: "api_key" }),
     }),
 
   get: (token: string) =>
-    authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token),
+    authRequest<AnthropicCredentialsResponse>(
+      "/api/v1/me/anthropic-credentials/?credential_type=api_key",
+      token,
+    ),
 
   delete: (token: string) =>
-    authRequest<void>("/api/v1/me/anthropic-credentials/", token, { method: "DELETE" }),
+    authRequest<void>(
+      "/api/v1/me/anthropic-credentials/?credential_type=api_key",
+      token,
+      { method: "DELETE" },
+    ),
+
+  saveSetupToken: (token: string, setupToken: string) =>
+    authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token, {
+      method: "POST",
+      body: JSON.stringify({ api_key: setupToken, credential_type: "oauth_setup_token" }),
+    }),
+
+  getSetupToken: (token: string) =>
+    authRequest<AnthropicCredentialsResponse>(
+      "/api/v1/me/anthropic-credentials/?credential_type=oauth_setup_token",
+      token,
+    ),
+
+  deleteSetupToken: (token: string) =>
+    authRequest<void>(
+      "/api/v1/me/anthropic-credentials/?credential_type=oauth_setup_token",
+      token,
+      { method: "DELETE" },
+    ),
 };
 
 export const linearCredentials = {

@@ -437,14 +437,24 @@ export default function ProjectDetailPage() {
 
             {/* ZIP 재다운로드 — API 키 입력 + 다운로드 */}
             {project.wizard_data && (() => {
+              const wd = project.wizard_data as unknown as Record<string, unknown>;
               const skillIds: string[] = (project.wizard_data.skills ?? []).map(
                 (s: { id: string }) => s.id
               );
               const hasLinear = skillIds.includes("linear");
               const hasNotion = skillIds.includes("notion");
 
+              // authMethod: 위저드 env.authMethod 또는 solution.authMethod (이전 경로) 확인
+              const authMethod: string =
+                ((wd.env as Record<string, unknown>)?.authMethod as string) ||
+                (project.wizard_data.solution?.authMethod as string) ||
+                "api_key";
+              const isOAuth = authMethod === "oauth_browser" || authMethod === "oauth_setup_token";
+
               const ENV_FIELDS: { key: string; label: string; placeholder: string }[] = [
-                { key: "ANTHROPIC_API_KEY", label: "Anthropic API Key", placeholder: "sk-ant-..." },
+                ...(!isOAuth
+                  ? [{ key: "ANTHROPIC_API_KEY", label: "Anthropic API Key", placeholder: "sk-ant-..." }]
+                  : []),
                 ...(hasLinear
                   ? [
                       { key: "LINEAR_API_KEY", label: "Linear API Key", placeholder: "lin_api_..." },
@@ -459,33 +469,45 @@ export default function ProjectDetailPage() {
                   : []),
               ];
 
+              const downloadDisabled = downloading || (!isOAuth && !envVars["ANTHROPIC_API_KEY"]?.trim());
+
               return (
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
-                  <p className="text-xs text-[var(--text-muted)]">
-                    API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-[var(--text-secondary)]">.env</code>에 직접 작성됩니다.
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {ENV_FIELDS.map(({ key, label, placeholder }) => (
-                      <div key={key}>
-                        <label className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
-                          {label}
-                        </label>
-                        <input
-                          type="text"
-                          value={envVars[key] ?? ""}
-                          onChange={(e) =>
-                            setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
-                          }
-                          placeholder={placeholder}
-                          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-200"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  {isOAuth ? (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      {authMethod === "oauth_browser"
+                        ? "OAuth 브라우저 인증 모드입니다. ZIP 압축 해제 후 별도 터미널에서 claude login을 먼저 실행하세요."
+                        : "OAuth Setup Token 인증 모드입니다. 서버에 저장된 토큰이 자동 적용됩니다."}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-[var(--text-secondary)]">.env</code>에 직접 작성됩니다.
+                    </p>
+                  )}
+                  {ENV_FIELDS.length > 0 && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {ENV_FIELDS.map(({ key, label, placeholder }) => (
+                        <div key={key}>
+                          <label className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
+                            {label}
+                          </label>
+                          <input
+                            type="text"
+                            value={envVars[key] ?? ""}
+                            onChange={(e) =>
+                              setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            placeholder={placeholder}
+                            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-200"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleRedownload}
-                      disabled={downloading || !envVars["ANTHROPIC_API_KEY"]?.trim()}
+                      disabled={downloadDisabled}
                       className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {downloading ? (

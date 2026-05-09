@@ -271,12 +271,15 @@ async def generate_project(
         db, data.catalog_entry_slug or data.solution.get("catalogEntrySlug")
     )
 
-    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    auth_method: str = getattr(data, "auth_method", None) or "api_key"
+
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선, OAuth 모드는 Anthropic 키 채움 스킵)
     data.env_vars = await merge_saved_credentials_into_env(
         user_id=user.id,  # type: ignore[arg-type]
         project_id=project_id,
         db=db,
         env_vars=dict(data.env_vars or {}),
+        auth_method=auth_method,
     )
 
     setup_token = await setup_token_service.issue_for_project(db, project_id, user.id)  # type: ignore[arg-type]
@@ -291,10 +294,11 @@ async def generate_project(
         clickeye_project_id=str(project_id),
     )
 
-    # catalogEntrySlug 를 solution에 병합하여 재다운로드 시 복원 가능하게 저장
+    # catalogEntrySlug 와 authMethod 를 solution에 병합하여 재다운로드 시 복원 가능하게 저장
     persisted_solution = {**data.solution}
     if data.catalog_entry_slug:
         persisted_solution["catalogEntrySlug"] = data.catalog_entry_slug
+    persisted_solution["authMethod"] = auth_method
 
     # 위저드 설정 자동 저장 (env_vars 제외)
     wizard_data = WizardConfigSave(
@@ -349,12 +353,22 @@ async def redownload_project(
 
     wd = project.wizard_data
 
-    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    # 저장된 인증 방식 복원 (기존 프로젝트 호환: 기본값 api_key)
+    # wizard_data.solution.authMethod (generate_project 저장 경로) 또는
+    # wizard_data.env.authMethod (프론트 위저드 스토어 직접 저장 경로) 중 하나
+    redownload_auth_method: str = (
+        wd.get("solution", {}).get("authMethod")
+        or wd.get("env", {}).get("authMethod")
+        or "api_key"
+    )
+
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선, OAuth 모드는 Anthropic 키 채움 스킵)
     merged_env = await merge_saved_credentials_into_env(
         user_id=user.id,  # type: ignore[arg-type]
         project_id=project_id,
         db=db,
         env_vars=dict(data.env_vars or {}),
+        auth_method=redownload_auth_method,
     )
 
     gen_request = GenerateRequest(
@@ -366,6 +380,7 @@ async def redownload_project(
         hook_ids=[h["id"] for h in wd.get("hooks", []) if "id" in h],
         platform=wd.get("platform", {}),
         env_vars=merged_env,
+        auth_method=redownload_auth_method,
     )
 
     project_name = gen_request.solution.get("projectName", project.name)
@@ -428,17 +443,25 @@ async def download_project_env(
     pipeline_ids = [p["id"] for p in wd.get("pipelines", []) if "id" in p]
     workflow_ids = skill_ids + pipeline_ids
 
+    # 저장된 인증 방식 복원 (기존 프로젝트 호환: 기본값 api_key)
+    env_auth_method: str = (
+        wd.get("solution", {}).get("authMethod")
+        or wd.get("env", {}).get("authMethod")
+        or "api_key"
+    )
+
     # 카탈로그 정의에서 env_var 수집
     from app.engine.catalog import get_env_var_definitions
     env_var_definitions = get_env_var_definitions(workflow_ids)
 
-    # 등록된 API 키로 빈 항목 자동 채움
+    # 등록된 API 키로 빈 항목 자동 채움 (OAuth 모드는 Anthropic 키 채움 스킵)
     stored_env: dict[str, str] = {}
     merged_env = await merge_saved_credentials_into_env(
         user_id=user.id,  # type: ignore[arg-type]
         project_id=project_id,
         db=db,
         env_vars=stored_env,
+        auth_method=env_auth_method,
     )
 
     env_files = generate_env_files(

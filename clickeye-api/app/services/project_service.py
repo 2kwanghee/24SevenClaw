@@ -32,15 +32,21 @@ def _slugify(text: str) -> str:
     return re.sub(r"-+", "-", slug).strip("-")
 
 
-KeyStatus = Literal["fresh", "stale", "no_saved_key", "never_downloaded"]
+KeyStatus = Literal["fresh", "stale", "no_saved_key", "never_downloaded", "n/a"]
 
 
 def _compute_key_status(
     last_zip_at: datetime | None,
     last_env_at: datetime | None,
     creds_updated_at: datetime | None,
+    auth_method: str = "api_key",
 ) -> KeyStatus:
-    """creds_updated_at과 마지막 다운로드 시각을 비교하여 키 상태를 반환."""
+    """creds_updated_at과 마지막 다운로드 시각을 비교하여 키 상태를 반환.
+
+    oauth_browser 모드는 Anthropic 자격증명 불필요 → 항상 "n/a" 반환.
+    """
+    if auth_method == "oauth_browser":
+        return "n/a"
     if creds_updated_at is None:
         return "no_saved_key"
     last_dl = max(
@@ -64,10 +70,16 @@ def annotate_key_status(
     linear_creds_updated_at: datetime | None,
 ) -> ProjectResponse:
     """ProjectResponse에 key status 필드를 채운다."""
+    auth_method: str = (
+        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")
+        if project.wizard_data
+        else "api_key"
+    )
     resp.anthropic_key_status = _compute_key_status(
         project.last_zip_downloaded_at,  # type: ignore[arg-type]
         project.last_env_downloaded_at,  # type: ignore[arg-type]
         anthropic_creds_updated_at,
+        auth_method=auth_method,
     )
     resp.linear_key_status = _compute_key_status(
         project.last_zip_downloaded_at,  # type: ignore[arg-type]
