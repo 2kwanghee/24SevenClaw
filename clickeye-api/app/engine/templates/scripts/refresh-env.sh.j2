@@ -33,7 +33,7 @@ for key in "${REQUIRED_KEYS[@]}"; do
   fi
 done
 
-if [[ ${#MISSING[@]} -gt 0 ]]; then
+if [[ {% raw %}${#MISSING[@]}{% endraw %} -gt 0 ]]; then
   echo -e "${YELLOW}⚠ 다음 필수 키가 비어 있습니다: ${MISSING[*]}${RESET}"
   echo "  ClickEye → 설정 → Anthropic API 키 에서 키를 등록 후 .env를 재다운로드하세요."
 fi
