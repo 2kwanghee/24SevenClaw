@@ -135,6 +135,7 @@ export function StepPrototypeGeneration() {
   const [readyCount, setReadyCount] = useState(0);
   const [isStarting, setIsStarting] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
+  const [isDisabledByAdmin, setIsDisabledByAdmin] = useState(false);
 
   const cancelledRef = useRef(false);
   const pollCountRef = useRef(0);
@@ -154,6 +155,7 @@ export function StepPrototypeGeneration() {
     setIsStarting(true);
     setIsGenerating(true);
     setIsFailed(false);
+    setIsDisabledByAdmin(false);
     setReadyCount(0);
     setCards([]);
 
@@ -163,6 +165,11 @@ export function StepPrototypeGeneration() {
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
         // 이미 generating/completed — 폴링만 계속
+      } else if (err instanceof ApiClientError && err.status === 503) {
+        setIsGenerating(false);
+        setIsDisabledByAdmin(true);
+        setIsStarting(false);
+        return;
       } else {
         setIsGenerating(false);
         setIsFailed(true);
@@ -304,6 +311,29 @@ export function StepPrototypeGeneration() {
   };
 
   const totalCount = Math.max(cards.length || EXPECTED_COUNT, EXPECTED_COUNT);
+
+  /* -- 관리자 비활성화 상태 ------------------------------------------- */
+  if (isDisabledByAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10">
+          <AlertCircle
+            className="h-7 w-7 text-amber-400"
+            aria-hidden="true"
+          />
+        </div>
+        <h3 className="mb-1 text-sm font-semibold text-amber-700">
+          라이브 프리뷰를 사용할 수 없습니다
+        </h3>
+        <p className="mb-2 text-xs text-zinc-500 max-w-xs">
+          현재 라이브 프리뷰 기능이 비활성화되어 있습니다.
+        </p>
+        <p className="text-xs text-zinc-400">
+          관리자에게 문의하여 기능을 활성화해 주세요.
+        </p>
+      </div>
+    );
+  }
 
   /* -- 실패 상태 ------------------------------------------------------- */
   if (isFailed) {

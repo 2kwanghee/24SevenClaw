@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin_recommendations import router as admin_recommendations_router
+from app.api.v1.anthropic_credentials import router as anthropic_credentials_router
 from app.api.v1.app_settings_admin import router as app_settings_admin_router
 from app.api.v1.artifacts import router as artifacts_router
 from app.api.v1.auth import router as auth_router
@@ -11,7 +12,6 @@ from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.control_tower import router as control_tower_router
 from app.api.v1.health import router as health_router
 from app.api.v1.integrations import router as integrations_router
-from app.api.v1.anthropic_credentials import router as anthropic_credentials_router
 from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.maturity import router as maturity_router
 from app.api.v1.orchestrator import router as orchestrator_router
@@ -31,6 +31,7 @@ from app.api.v1.review_pipeline import router as review_pipeline_router
 from app.api.v1.roi import router as roi_router
 from app.api.v1.roi_admin import router as roi_admin_router
 from app.api.v1.setup_bootstrap import router as setup_bootstrap_router
+from app.api.v1.system_features import router as system_features_router
 from app.api.v1.wizard_preview import router as wizard_preview_router
 
 api_v1_router = APIRouter()
@@ -65,4 +66,5 @@ api_v1_router.include_router(control_tower_router)
 api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)
 api_v1_router.include_router(setup_bootstrap_router)
+api_v1_router.include_router(system_features_router)
 api_v1_router.include_router(wizard_preview_router)

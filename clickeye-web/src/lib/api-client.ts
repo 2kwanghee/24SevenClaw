@@ -2149,6 +2149,22 @@ export const appSettingsAdmin = {
       method: "PUT",
       body: JSON.stringify({ value }),
     }),
+  setLivePreviewEnabled: (token: string, value: boolean) =>
+    authRequest<AppSettingResponse>("/api/v1/admin/settings/live-preview-enabled", token, {
+      method: "PUT",
+      body: JSON.stringify({ value }),
+    }),
+};
+
+// ─── System Features ──────────────────────────────────────────────────────────
+
+export interface SystemFeaturesResponse {
+  live_preview_enabled: boolean;
+}
+
+export const systemFeatures = {
+  get: (token: string) =>
+    authRequest<SystemFeaturesResponse>("/api/v1/system/features", token),
 };
 
 // ─── Integrations ─────────────────────────────────────────────────────────────

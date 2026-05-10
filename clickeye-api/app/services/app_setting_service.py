@@ -8,6 +8,7 @@ from app.models.user import User
 class AppSettingService:
     DEFAULT_VARIANT_COUNT = 3
     DEFAULT_RAG_TOP_K = 8
+    DEFAULT_LIVE_PREVIEW_ENABLED = True
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -61,6 +62,32 @@ class AppSettingService:
             self.db.add(row)
         else:
             row.value = {"value": value, "min": 1, "max": 20}
+            row.updated_by = actor.id  # type: ignore[assignment]
+        await self.db.commit()
+        await self.db.refresh(row)
+        return row
+
+    async def get_live_preview_enabled(self) -> bool:
+        row = await self.db.get(AppSetting, "live_preview_enabled")
+        if row is None:
+            return self.DEFAULT_LIVE_PREVIEW_ENABLED
+        val = row.value
+        if isinstance(val, dict):
+            return bool(val.get("value", self.DEFAULT_LIVE_PREVIEW_ENABLED))
+        return bool(val)
+
+    async def set_live_preview_enabled(self, value: bool, actor: User) -> AppSetting:
+        row = await self.db.get(AppSetting, "live_preview_enabled")
+        if row is None:
+            row = AppSetting(
+                key="live_preview_enabled",
+                value={"value": value},
+                description="라이브 프리뷰 기능 활성화 여부 (서버 비용 제어)",
+                updated_by=actor.id,
+            )
+            self.db.add(row)
+        else:
+            row.value = {"value": value}
             row.updated_by = actor.id  # type: ignore[assignment]
         await self.db.commit()
         await self.db.refresh(row)

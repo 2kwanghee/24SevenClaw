@@ -33,3 +33,16 @@ export function useSetRagTopK() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["app-settings"] }),
   });
 }
+
+export function useSetLivePreviewEnabled() {
+  const { data: session } = useSession();
+  const token = (session as { accessToken?: string })?.accessToken ?? "";
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (value: boolean) => appSettingsAdmin.setLivePreviewEnabled(token, value),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["app-settings"] });
+      void qc.invalidateQueries({ queryKey: ["system-features"] });
+    },
+  });
+}
