@@ -20,5 +20,3 @@ class AppSettingUpdateRequest(BaseModel):
     description: str | None = None
 
 
-class LivePreviewEnabledUpdateRequest(BaseModel):
-    value: bool = Field(..., description="라이브 프리뷰 기능 활성화 여부")

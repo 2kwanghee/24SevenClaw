@@ -8,7 +8,6 @@ from app.dependencies import get_current_user, require_permission
 from app.models.user import User
 from app.schemas.app_setting import (
     AppSettingResponse,
-    LivePreviewEnabledUpdateRequest,
     VariantCountUpdateRequest,
 )
 from app.services.app_setting_service import AppSettingService
@@ -55,13 +54,3 @@ async def update_rag_top_k(
     return AppSettingResponse.model_validate(row)
 
 
-@router.put("/live-preview-enabled", response_model=AppSettingResponse)
-async def update_live_preview_enabled(
-    data: LivePreviewEnabledUpdateRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> AppSettingResponse:
-    """라이브 프리뷰 기능 활성화 여부 설정 (기본 true)."""
-    svc = AppSettingService(db)
-    row = await svc.set_live_preview_enabled(data.value, user)
-    return AppSettingResponse.model_validate(row)

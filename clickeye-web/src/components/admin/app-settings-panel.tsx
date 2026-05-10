@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
-import { useAppSettings, useSetVariantCount, useSetRagTopK, useSetLivePreviewEnabled } from "@/hooks/use-app-settings";
+import { useAppSettings, useSetVariantCount, useSetRagTopK } from "@/hooks/use-app-settings";
 
 const INPUT = "rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none w-24 text-center";
 
@@ -12,8 +12,6 @@ export function AppSettingsPanel() {
   const { data: settings, isLoading } = useAppSettings();
   const setVariantCount = useSetVariantCount();
   const setRagTopK = useSetRagTopK();
-  const setLivePreviewEnabled = useSetLivePreviewEnabled();
-
   const [variantCount, setVariantCountLocal] = useState<number | null>(null);
   const [ragTopK, setRagTopKLocal] = useState<number | null>(null);
 
@@ -24,23 +22,6 @@ export function AppSettingsPanel() {
     if (typeof v === "number") return v;
     if (typeof v === "object" && v !== null && "value" in v) return (v as { value: number }).value;
     return 0;
-  };
-
-  const getLivePreviewEnabled = (): boolean => {
-    const s = settings?.find(s => s.key === "live_preview_enabled");
-    if (!s) return true;
-    const v = s.value;
-    if (typeof v === "boolean") return v;
-    if (typeof v === "object" && v !== null && "value" in v) return Boolean((v as { value: unknown }).value);
-    return true;
-  };
-
-  const handleToggleLivePreview = async () => {
-    const next = !getLivePreviewEnabled();
-    try {
-      await setLivePreviewEnabled.mutateAsync(next);
-      toast.success(`라이브 프리뷰가 ${next ? "활성화" : "비활성화"}되었습니다`);
-    } catch { toast.error("저장에 실패했습니다"); }
   };
 
   const currentVariantCount = variantCount ?? (isLoading ? 3 : getSettingValue("prototype_variant_count"));
@@ -104,38 +85,6 @@ export function AppSettingsPanel() {
           </button>
         </div>
         <p className="mt-2 text-xs text-[var(--text-muted)]">현재 DB 값: {getSettingValue("prototype_variant_count")}</p>
-      </div>
-
-      {/* Live Preview Toggle */}
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">라이브 프리뷰</h3>
-            <p className="text-xs text-[var(--text-muted)]">
-              위저드 솔루션 분석 기능. 서버 API 키를 소비합니다 — 비용 제어를 위해 OFF로 설정 가능합니다.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggleLivePreview}
-            disabled={setLivePreviewEnabled.isPending}
-            aria-label={getLivePreviewEnabled() ? "라이브 프리뷰 비활성화" : "라이브 프리뷰 활성화"}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-              getLivePreviewEnabled() ? "bg-emerald-500" : "bg-zinc-300"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                getLivePreviewEnabled() ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </div>
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
-          현재: <span className={getLivePreviewEnabled() ? "text-emerald-600 font-medium" : "text-zinc-500"}>
-            {getLivePreviewEnabled() ? "활성화" : "비활성화"}
-          </span>
-        </p>
       </div>
 
       {/* RAG top-k */}

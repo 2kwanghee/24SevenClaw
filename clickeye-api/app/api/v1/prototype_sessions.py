@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session, get_db
 from app.dependencies import get_current_user
+from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.prototype import (
     FinalizeRequest,
@@ -24,7 +25,6 @@ from app.schemas.prototype import (
     RecommendComponentsResponse,
     RecommendPMsResponse,
 )
-from app.services.app_setting_service import AppSettingService
 from app.services.prototype_service import PrototypeService
 
 # 테스트에서 이 변수를 TestSession으로 교체할 수 있다.
@@ -139,8 +139,12 @@ async def generate_prototypes(
     즉시 202 Accepted를 반환하고 백그라운드에서 생성을 진행한다.
     클라이언트는 GET /{session_id}/status 를 폴링하여 완료 여부를 확인한다.
     """
-    setting_svc = AppSettingService(db)
-    if not await setting_svc.get_live_preview_enabled():
+    live_preview_enabled = False
+    if user.organization_id:  # type: ignore[truthy-bool]
+        org = await db.get(Organization, user.organization_id)
+        if org:
+            live_preview_enabled = bool((org.features or {}).get("live_preview_enabled", False))
+    if not live_preview_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="라이브 프리뷰 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.",

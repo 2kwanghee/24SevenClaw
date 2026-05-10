@@ -106,6 +106,7 @@ class ControlTowerService:
             "main_product": org.main_product,
             "business_type": org.business_type,
             "company_description": org.company_description,
+            "features": org.features or {},
             "created_at": org.created_at,
             "updated_at": org.updated_at,
         }
@@ -229,6 +230,19 @@ class ControlTowerService:
         org.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
         await self.db.refresh(org)
+        return await self.get_customer(org_id)
+
+    async def set_org_feature(self, org_id: UUID, feature_name: str, value: bool) -> dict:
+        """조직 기능 플래그 설정."""
+        org = await self.db.get(Organization, org_id)
+        if org is None or org.org_type != "customer":
+            raise AppError("CUSTOMER_NOT_FOUND", "고객사를 찾을 수 없습니다", 404)
+
+        current: dict = dict(org.features or {})
+        current[feature_name] = value
+        org.features = current  # type: ignore[assignment]
+        org.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+        await self.db.commit()
         return await self.get_customer(org_id)
 
     async def transfer_project(self, project_id: UUID, to_org_id: UUID) -> dict:

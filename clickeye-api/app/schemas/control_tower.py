@@ -35,10 +35,16 @@ class CustomerDetail(BaseModel):
     main_product: str | None
     business_type: str | None
     company_description: str | None
+    features: dict
     created_at: datetime | None
     updated_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+class OrgFeatureUpdateRequest(BaseModel):
+    feature_name: str = Field(..., description="기능 플래그 이름 (예: live_preview_enabled)")
+    value: bool = Field(..., description="활성화 여부")
 
 
 class ProjectOverview(BaseModel):

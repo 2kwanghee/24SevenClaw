@@ -11,6 +11,7 @@ from app.schemas.control_tower import (
     CustomerListResponse,
     CustomerStatusUpdate,
     CustomerSummary,
+    OrgFeatureUpdateRequest,
     ProjectListResponse,
     ProjectOverview,
     ProjectTransferRequest,
@@ -100,6 +101,23 @@ async def set_customer_status(
     """고객사 상태 변경 (active | paused | archived)."""
     service = ControlTowerService(db)
     result = await service.set_customer_status(org_id, data.status)
+    return CustomerDetail(**result)
+
+
+@router.patch(
+    "/customers/{org_id}/features",
+    response_model=CustomerDetail,
+    status_code=status.HTTP_200_OK,
+)
+async def set_org_feature(
+    org_id: UUID,
+    data: OrgFeatureUpdateRequest,
+    user: User = _WRITE,
+    db: AsyncSession = Depends(get_db),
+) -> CustomerDetail:
+    """조직 기능 플래그 설정 — live_preview_enabled 등."""
+    service = ControlTowerService(db)
+    result = await service.set_org_feature(org_id, data.feature_name, data.value)
     return CustomerDetail(**result)
 
 

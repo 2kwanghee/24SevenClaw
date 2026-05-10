@@ -23,3 +23,5 @@ class Organization(UUIDPKMixin, TimestampMixin, Base):
     )
     # 고객사 운영 상태: active | paused | archived
     customer_status = Column(String(20), nullable=False, default="active", server_default="active")
+    # 조직별 기능 플래그 JSONB — 예: {"live_preview_enabled": true}
+    features = Column(JSON, nullable=False, default=dict, server_default="{}")

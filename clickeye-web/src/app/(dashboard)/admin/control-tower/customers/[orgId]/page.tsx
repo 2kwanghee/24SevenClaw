@@ -41,6 +41,7 @@ export default function CustomerDetailPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [featureLoading, setFeatureLoading] = useState(false);
 
   async function load() {
     if (!session?.accessToken || !orgId) return;
@@ -62,6 +63,22 @@ export default function CustomerDetailPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, orgId]);
+
+  async function handleFeatureToggle(featureName: string, current: boolean) {
+    if (!session?.accessToken || !orgId) return;
+    setFeatureLoading(true);
+    try {
+      const updated = await controlTower.setOrgFeature(
+        session.accessToken as string,
+        orgId,
+        featureName,
+        !current,
+      );
+      setCustomer(updated);
+    } finally {
+      setFeatureLoading(false);
+    }
+  }
 
   async function handleStatusChange(newStatus: string) {
     if (!session?.accessToken || !orgId) return;
@@ -182,6 +199,43 @@ export default function CustomerDetailPage() {
           {customer.account_manager_name && (
             <span>담당 PM: {customer.account_manager_name}</span>
           )}
+        </div>
+      </div>
+
+      {/* 기능 플래그 */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">기능 설정</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700">라이브 프리뷰</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              위저드 솔루션 분석 기능 활성화 여부 (Claude API 비용 발생)
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={featureLoading}
+            onClick={() =>
+              handleFeatureToggle(
+                "live_preview_enabled",
+                Boolean(customer.features?.live_preview_enabled),
+              )
+            }
+            aria-label={
+              customer.features?.live_preview_enabled
+                ? "라이브 프리뷰 비활성화"
+                : "라이브 프리뷰 활성화"
+            }
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+              customer.features?.live_preview_enabled ? "bg-emerald-500" : "bg-zinc-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                customer.features?.live_preview_enabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
         </div>
       </div>
 

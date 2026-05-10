@@ -2149,11 +2149,6 @@ export const appSettingsAdmin = {
       method: "PUT",
       body: JSON.stringify({ value }),
     }),
-  setLivePreviewEnabled: (token: string, value: boolean) =>
-    authRequest<AppSettingResponse>("/api/v1/admin/settings/live-preview-enabled", token, {
-      method: "PUT",
-      body: JSON.stringify({ value }),
-    }),
 };
 
 // ─── System Features ──────────────────────────────────────────────────────────
@@ -2243,6 +2238,7 @@ export interface CustomerDetail extends CustomerSummary {
   main_product: string | null;
   business_type: string | null;
   company_description: string | null;
+  features: Record<string, unknown>;
   updated_at: string | null;
 }
 
@@ -2324,6 +2320,13 @@ export const controlTower = {
       `/api/v1/control-tower/projects/${projectId}/transfer`,
       token,
       { method: "POST", body: JSON.stringify({ to_organization_id: toOrganizationId }) },
+    ),
+
+  setOrgFeature: (token: string, orgId: string, featureName: string, value: boolean) =>
+    authRequest<CustomerDetail>(
+      `/api/v1/control-tower/customers/${orgId}/features`,
+      token,
+      { method: "PATCH", body: JSON.stringify({ feature_name: featureName, value }) },
     ),
 };
 
