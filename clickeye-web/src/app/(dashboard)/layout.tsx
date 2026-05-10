@@ -59,7 +59,7 @@ const adminItems = [
 
 const settingsItems = [
   { href: "/settings/members", label: "조직 멤버", icon: Users2 },
-  { href: "/settings/anthropic", label: "Anthropic API 키", icon: Key },
+  { href: "/settings/anthropic", label: "Anthropic 자격증명", icon: Key },
 ];
 
 function NavLink({
