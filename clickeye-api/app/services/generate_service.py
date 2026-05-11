@@ -64,16 +64,10 @@ async def generate_zip(
 
     auth_method: str = getattr(request, "auth_method", "api_key") or "api_key"
 
-    # OAuth 모드: ANTHROPIC_API_KEY는 절대 .env에 포함하지 않음
+    # oauth_browser 모드: ANTHROPIC_API_KEY는 절대 .env에 포함하지 않음
     env_vars = dict(request.env_vars or {})
-    if auth_method != "api_key":
+    if auth_method == "oauth_browser":
         env_vars.pop("ANTHROPIC_API_KEY", None)
-
-    # oauth_setup_token: CLAUDE_CODE_OAUTH_TOKEN 주입
-    if auth_method == "oauth_setup_token":
-        raw_token: str | None = getattr(request, "oauth_setup_token", None)
-        if raw_token and not env_vars.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip():
-            env_vars["CLAUDE_CODE_OAUTH_TOKEN"] = raw_token
 
     files = generate_all(
         project_name=engine_project_name,

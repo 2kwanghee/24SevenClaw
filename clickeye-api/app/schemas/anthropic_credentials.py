@@ -5,10 +5,10 @@ from pydantic import BaseModel, Field
 
 
 class AnthropicCredentialsSave(BaseModel):
-    api_key: str = Field(..., min_length=10, description="Anthropic API 키 또는 OAuth Setup Token")
-    credential_type: Literal["api_key", "oauth_setup_token"] = Field(
+    api_key: str = Field(..., min_length=10, description="Anthropic API 키")
+    credential_type: Literal["api_key"] = Field(
         default="api_key",
-        description="자격증명 유형 — api_key(기본) 또는 oauth_setup_token",
+        description="자격증명 유형 (api_key 고정)",
     )
 
 

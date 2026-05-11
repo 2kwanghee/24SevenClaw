@@ -8,10 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.crypto import decrypt
 from app.models.project_linear_credentials import ProjectLinearCredentials
 from app.models.user_linear_credentials import UserLinearCredentials
-from app.services.anthropic_key_resolver import (
-    resolve_user_anthropic_key,
-    resolve_user_oauth_setup_token,
-)
+from app.services.anthropic_key_resolver import resolve_user_anthropic_key
 
 
 async def resolve_linear_key(
@@ -81,9 +78,8 @@ async def merge_saved_credentials_into_env(
     """env_vars에 비어있는 항목을 서버에 저장된 사용자 자격증명으로 채운다.
 
     auth_method에 따라 Anthropic 자격증명 채움 방식이 달라진다:
-    - api_key:          ANTHROPIC_API_KEY 자동 채움 (기존 동작)
-    - oauth_browser:    Anthropic 자격증명 채움 완전 스킵 (.env에 키 잔존 방지)
-    - oauth_setup_token: ANTHROPIC_API_KEY 스킵 + CLAUDE_CODE_OAUTH_TOKEN 채움
+    - api_key:       ANTHROPIC_API_KEY 자동 채움
+    - oauth_browser: Anthropic 자격증명 채움 완전 스킵 (.env에 키 잔존 방지)
 
     사용자가 명시적으로 입력한 값이 있으면 항상 그 값을 우선한다.
     Linear 자동 채움은 인증 모드와 무관하게 동일하게 동작한다.
@@ -95,17 +91,9 @@ async def merge_saved_credentials_into_env(
             anthropic_key = await resolve_user_anthropic_key(user_id, db)
             if anthropic_key:
                 out["ANTHROPIC_API_KEY"] = anthropic_key
-    elif auth_method == "oauth_setup_token":
-        # ANTHROPIC_API_KEY는 절대 채우지 않음
-        out.pop("ANTHROPIC_API_KEY", None)
-        if not out.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip():
-            saved_token = await resolve_user_oauth_setup_token(user_id, db)
-            if saved_token:
-                out["CLAUDE_CODE_OAUTH_TOKEN"] = saved_token
     elif auth_method == "oauth_browser":
         # ANTHROPIC_API_KEY는 절대 채우지 않음
         out.pop("ANTHROPIC_API_KEY", None)
-    # else: unknown method → 기본 동작 없음
 
     if not out.get("LINEAR_API_KEY", "").strip():
         linear_key = await resolve_linear_key(user_id, project_id, db)

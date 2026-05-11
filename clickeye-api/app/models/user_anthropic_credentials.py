@@ -9,9 +9,8 @@ from app.database import Base
 class UserAnthropicCredentials(Base):
     """사용자 Anthropic 자격증명 테이블.
 
-    encrypted_api_key 컬럼은 credential_type에 따라 아래 페이로드를 Fernet 암호화하여 저장:
-    - "api_key"          → Anthropic API 키 (sk-ant-...)
-    - "oauth_setup_token" → claude setup-token 으로 발급한 장기 OAuth 토큰
+    encrypted_api_key 컬럼에 Fernet 암호화된 API 키(sk-ant-...)를 저장.
+    credential_type = "api_key" 고정.
     """
 
     __tablename__ = "user_anthropic_credentials"

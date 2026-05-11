@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -18,9 +17,6 @@ from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.schemas.anthropic_credentials import AnthropicCredentialsResponse, AnthropicCredentialsSave
 
 router = APIRouter(prefix="/me/anthropic-credentials", tags=["anthropic-credentials"])
-
-# Setup Token에 허용하지 않는 위험 문자 패턴
-_DANGEROUS_CHARS = re.compile(r'[`$\\"\x00-\x1f]')
 
 
 async def _get_creds(
@@ -50,23 +46,11 @@ async def save_anthropic_credentials(
     db: AsyncSession = Depends(get_db),
 ) -> AnthropicCredentialsResponse:
     """Anthropic API 키 또는 OAuth Setup Token 저장 (upsert). Fernet 암호화 후 DB 저장."""
-    if data.credential_type == "api_key":
-        if not data.api_key.startswith("sk-ant-"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="올바른 Anthropic API 키 형식이 아닙니다 (sk-ant-... 로 시작해야 합니다).",
-            )
-    elif data.credential_type == "oauth_setup_token":
-        if len(data.api_key) < 20 or len(data.api_key) > 500:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Setup Token 길이가 올바르지 않습니다 (20~500자).",
-            )
-        if _DANGEROUS_CHARS.search(data.api_key):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Setup Token에 허용되지 않는 문자가 포함되어 있습니다.",
-            )
+    if not data.api_key.startswith("sk-ant-"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="올바른 Anthropic API 키 형식이 아닙니다 (sk-ant-... 로 시작해야 합니다).",
+        )
 
     encrypted_key = encrypt(data.api_key)
     now = datetime.now(UTC)

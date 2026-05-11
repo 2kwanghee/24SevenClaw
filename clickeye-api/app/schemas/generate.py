@@ -31,13 +31,9 @@ class GenerateRequest(PreviewRequest):
         default="wsl2",
         description="사용자 실행 환경 OS (현재 wsl2만 지원)",
     )
-    auth_method: Literal["api_key", "oauth_browser", "oauth_setup_token"] = Field(
+    auth_method: Literal["api_key", "oauth_browser"] = Field(
         default="api_key",
-        description="Claude 인증 방식 — api_key(기본), oauth_browser(claude login), oauth_setup_token(장기토큰)",
-    )
-    oauth_setup_token: str | None = Field(
-        default=None,
-        description="claude setup-token으로 발급한 장기 OAuth 토큰 (auth_method=oauth_setup_token 시 필수)",
+        description="Claude 인증 방식 — api_key(기본), oauth_browser(claude login)",
     )
 
 
