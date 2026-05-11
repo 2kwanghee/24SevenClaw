@@ -45,10 +45,11 @@ fi
 # 3단계: user manager 도달 가능성 확인 (실제 systemctl --user 호출 가능성)
 if ! systemctl --user show-environment > /dev/null 2>&1; then
   echo -e "${RED}❌ systemd --user manager에 연결할 수 없습니다.${NC}"
-  echo "   원인 후보:"
-  echo "     - sudo로 실행 중 → sudo 없이 재실행하세요"
-  echo "     - 비-login 셸 → 'loginctl enable-linger \$USER' 후 새 터미널에서 재실행"
-  echo "     - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR} 미존재"
+  echo "   해결 방법 (순서대로 실행):"
+  echo "     1. loginctl enable-linger \$USER"
+  echo "     2. sudo systemctl start user@\$(id -u).service"
+  echo "     3. bash scripts/install-service.sh  (재실행)"
+  echo "   sudo 사용 불가 시: 1번 실행 후 WSL 터미널 재시작 → 3번 재실행"
   exit 1
 fi
 
