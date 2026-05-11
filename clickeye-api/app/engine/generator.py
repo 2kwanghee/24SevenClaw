@@ -714,6 +714,26 @@ def _emit_first_run_artifacts(
         # log/, .run/ 디렉토리 자리 확보 (.gitkeep)
         files["logs/.gitkeep"] = ""
         files[".run/.gitkeep"] = ""
+
+        # TUNNEL_PROVIDER를 .env / .env.example에 추가 — 사용자가 쉽게 변경 가능하도록
+        _tunnel_section = (
+            "\n# 터널 방식: cloudflare | ngrok | polling\n"
+            "# cloudflare: 무료 임시 URL (기본값)\n"
+            "# ngrok: 유료 고정 URL / 무료 임시 URL\n"
+            "# polling: 터널 없이 30초 간격 Linear 폴링\n"
+            "TUNNEL_PROVIDER=cloudflare\n"
+        )
+        _tunnel_example = (
+            "\n# 터널 방식: cloudflare | ngrok | polling\n"
+            "TUNNEL_PROVIDER=cloudflare\n"
+        )
+        for _ef, _section in ((".env", _tunnel_section), (".env.example", _tunnel_example)):
+            if (
+                _ef in files
+                and isinstance(files[_ef], str)
+                and "TUNNEL_PROVIDER=" not in files[_ef]
+            ):
+                files[_ef] += _section
     except Exception:
         import logging as _logging
         _logging.getLogger(__name__).exception("_emit_first_run_artifacts 실패")
