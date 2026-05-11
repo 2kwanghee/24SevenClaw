@@ -29,7 +29,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 const OS_LABEL: Record<string, string> = { wsl2: "WSL2" };
 
 const AUTH_METHOD_LABEL: Record<string, string> = {
-  api_key: "API 키", oauth_browser: "OAuth 브라우저", oauth_setup_token: "OAuth Setup Token",
+  api_key: "API 키", oauth_browser: "OAuth 브라우저",
 };
 
 const ERROR_STATUSES = new Set(["too_short", "api_credit_error", "api_auth_error", "api_error", "error"]);

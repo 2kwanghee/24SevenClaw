@@ -103,8 +103,7 @@ export interface GenerateRequest extends PreviewRequest {
   env_vars: Record<string, string>;
   hook_ids?: string[];
   os_id?: "wsl2";
-  auth_method?: "api_key" | "oauth_browser" | "oauth_setup_token";
-  oauth_setup_token?: string | null;
+  auth_method?: "api_key" | "oauth_browser";
 }
 
 // --- Projects ---
@@ -1830,24 +1829,6 @@ export const anthropicCredentials = {
       { method: "DELETE" },
     ),
 
-  saveSetupToken: (token: string, setupToken: string) =>
-    authRequest<AnthropicCredentialsResponse>("/api/v1/me/anthropic-credentials/", token, {
-      method: "POST",
-      body: JSON.stringify({ api_key: setupToken, credential_type: "oauth_setup_token" }),
-    }),
-
-  getSetupToken: (token: string) =>
-    authRequest<AnthropicCredentialsResponse>(
-      "/api/v1/me/anthropic-credentials/?credential_type=oauth_setup_token",
-      token,
-    ),
-
-  deleteSetupToken: (token: string) =>
-    authRequest<void>(
-      "/api/v1/me/anthropic-credentials/?credential_type=oauth_setup_token",
-      token,
-      { method: "DELETE" },
-    ),
 };
 
 export const linearCredentials = {

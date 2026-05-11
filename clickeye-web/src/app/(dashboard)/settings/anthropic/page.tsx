@@ -69,32 +69,7 @@ export default function AnthropicSettingsPage() {
           />
         </section>
 
-        {/* 섹션 2: OAuth Setup Token */}
-        <section aria-labelledby="setup-token-heading">
-          <h2 id="setup-token-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            OAuth Setup Token 모드
-          </h2>
-          <CredentialCard
-            credentialType="oauth_setup_token"
-            title="OAuth Setup Token"
-            description="Claude Pro/Max 구독자가 본인 구독 한도로 실행하는 경우 사용됩니다. ZIP의 .env에 CLAUDE_CODE_OAUTH_TOKEN으로 자동 주입됩니다."
-            placeholder="claude setup-token 출력값 붙여넣기"
-            validate={(v) =>
-              v.length >= 20 && v.length <= 500
-                ? null
-                : "길이가 올바르지 않습니다 (20~500자)"
-            }
-            externalLink={{
-              href: "https://docs.anthropic.com/ko/docs/claude-code/authentication",
-              label: "claude setup-token 발급 방법 안내",
-            }}
-            totalDays={365}
-            helperText="터미널에서 'claude setup-token' 명령을 실행하여 토큰을 발급받으세요. 토큰은 1년 후 만료되며, 만료 시 재발급 및 이 페이지에서 교체가 필요합니다."
-            onChanged={handleCredentialChanged}
-          />
-        </section>
-
-        {/* 섹션 3: OAuth 브라우저 (정보 전용) */}
+        {/* 섹션 2: OAuth 브라우저 (정보 전용) */}
         <section aria-labelledby="oauth-browser-heading">
           <h2 id="oauth-browser-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             OAuth 브라우저 모드
@@ -111,9 +86,10 @@ export default function AnthropicSettingsPage() {
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-zinc-400">•</span>
                 <span>
-                  ZIP 다운로드 후 로컬 PC의 별도 터미널에서{" "}
-                  <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">claude login</code>{" "}
-                  실행으로 인증합니다.
+                  <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">bash start.sh</code>{" "}
+                  실행 시{" "}
+                  <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">claude login</code>이{" "}
+                  자동으로 진행됩니다.
                 </span>
               </li>
               <li className="flex items-start gap-2">

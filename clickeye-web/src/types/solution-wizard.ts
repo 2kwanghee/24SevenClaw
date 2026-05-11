@@ -230,12 +230,11 @@ export interface OsStep {
 }
 
 /** Step 7: 환경변수 */
-export type AuthMethod = "api_key" | "oauth_browser" | "oauth_setup_token";
+export type AuthMethod = "api_key" | "oauth_browser";
 
 export interface EnvStep {
   envVars: Record<string, string>;
   authMethod: AuthMethod;
-  oauthSetupToken?: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -19,7 +19,7 @@ import {
 } from "@/lib/api-client";
 
 interface CredentialCardProps {
-  credentialType: "api_key" | "oauth_setup_token";
+  credentialType: "api_key";
   title: string;
   description: string;
   placeholder: string;
@@ -74,10 +74,7 @@ export function CredentialCard({
     if (!token) return;
     setLoading(true);
     try {
-      const data =
-        credentialType === "api_key"
-          ? await anthropicCredentials.get(token)
-          : await anthropicCredentials.getSetupToken(token);
+      const data = await anthropicCredentials.get(token);
       setSaved(data);
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 404) setSaved(null);
@@ -99,10 +96,7 @@ export function CredentialCard({
     setError(null);
     setSuccess(null);
     try {
-      const data =
-        credentialType === "api_key"
-          ? await anthropicCredentials.save(token, value.trim())
-          : await anthropicCredentials.saveSetupToken(token, value.trim());
+      const data = await anthropicCredentials.save(token, value.trim());
       setSaved(data);
       setValue("");
       setSuccess(`${title}이(가) 저장되었습니다.`);
@@ -119,11 +113,7 @@ export function CredentialCard({
     setDeleting(true);
     setError(null);
     try {
-      if (credentialType === "api_key") {
-        await anthropicCredentials.delete(token);
-      } else {
-        await anthropicCredentials.deleteSetupToken(token);
-      }
+      await anthropicCredentials.delete(token);
       setSaved(null);
       setValue("");
       setSuccess(`${title}이(가) 삭제되었습니다.`);

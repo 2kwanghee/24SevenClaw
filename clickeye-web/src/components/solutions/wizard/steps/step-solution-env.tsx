@@ -212,7 +212,6 @@ export function StepSolutionEnv() {
 
   const envVars = useSolutionWizardStore((s) => s.data.env.envVars);
   const authMethod = useSolutionWizardStore((s) => s.data.env.authMethod ?? "api_key");
-  const oauthSetupToken = useSolutionWizardStore((s) => s.data.env.oauthSetupToken ?? "");
   const selectedSkills = useSolutionWizardStore((s) => s.data.agents.selectedSkills);
   const selectedHooks = useSolutionWizardStore((s) => s.data.agents.selectedHooks ?? []);
   const setEnv = useSolutionWizardStore((s) => s.setEnv);
@@ -246,12 +245,7 @@ export function StepSolutionEnv() {
       g.vars.filter((v) => v.required).map((v) => ({ key: v.name, label: v.name, description: v.description ?? "" }))
     ),
   ];
-  // oauth_setup_token 모드는 oauthSetupToken 필드가 있어야 함
-  const setupTokenMissing = authMethod === "oauth_setup_token" && !oauthSetupToken.trim();
-  const missingKeys = [
-    ...allRequiredKeys.filter((c) => !envVars[c.key]?.trim()),
-    ...(setupTokenMissing ? [{ key: "CLAUDE_CODE_OAUTH_TOKEN", label: "OAuth Setup Token", description: "" }] : []),
-  ];
+  const missingKeys = allRequiredKeys.filter((c) => !envVars[c.key]?.trim());
 
   const handleRequiredKeyChange = (key: string, value: string) => {
     setEnv({ envVars: { ...envVars, [key]: value } });
@@ -420,33 +414,9 @@ export function StepSolutionEnv() {
             <div>
               <p className="text-sm font-medium text-zinc-700">브라우저 OAuth (claude login)</p>
               <p className="text-[11px] text-zinc-500">
-                Claude Pro/Max 구독자 전용. ZIP 다운로드 후 별도 터미널에서{" "}
-                <code className="text-violet-400">claude login</code>을 실행하세요.
-              </p>
-            </div>
-          </label>
-
-          {/* oauth_setup_token 옵션 */}
-          <label
-            className={cn(
-              "flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors",
-              authMethod === "oauth_setup_token"
-                ? "border-violet-500/50 bg-violet-500/5"
-                : "border-zinc-200 hover:border-zinc-300"
-            )}
-          >
-            <input
-              type="radio"
-              name="authMethod"
-              value="oauth_setup_token"
-              checked={authMethod === "oauth_setup_token"}
-              onChange={() => setEnv({ authMethod: "oauth_setup_token" })}
-              className="mt-0.5 accent-violet-500"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-zinc-700">Setup Token (장기 토큰)</p>
-              <p className="text-[11px] text-zinc-500">
-                <code className="text-violet-400">claude setup-token</code>으로 발급한 1년 유효 토큰을 사용합니다.
+                Claude Pro/Max 구독자 전용.{" "}
+                <code className="text-violet-400">bash start.sh</code> 실행 시{" "}
+                <code className="text-violet-400">claude login</code>이 자동으로 진행됩니다.
               </p>
             </div>
           </label>
@@ -455,32 +425,9 @@ export function StepSolutionEnv() {
         {/* oauth_browser 안내 카드 */}
         {authMethod === "oauth_browser" && (
           <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs text-zinc-400">
-            ZIP 압축 해제 후 별도 터미널에서 아래 명령을 실행하면 브라우저가 열립니다:
-            <pre className="mt-1.5 rounded bg-black/30 px-3 py-2 font-mono text-sky-300">claude login</pre>
-            로그인 후 <code className="text-sky-300">bash start.sh</code>를 재실행하세요.
-            <code className="ml-1 text-sky-300">ANTHROPIC_API_KEY</code>는 .env에 포함되지 않습니다.
-          </div>
-        )}
-
-        {/* oauth_setup_token 입력 */}
-        {authMethod === "oauth_setup_token" && (
-          <div className="space-y-2">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <label className="mb-1 block text-[11px] font-medium text-zinc-500">Setup Token</label>
-              <input
-                type="password"
-                value={oauthSetupToken}
-                onChange={(e) => setEnv({ oauthSetupToken: e.target.value })}
-                placeholder="claude setup-token 출력값 붙여넣기"
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none focus:border-violet-500/50"
-              />
-            </div>
-            <p className="text-[11px] text-amber-400">
-              ⚠ Setup Token은 발급 후 1년간 유효합니다. 만료 시 재발급이 필요합니다.
-            </p>
-            <p className="text-[11px] text-zinc-500">
-              터미널에서 <code className="text-violet-400">claude setup-token</code>을 실행하여 토큰을 발급하세요.
-            </p>
+            <code className="text-sky-300">ANTHROPIC_API_KEY</code>는 .env에 포함되지 않습니다.
+            <br />
+            <code className="text-sky-300">bash start.sh</code>를 실행하면 브라우저 로그인이 자동으로 시작됩니다.
           </div>
         )}
       </div>
@@ -697,16 +644,10 @@ export function StepSolutionEnv() {
               ZIP 파일은 공유하지 마세요. 방법을 모르는 경우 ZIP의{" "}
               <code className="text-yellow-300">docs/api-keys/</code> 폴더를 참고하세요.
             </>
-          ) : authMethod === "oauth_setup_token" ? (
-            <>
-              Setup Token은 ZIP의 <code className="text-yellow-300">.env</code>에{" "}
-              <code className="text-yellow-300">CLAUDE_CODE_OAUTH_TOKEN</code>으로 저장됩니다.
-              ZIP 파일은 공유하지 마세요.
-            </>
           ) : (
             <>
               브라우저 OAuth 모드에서는 Anthropic 키가 .env에 포함되지 않습니다.
-              start.sh 실행 전 <code className="text-yellow-300">claude login</code>이 필요합니다.
+              <code className="ml-1 text-yellow-300">bash start.sh</code> 실행 시 claude login이 자동으로 진행됩니다.
             </>
           )}
         </p>

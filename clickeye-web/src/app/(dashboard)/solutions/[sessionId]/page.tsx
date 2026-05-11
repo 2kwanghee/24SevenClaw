@@ -21,7 +21,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { prototypeSessions, integrations, anthropicCredentials } from "@/lib/api-client";
+import { prototypeSessions, integrations } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 import { toast } from "sonner";
 
@@ -184,7 +184,6 @@ export default function SolutionSessionPage() {
         const ev = data.env.envVars;
         const am = data.env.authMethod ?? "api_key";
         if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim()) return false;
-        if (am === "oauth_setup_token" && !data.env.oauthSetupToken?.trim()) return false;
         // 선택된 스킬의 required env_vars 전체 검증
         if (skillsData?.items) {
           for (const skill of skillsData.items) {
@@ -221,23 +220,6 @@ export default function SolutionSessionPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      // oauth_setup_token 먼저 저장 — finalize 전에 실행해야 재다운로드 시 CLAUDE_CODE_OAUTH_TOKEN 주입 가능
-      if (
-        data.env.authMethod === "oauth_setup_token" &&
-        data.env.oauthSetupToken?.trim()
-      ) {
-        try {
-          await anthropicCredentials.saveSetupToken(
-            token,
-            data.env.oauthSetupToken.trim(),
-          );
-        } catch {
-          const msg = "OAuth Setup Token 저장에 실패했습니다. 다시 시도해 주세요.";
-          toast.error(msg);
-          setError(msg);
-          return;
-        }
-      }
 
       const res = await fetch(`/api/solutions/${effectiveSessionId}/finalize`, {
         method: "POST",

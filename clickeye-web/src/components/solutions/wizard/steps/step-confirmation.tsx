@@ -440,11 +440,7 @@ export function StepConfirmation() {
   const data = useSolutionWizardStore((s) => s.data);
   const { company, prototypes, pm, roi, env } = data;
   const authMethodLabel =
-    env.authMethod === "oauth_browser"
-      ? "OAuth 브라우저 로그인"
-      : env.authMethod === "oauth_setup_token"
-        ? "OAuth Setup Token"
-        : "API 키";
+    env.authMethod === "oauth_browser" ? "OAuth 브라우저 로그인" : "API 키";
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,

@@ -449,7 +449,7 @@ export default function ProjectDetailPage() {
                 ((wd.env as Record<string, unknown>)?.authMethod as string) ||
                 (project.wizard_data.solution?.authMethod as string) ||
                 "api_key";
-              const isOAuth = authMethod === "oauth_browser" || authMethod === "oauth_setup_token";
+              const isOAuth = authMethod === "oauth_browser";
 
               const ENV_FIELDS: { key: string; label: string; placeholder: string }[] = [
                 ...(!isOAuth
@@ -475,9 +475,7 @@ export default function ProjectDetailPage() {
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
                   {isOAuth ? (
                     <p className="text-xs text-[var(--text-muted)]">
-                      {authMethod === "oauth_browser"
-                        ? "OAuth 브라우저 인증 모드입니다. ZIP 압축 해제 후 별도 터미널에서 claude login을 먼저 실행하세요."
-                        : "OAuth Setup Token 인증 모드입니다. 서버에 저장된 토큰이 자동 적용됩니다."}
+                      {"OAuth 브라우저 인증 모드입니다. bash start.sh 실행 시 claude login이 자동으로 진행됩니다."}
                     </p>
                   ) : (
                     <p className="text-xs text-[var(--text-muted)]">

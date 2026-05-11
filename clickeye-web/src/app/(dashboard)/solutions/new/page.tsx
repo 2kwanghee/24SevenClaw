@@ -114,7 +114,6 @@ export default function NewSolutionPage() {
         const am = data.env.authMethod ?? "api_key";
         // authMethod별 Anthropic 자격증명 검증
         if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim()) return false;
-        if (am === "oauth_setup_token" && !data.env.oauthSetupToken?.trim()) return false;
         // oauth_browser: 입력값 없이 통과
         // 선택된 스킬의 required env_vars 전체 검증
         if (skillsData?.items) {
