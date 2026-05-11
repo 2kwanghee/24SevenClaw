@@ -95,7 +95,7 @@ export function StepSummaryView({ stepId, data, previewByStep }: StepSummaryView
               {selected.domain && <p className="text-zinc-500">{selected.domain}</p>}
             </div>
             <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
-              {Math.round(selected.matchScore * 100)}% 매칭
+              {Math.round(selected.matchScore)}% 매칭
             </span>
           </div>
         </div>
