@@ -57,8 +57,28 @@ export interface EnvStep {
   envVars: Record<string, string>;
 }
 
+export interface RoiBreakdownItem {
+  role_key: string;
+  label: string;
+  days: number;
+  rate: number;
+  subtotal: number;
+}
+
+export interface RoiCalculateResponse {
+  baseline_cost: number;
+  clickeye_cost: number;
+  savings: number;
+  savings_ratio: number;
+  baseline_days: number;
+  clickeye_days: number;
+  breakdown: RoiBreakdownItem[];
+  rates_snapshot: Record<string, Record<string, number>>;
+  formula_version: string;
+}
+
 export interface RoiStep {
-  result: unknown | null;
+  result: RoiCalculateResponse | null;
 }
 
 export interface WizardState {

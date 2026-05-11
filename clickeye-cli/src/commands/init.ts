@@ -8,6 +8,10 @@ import { step03PMRecommend } from "../wizard/steps/03-pm-recommend.js";
 import { step04PMSelect } from "../wizard/steps/04-pm-select.js";
 import { step05PMComposition } from "../wizard/steps/05-pm-composition.js";
 import { step06Agents } from "../wizard/steps/06-agents.js";
+import { step07Platform } from "../wizard/steps/07-platform.js";
+import { step08Os } from "../wizard/steps/08-os.js";
+import { step09Env } from "../wizard/steps/09-env.js";
+import { step10Roi } from "../wizard/steps/10-roi.js";
 import { AuthRequiredError } from "../api/client.js";
 
 interface InitFlags {
@@ -16,7 +20,7 @@ interface InitFlags {
 
 type StepRunner = (state: WizardState) => Promise<WizardState>;
 
-// Phase 5~6에서 나머지 step runner가 추가됩니다
+// Phase 6에서 step11 (confirm + finalize) 추가 예정
 const STEP_RUNNERS: StepRunner[] = [
   step00Company,        // 0
   step01Generation,     // 1
@@ -25,6 +29,10 @@ const STEP_RUNNERS: StepRunner[] = [
   step04PMSelect,       // 4
   step05PMComposition,  // 5
   step06Agents,         // 6
+  step07Platform,       // 7
+  step08Os,             // 8
+  step09Env,            // 9
+  step10Roi,            // 10
 ];
 
 export async function initCommand(flags: InitFlags): Promise<void> {
