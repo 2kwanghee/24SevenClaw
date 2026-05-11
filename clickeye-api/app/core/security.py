@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import bcrypt
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 
 from app.config import settings
 
@@ -45,6 +45,8 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         if payload.get("type") != "access":
             return None
         return payload
+    except ExpiredSignatureError:
+        raise  # 만료 여부를 호출부에서 구분할 수 있도록 전파
     except JWTError:
         return None
 

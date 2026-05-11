@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import ExpiredSignatureError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
@@ -18,18 +19,24 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     token = credentials.credentials
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="로그인 세션(액세스 토큰)이 만료되었습니다. 다시 로그인해 주세요.",
+        )
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="유효하지 않은 토큰입니다",
+            detail="유효하지 않은 인증 토큰입니다. 다시 로그인해 주세요.",
         )
 
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="유효하지 않은 토큰입니다",
+            detail="토큰에 사용자 정보가 없습니다. 다시 로그인해 주세요.",
         )
 
     user = await db.get(User, UUID(user_id))

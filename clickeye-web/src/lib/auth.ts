@@ -188,7 +188,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessTokenExpires = Date.now() + 30 * 60 * 1000;
         token.error = undefined;
       } else {
-        // 갱신 실패: 에러 표시 → 클라이언트에서 로그아웃 처리
+        // 갱신 실패: 만료 토큰 제거 + 에러 표시 → SessionGuard가 자동 로그아웃
+        token.accessToken = "";
         token.error = "RefreshTokenError";
       }
 

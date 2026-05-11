@@ -49,7 +49,7 @@ export function Providers({ children }: ProvidersProps) {
   );
 
   return (
-    <SessionProvider>
+    <SessionProvider refetchInterval={4 * 60} refetchOnWindowFocus={true}>
       <SessionGuard>
         <QueryClientProvider client={queryClient}>
           {children}
