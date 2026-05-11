@@ -467,20 +467,66 @@ echo -e "  종료      : ${BOLD}bash stop.sh${NC}"
 {% endif %}
 echo ""
 
-# ── 9. systemd --user 서비스 자동 등록 (터미널 종료 후 동작 유지) ──────────────
+# ── 9. systemd --user 서비스 등록 (터미널 종료 후 동작 유지) ────────────────────
 if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
   if ! systemctl --user is-active clickeye-watcher >/dev/null 2>&1 \
      {% if has_linear %}|| ! systemctl --user is-active clickeye-webhook >/dev/null 2>&1{% endif %}; then
+
+    _SVC_XDG="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    _SVC_DBUS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+    _do_register=true
+
     echo ""
-    echo -e "${CYAN}[●]${NC} 백그라운드 서비스 자동 등록 중..."
-    bash "$PROJECT_ROOT/stop.sh" >/dev/null 2>&1 || true
-    mkdir -p logs
-    if env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
-          DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}" \
-          bash "$PROJECT_ROOT/scripts/install-service.sh" 2>&1 | tee -a logs/install-service.log; then
-      echo -e "${GREEN}✅ systemd-user 서비스 등록 완료 — 터미널을 닫아도 동작 유지${NC}"
-    else
-      echo -e "${YELLOW}⚠️  서비스 등록 실패 — 수동 실행: bash scripts/install-service.sh${NC}"
+    echo -e "${CYAN}[●]${NC} 백그라운드 서비스 안내"
+    echo ""
+    echo "   터미널을 닫아도 Claude가 계속 작업하려면 systemd 서비스 등록이 필요합니다."
+    echo "   등록하지 않으면 이 터미널이 열린 동안에만 파이프라인이 동작합니다."
+    echo ""
+
+    # user manager가 아직 초기화되지 않은 경우 → 먼저 사용자 동의 후 활성화
+    if ! env XDG_RUNTIME_DIR="$_SVC_XDG" DBUS_SESSION_BUS_ADDRESS="$_SVC_DBUS" \
+          systemctl --user show-environment > /dev/null 2>&1; then
+
+      if [[ -t 0 ]] && [[ -t 1 ]]; then
+        read -r -p "   서비스를 등록하시겠습니까? (y/N) " _svc_answer
+        echo ""
+        if [[ "${_svc_answer:-N}" =~ ^[Yy]$ ]]; then
+          echo -n "   linger 활성화 중..."
+          loginctl enable-linger "$USER" 2>/dev/null && echo -e " ${GREEN}✅${NC}" || echo -e " ${YELLOW}skip${NC}"
+          echo -n "   user manager 기동 중..."
+          if sudo systemctl start "user@$(id -u).service" 2>/dev/null; then
+            echo -e " ${GREEN}✅${NC}"
+            sleep 1
+          else
+            echo -e " ${YELLOW}실패${NC}"
+          fi
+          # 활성화 후 재확인
+          if ! env XDG_RUNTIME_DIR="$_SVC_XDG" DBUS_SESSION_BUS_ADDRESS="$_SVC_DBUS" \
+                systemctl --user show-environment > /dev/null 2>&1; then
+            echo -e "   ${YELLOW}⚠️  user manager를 시작할 수 없습니다.${NC}"
+            echo "   새 터미널을 열고 'bash scripts/install-service.sh' 를 실행하세요."
+            _do_register=false
+          fi
+        else
+          _do_register=false
+          echo "   서비스 등록을 건너뜁니다."
+          echo -e "   ${YELLOW}터미널을 닫으면 Claude 작업이 중단됩니다.${NC}"
+        fi
+      else
+        _do_register=false
+        echo -e "   ${YELLOW}비대화형 환경 — 서비스 등록을 건너뜁니다.${NC}"
+      fi
+    fi
+
+    if [[ "$_do_register" == "true" ]]; then
+      bash "$PROJECT_ROOT/stop.sh" >/dev/null 2>&1 || true
+      mkdir -p logs
+      if env XDG_RUNTIME_DIR="$_SVC_XDG" DBUS_SESSION_BUS_ADDRESS="$_SVC_DBUS" \
+            bash "$PROJECT_ROOT/scripts/install-service.sh" 2>&1 | tee -a logs/install-service.log; then
+        echo -e "${GREEN}✅ systemd-user 서비스 등록 완료 — 터미널을 닫아도 동작 유지${NC}"
+      else
+        echo -e "${YELLOW}⚠️  서비스 등록 실패 — 수동 실행: bash scripts/install-service.sh${NC}"
+      fi
     fi
   else
     echo -e "${GREEN}✅ systemd-user 서비스 이미 활성${NC}"
