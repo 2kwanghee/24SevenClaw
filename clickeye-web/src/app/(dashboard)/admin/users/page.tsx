@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { Shield, Users, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,7 +39,17 @@ interface RoleSelectProps {
 
 function RoleSelect({ userId, currentRole }: RoleSelectProps) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const updateRole = useUpdateUserRole();
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setOpen((v) => !v);
+  };
 
   const handleSelect = (role: SystemRole) => {
     if (role === currentRole) {
@@ -62,10 +72,11 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
   };
 
   return (
-    <div className="relative">
+    <div>
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         disabled={updateRole.isPending}
         className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)] disabled:opacity-50"
       >
@@ -76,13 +87,14 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
       {open && (
         <>
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-40"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1 shadow-xl">
-            {(
-              Object.entries(ROLE_LABELS) as [SystemRole, string][]
-            ).map(([role, label]) => (
+          <div
+            className="fixed z-50 w-40 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1 shadow-xl"
+            style={{ top: menuPos.top, right: menuPos.right }}
+          >
+            {(Object.entries(ROLE_LABELS) as [SystemRole, string][]).map(([role, label]) => (
               <button
                 key={role}
                 type="button"
