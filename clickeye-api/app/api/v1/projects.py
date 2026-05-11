@@ -220,13 +220,15 @@ async def generate_draft(
 ) -> StreamingResponse:
     """프로젝트 생성 전 드래프트 ZIP 다운로드 (project ID 불필요)."""
     project_name = data.solution.get("projectName", "project")
+    auth_method: str = getattr(data, "auth_method", None) or "api_key"
 
-    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선)
+    # 등록된 API 키로 빈 항목 자동 채움 (입력값 우선, OAuth 모드는 Anthropic 키 채움 스킵)
     data.env_vars = await merge_saved_credentials_into_env(
         user_id=user.id,  # type: ignore[arg-type]
         project_id=None,
         db=db,
         env_vars=dict(data.env_vars or {}),
+        auth_method=auth_method,
     )
 
     pm_slug, pm_markdown, pm_compositions = await _resolve_pm(
