@@ -147,15 +147,8 @@ if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
   echo -e "${CYAN}ℹ  ANTHROPIC_API_KEY 미설정 — claude.ai 구독 세션으로 실행합니다.${NC}"
 fi
 {% elif auth_method == "oauth_setup_token" %}
-# oauth_setup_token 모드: 셸 프로필의 ANTHROPIC_API_KEY 충돌 방지
+# oauth_setup_token 모드: ANTHROPIC_API_KEY 충돌 방지 (인증은 claude login 세션 사용)
 unset ANTHROPIC_API_KEY
-if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
-  echo -e "${RED}❌ CLAUDE_CODE_OAUTH_TOKEN 미설정 — .env 파일에 Setup Token이 없습니다.${NC}"
-  echo ""
-  echo "   'claude setup-token' 명령으로 새 토큰을 발급한 뒤 .env에 CLAUDE_CODE_OAUTH_TOKEN=<토큰> 을 추가하세요."
-  exit 1
-fi
-export CLAUDE_CODE_OAUTH_TOKEN="${CLAUDE_CODE_OAUTH_TOKEN}"
 {% elif auth_method == "oauth_browser" %}
 # oauth_browser 모드: 셸 프로필의 ANTHROPIC_API_KEY 충돌 방지
 unset ANTHROPIC_API_KEY
@@ -252,26 +245,21 @@ else
   done
 fi
 {% elif auth_method == "oauth_setup_token" %}
-# oauth_setup_token 모드: CLAUDE_CODE_OAUTH_TOKEN으로 인증 확인 (폴백 없음)
-# if 분기 안에서 실행해야 set -e 에 의한 조용한 종료를 방지할 수 있다
-echo -ne "${CYAN}[●]${NC} Claude Setup Token 인증 확인 중..."
+# oauth_setup_token 모드: claude login 세션으로 인증 확인
+# CLAUDE_CODE_OAUTH_TOKEN(setup-token)은 env var로 직접 사용 불가 — claude login 세션 필요
+echo -ne "${CYAN}[●]${NC} Claude 인증 확인 중..."
 if timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1; then
   echo -e " ${GREEN}✅${NC}"
 else
-  _oauth_rc=$?
   echo ""
-  echo -e "${RED}❌ Claude Setup Token 인증 실패 (rc=$_oauth_rc).${NC}"
-  if grep -qi "unauthori\|expired\|invalid.*token\|token.*invalid" "$CLAUDE_AUTH_LOG" 2>/dev/null; then
-    echo -e "${YELLOW}   ⚠️  토큰이 만료되었거나 유효하지 않습니다.${NC}"
-    echo "   'claude setup-token' 을 다시 실행하여 새 토큰을 발급받고 .env의 CLAUDE_CODE_OAUTH_TOKEN을 갱신하세요."
-  else
-    if [[ -s "$CLAUDE_AUTH_LOG" ]]; then
-      echo -e "${YELLOW}   진단 로그 (앞 400자):${NC}"
-      head -c 400 "$CLAUDE_AUTH_LOG" | sed 's/^/     /'
-      echo ""
-    fi
-  fi
-  exit 1
+  echo -e "${YELLOW}⚠️  Claude 로그인 세션을 찾을 수 없습니다.${NC}"
+  echo ""
+  echo "   별도 터미널에서 아래 명령을 실행한 뒤 start.sh를 다시 실행하세요:"
+  echo ""
+  echo -e "     ${BOLD}claude login${NC}"
+  echo ""
+  echo "   (브라우저가 열리면 claude.ai 계정으로 로그인하세요)"
+  exit 0
 fi
 {% elif auth_method == "oauth_browser" %}
 # oauth_browser 모드: claude login 세션 확인, 미인증 시 안내 후 종료
