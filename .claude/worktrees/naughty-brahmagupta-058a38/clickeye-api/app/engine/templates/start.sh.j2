@@ -53,11 +53,22 @@ if ! command -v claude >/dev/null 2>&1; then
   case "$yn" in
     [Yy]*)
       echo "📦 Claude Code 설치 중..."
-      npm install -g @anthropic-ai/claude-code
-      echo -e "${GREEN}✅ Claude Code $(claude --version) 설치 완료${NC}"
+      if npm install -g @anthropic-ai/claude-code 2>/dev/null; then
+        echo -e "${GREEN}✅ Claude Code $(claude --version) 설치 완료${NC}"
+      elif sudo npm install -g @anthropic-ai/claude-code; then
+        echo -e "${GREEN}✅ Claude Code $(claude --version) 설치 완료 (sudo)${NC}"
+      else
+        echo -e "${RED}❌ 자동 설치 실패. 아래 중 하나를 직접 실행하세요:${NC}"
+        echo "   sudo npm install -g @anthropic-ai/claude-code"
+        echo "   또는 npm prefix 설정 후 재시도:"
+        echo "   mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global"
+        echo "   echo 'export PATH=~/.npm-global/bin:\$PATH' >> ~/.bashrc && source ~/.bashrc"
+        echo "   npm install -g @anthropic-ai/claude-code"
+        exit 1
+      fi
       ;;
     *)
-      echo "   수동 설치 후 다시 실행하세요: npm install -g @anthropic-ai/claude-code"
+      echo "   수동 설치 후 다시 실행하세요: sudo npm install -g @anthropic-ai/claude-code"
       exit 1
       ;;
   esac
