@@ -253,12 +253,12 @@ else
 fi
 {% elif auth_method == "oauth_setup_token" %}
 # oauth_setup_token 모드: CLAUDE_CODE_OAUTH_TOKEN으로 인증 확인 (폴백 없음)
+# if 분기 안에서 실행해야 set -e 에 의한 조용한 종료를 방지할 수 있다
 echo -ne "${CYAN}[●]${NC} Claude Setup Token 인증 확인 중..."
-timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1
-_oauth_rc=$?
-if [[ $_oauth_rc -eq 0 ]]; then
+if timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1; then
   echo -e " ${GREEN}✅${NC}"
 else
+  _oauth_rc=$?
   echo ""
   echo -e "${RED}❌ Claude Setup Token 인증 실패 (rc=$_oauth_rc).${NC}"
   if grep -qi "unauthori\|expired\|invalid.*token\|token.*invalid" "$CLAUDE_AUTH_LOG" 2>/dev/null; then
@@ -275,10 +275,9 @@ else
 fi
 {% elif auth_method == "oauth_browser" %}
 # oauth_browser 모드: claude login 세션 확인, 미인증 시 안내 후 종료
+# if 분기 안에서 실행해야 set -e 에 의한 조용한 종료를 방지할 수 있다
 echo -ne "${CYAN}[●]${NC} Claude OAuth 브라우저 세션 확인 중..."
-timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1
-_oauth_rc=$?
-if [[ $_oauth_rc -eq 0 ]]; then
+if timeout 90 claude -p "1" --output-format json > "$CLAUDE_AUTH_LOG" 2>&1; then
   echo -e " ${GREEN}✅${NC}"
 else
   echo ""
