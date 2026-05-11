@@ -70,10 +70,10 @@ def generate_env_files(
             env_lines.append(f"# {comment}")
             example_lines.append(f"# {comment}")
 
-        # 값 검증
+        # 값 검증 + 특수문자 포함 시 따옴표 처리
         validated_value = _validate_env_value(name, value, meta)
 
-        env_lines.append(f"{name}={validated_value}")
+        env_lines.append(f"{name}={_quote_env_value(validated_value)}")
         example_lines.append(f"{name}=")
         env_lines.append("")
         example_lines.append("")
@@ -100,6 +100,24 @@ def _validate_env_value(name: str, value: str, meta: dict[str, Any]) -> str:
         return ""
 
     return value
+
+
+def _quote_env_value(value: str) -> str:
+    """#, 공백 등 특수문자가 포함된 값을 따옴표로 감싼다.
+
+    bash .env 로더에서 # 이후가 주석으로 잘리는 현상을 방지한다.
+    """
+    if not value:
+        return value
+    needs_quote = any(c in value for c in ' \t#$\\`!')
+    if not needs_quote:
+        return value
+    if '"' not in value:
+        return f'"{value}"'
+    if "'" not in value:
+        return f"'{value}'"
+    # 큰따옴표와 작은따옴표 모두 포함된 경우 — 큰따옴표 이스케이프
+    return '"' + value.replace('"', '\\"') + '"'
 
 
 def _is_dangerous_value(value: str) -> bool:
