@@ -132,10 +132,11 @@ def get_selected_hooks(
 def get_env_var_definitions(
     workflow_ids: list[str], prefetch: CatalogPrefetch | None = None
 ) -> list[dict[str, Any]]:
-    """선택된 워크플로우에서 필요한 환경 변수 정의를 수집."""
-    skills = get_selected_skills(workflow_ids, prefetch)
+    """선택된 워크플로우(스킬+훅)에서 필요한 환경 변수 정의를 수집."""
     env_vars: list[dict[str, Any]] = []
     seen: set[str] = set()
+
+    skills = get_selected_skills(workflow_ids, prefetch)
     for skill in skills:
         for var in skill.get("env_vars", []):
             var_name = var.get("name", "")
@@ -146,6 +147,19 @@ def get_env_var_definitions(
                     "skill_name": skill.get("label", skill["id"]),
                 })
                 seen.add(var_name)
+
+    hooks = get_selected_hooks([], prefetch)
+    for hook in hooks:
+        for var in hook.get("env_vars", []):
+            var_name = var.get("name", "")
+            if var_name and var_name not in seen:
+                env_vars.append({
+                    **var,
+                    "skill_id": hook["id"],
+                    "skill_name": hook.get("label", hook["id"]),
+                })
+                seen.add(var_name)
+
     return env_vars
 
 

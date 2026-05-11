@@ -45,6 +45,31 @@ async def resolve_linear_key(
         return None
 
 
+async def resolve_linear_team_id(
+    user_id: UUID, project_id: UUID | None, db: AsyncSession
+) -> str | None:
+    """Linear 팀 ID를 반환. project-level 우선, user-level 폴백."""
+    if project_id:
+        result = await db.execute(
+            select(ProjectLinearCredentials).where(
+                ProjectLinearCredentials.project_id == project_id
+            )
+        )
+        creds = result.scalar_one_or_none()
+        if creds is not None and creds.team_id:
+            return str(creds.team_id)
+
+    result = await db.execute(
+        select(UserLinearCredentials).where(
+            UserLinearCredentials.user_id == user_id
+        )
+    )
+    creds = result.scalar_one_or_none()
+    if creds is None:
+        return None
+    return str(creds.team_id) if creds.team_id else None
+
+
 async def merge_saved_credentials_into_env(
     *,
     user_id: UUID,
@@ -86,5 +111,10 @@ async def merge_saved_credentials_into_env(
         linear_key = await resolve_linear_key(user_id, project_id, db)
         if linear_key:
             out["LINEAR_API_KEY"] = linear_key
+
+    if not out.get("LINEAR_TEAM_ID", "").strip():
+        linear_team_id = await resolve_linear_team_id(user_id, project_id, db)
+        if linear_team_id:
+            out["LINEAR_TEAM_ID"] = linear_team_id
 
     return out
