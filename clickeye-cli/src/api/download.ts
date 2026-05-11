@@ -1,20 +1,18 @@
-import { createWriteStream, mkdirSync } from "node:fs";
-import { unlink, mkdir } from "node:fs/promises";
+import { unlink, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
-import { loadCredentials } from "../auth/credentials.js";
+import { randomUUID } from "node:crypto";
+import { apiClient } from "./client.js";
 
 const execFileAsync = promisify(execFile);
-const REQUEST_TIMEOUT_MS = 120_000; // ZIP generation can be slow
-
-function getApiBase(): string {
-  return process.env["CLICKEYE_API_URL"] ?? "http://localhost:8000";
-}
+const ZIP_TIMEOUT_MS = 120_000;
 
 /**
- * Downloads a project ZIP from the API and extracts it to destDir.
+ * Downloads a project ZIP from the API and extracts it to destDir/<safeName>/.
+ * With force=false (default) the destination must not exist or be empty.
+ * With force=true existing files are overwritten (used by `ce redownload`).
  * Returns the resolved destination path.
  */
 export async function downloadAndExtract(
@@ -22,38 +20,55 @@ export async function downloadAndExtract(
   envVars: Record<string, string>,
   projectName: string,
   destDir: string = process.cwd(),
+  force = false,
 ): Promise<string> {
-  const creds = await loadCredentials();
-  if (!creds) throw new Error("인증이 필요합니다. `ce login`을 먼저 실행해 주세요.");
+  try {
+    await execFileAsync("unzip", ["--version"]);
+  } catch {
+    throw new Error(
+      "`unzip`이 설치되어 있지 않습니다. `sudo apt install unzip`을 실행해 주세요.",
+    );
+  }
 
-  const url = `${getApiBase()}/api/v1/projects/${projectId}/redownload`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${creds.access_token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ env_vars: envVars }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
+  const safeName = projectName.replace(/[^a-zA-Z0-9가-힣._-]/g, "_");
+  if (!safeName || /^\.+$/.test(safeName)) {
+    throw new Error("유효하지 않은 프로젝트 이름입니다.");
+  }
+  const projectDir = resolve(destDir, safeName);
+
+  // Guard before the expensive API call
+  if (!force) {
+    const dirFiles = await readdir(projectDir).catch(() => [] as string[]);
+    if (dirFiles.length > 0) {
+      throw new Error(
+        `대상 디렉토리가 비어 있지 않습니다: ${projectDir}\n` +
+        "  `ce redownload <projectId>`를 사용하면 덮어쓸 수 있습니다.",
+      );
+    }
+  }
+
+  const response = await apiClient.postRaw(
+    `/api/v1/projects/${projectId}/redownload`,
+    { env_vars: envVars },
+    ZIP_TIMEOUT_MS,
+  );
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(`ZIP 다운로드 실패 (${response.status}): ${text}`);
   }
 
-  // Write ZIP to temp file
-  const tmpZip = join(tmpdir(), `ce-project-${Date.now()}.zip`);
+  const tmpZip = join(tmpdir(), `ce-project-${randomUUID()}.zip`);
   const buffer = await response.arrayBuffer();
-  await writeBuffer(tmpZip, buffer);
+  await writeFile(tmpZip, Buffer.from(buffer));
 
-  // Extract to destDir/<projectName>/
-  const safeName = projectName.replace(/[^a-zA-Z0-9가-힣._-]/g, "_");
-  const projectDir = resolve(destDir, safeName);
   await mkdir(projectDir, { recursive: true });
 
   try {
-    await execFileAsync("unzip", ["-o", tmpZip, "-d", projectDir]);
+    const flags = force
+      ? ["-o", "-q", tmpZip, "-d", projectDir]
+      : ["-q", tmpZip, "-d", projectDir];
+    await execFileAsync("unzip", flags);
   } finally {
     await unlink(tmpZip).catch(() => undefined);
   }
@@ -61,12 +76,12 @@ export async function downloadAndExtract(
   return projectDir;
 }
 
-function writeBuffer(filePath: string, buffer: ArrayBuffer): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const stream = createWriteStream(filePath);
-    stream.on("error", reject);
-    stream.on("finish", resolve);
-    stream.write(Buffer.from(buffer));
-    stream.end();
-  });
+/** @deprecated use downloadAndExtract(..., true) */
+export async function downloadAndExtractForce(
+  projectId: string,
+  envVars: Record<string, string>,
+  projectName: string,
+  destDir: string = process.cwd(),
+): Promise<string> {
+  return downloadAndExtract(projectId, envVars, projectName, destDir, true);
 }

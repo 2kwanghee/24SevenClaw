@@ -47,7 +47,8 @@ program
   .argument("<projectId>", "재다운로드할 프로젝트 UUID")
   .option("--env-file <path>", ".env 파일에서 환경 변수를 읽어옵니다")
   .option("--output <dir>", "압축 해제 대상 디렉토리 (기본값: 현재 디렉토리)")
-  .action((projectId: string, flags: { envFile?: string; output?: string }) =>
+  .option("--name <name>", "압축 해제 디렉토리명 (기본값: 프로젝트 ID)")
+  .action((projectId: string, flags: { envFile?: string; output?: string; name?: string }) =>
     redownloadCommand(projectId, flags),
   );
 

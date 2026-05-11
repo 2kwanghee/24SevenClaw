@@ -164,6 +164,73 @@ export class ApiClient {
   delete<T>(path: string, requireAuth = true): Promise<T> {
     return this.request<T>("DELETE", path, undefined, requireAuth);
   }
+
+  /** Binary POST — returns raw Response with full auth+refresh logic. */
+  async postRaw(
+    path: string,
+    body?: unknown,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+  ): Promise<Response> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    let creds = await loadCredentials();
+    if (!creds) throw new AuthRequiredError();
+
+    if (isExpired(creds)) {
+      try {
+        const refreshed = await refreshTokens(creds.refresh_token, this.baseUrl);
+        creds = {
+          ...creds,
+          access_token: refreshed.access_token,
+          refresh_token: refreshed.refresh_token,
+          expires_at: decodeJwtExpiry(refreshed.access_token),
+        };
+        await saveCredentials(creds);
+      } catch {
+        throw new AuthRequiredError();
+      }
+    }
+
+    headers["Authorization"] = `Bearer ${creds.access_token}`;
+
+    const doFetch = (token: string) =>
+      fetch(`${this.baseUrl}${path}`, {
+        method: "POST",
+        headers: { ...headers, Authorization: `Bearer ${token}` },
+        body: body != null ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+    let res = await doFetch(creds.access_token);
+
+    if (res.status === 401) {
+      const latestCreds = await loadCredentials();
+      if (latestCreds) {
+        try {
+          const refreshed = await refreshTokens(
+            latestCreds.refresh_token,
+            this.baseUrl,
+          );
+          const newCreds = {
+            ...latestCreds,
+            access_token: refreshed.access_token,
+            refresh_token: refreshed.refresh_token,
+            expires_at: decodeJwtExpiry(refreshed.access_token),
+          };
+          await saveCredentials(newCreds);
+          res = await doFetch(newCreds.access_token);
+        } catch {
+          throw new AuthRequiredError();
+        }
+      } else {
+        throw new AuthRequiredError();
+      }
+    }
+
+    return res;
+  }
 }
 
 export const apiClient = new ApiClient();

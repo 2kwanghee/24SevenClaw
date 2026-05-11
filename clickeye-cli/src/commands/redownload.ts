@@ -6,6 +6,7 @@ import { loadCredentials } from "../auth/credentials.js";
 interface RedownloadFlags {
   envFile?: string;
   output?: string;
+  name?: string;
 }
 
 export async function redownloadCommand(
@@ -22,7 +23,6 @@ export async function redownloadCommand(
 
   const envVars: Record<string, string> = {};
 
-  // Load env vars from file if provided
   if (flags.envFile) {
     const { readFile } = await import("node:fs/promises");
     try {
@@ -42,14 +42,17 @@ export async function redownloadCommand(
     }
   }
 
+  const projectName = flags.name ?? projectId;
+  const destDir = flags.output ?? process.cwd();
+
   const spinner = ora("프로젝트 ZIP을 다운로드하고 있습니다...").start();
   try {
-    const destDir = flags.output ?? process.cwd();
     const projectDir = await downloadAndExtract(
       projectId,
       envVars,
-      projectId,
+      projectName,
       destDir,
+      true,
     );
     spinner.succeed(`압축 해제 완료: ${projectDir}`);
     console.log(chalk.bold.green("\n✅ 재다운로드 완료!\n"));
