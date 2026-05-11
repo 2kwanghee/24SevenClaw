@@ -11,6 +11,8 @@ interface TokenResponse {
   refresh_token: string;
 }
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 async function refreshTokens(
   refreshToken: string,
   baseUrl: string,
@@ -19,6 +21,7 @@ async function refreshTokens(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshToken }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) throw new AuthRequiredError();
   return res.json() as Promise<TokenResponse>;
@@ -27,7 +30,7 @@ async function refreshTokens(
 export class AuthRequiredError extends Error {
   constructor() {
     super(
-      "인증이 필요합니다. `24sc login`을 먼저 실행해 주세요.",
+      "인증이 필요합니다. `ce login`을 먼저 실행해 주세요.",
     );
     this.name = "AuthRequiredError";
   }
@@ -85,6 +88,7 @@ export class ApiClient {
       method,
       headers,
       body: body != null ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     // 401 발생 시 refresh 1회 재시도
@@ -108,6 +112,7 @@ export class ApiClient {
             method,
             headers,
             body: body != null ? JSON.stringify(body) : undefined,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
           });
         } catch {
           throw new AuthRequiredError();

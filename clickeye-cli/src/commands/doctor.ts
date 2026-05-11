@@ -32,7 +32,7 @@ async function checkClaudeDir(targetDir: string): Promise<CheckResult> {
   return {
     label: ".claude/ 디렉토리 존재",
     passed: exists,
-    detail: exists ? undefined : "24sc init을 먼저 실행하세요",
+    detail: exists ? undefined : "ce init을 먼저 실행하세요",
   };
 }
 
@@ -44,7 +44,7 @@ async function checkSettingsJson(targetDir: string): Promise<CheckResult> {
     return {
       label: "settings.json 존재",
       passed: false,
-      detail: "24sc init을 먼저 실행하세요",
+      detail: "ce init을 먼저 실행하세요",
     };
   }
 
@@ -119,7 +119,7 @@ async function checkAgentReferences(
       {
         label: "CLAUDE.md 존재",
         passed: false,
-        detail: "24sc init으로 생성하세요",
+        detail: "ce init으로 생성하세요",
       },
     ];
   }
@@ -137,7 +137,7 @@ async function checkAgentReferences(
       passed: exists,
       detail: exists
         ? undefined
-        : `파일이 없습니다. 24sc add agent <id>로 추가하세요`,
+        : `파일이 없습니다. ce add agent <id>로 추가하세요`,
     });
   }
 
@@ -179,7 +179,7 @@ async function checkClaudeMd(targetDir: string): Promise<CheckResult> {
   return {
     label: "CLAUDE.md 존재",
     passed: exists,
-    detail: exists ? undefined : "24sc init으로 생성하세요",
+    detail: exists ? undefined : "ce init으로 생성하세요",
   };
 }
 

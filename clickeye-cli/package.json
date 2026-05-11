@@ -1,10 +1,10 @@
 {
   "name": "@clickeye/cli",
   "version": "0.1.0",
-  "description": "CLI-First AI 개발 자동화 플랫폼 — 하네스 엔지니어링이 탑재된 Claude Code 워크플로우를 한 줄 명령으로 구축",
+  "description": "ClickEye AI 솔루션 빌더 — 웹 위저드(clickeye.ai)의 터미널 버전",
   "type": "module",
   "bin": {
-    "24sc": "./bin/cli.js"
+    "ce": "./bin/cli.js"
   },
   "main": "./dist/cli.js",
   "files": [
@@ -44,7 +44,6 @@
   "dependencies": {
     "commander": "^12.1.0",
     "inquirer": "^9.3.0",
-    "handlebars": "^4.7.8",
     "chalk": "^5.3.0",
     "ora": "^8.0.0"
   },
@@ -53,6 +52,7 @@
     "typescript": "^5.5.0",
     "vitest": "^2.0.0",
     "@types/node": "^20.14.0",
-    "@types/inquirer": "^9.0.7"
+    "@types/inquirer": "^9.0.7",
+    "@hey-api/openapi-ts": "^0.53.0"
   }
 }

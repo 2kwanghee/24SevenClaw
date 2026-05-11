@@ -7,6 +7,7 @@ import {
   clearCredentials,
   decodeJwtExpiry,
 } from "./credentials.js";
+import { clearCatalogCache } from "../api/catalog.js";
 
 interface TokenResponse {
   access_token: string;
@@ -77,5 +78,6 @@ export async function logoutCommand(): Promise<void> {
     return;
   }
   await clearCredentials();
+  clearCatalogCache();
   console.log(chalk.green(`\n✅ ${creds.email} 로그아웃되었습니다.\n`));
 }

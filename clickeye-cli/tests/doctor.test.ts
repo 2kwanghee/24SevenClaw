@@ -7,7 +7,7 @@ describe("doctor 명령어 — 설정 상태 검증", () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "24sc-doctor-"));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ce-doctor-"));
   });
 
   afterEach(async () => {

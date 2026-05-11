@@ -1,13 +1,13 @@
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
-import { addCommand } from "./commands/add.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { loginCommand, logoutCommand } from "./auth/login.js";
+import { listCommand } from "./commands/list.js";
 
 const program = new Command();
 
 program
-  .name("24sc")
+  .name("ce")
   .description(
     "ClickEye CLI — AI 솔루션 빌더 (clickeye.ai 위저드의 터미널 버전)"
   )
@@ -15,20 +15,15 @@ program
 
 program
   .command("init")
-  .description("새 프로젝트에 AI 에이전트 워크플로우를 설정합니다")
-  .option("--yes", "모든 질문을 기본값으로 스킵")
-  .option("--dry-run", "생성할 파일 목록만 출력 (실제 생성 안 함)")
+  .description("12단계 위저드로 AI 솔루션을 설계하고 ZIP을 다운로드합니다")
+  .option("--resume <sessionId>", "이전 세션 ID로 재개합니다")
   .action(initCommand);
 
 program
-  .command("add")
-  .description("기존 프로젝트에 에이전트, 스킬, Hook을 추가합니다")
-  .argument("<category>", "추가할 유형 (agent | skill | hook)")
-  .argument("<id>", "추가할 항목 ID (예: backend, tdd, harness-gate)")
-  .option("--yes", "확인 질문 없이 덮어쓰기")
-  .option("--dry-run", "생성할 파일 목록만 출력 (실제 생성 안 함)")
-  .option("--stack <preset>", "기술 스택 프리셋 지정")
-  .action(addCommand);
+  .command("list")
+  .description("카탈로그 항목을 조회합니다")
+  .argument("<category>", "조회할 유형 (agents | skills | hooks | platforms | pipelines)")
+  .action(listCommand);
 
 program
   .command("doctor")

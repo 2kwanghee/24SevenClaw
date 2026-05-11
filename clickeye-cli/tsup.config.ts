@@ -1,5 +1,4 @@
 import { defineConfig } from "tsup";
-import { cp } from "node:fs/promises";
 
 export default defineConfig({
   entry: ["src/cli.ts"],
@@ -11,8 +10,4 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   shims: true,
-  async onSuccess() {
-    await cp("src/templates", "dist/templates", { recursive: true });
-    await cp("src/catalog", "dist/catalog", { recursive: true });
-  },
 });
