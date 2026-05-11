@@ -12,6 +12,7 @@ import { step07Platform } from "../wizard/steps/07-platform.js";
 import { step08Os } from "../wizard/steps/08-os.js";
 import { step09Env } from "../wizard/steps/09-env.js";
 import { step10Roi } from "../wizard/steps/10-roi.js";
+import { step11Confirm } from "../wizard/steps/11-confirm.js";
 import { AuthRequiredError } from "../api/client.js";
 
 interface InitFlags {
@@ -20,7 +21,6 @@ interface InitFlags {
 
 type StepRunner = (state: WizardState) => Promise<WizardState>;
 
-// Phase 6에서 step11 (confirm + finalize) 추가 예정
 const STEP_RUNNERS: StepRunner[] = [
   step00Company,        // 0
   step01Generation,     // 1
@@ -33,6 +33,7 @@ const STEP_RUNNERS: StepRunner[] = [
   step08Os,             // 8
   step09Env,            // 9
   step10Roi,            // 10
+  step11Confirm,        // 11
 ];
 
 export async function initCommand(flags: InitFlags): Promise<void> {
@@ -89,11 +90,7 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     }
 
     if (state.currentStep >= STEP_RUNNERS.length) {
-      console.log(
-        chalk.bold.green(
-          "\n✅ 위저드 완료!\n   (Phase 4~6에서 finalize 및 ZIP 다운로드 구현 예정)\n",
-        ),
-      );
+      console.log(chalk.bold.green("\n✅ 위저드 완료!\n"));
     }
   } catch (err) {
     if (err instanceof AuthRequiredError) {

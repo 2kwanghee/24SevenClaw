@@ -3,6 +3,7 @@ import { initCommand } from "./commands/init.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { loginCommand, logoutCommand } from "./auth/login.js";
 import { listCommand } from "./commands/list.js";
+import { redownloadCommand } from "./commands/redownload.js";
 
 const program = new Command();
 
@@ -11,7 +12,7 @@ program
   .description(
     "ClickEye CLI — AI 솔루션 빌더 (clickeye.ai 위저드의 터미널 버전)"
   )
-  .version("0.1.0");
+  .version("1.0.0");
 
 program
   .command("init")
@@ -39,5 +40,15 @@ program
   .command("logout")
   .description("현재 계정에서 로그아웃합니다")
   .action(logoutCommand);
+
+program
+  .command("redownload")
+  .description("기존 프로젝트의 ZIP을 재다운로드하고 압축 해제합니다")
+  .argument("<projectId>", "재다운로드할 프로젝트 UUID")
+  .option("--env-file <path>", ".env 파일에서 환경 변수를 읽어옵니다")
+  .option("--output <dir>", "압축 해제 대상 디렉토리 (기본값: 현재 디렉토리)")
+  .action((projectId: string, flags: { envFile?: string; output?: string }) =>
+    redownloadCommand(projectId, flags),
+  );
 
 program.parse();

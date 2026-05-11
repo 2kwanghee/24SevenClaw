@@ -286,12 +286,13 @@ def _build_claude_settings(
 
     skills = get_selected_skills(workflow_ids, catalog_prefetch)
     for skill in skills:
+        skill_name = skill.get("label", skill["id"])
         for hook_name in skill.get("hook_events", skill.get("hooks", [])):
             if hook_name == "PostToolUse":
                 hooks["PostToolUse"].append(
                     {
                         "type": "command",
-                        "command": f'echo "🔍 AI 리뷰: {skill["name"]} 검증 중.."',
+                        "command": f'echo "🔍 AI 리뷰: {skill_name} 검증 중.."',
                     }
                 )
 
