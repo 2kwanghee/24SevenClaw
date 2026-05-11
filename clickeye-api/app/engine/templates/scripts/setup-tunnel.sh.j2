@@ -77,31 +77,38 @@ if [[ "$TUNNEL_PROVIDER" == "cloudflare" ]]; then
     fi
 
     echo "   터널 기동 중 (포트 $WEBHOOK_PORT)..."
-    # URL 파싱을 위해 임시 로그 파일 사용
+    # stdout/stderr 합쳐서 임시 로그 스캔 — cloudflared 버전별 출력 채널 차이 방어
     TMP_LOG=$(mktemp)
     mkdir -p "$PROJECT_ROOT/logs"
-    nohup cloudflared tunnel --url "http://localhost:$WEBHOOK_PORT" </dev/null \
-        >>"$PROJECT_ROOT/logs/cloudflared.log" 2>"$TMP_LOG" &
+    nohup cloudflared tunnel --url "http://localhost:$WEBHOOK_PORT" \
+        --no-autoupdate </dev/null \
+        >"$TMP_LOG" 2>&1 &
     CF_PID=$!
     disown "$CF_PID" 2>/dev/null || true
 
-    # URL 발급까지 최대 20초 대기
+    # URL 발급까지 최대 60초 대기 (WSL2 콜드 네트워크 대응)
     TUNNEL_URL=""
-    for _ in $(seq 1 40); do
-        TUNNEL_URL=$(grep -oP 'https://[a-z0-9\-]+\.trycloudflare\.com' "$TMP_LOG" 2>/dev/null | head -1 || true)
-        if [[ -n "$TUNNEL_URL" ]]; then
-            break
-        fi
+    for _ in $(seq 1 120); do
+        TUNNEL_URL=$(tr -d '\r' < "$TMP_LOG" \
+            | sed 's/\x1b\[[0-9;]*[mGKHF]//g' \
+            | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' \
+            | head -1 || true)
+        [[ -n "$TUNNEL_URL" ]] && break
         sleep 0.5
     done
-    rm -f "$TMP_LOG"
 
     if [[ -z "$TUNNEL_URL" ]]; then
-        echo "   ERROR: 터널 URL을 가져오지 못했습니다. cloudflared를 직접 실행해 확인하세요:"
-        echo "   cloudflared tunnel --url http://localhost:$WEBHOOK_PORT"
+        echo "   ERROR: 터널 URL 발급 실패 (60초 타임아웃)"
+        echo "   진단 로그 (마지막 10줄):"
+        tail -10 "$TMP_LOG" | sed 's/^/     /'
         kill "$CF_PID" 2>/dev/null || true
+        rm -f "$TMP_LOG"
         exit 1
     fi
+
+    # 영구 로그 저장
+    cp "$TMP_LOG" "$PROJECT_ROOT/logs/cloudflared.log"
+    rm -f "$TMP_LOG"
 
     echo ""
     echo "   ✅ Cloudflare Tunnel URL: $TUNNEL_URL"

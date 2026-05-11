@@ -23,13 +23,32 @@ echo ""
 echo -e "${BOLD}⚙️  ClickEye 서비스 등록${NC}"
 echo "============================================"
 
-# ── systemd --user 사용 가능 여부 확인 ────────────────────────────────────────
-if ! systemctl --user status > /dev/null 2>&1 && \
-   ! systemctl --user list-units > /dev/null 2>&1; then
-  echo -e "${RED}❌ systemd --user를 사용할 수 없습니다.${NC}"
-  echo "   /etc/wsl.conf 에 아래 내용이 있는지 확인하세요:"
+# ── systemd --user 사용 가능 여부 확인 (2단계) ───────────────────────────────
+
+# 1단계: 시스템 레벨 systemd (PID 1) — start.sh와 동일 기준
+if ! [ -d /run/systemd/system ]; then
+  echo -e "${RED}❌ systemd가 PID 1로 동작하지 않습니다.${NC}"
+  echo "   /etc/wsl.conf 에 아래 내용을 추가한 뒤 'wsl --shutdown' 으로 WSL2 재시작 필요:"
   echo "   [boot]"
   echo "   systemd=true"
+  exit 1
+fi
+
+# 2단계: XDG_RUNTIME_DIR 누락 시 자동 보정 (서브셸 환경 변수 누락 방어)
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && [[ -S "${XDG_RUNTIME_DIR}/bus" ]]; then
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+fi
+
+# 3단계: user manager 도달 가능성 확인 (실제 systemctl --user 호출 가능성)
+if ! systemctl --user show-environment > /dev/null 2>&1; then
+  echo -e "${RED}❌ systemd --user manager에 연결할 수 없습니다.${NC}"
+  echo "   원인 후보:"
+  echo "     - sudo로 실행 중 → sudo 없이 재실행하세요"
+  echo "     - 비-login 셸 → 'loginctl enable-linger \$USER' 후 새 터미널에서 재실행"
+  echo "     - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR} 미존재"
   exit 1
 fi
 

@@ -21,7 +21,7 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { prototypeSessions, integrations } from "@/lib/api-client";
+import { prototypeSessions, integrations, organizations } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
 import { toast } from "sonner";
 
@@ -80,11 +80,19 @@ export default function SolutionSessionPage() {
         setSessionId(ps.id);
         setOrganizationId(ps.organization_id);
 
-        // API는 company 상세 정보를 반환하지 않으므로 solutionRequest만 병합
-        // companyName / mainProduct / businessType 등은 step 1에서 입력한 store 값을 유지
-        setCompany({
-          solutionRequest: ps.solution_prompt ?? "",
-        });
+        // organizations.me()로 조직 정보 복원 — 새 탭/새로고침 시 store 유실 방어
+        try {
+          const org = await organizations.me(token);
+          setCompany({
+            companyName: org.company_name,
+            mainProduct: org.main_product ?? "",
+            businessType: (org.business_type ?? null) as "b2b" | "b2c" | "b2b2c" | null,
+            companyDescription: org.company_description ?? "",
+            solutionRequest: ps.solution_prompt ?? "",
+          });
+        } catch {
+          setCompany({ solutionRequest: ps.solution_prompt ?? "" });
+        }
 
         if (currentStep === 0) {
           if (ps.status === "completed") {
@@ -217,6 +225,13 @@ export default function SolutionSessionPage() {
       setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
       return;
     }
+    if (!data.company.companyName?.trim()) {
+      const msg = "회사 이름이 없습니다. 1단계로 돌아가 회사 이름을 입력해 주세요.";
+      toast.error(msg);
+      setError(msg);
+      goToStep(0);
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
@@ -225,9 +240,7 @@ export default function SolutionSessionPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          project_name:
-            data.company.companyName ||
-            `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+          project_name: data.company.companyName,
           description: data.company.solutionRequest || null,
           // ZIP 재다운로드를 위해 wizard 설정 저장
           wizard_data: {
@@ -285,9 +298,7 @@ export default function SolutionSessionPage() {
               linear_team_id: hasLinear ? ev["LINEAR_TEAM_ID"] : null,
               notion_api_key: hasNotion ? ev["NOTION_API_KEY"] : null,
               notion_database_id: hasNotion ? ev["NOTION_DATABASE_ID"] : null,
-              project_name:
-                data.company.companyName ||
-                `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+              project_name: data.company.companyName,
             })
             .catch(() => {});
         }

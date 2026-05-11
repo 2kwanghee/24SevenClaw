@@ -475,7 +475,9 @@ if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
     echo -e "${CYAN}[●]${NC} 백그라운드 서비스 자동 등록 중..."
     bash "$PROJECT_ROOT/stop.sh" >/dev/null 2>&1 || true
     mkdir -p logs
-    if bash "$PROJECT_ROOT/scripts/install-service.sh" 2>&1 | tee -a logs/install-service.log; then
+    if env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
+          DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}" \
+          bash "$PROJECT_ROOT/scripts/install-service.sh" 2>&1 | tee -a logs/install-service.log; then
       echo -e "${GREEN}✅ systemd-user 서비스 등록 완료 — 터미널을 닫아도 동작 유지${NC}"
     else
       echo -e "${YELLOW}⚠️  서비스 등록 실패 — 수동 실행: bash scripts/install-service.sh${NC}"

@@ -206,13 +206,17 @@ export default function NewSolutionPage() {
       setError(msg);
       return;
     }
+    if (!data.company.companyName?.trim()) {
+      const msg = "회사 이름이 없습니다. 1단계로 돌아가 회사 이름을 입력해 주세요.";
+      toast.error(msg);
+      setError(msg);
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
       const result = await prototypeSessions.finalize(token, data.sessionId, {
-        project_name:
-          data.company.companyName ||
-          `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+        project_name: data.company.companyName,
         description: data.company.solutionRequest || null,
       });
 
@@ -231,9 +235,7 @@ export default function NewSolutionPage() {
             linear_team_id: hasLinear ? ev["LINEAR_TEAM_ID"] : null,
             notion_api_key: hasNotion ? ev["NOTION_API_KEY"] : null,
             notion_database_id: hasNotion ? ev["NOTION_DATABASE_ID"] : null,
-            project_name:
-              data.company.companyName ||
-              `솔루션 프로젝트 ${new Date().toLocaleDateString("ko-KR")}`,
+            project_name: data.company.companyName,
           })
           .catch(() => {
             // 초기 태스크 등록 실패는 무시 (프로젝트 생성은 성공)
