@@ -2,13 +2,14 @@ import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { addCommand } from "./commands/add.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { loginCommand, logoutCommand } from "./auth/login.js";
 
 const program = new Command();
 
 program
   .name("24sc")
   .description(
-    "ClickEye CLI — 하네스 엔지니어링이 탑재된 AI 개발 워크플로우를 한 줄 명령으로 구축"
+    "ClickEye CLI — AI 솔루션 빌더 (clickeye.ai 위저드의 터미널 버전)"
   )
   .version("0.1.0");
 
@@ -33,5 +34,15 @@ program
   .command("doctor")
   .description("현재 프로젝트의 ClickEye 설정 상태를 진단합니다")
   .action(doctorCommand);
+
+program
+  .command("login")
+  .description("ClickEye 계정으로 로그인합니다")
+  .action(loginCommand);
+
+program
+  .command("logout")
+  .description("현재 계정에서 로그아웃합니다")
+  .action(logoutCommand);
 
 program.parse();
