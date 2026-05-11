@@ -295,28 +295,28 @@ echo ""
 
 # ── 5.6. Claude 신뢰 디렉토리 자동 등록 (trust prompt 차단) ──────────────────────
 echo -ne "${CYAN}[●]${NC} Claude 신뢰 디렉토리 등록..."
-python3 - "$PROJECT_ROOT" 2>/dev/null <<'PYEOF' || true
+python3 -c "
 import json, sys, shutil
 from pathlib import Path
 root = sys.argv[1]
-cfg = Path.home() / ".claude.json"
+cfg = Path.home() / '.claude.json'
 data = {}
 if cfg.exists():
     try:
-        shutil.copy2(str(cfg), str(cfg) + ".bak")
+        shutil.copy2(str(cfg), str(cfg) + '.bak')
         data = json.loads(cfg.read_text())
     except Exception:
         data = {}
-projects = data.setdefault("projects", {})
+projects = data.setdefault('projects', {})
 proj = projects.setdefault(root, {})
 changed = False
-for k in ("hasTrustDialogAccepted", "hasCompletedProjectOnboarding"):
+for k in ('hasTrustDialogAccepted', 'hasCompletedProjectOnboarding'):
     if not proj.get(k):
         proj[k] = True
         changed = True
 if changed:
     cfg.write_text(json.dumps(data, indent=2))
-PYEOF
+" "$PROJECT_ROOT" 2>/dev/null || true
 echo -e " ${GREEN}✅${NC}"
 echo ""
 
