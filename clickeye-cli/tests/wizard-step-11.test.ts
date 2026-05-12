@@ -325,12 +325,14 @@ describe("step11Confirm", () => {
     expect(promptMock).toHaveBeenCalledTimes(2);
   });
 
-  it("deferredEnvVars를 빈 값으로 건너뛰어도 download 호출됨", async () => {
+  it("빈 값 입력 후 게이트에서 재입력 시 download 진행됨", async () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
-      .mockResolvedValueOnce({ projectName: "my-project" })
-      .mockResolvedValueOnce({ confirmed: true })
-      .mockResolvedValueOnce({ value: "" }); // 빈 입력으로 건너뜀
+      .mockResolvedValueOnce({ projectName: "my-project" })   // projectName
+      .mockResolvedValueOnce({ confirmed: true })              // confirmed
+      .mockResolvedValueOnce({ value: "" })                    // SOME_API_KEY — 빈 입력
+      .mockResolvedValueOnce({ action: "enter" })              // 게이트: 지금 입력
+      .mockResolvedValueOnce({ value: "secret-value" });       // SOME_API_KEY 재입력
 
     mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
 
@@ -347,8 +349,36 @@ describe("step11Confirm", () => {
 
     await step11Confirm(stateDeferred);
 
+    // 게이트 통과 후 download 호출되고 수집된 값이 전달되어야 함
     const callArgs = vi.mocked(downloadAndExtract).mock.calls[0]!;
-    // 빈 값은 envVars에 포함되지 않음
-    expect(callArgs[1]["SOME_API_KEY"]).toBeUndefined();
+    expect(callArgs[1]["SOME_API_KEY"]).toBe("secret-value");
+  });
+
+  it("빈 값 입력 후 게이트에서 취소 시 process.exit(0) 호출됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ projectName: "my-project" })   // projectName
+      .mockResolvedValueOnce({ confirmed: true })              // confirmed
+      .mockResolvedValueOnce({ value: "" })                    // SOME_API_KEY — 빈 입력
+      .mockResolvedValueOnce({ action: "cancel" });            // 게이트: 취소
+
+    mockFetchSequence([]);
+
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("process.exit called");
+    });
+
+    const stateDeferred: WizardState = {
+      ...FULL_STATE,
+      env: {
+        authMethod: "api_key",
+        envVars: {},
+        deferredEnvVars: ["SOME_API_KEY"],
+      },
+    };
+
+    await expect(step11Confirm(stateDeferred)).rejects.toThrow("process.exit called");
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
   });
 });

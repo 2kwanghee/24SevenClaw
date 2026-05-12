@@ -80,8 +80,7 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
     console.log(
       chalk.yellow(
         "\n⚠️  다음 환경 변수가 아직 입력되지 않았습니다.\n" +
-        "   지금 입력하거나 Enter로 건너뛸 수 있습니다.\n" +
-        "   → 건너뛰면 프로젝트 .env 파일에 빈 값으로 포함됩니다.\n",
+        "   지금 입력하거나 Enter로 건너뛸 수 있습니다.\n",
       ),
     );
     for (const varName of deferred) {
@@ -97,6 +96,49 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
       }
     }
     console.log();
+  }
+
+  // ── 다운로드 차단 게이트 — deferred 키가 모두 채워질 때까지 ZIP 다운로드 금지 ──
+  let missingVars = deferred.filter((v) => !finalEnvVars[v]);
+
+  while (missingVars.length > 0) {
+    console.log(
+      chalk.red(
+        "\n🚫 ZIP을 다운로드하려면 다음 환경 변수를 반드시 입력해야 합니다:\n" +
+          missingVars.map((v) => `   • ${v}`).join("\n"),
+      ),
+    );
+
+    const { action } = await inquirer.prompt<{ action: "enter" | "cancel" }>([
+      {
+        type: "list",
+        name: "action",
+        message: "어떻게 하시겠습니까?",
+        choices: [
+          { name: "지금 입력하기", value: "enter" },
+          { name: "취소 (세션 저장 후 나중에 재개)", value: "cancel" },
+        ],
+      },
+    ]);
+
+    if (action === "cancel") {
+      console.log(chalk.yellow("\n⏸  세션이 저장됩니다. `ce init`으로 재개하세요.\n"));
+      process.exit(0);
+    }
+
+    for (const varName of missingVars) {
+      const { value } = await inquirer.prompt<{ value: string }>([
+        {
+          type: "password",
+          name: "value",
+          message: `${varName}:`,
+          validate: (v: string) => v.trim().length > 0 ? true : "값을 입력해야 합니다",
+        },
+      ]);
+      finalEnvVars[varName] = value.trim();
+    }
+
+    missingVars = deferred.filter((v) => !finalEnvVars[v]);
   }
 
   // ── Finalize 호출 ─────────────────────────────────────────────────────────
