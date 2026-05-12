@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, unlink, chmod, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, mkdir, unlink, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { WizardState } from "./state.js";
@@ -27,7 +27,6 @@ export async function saveSession(state: WizardState): Promise<void> {
     encoding: "utf-8",
     mode: 0o600,
   });
-  await chmod(file, 0o600);
 }
 
 export async function loadSession(sessionId: string): Promise<WizardState | null> {

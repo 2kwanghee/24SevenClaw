@@ -129,20 +129,8 @@ export async function step09Env(state: WizardState): Promise<WizardState> {
       let linearAttempts = 0;
       while (!linearValid) {
         if (linearAttempts >= MAX_VALIDATION_ATTEMPTS) {
-          const { skipLinear } = await inquirer.prompt<{ skipLinear: boolean }>([
-            {
-              type: "confirm",
-              name: "skipLinear",
-              message: `Linear 검증 ${MAX_VALIDATION_ATTEMPTS}회 실패. 나중에 입력하시겠습니까?`,
-              default: true,
-            },
-          ]);
-          if (skipLinear) {
-            deferredEnvVars.push("LINEAR_API_KEY", "LINEAR_TEAM_ID");
-            console.log(chalk.dim("  → LINEAR_API_KEY, LINEAR_TEAM_ID: ZIP 다운로드 전에 입력합니다.\n"));
-          } else {
-            console.log(chalk.red("\n❌ Linear 설정을 건너뜁니다.\n"));
-          }
+          console.log(chalk.yellow(`\n⚠️  Linear 검증 ${MAX_VALIDATION_ATTEMPTS}회 실패. 나중에 입력하도록 유예합니다.\n`));
+          deferredEnvVars.push("LINEAR_API_KEY", "LINEAR_TEAM_ID");
           break;
         }
         linearAttempts++;
@@ -208,20 +196,8 @@ export async function step09Env(state: WizardState): Promise<WizardState> {
       let notionAttempts = 0;
       while (!notionValid) {
         if (notionAttempts >= MAX_VALIDATION_ATTEMPTS) {
-          const { skipNotion } = await inquirer.prompt<{ skipNotion: boolean }>([
-            {
-              type: "confirm",
-              name: "skipNotion",
-              message: `Notion 검증 ${MAX_VALIDATION_ATTEMPTS}회 실패. 나중에 입력하시겠습니까?`,
-              default: true,
-            },
-          ]);
-          if (skipNotion) {
-            deferredEnvVars.push("NOTION_API_KEY", "NOTION_DATABASE_ID");
-            console.log(chalk.dim("  → NOTION_API_KEY, NOTION_DATABASE_ID: ZIP 다운로드 전에 입력합니다.\n"));
-          } else {
-            console.log(chalk.red("\n❌ Notion 설정을 건너뜁니다.\n"));
-          }
+          console.log(chalk.yellow(`\n⚠️  Notion 검증 ${MAX_VALIDATION_ATTEMPTS}회 실패. 나중에 입력하도록 유예합니다.\n`));
+          deferredEnvVars.push("NOTION_API_KEY", "NOTION_DATABASE_ID");
           break;
         }
         notionAttempts++;
@@ -268,7 +244,7 @@ export async function step09Env(state: WizardState): Promise<WizardState> {
   // ── 기타 필수 env_var 수집 ────────────────────────────────────────────────
   for (const skill of selectedSkillObjects) {
     const requiredVars = (skill.env_vars ?? []).filter(
-      (ev) => ev.required && !envVars[ev.name],
+      (ev) => ev.required && !envVars[ev.name] && !deferredEnvVars.includes(ev.name),
     );
     for (const ev of requiredVars) {
       const desc = ev.description ? chalk.dim(` (${ev.description})`) : "";

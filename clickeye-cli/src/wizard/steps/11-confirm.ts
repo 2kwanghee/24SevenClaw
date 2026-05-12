@@ -72,28 +72,7 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
     process.exit(0);
   }
 
-  // ── Finalize 호출 ─────────────────────────────────────────────────────────
-  const spinner = ora("프로젝트를 생성하고 있습니다...").start();
-  let finalizeResult: FinalizeResponse;
-  try {
-    finalizeResult = await apiClient.post<FinalizeResponse>(
-      `/api/v1/prototype-sessions/${state.sessionId}/finalize`,
-      {
-        project_name: projectName.trim(),
-        linear_api_key: state.env.envVars["LINEAR_API_KEY"] ?? null,
-        linear_team_id: state.env.envVars["LINEAR_TEAM_ID"] ?? null,
-        notion_api_key: state.env.envVars["NOTION_API_KEY"] ?? null,
-        notion_database_id: state.env.envVars["NOTION_DATABASE_ID"] ?? null,
-        hook_ids: state.agents.selectedHooks,
-      },
-    );
-    spinner.succeed(`프로젝트 생성 완료: ${finalizeResult.project_name}`);
-  } catch (err) {
-    spinner.fail("프로젝트 생성 실패");
-    throw err;
-  }
-
-  // ── 미입력 환경 변수 수집 (다운로드 직전) ─────────────────────────────────
+  // ── 미입력 환경 변수 수집 (finalize 전 — linear/notion 키가 finalize 페이로드에 포함되어야 함)
   const deferred = state.env.deferredEnvVars ?? [];
   const finalEnvVars = { ...state.env.envVars };
 
@@ -118,6 +97,27 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
       }
     }
     console.log();
+  }
+
+  // ── Finalize 호출 ─────────────────────────────────────────────────────────
+  const spinner = ora("프로젝트를 생성하고 있습니다...").start();
+  let finalizeResult: FinalizeResponse;
+  try {
+    finalizeResult = await apiClient.post<FinalizeResponse>(
+      `/api/v1/prototype-sessions/${state.sessionId}/finalize`,
+      {
+        project_name: projectName.trim(),
+        linear_api_key: finalEnvVars["LINEAR_API_KEY"] ?? null,
+        linear_team_id: finalEnvVars["LINEAR_TEAM_ID"] ?? null,
+        notion_api_key: finalEnvVars["NOTION_API_KEY"] ?? null,
+        notion_database_id: finalEnvVars["NOTION_DATABASE_ID"] ?? null,
+        hook_ids: state.agents.selectedHooks,
+      },
+    );
+    spinner.succeed(`프로젝트 생성 완료: ${finalizeResult.project_name}`);
+  } catch (err) {
+    spinner.fail("프로젝트 생성 실패");
+    throw err;
   }
 
   // ── ZIP 다운로드 & 압축 해제 ─────────────────────────────────────────────

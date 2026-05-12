@@ -272,15 +272,15 @@ describe("step11Confirm", () => {
     expect(body.linear_api_key).toBeNull();
   });
 
-  it("deferredEnvVars 있을 때 다운로드 직전 prompt 표시됨", async () => {
+  it("deferredEnvVars 있을 때 finalize 전에 prompt + finalize/download 모두 수집된 값 사용", async () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
       .mockResolvedValueOnce({ projectName: "my-project" })
       .mockResolvedValueOnce({ confirmed: true })
-      .mockResolvedValueOnce({ value: "sk-ant-deferred-key" }) // ANTHROPIC_API_KEY prompt
-      .mockResolvedValueOnce({ value: "lin_api_deferred" });   // LINEAR_API_KEY prompt
+      .mockResolvedValueOnce({ value: "sk-ant-deferred-key" }) // ANTHROPIC_API_KEY
+      .mockResolvedValueOnce({ value: "lin_api_deferred" });   // LINEAR_API_KEY
 
-    mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
+    const fetchMock = mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
 
     const { downloadAndExtract } = await import("../src/api/download.js");
 
@@ -295,6 +295,16 @@ describe("step11Confirm", () => {
 
     await step11Confirm(stateDeferred);
 
+    // finalize 페이로드에 수집된 LINEAR_API_KEY가 포함되어야 함 (C1 검증)
+    const finalizeCall = fetchMock.mock.calls.find(([url]: [string]) =>
+      (url as string).includes("/finalize"),
+    );
+    const body = JSON.parse((finalizeCall![1] as RequestInit).body as string) as {
+      linear_api_key: string | null;
+    };
+    expect(body.linear_api_key).toBe("lin_api_deferred");
+
+    // downloadAndExtract에도 동일한 값이 전달되어야 함
     const callArgs = vi.mocked(downloadAndExtract).mock.calls[0]!;
     expect(callArgs[1]["ANTHROPIC_API_KEY"]).toBe("sk-ant-deferred-key");
     expect(callArgs[1]["LINEAR_API_KEY"]).toBe("lin_api_deferred");

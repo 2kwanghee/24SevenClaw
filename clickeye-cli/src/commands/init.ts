@@ -64,7 +64,6 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     // 저장된 세션이 있으면 목록 표시 후 선택
     const sessions = await listSessions();
     if (sessions.length > 0) {
-      const TOTAL_STEPS = 11;
       const choices = [
         ...sessions.map((s) => {
           const name = s.companyName ?? "(회사명 미입력)";
@@ -75,7 +74,7 @@ export async function initCommand(flags: InitFlags): Promise<void> {
             minute: "2-digit",
           });
           return {
-            name: `[Step ${s.currentStep}/${TOTAL_STEPS}] ${chalk.cyan(name)} — ${chalk.dim(date)}`,
+            name: `[Step ${s.currentStep}/${STEP_RUNNERS.length}] ${chalk.cyan(name)} — ${chalk.dim(date)}`,
             value: s.sessionId,
           };
         }),
