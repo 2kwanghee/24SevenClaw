@@ -3,7 +3,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { apiClient } from "../../api/client.js";
 import { downloadAndExtract } from "../../api/download.js";
-import { deleteSession } from "../session.js";
+import { saveSession, deleteSession } from "../session.js";
 import type { WizardState } from "../state.js";
 
 interface FinalizeResponse {
@@ -84,11 +84,13 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
       ),
     );
     for (const varName of deferred) {
+      const hasExisting = !!finalEnvVars[varName];
+      const hint = hasExisting ? chalk.dim(" [Enter로 기존 값 유지]") : "";
       const { value } = await inquirer.prompt<{ value: string }>([
         {
           type: "password",
           name: "value",
-          message: `${varName}:`,
+          message: `${varName}${hint}:`,
         },
       ]);
       if (value.trim()) {
@@ -99,6 +101,8 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
   }
 
   // ── 다운로드 차단 게이트 — deferred 키가 모두 채워질 때까지 ZIP 다운로드 금지 ──
+  // validate가 빈 입력을 막으므로 루프 본문은 최대 1회 실행됨.
+  // validate 조건이 완화될 경우를 대비해 while로 유지.
   let missingVars = deferred.filter((v) => !finalEnvVars[v]);
 
   while (missingVars.length > 0) {
@@ -122,7 +126,10 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
     ]);
 
     if (action === "cancel") {
-      console.log(chalk.yellow("\n⏸  세션이 저장됩니다. `ce init`으로 재개하세요.\n"));
+      await saveSession({ ...state, env: { ...state.env, envVars: finalEnvVars } });
+      console.log(
+        chalk.yellow(`\n⏸  세션이 저장됩니다. 재개: ce init --resume ${state.sessionId}\n`),
+      );
       process.exit(0);
     }
 

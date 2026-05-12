@@ -49,6 +49,11 @@ vi.mock("../src/api/download.js", () => ({
   downloadAndExtract: vi.fn().mockResolvedValue("/tmp/test-project"),
 }));
 
+vi.mock("../src/wizard/session.js", () => ({
+  saveSession: vi.fn().mockResolvedValue(undefined),
+  deleteSession: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("inquirer", () => ({
   default: { prompt: vi.fn() },
 }));
@@ -354,7 +359,7 @@ describe("step11Confirm", () => {
     expect(callArgs[1]["SOME_API_KEY"]).toBe("secret-value");
   });
 
-  it("빈 값 입력 후 게이트에서 취소 시 process.exit(0) 호출됨", async () => {
+  it("빈 값 입력 후 게이트에서 취소 시 saveSession 호출 후 process.exit(0)", async () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
       .mockResolvedValueOnce({ projectName: "my-project" })   // projectName
@@ -363,6 +368,8 @@ describe("step11Confirm", () => {
       .mockResolvedValueOnce({ action: "cancel" });            // 게이트: 취소
 
     mockFetchSequence([]);
+
+    const { saveSession } = await import("../src/wizard/session.js");
 
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
@@ -379,6 +386,38 @@ describe("step11Confirm", () => {
 
     await expect(step11Confirm(stateDeferred)).rejects.toThrow("process.exit called");
     expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(saveSession).toHaveBeenCalledOnce();
     exitSpy.mockRestore();
+  });
+
+  it("복수 누락 변수를 게이트에서 모두 입력하면 download에 두 값 모두 전달됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ projectName: "my-project" })   // projectName
+      .mockResolvedValueOnce({ confirmed: true })              // confirmed
+      .mockResolvedValueOnce({ value: "" })                    // VAR_A soft — 건너뜀
+      .mockResolvedValueOnce({ value: "" })                    // VAR_B soft — 건너뜀
+      .mockResolvedValueOnce({ action: "enter" })              // 게이트: 지금 입력
+      .mockResolvedValueOnce({ value: "val-a" })               // VAR_A 재입력
+      .mockResolvedValueOnce({ value: "val-b" });              // VAR_B 재입력
+
+    mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
+
+    const { downloadAndExtract } = await import("../src/api/download.js");
+
+    const stateDeferred: WizardState = {
+      ...FULL_STATE,
+      env: {
+        authMethod: "api_key",
+        envVars: {},
+        deferredEnvVars: ["VAR_A", "VAR_B"],
+      },
+    };
+
+    await step11Confirm(stateDeferred);
+
+    const callArgs = vi.mocked(downloadAndExtract).mock.calls[0]!;
+    expect(callArgs[1]["VAR_A"]).toBe("val-a");
+    expect(callArgs[1]["VAR_B"]).toBe("val-b");
   });
 });
