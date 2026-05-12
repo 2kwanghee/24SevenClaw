@@ -66,3 +66,5 @@
 - finalize API 호출 로직 변경 없음 (null 값은 이미 지원됨)
 - `downloadAndExtract` 시그니처 변경 없음
 - 기존 테스트 일부 mock 업데이트 필요 (step09 입력 시퀀스 변경)
+
+## STATUS: APPROVED
