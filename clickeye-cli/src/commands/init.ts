@@ -1,6 +1,7 @@
 import chalk from "chalk";
+import inquirer from "inquirer";
 import { INITIAL_WIZARD_STATE, type WizardState } from "../wizard/state.js";
-import { saveSession, loadSession } from "../wizard/session.js";
+import { saveSession, loadSession, listSessions } from "../wizard/session.js";
 import { step00Company } from "../wizard/steps/00-company.js";
 import { step01Generation } from "../wizard/steps/01-generation.js";
 import { step02PrototypeSelect } from "../wizard/steps/02-prototype-select.js";
@@ -60,11 +61,64 @@ export async function initCommand(flags: InitFlags): Promise<void> {
     );
     state = loaded;
   } else {
-    state = structuredClone(INITIAL_WIZARD_STATE);
-    console.log(chalk.bold("\n🚀 ClickEye AI 솔루션 위저드\n"));
+    // 저장된 세션이 있으면 목록 표시 후 선택
+    const sessions = await listSessions();
+    if (sessions.length > 0) {
+      const TOTAL_STEPS = 11;
+      const choices = [
+        ...sessions.map((s) => {
+          const name = s.companyName ?? "(회사명 미입력)";
+          const date = s.savedAt.toLocaleString("ko-KR", {
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          return {
+            name: `[Step ${s.currentStep}/${TOTAL_STEPS}] ${chalk.cyan(name)} — ${chalk.dim(date)}`,
+            value: s.sessionId,
+          };
+        }),
+        { name: chalk.bold("새로 시작"), value: null as string | null },
+      ];
+
+      const { sessionChoice } = await inquirer.prompt<{ sessionChoice: string | null }>([
+        {
+          type: "list",
+          name: "sessionChoice",
+          message: "💾 저장된 진행 중 세션이 있습니다. 어떻게 할까요?",
+          choices,
+        },
+      ]);
+
+      if (sessionChoice) {
+        let loaded: WizardState | null;
+        try {
+          loaded = await loadSession(sessionChoice);
+        } catch (err) {
+          console.error(chalk.red(`\n❌ ${String(err)}\n`));
+          process.exit(1);
+        }
+        if (loaded) {
+          console.log(chalk.cyan(`\n🔄 세션 재개: Step ${loaded.currentStep}부터 시작합니다.\n`));
+          state = loaded;
+        } else {
+          console.log(chalk.yellow("\n⚠️  세션을 찾을 수 없습니다. 새로 시작합니다.\n"));
+          state = structuredClone(INITIAL_WIZARD_STATE);
+        }
+      } else {
+        state = structuredClone(INITIAL_WIZARD_STATE);
+      }
+    } else {
+      state = structuredClone(INITIAL_WIZARD_STATE);
+    }
+
+    if (state.currentStep === 0) {
+      console.log(chalk.bold("\n🚀 ClickEye AI 솔루션 위저드\n"));
+    }
     console.log(
       chalk.dim(
-        "Ctrl+C로 중단 후 `ce init --resume <sessionId>`로 재개할 수 있습니다.\n",
+        "Ctrl+C로 중단하면 자동 저장됩니다. `ce init`으로 재개할 수 있습니다.\n",
       ),
     );
   }

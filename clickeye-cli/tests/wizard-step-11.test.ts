@@ -271,4 +271,74 @@ describe("step11Confirm", () => {
     expect(body.notion_api_key).toBeNull();
     expect(body.linear_api_key).toBeNull();
   });
+
+  it("deferredEnvVars 있을 때 다운로드 직전 prompt 표시됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ projectName: "my-project" })
+      .mockResolvedValueOnce({ confirmed: true })
+      .mockResolvedValueOnce({ value: "sk-ant-deferred-key" }) // ANTHROPIC_API_KEY prompt
+      .mockResolvedValueOnce({ value: "lin_api_deferred" });   // LINEAR_API_KEY prompt
+
+    mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
+
+    const { downloadAndExtract } = await import("../src/api/download.js");
+
+    const stateDeferred: WizardState = {
+      ...FULL_STATE,
+      env: {
+        authMethod: "api_key",
+        envVars: {},
+        deferredEnvVars: ["ANTHROPIC_API_KEY", "LINEAR_API_KEY"],
+      },
+    };
+
+    await step11Confirm(stateDeferred);
+
+    const callArgs = vi.mocked(downloadAndExtract).mock.calls[0]!;
+    expect(callArgs[1]["ANTHROPIC_API_KEY"]).toBe("sk-ant-deferred-key");
+    expect(callArgs[1]["LINEAR_API_KEY"]).toBe("lin_api_deferred");
+  });
+
+  it("deferredEnvVars 없을 때 추가 prompt 없음", async () => {
+    const inquirer = await import("inquirer");
+    const promptMock = vi.mocked(inquirer.default.prompt);
+    promptMock
+      .mockResolvedValueOnce({ projectName: "my-project" })
+      .mockResolvedValueOnce({ confirmed: true });
+
+    mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
+
+    await step11Confirm(FULL_STATE);
+
+    // prompt 호출: projectName + confirm = 2회만
+    expect(promptMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("deferredEnvVars를 빈 값으로 건너뛰어도 download 호출됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ projectName: "my-project" })
+      .mockResolvedValueOnce({ confirmed: true })
+      .mockResolvedValueOnce({ value: "" }); // 빈 입력으로 건너뜀
+
+    mockFetchSequence([{ body: FINALIZE_RESPONSE }]);
+
+    const { downloadAndExtract } = await import("../src/api/download.js");
+
+    const stateDeferred: WizardState = {
+      ...FULL_STATE,
+      env: {
+        authMethod: "api_key",
+        envVars: {},
+        deferredEnvVars: ["SOME_API_KEY"],
+      },
+    };
+
+    await step11Confirm(stateDeferred);
+
+    const callArgs = vi.mocked(downloadAndExtract).mock.calls[0]!;
+    // 빈 값은 envVars에 포함되지 않음
+    expect(callArgs[1]["SOME_API_KEY"]).toBeUndefined();
+  });
 });

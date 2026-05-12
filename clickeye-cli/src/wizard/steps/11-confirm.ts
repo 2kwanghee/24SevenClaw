@@ -93,13 +93,40 @@ export async function step11Confirm(state: WizardState): Promise<WizardState> {
     throw err;
   }
 
+  // ── 미입력 환경 변수 수집 (다운로드 직전) ─────────────────────────────────
+  const deferred = state.env.deferredEnvVars ?? [];
+  const finalEnvVars = { ...state.env.envVars };
+
+  if (deferred.length > 0) {
+    console.log(
+      chalk.yellow(
+        "\n⚠️  다음 환경 변수가 아직 입력되지 않았습니다.\n" +
+        "   지금 입력하거나 Enter로 건너뛸 수 있습니다.\n" +
+        "   → 건너뛰면 프로젝트 .env 파일에 빈 값으로 포함됩니다.\n",
+      ),
+    );
+    for (const varName of deferred) {
+      const { value } = await inquirer.prompt<{ value: string }>([
+        {
+          type: "password",
+          name: "value",
+          message: `${varName}:`,
+        },
+      ]);
+      if (value.trim()) {
+        finalEnvVars[varName] = value.trim();
+      }
+    }
+    console.log();
+  }
+
   // ── ZIP 다운로드 & 압축 해제 ─────────────────────────────────────────────
   const downloadSpinner = ora("ZIP을 다운로드하고 있습니다...").start();
   let projectDir: string;
   try {
     projectDir = await downloadAndExtract(
       finalizeResult.project_id,
-      state.env.envVars,
+      finalEnvVars,
       finalizeResult.project_name,
     );
     downloadSpinner.succeed(`압축 해제 완료: ${projectDir}`);

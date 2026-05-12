@@ -1,7 +1,14 @@
-import { readFile, writeFile, mkdir, unlink, chmod } from "node:fs/promises";
+import { readFile, writeFile, mkdir, unlink, chmod, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import type { WizardState } from "./state.js";
+
+export interface SessionSummary {
+  sessionId: string;
+  companyName: string | null;
+  currentStep: number;
+  savedAt: Date;
+}
 
 function sessionDir(): string {
   return join(homedir(), ".config", "clickeye");
@@ -51,4 +58,42 @@ export async function deleteSession(sessionId: string): Promise<void> {
   } catch {
     // 파일이 없어도 무시
   }
+}
+
+export async function listSessions(): Promise<SessionSummary[]> {
+  const dir = sessionDir();
+  let entries: string[];
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return [];
+  }
+
+  const summaries: (SessionSummary & { mtime: number })[] = [];
+  for (const entry of entries) {
+    const match = entry.match(/^session-(.+)\.json$/);
+    if (!match) continue;
+    const sessionId = match[1]!;
+    const filePath = join(dir, entry);
+    try {
+      const [raw, fileStat] = await Promise.all([
+        readFile(filePath, "utf-8"),
+        stat(filePath),
+      ]);
+      const parsed = JSON.parse(raw) as Partial<WizardState>;
+      summaries.push({
+        sessionId,
+        companyName: parsed.company?.companyName || null,
+        currentStep: parsed.currentStep ?? 0,
+        savedAt: fileStat.mtime,
+        mtime: fileStat.mtime.getTime(),
+      });
+    } catch {
+      // 손상된 파일은 무시
+    }
+  }
+
+  return summaries
+    .sort((a, b) => b.mtime - a.mtime)
+    .map(({ mtime: _mtime, ...rest }) => rest);
 }

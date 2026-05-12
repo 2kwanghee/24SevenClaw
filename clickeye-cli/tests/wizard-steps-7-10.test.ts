@@ -265,6 +265,7 @@ describe("step09Env", () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
       .mockResolvedValueOnce({ authMethod: "oauth_browser" })
+      .mockResolvedValueOnce({ linearSetupChoice: "now" })
       .mockResolvedValueOnce({
         linearApiKey: "lin_api_test123",
         linearTeamId: "team-uuid-001",
@@ -303,6 +304,7 @@ describe("step09Env", () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
       .mockResolvedValueOnce({ authMethod: "oauth_browser" })
+      .mockResolvedValueOnce({ notionSetupChoice: "now" })
       .mockResolvedValueOnce({
         notionApiKey: "secret_test456",
         notionDatabaseId: "notion-db-uuid",
@@ -341,6 +343,7 @@ describe("step09Env", () => {
     const inquirer = await import("inquirer");
     vi.mocked(inquirer.default.prompt)
       .mockResolvedValueOnce({ authMethod: "oauth_browser" })
+      .mockResolvedValueOnce({ linearSetupChoice: "now" })
       .mockResolvedValueOnce({ linearApiKey: "lin_api_bad", linearTeamId: "bad-team" })
       .mockResolvedValueOnce({ linearApiKey: "lin_api_good", linearTeamId: "good-team" });
 
@@ -371,6 +374,164 @@ describe("step09Env", () => {
 
     const result = await step09Env(linearSkillState);
     expect(result.env.envVars["LINEAR_API_KEY"]).toBe("lin_api_good");
+  });
+
+  it("api_key 건너뛰기 시 ANTHROPIC_API_KEY가 deferredEnvVars에 추가됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ authMethod: "api_key" })
+      .mockResolvedValueOnce({ apiKey: "" });
+
+    mockFetchSequence([
+      { body: { items: CATALOG_SKILLS_NO_INTEGRATION, total: 1 } },
+    ]);
+
+    const result = await step09Env(ENV_STATE);
+    expect(result.env.envVars["ANTHROPIC_API_KEY"]).toBeUndefined();
+    expect(result.env.deferredEnvVars).toContain("ANTHROPIC_API_KEY");
+  });
+
+  it("Linear 나중에 입력 선택 시 deferredEnvVars에 추가되고 validation 미호출", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ authMethod: "oauth_browser" })
+      .mockResolvedValueOnce({ linearSetupChoice: "later" });
+
+    const linearSkillState: WizardState = {
+      ...ENV_STATE,
+      agents: { ...ENV_STATE.agents, selectedSkills: ["skill-linear"] },
+    };
+
+    const fetchMock = mockFetchSequence([
+      {
+        body: {
+          items: [
+            {
+              id: "skill-linear",
+              slug: "linear-reader",
+              label: "Linear 리더",
+              description: "",
+              category: "ticket_source",
+              env_vars: [],
+            },
+          ],
+          total: 1,
+        },
+      },
+    ]);
+
+    const result = await step09Env(linearSkillState);
+    expect(result.env.deferredEnvVars).toContain("LINEAR_API_KEY");
+    expect(result.env.deferredEnvVars).toContain("LINEAR_TEAM_ID");
+    expect(result.env.envVars["LINEAR_API_KEY"]).toBeUndefined();
+    const validationCalls = fetchMock.mock.calls.filter(([url]: [string]) =>
+      (url as string).includes("/integrations/validate"),
+    );
+    expect(validationCalls).toHaveLength(0);
+  });
+
+  it("Notion 나중에 입력 선택 시 deferredEnvVars에 추가됨", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ authMethod: "oauth_browser" })
+      .mockResolvedValueOnce({ notionSetupChoice: "later" });
+
+    const notionSkillState: WizardState = {
+      ...ENV_STATE,
+      agents: { ...ENV_STATE.agents, selectedSkills: ["skill-notion"] },
+    };
+
+    mockFetchSequence([
+      {
+        body: {
+          items: [
+            {
+              id: "skill-notion",
+              slug: "notion-reader",
+              label: "Notion 리더",
+              description: "",
+              category: "ticket_source",
+              env_vars: [],
+            },
+          ],
+          total: 1,
+        },
+      },
+    ]);
+
+    const result = await step09Env(notionSkillState);
+    expect(result.env.deferredEnvVars).toContain("NOTION_API_KEY");
+    expect(result.env.deferredEnvVars).toContain("NOTION_DATABASE_ID");
+  });
+
+  it("모든 키 입력 시 deferredEnvVars가 undefined", async () => {
+    const inquirer = await import("inquirer");
+    vi.mocked(inquirer.default.prompt)
+      .mockResolvedValueOnce({ authMethod: "api_key" })
+      .mockResolvedValueOnce({ apiKey: "sk-ant-valid-key" });
+
+    mockFetchSequence([
+      { body: { items: CATALOG_SKILLS_NO_INTEGRATION, total: 1 } },
+    ]);
+
+    const result = await step09Env(ENV_STATE);
+    expect(result.env.deferredEnvVars).toBeUndefined();
+  });
+});
+
+// ── listSessions ──────────────────────────────────────────────────────────────
+
+describe("listSessions", () => {
+  it("세션 없으면 빈 배열 반환", async () => {
+    const { listSessions } = await import("../src/wizard/session.js");
+    const result = await listSessions();
+    expect(result).toEqual([]);
+  });
+
+  it("저장된 세션 목록 반환 (최신순)", async () => {
+    const { saveSession, listSessions } = await import("../src/wizard/session.js");
+
+    const state1: WizardState = {
+      ...INITIAL_WIZARD_STATE,
+      sessionId: "sess-list-001",
+      currentStep: 3,
+      company: { ...INITIAL_WIZARD_STATE.company, companyName: "첫 번째 회사" },
+    };
+    const state2: WizardState = {
+      ...INITIAL_WIZARD_STATE,
+      sessionId: "sess-list-002",
+      currentStep: 7,
+      company: { ...INITIAL_WIZARD_STATE.company, companyName: "두 번째 회사" },
+    };
+
+    await saveSession(state1);
+    // 파일 수정 시간 차이를 위해 짧은 대기
+    await new Promise((r) => setTimeout(r, 10));
+    await saveSession(state2);
+
+    const sessions = await listSessions();
+    expect(sessions.length).toBe(2);
+    // 최신순 정렬 — state2가 먼저
+    expect(sessions[0]?.sessionId).toBe("sess-list-002");
+    expect(sessions[0]?.companyName).toBe("두 번째 회사");
+    expect(sessions[0]?.currentStep).toBe(7);
+    expect(sessions[1]?.sessionId).toBe("sess-list-001");
+    expect(sessions[1]?.companyName).toBe("첫 번째 회사");
+    expect(sessions[1]?.currentStep).toBe(3);
+  });
+
+  it("손상된 파일은 목록에서 제외됨", async () => {
+    const { listSessions } = await import("../src/wizard/session.js");
+    const { writeFile, mkdir } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+
+    const dir = join(process.env["HOME"]!, ".config", "clickeye");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "session-corrupt-xxx.json"), "{{invalid json{{");
+
+    const sessions = await listSessions();
+    const found = sessions.find((s) => s.sessionId === "corrupt-xxx");
+    expect(found).toBeUndefined();
   });
 });
 

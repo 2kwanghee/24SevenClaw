@@ -55,6 +55,7 @@ export interface OsStep {
 export interface EnvStep {
   authMethod: "api_key" | "oauth_browser" | "oauth_setup_token" | null;
   envVars: Record<string, string>;
+  deferredEnvVars?: string[];
 }
 
 export interface RoiBreakdownItem {
