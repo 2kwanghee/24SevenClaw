@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { AlertCircle, ArrowRight, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowRight, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
@@ -301,6 +301,19 @@ export default function NewSolutionPage() {
     setShowResumeDialog(false);
   };
 
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await prototypeSessions.delete(token, sessionId);
+      const updated = pendingSessions.filter((s) => s.id !== sessionId);
+      setPendingSessions(updated);
+      if (updated.length === 0) {
+        setShowResumeDialog(false);
+      }
+    } catch {
+      toast.error("세션 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <>
     <BaseModal
@@ -316,45 +329,57 @@ export default function NewSolutionPage() {
         </p>
         <div className="space-y-2">
           {pendingSessions.slice(0, 5).map((s) => (
-            <button
+            <div
               key={s.id}
-              type="button"
-              onClick={() => handleResumeSession(s)}
-              className="flex w-full items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left transition-colors hover:border-violet-500/30 hover:bg-violet-500/5"
+              className="group flex w-full items-stretch rounded-xl border border-zinc-200 bg-zinc-50 transition-colors hover:border-violet-500/30 hover:bg-violet-500/5"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-zinc-900">
-                  {s.solution_prompt
-                    ? s.solution_prompt.slice(0, 60) + (s.solution_prompt.length > 60 ? "…" : "")
-                    : "(요청 내용 없음)"}
-                </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-500">
-                    {new Date(s.created_at).toLocaleDateString("ko-KR", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                      s.status === "completed"
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-zinc-100 text-zinc-500",
-                    )}
-                  >
-                    {s.status === "completed"
-                      ? "프로토타입 생성됨"
-                      : s.status === "generating"
-                        ? "생성 중"
-                        : "대기 중"}
-                  </span>
+              <button
+                type="button"
+                onClick={() => handleResumeSession(s)}
+                className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-zinc-900">
+                    {s.solution_prompt
+                      ? s.solution_prompt.slice(0, 60) + (s.solution_prompt.length > 60 ? "…" : "")
+                      : "(요청 내용 없음)"}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[11px] text-zinc-500">
+                      {new Date(s.created_at).toLocaleDateString("ko-KR", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                        s.status === "completed"
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-zinc-100 text-zinc-500",
+                      )}
+                    >
+                      {s.status === "completed"
+                        ? "프로토타입 생성됨"
+                        : s.status === "generating"
+                          ? "생성 중"
+                          : "대기 중"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
-            </button>
+                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteSession(s.id)}
+                className="flex items-center px-3 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+                aria-label="세션 삭제"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-zinc-400 hover:text-red-500" aria-hidden="true" />
+              </button>
+            </div>
           ))}
         </div>
         <button
