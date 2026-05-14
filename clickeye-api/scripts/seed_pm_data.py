@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -41,9 +42,12 @@ def _load_json(path: Path) -> Any:
 
 
 async def _get_or_create_profile(
-    db: AsyncSession, profile_data: dict[str, Any]
+    db: AsyncSession, profile_data: dict[str, Any], *, force: bool = False
 ) -> tuple[UUID, bool]:
     """PM 프로필을 조회하거나 새로 생성한다.
+
+    Args:
+        force: True이면 기존 레코드의 태그/메타 필드를 업데이트한다.
 
     Returns:
         (pm_id, was_created)
@@ -52,8 +56,24 @@ async def _get_or_create_profile(
     row = await db.execute(select(PMProfile).where(PMProfile.slug == slug))
     existing: PMProfile | None = row.scalar_one_or_none()
     if existing is not None:
-        logger.debug("건너뜀(기존): pm_profiles.slug=%s", slug)
-        return UUID(str(existing.id)), False
+        if force:
+            existing.name = profile_data["name"]
+            existing.title = profile_data.get("title")
+            existing.description = profile_data.get("description")
+            existing.domain = profile_data.get("specialty")
+            existing.avatar_url = profile_data.get("avatar_url")
+            existing.specialties = profile_data.get("skills", [])
+            existing.personality = profile_data.get("personality_traits", {})
+            existing.is_active = profile_data.get("is_active", True)
+            existing.industry_tags = profile_data.get("industry_tags", [])
+            existing.tech_stack_tags = profile_data.get("tech_stack_tags", [])
+            existing.preferred_solution_types = profile_data.get("preferred_solution_types", [])
+            existing.updated_at = datetime.now(UTC)
+            await db.flush()
+            logger.info("업데이트: PMProfile slug=%s id=%s", slug, existing.id)
+        else:
+            logger.debug("건너뜀(기존): pm_profiles.slug=%s", slug)
+        return existing.id, False
 
     profile = PMProfile(
         name=profile_data["name"],
@@ -65,11 +85,14 @@ async def _get_or_create_profile(
         specialties=profile_data.get("skills", []),
         personality=profile_data.get("personality_traits", {}),
         is_active=profile_data.get("is_active", True),
+        industry_tags=profile_data.get("industry_tags", []),
+        tech_stack_tags=profile_data.get("tech_stack_tags", []),
+        preferred_solution_types=profile_data.get("preferred_solution_types", []),
     )
     db.add(profile)
     await db.flush()
     logger.info("생성: PMProfile slug=%s id=%s", slug, profile.id)
-    return UUID(str(profile.id)), True
+    return profile.id, True
 
 
 async def _get_or_create_composition(
@@ -133,6 +156,8 @@ async def _get_or_create_metrics(db: AsyncSession, pm_id: UUID) -> bool:
 async def seed_pm_data(
     db: AsyncSession,
     data_dir: Path | None = None,
+    *,
+    force: bool = False,
 ) -> dict[str, Any]:
     """PM 프로필·컴포지션·메트릭을 DB에 시딩한다 (멱등성 보장).
 
@@ -145,11 +170,14 @@ async def seed_pm_data(
     Args:
         db: SQLAlchemy async 세션.
         data_dir: 데이터 파일 디렉토리 (None이면 프로젝트 루트의 data/ 사용).
+        force: True이면 기존 PM 레코드의 모든 메타 필드를 시드 JSON 값으로 덮어쓴다.
+            composition은 신규 항목만 추가되며 기존 항목은 force 여부와 무관하게 갱신하지 않는다.
 
     Returns:
         {
             "pm_ids": list[UUID],        # 처리된 모든 PM ID (신규 + 기존)
             "profiles_created": int,     # 신규 생성된 프로필 수
+            "profiles_updated": int,     # force 갱신된 프로필 수
             "compositions_created": int, # 신규 생성된 컴포지션 수
             "metrics_created": int,      # 신규 생성된 메트릭 수
         }
@@ -167,14 +195,17 @@ async def seed_pm_data(
 
     pm_ids: list[UUID] = []
     profiles_created = 0
+    profiles_updated = 0
     compositions_created = 0
     metrics_created = 0
 
     for profile_data in profiles_raw:
-        pm_id, created = await _get_or_create_profile(db, profile_data)
+        pm_id, created = await _get_or_create_profile(db, profile_data, force=force)
         pm_ids.append(pm_id)
         if created:
             profiles_created += 1
+        elif force:
+            profiles_updated += 1
 
         slug: str = profile_data["slug"]
         for comp in compositions_map.get(slug, []):
@@ -189,27 +220,38 @@ async def seed_pm_data(
     return {
         "pm_ids": pm_ids,
         "profiles_created": profiles_created,
+        "profiles_updated": profiles_updated,
         "compositions_created": compositions_created,
         "metrics_created": metrics_created,
     }
 
 
-async def main() -> None:
+async def main(force: bool = False) -> None:
     """스탠드얼론 실행 진입점."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     async with async_session() as db:
-        result = await seed_pm_data(db)
+        result = await seed_pm_data(db, force=force)
 
     print(
         "시딩 완료 — "
-        f"프로필 {result['profiles_created']}개, "
+        f"프로필 {result['profiles_created']}개 생성, "
+        f"{result['profiles_updated']}개 업데이트, "
         f"컴포지션 {result['compositions_created']}개, "
         f"메트릭 {result['metrics_created']}개 생성"
     )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import argparse
+
+    parser = argparse.ArgumentParser(description="PM 시드 데이터 적재")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="기존 PM 레코드의 industry_tags/tech_stack_tags/preferred_solution_types를 업데이트한다",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(force=args.force))

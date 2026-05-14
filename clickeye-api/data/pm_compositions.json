@@ -86,6 +86,130 @@
       {"component_type": "skill", "component_slug": "webhook-design", "component_name": "웹훅 설계", "config": {}, "display_order": 3, "is_required": false},
       {"component_type": "skill", "component_slug": "protocol-adapter", "component_name": "프로토콜 어댑터", "config": {}, "display_order": 4, "is_required": false},
       {"component_type": "skill", "component_slug": "error-handling", "component_name": "에러 처리", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "forge-mech": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "iot-architecture", "component_name": "IoT 아키텍처", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "database-architecture", "component_name": "데이터베이스 아키텍처", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "real-time-processing", "component_name": "실시간 처리", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "protocol-adapter", "component_name": "프로토콜 어댑터", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "monitoring-alerting", "component_name": "모니터링 및 알림", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "forge-vision": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "agent", "component_slug": "codex", "component_name": "Codex", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "ml-ops", "component_name": "MLOps", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "data-pipeline", "component_name": "데이터 파이프라인", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "data-quality", "component_name": "데이터 품질", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "analytics-platform", "component_name": "분석 플랫폼", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "monitoring-alerting", "component_name": "모니터링 및 알림", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "fin-shield": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "codex", "component_name": "Codex", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "authentication-design", "component_name": "인증 설계", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "authorization-rbac", "component_name": "권한 관리 (RBAC)", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "compliance-audit", "component_name": "컴플라이언스 감사", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "encryption-strategy", "component_name": "암호화 전략", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "vulnerability-assessment", "component_name": "취약점 분석", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "secure-coding", "component_name": "시큐어 코딩", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "fin-quant": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "agent", "component_slug": "codex", "component_name": "Codex", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "data-pipeline", "component_name": "데이터 파이프라인", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "etl-design", "component_name": "ETL 설계", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "ml-ops", "component_name": "MLOps", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "analytics-platform", "component_name": "분석 플랫폼", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "data-quality", "component_name": "데이터 품질", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "data-modeling", "component_name": "데이터 모델링", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "retail-cart": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "agent", "component_slug": "cursor", "component_name": "Cursor", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "fullstack-architecture", "component_name": "풀스택 아키텍처", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "api-integration", "component_name": "API 통합", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "performance-optimization", "component_name": "성능 최적화", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "state-management", "component_name": "상태 관리", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "deployment-strategy", "component_name": "배포 전략", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "retail-stock": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "database-architecture", "component_name": "데이터베이스 아키텍처", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "message-queue", "component_name": "메시지 큐", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "real-time-processing", "component_name": "실시간 처리", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-integration", "component_name": "API 통합", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "performance-optimization", "component_name": "성능 최적화", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "med-compliance": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "codex", "component_name": "Codex", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "compliance-audit", "component_name": "컴플라이언스 감사", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "authentication-design", "component_name": "인증 설계", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "authorization-rbac", "component_name": "권한 관리 (RBAC)", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "encryption-strategy", "component_name": "암호화 전략", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-integration", "component_name": "API 통합", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "secure-coding", "component_name": "시큐어 코딩", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "med-pixel": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "cursor", "component_name": "Cursor", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "accessibility", "component_name": "접근성", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "component-architecture", "component_name": "컴포넌트 아키텍처", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "responsive-design", "component_name": "반응형 디자인", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "design-system", "component_name": "디자인 시스템", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "state-management", "component_name": "상태 관리", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "performance-frontend", "component_name": "프론트엔드 성능", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "saas-multi": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "agent", "component_slug": "codex", "component_name": "Codex", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "database-architecture", "component_name": "데이터베이스 아키텍처", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "authentication-design", "component_name": "인증 설계", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "authorization-rbac", "component_name": "권한 관리 (RBAC)", "config": {}, "display_order": 3, "is_required": true},
+      {"component_type": "skill", "component_slug": "performance-optimization", "component_name": "성능 최적화", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "caching-strategy", "component_name": "캐싱 전략", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "gov-bridge": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "fullstack-architecture", "component_name": "풀스택 아키텍처", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "api-integration", "component_name": "API 통합", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "authentication-design", "component_name": "인증 설계", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "compliance-audit", "component_name": "컴플라이언스 감사", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "deployment-strategy", "component_name": "배포 전략", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "edu-spark": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "cursor", "component_name": "Cursor", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "component-architecture", "component_name": "컴포넌트 아키텍처", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "state-management", "component_name": "상태 관리", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "responsive-design", "component_name": "반응형 디자인", "config": {}, "display_order": 2, "is_required": false},
+      {"component_type": "skill", "component_slug": "accessibility", "component_name": "접근성", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "performance-frontend", "component_name": "프론트엔드 성능", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "design-system", "component_name": "디자인 시스템", "config": {}, "display_order": 5, "is_required": false}
+    ],
+    "media-stream": [
+      {"component_type": "agent", "component_slug": "claude-code", "component_name": "Claude Code", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "agent", "component_slug": "gemini-cli", "component_name": "Gemini CLI", "config": {}, "display_order": 1, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-design", "component_name": "API 설계", "config": {}, "display_order": 0, "is_required": true},
+      {"component_type": "skill", "component_slug": "cloud-architecture", "component_name": "클라우드 아키텍처", "config": {}, "display_order": 1, "is_required": true},
+      {"component_type": "skill", "component_slug": "performance-optimization", "component_name": "성능 최적화", "config": {}, "display_order": 2, "is_required": true},
+      {"component_type": "skill", "component_slug": "monitoring-alerting", "component_name": "모니터링 및 알림", "config": {}, "display_order": 3, "is_required": false},
+      {"component_type": "skill", "component_slug": "caching-strategy", "component_name": "캐싱 전략", "config": {}, "display_order": 4, "is_required": false},
+      {"component_type": "skill", "component_slug": "api-integration", "component_name": "API 통합", "config": {}, "display_order": 5, "is_required": false}
     ]
   }
 }

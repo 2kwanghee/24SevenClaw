@@ -4,6 +4,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
+IndustryTag = Literal[
+    "manufacturing",
+    "finance",
+    "retail",
+    "healthcare",
+    "it-saas",
+    "public",
+    "education",
+    "media",
+]
+
 # --- PMProfile ---
 
 
@@ -21,7 +32,7 @@ class PMProfileCreate(BaseModel):
     years_experience: int | None = Field(None, ge=0, le=50)
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
-    industry_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[IndustryTag] = Field(default_factory=list)
     language: str = Field(default="ko", max_length=8)
 
 
@@ -38,7 +49,7 @@ class PMProfileUpdate(BaseModel):
     years_experience: int | None = Field(None, ge=0, le=50)
     preferred_solution_types: list[str] | None = None
     tech_stack_tags: list[str] | None = None
-    industry_tags: list[str] | None = None
+    industry_tags: list[IndustryTag] | None = None
     language: str | None = Field(None, max_length=8)
     markdown_body: str | None = None
 
@@ -59,7 +70,7 @@ class PMProfileResponse(BaseModel):
     years_experience: int | None = None
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
-    industry_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[IndustryTag] = Field(default_factory=list)
     language: str = "ko"
     updated_at: datetime | None = None
     markdown_body: str | None = None
@@ -85,7 +96,7 @@ class PMProfileWithMetrics(BaseModel):
     years_experience: int | None = None
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
-    industry_tags: list[str] = Field(default_factory=list)
+    industry_tags: list[IndustryTag] = Field(default_factory=list)
     language: str = "ko"
     updated_at: datetime | None = None
     markdown_body: str | None = None
