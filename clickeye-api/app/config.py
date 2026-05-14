@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # setup_token TTL (일)
     setup_token_expire_days: int = 30
 
+    # PM 추천 v2 (Jaccard 유사도 + 차원별 점수) 활성화 여부
+    pm_reco_v2_enabled: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

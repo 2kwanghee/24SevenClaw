@@ -105,6 +105,8 @@ export function StepPMSelection() {
               domain: item.domain,
               matchScore: item.match_score,
               reasoning: item.reasoning,
+              dimensionScores: item.dimension_scores ?? {},
+              matchReasons: item.match_reasons ?? [],
             }));
             setRecommendedPMItems(mapped);
             pmIds = mapped.map((r) => ({

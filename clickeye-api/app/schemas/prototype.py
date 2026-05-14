@@ -136,6 +136,8 @@ class PMRecommendItemResponse(BaseModel):
     domain: str | None
     match_score: int
     reasoning: str
+    dimension_scores: dict[str, int] = Field(default_factory=dict)
+    match_reasons: list[str] = Field(default_factory=list)
 
 
 class RecommendPMsResponse(BaseModel):

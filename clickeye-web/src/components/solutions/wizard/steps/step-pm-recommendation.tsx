@@ -68,6 +68,8 @@ interface PMReadyCardProps {
 }
 
 function PMReadyCard({ item, index }: PMReadyCardProps) {
+  const visibleReasons = item.matchReasons.slice(0, 3);
+
   return (
     <div
       className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 animate-in fade-in slide-in-from-bottom-2"
@@ -91,7 +93,19 @@ function PMReadyCard({ item, index }: PMReadyCardProps) {
           <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
         </div>
       </div>
-      <p className="line-clamp-1 text-xs text-zinc-500 italic">&ldquo;{item.reasoning}&rdquo;</p>
+      <p className="mb-2 line-clamp-1 text-xs text-zinc-500 italic">&ldquo;{item.reasoning}&rdquo;</p>
+      {visibleReasons.length > 0 && (
+        <div className="flex flex-wrap gap-1" aria-label="매칭 사유">
+          {visibleReasons.map((reason, i) => (
+            <span
+              key={`${i}-${reason}`}
+              className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+            >
+              {reason}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -150,6 +164,8 @@ export function StepPMRecommendation() {
         domain: item.domain,
         matchScore: item.match_score,
         reasoning: item.reasoning,
+        dimensionScores: item.dimension_scores ?? {},
+        matchReasons: item.match_reasons ?? [],
       }));
 
       setItems(recommended);

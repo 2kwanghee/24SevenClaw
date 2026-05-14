@@ -156,6 +156,8 @@ export interface PMRecommendedItem {
   domain: string | null;
   matchScore: number;
   reasoning: string;
+  dimensionScores: Record<string, number>;
+  matchReasons: string[];
 }
 
 /** PM 프로필 (프론트엔드 표현 타입) */
@@ -235,6 +237,8 @@ export type AuthMethod = "api_key" | "oauth_browser";
 export interface EnvStep {
   envVars: Record<string, string>;
   authMethod: AuthMethod;
+  /** 사용자가 "나중에 입력"을 선택한 키 목록 */
+  deferredEnvVars: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +330,7 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   env: {
     envVars: {},
     authMethod: "api_key",
+    deferredEnvVars: [],
   },
   roi: {
     overrides: {},

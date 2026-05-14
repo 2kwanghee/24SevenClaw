@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
@@ -22,8 +22,10 @@ import {
   StepConfirmation,
 } from "@/components/solutions/wizard/steps";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { organizations, prototypeSessions, integrations, ApiClientError, NetworkError } from "@/lib/api-client";
+import { organizations, prototypeSessions, integrations, ApiClientError, NetworkError, type PrototypeSessionResponse } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
+import { BaseModal } from "@/components/common/base-modal";
+import { cn } from "@/lib/utils";
 
 // 인덱스: 0=회사정보, 1=솔루션생성(로딩), 2=프로토타입선택, 3=PM추천(자동), 4=PM선택, 5=PM구성확인, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=ROI비교, 11=최종확인
 const STEP_COMPONENTS = [
@@ -54,6 +56,7 @@ export default function NewSolutionPage() {
     step3Done,
     envValidation,
     nextStep,
+    goToStep,
     setSessionId,
     setOrganizationId,
     setCreatedProjectId,
@@ -64,11 +67,36 @@ export default function NewSolutionPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingSessions, setPendingSessions] = useState<PrototypeSessionResponse[]>([]);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const resumeCheckedRef = useRef(false);
 
   // 페이지 진입 시 위저드 초기화
   useEffect(() => {
     reset();
   }, [reset]);
+
+  // 토큰 확보 후 한 번만 미완료 세션 확인
+  useEffect(() => {
+    if (!token || resumeCheckedRef.current) return;
+    resumeCheckedRef.current = true;
+
+    void prototypeSessions
+      .list(token, { limit: 10 })
+      .then((sessions) => {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const recent = sessions.filter(
+          (s) =>
+            s.status !== "failed" &&
+            new Date(s.created_at).getTime() > sevenDaysAgo,
+        );
+        if (recent.length > 0) {
+          setPendingSessions(recent);
+          setShowResumeDialog(true);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const StepComponent = STEP_COMPONENTS[currentStep];
 
@@ -112,24 +140,29 @@ export default function NewSolutionPage() {
       case 9: {
         const ev = data.env.envVars;
         const am = data.env.authMethod ?? "api_key";
-        // authMethod별 Anthropic 자격증명 검증
-        if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim()) return false;
+        const deferred = data.env.deferredEnvVars ?? [];
+        // authMethod별 Anthropic 자격증명 검증 (deferred면 허용)
+        if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim() && !deferred.includes("ANTHROPIC_API_KEY")) return false;
         // oauth_browser: 입력값 없이 통과
-        // 선택된 스킬의 required env_vars 전체 검증
+        // 선택된 스킬의 required env_vars 전체 검증 (deferred면 허용)
         if (skillsData?.items) {
           for (const skill of skillsData.items) {
             if (!data.agents.selectedSkills.includes(skill.id)) continue;
             for (const v of skill.env_vars) {
-              if (v.required && !ev[v.name]?.trim()) return false;
+              if (v.required && !ev[v.name]?.trim() && !deferred.includes(v.name)) return false;
             }
           }
         }
-        // 라이브 검증 (linear / notion)
+        // 라이브 검증 (linear / notion) — 해당 키가 deferred이면 검증 건너뜀
         if (data.agents.selectedSkills.includes("linear")) {
-          if (envValidation.linearStatus !== "valid") return false;
+          const linearDeferred =
+            deferred.includes("LINEAR_API_KEY") || deferred.includes("LINEAR_TEAM_ID");
+          if (!linearDeferred && envValidation.linearStatus !== "valid") return false;
         }
         if (data.agents.selectedSkills.includes("notion")) {
-          if (envValidation.notionStatus !== "valid") return false;
+          const notionDeferred =
+            deferred.includes("NOTION_API_KEY") || deferred.includes("NOTION_DATABASE_ID");
+          if (!notionDeferred && envValidation.notionStatus !== "valid") return false;
         }
         return true;
       }
@@ -258,7 +291,82 @@ export default function NewSolutionPage() {
     }
   };
 
+  const handleResumeSession = (session: PrototypeSessionResponse) => {
+    setSessionId(session.id);
+    if (session.status === "completed") {
+      goToStep(2);
+    } else {
+      goToStep(1);
+    }
+    setShowResumeDialog(false);
+  };
+
   return (
+    <>
+    <BaseModal
+      open={showResumeDialog}
+      onClose={() => setShowResumeDialog(false)}
+      title="진행 중인 세션이 있습니다"
+      titleId="resume-dialog-title"
+      size="md"
+    >
+      <div className="space-y-4 p-6">
+        <p className="text-sm text-zinc-500">
+          이전에 시작한 위저드 세션을 계속 진행하거나 새로 시작할 수 있습니다.
+        </p>
+        <div className="space-y-2">
+          {pendingSessions.slice(0, 5).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => handleResumeSession(s)}
+              className="flex w-full items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left transition-colors hover:border-violet-500/30 hover:bg-violet-500/5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-zinc-900">
+                  {s.solution_prompt
+                    ? s.solution_prompt.slice(0, 60) + (s.solution_prompt.length > 60 ? "…" : "")
+                    : "(요청 내용 없음)"}
+                </p>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-[11px] text-zinc-500">
+                    {new Date(s.created_at).toLocaleDateString("ko-KR", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                      s.status === "completed"
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-zinc-100 text-zinc-500",
+                    )}
+                  >
+                    {s.status === "completed"
+                      ? "프로토타입 생성됨"
+                      : s.status === "generating"
+                        ? "생성 중"
+                        : "대기 중"}
+                  </span>
+                </div>
+              </div>
+              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowResumeDialog(false)}
+          className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+        >
+          새로 시작
+        </button>
+      </div>
+    </BaseModal>
+
     <SolutionWizardLayout
       onSubmit={handleSubmit}
       onNextStep={currentStep === 0 ? handleStep1Next : undefined}
@@ -289,5 +397,6 @@ export default function NewSolutionPage() {
 
       <StepComponent />
     </SolutionWizardLayout>
+    </>
   );
 }

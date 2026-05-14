@@ -29,11 +29,16 @@ def _register_sqlite_functions(dbapi_connection, connection_record):  # type: ig
 
 
 @pytest.fixture(autouse=True)
-async def _setup_db() -> AsyncIterator[None]:
+async def _setup_db(request: pytest.FixtureRequest) -> AsyncIterator[None]:
     """각 테스트 전에 테이블 생성, 후에 삭제.
 
     백그라운드 태스크가 테스트 DB를 사용하도록 세션 팩토리도 교체한다.
+    `no_db` 마커가 있는 테스트(순수 단위 테스트)는 DB 설정을 건너뛴다.
     """
+    if request.node.get_closest_marker("no_db"):
+        yield
+        return
+
     # 백그라운드 태스크용 세션 팩토리를 테스트 DB로 교체
     original_factory = _proto_router._bg_session_factory
     _proto_router._bg_session_factory = TestSession

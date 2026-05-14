@@ -64,6 +64,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "no_db: 순수 단위 테스트 — DB 설정 건너뜀",
+]
 
 [dependency-groups]
 dev = [

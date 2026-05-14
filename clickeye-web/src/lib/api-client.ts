@@ -791,6 +791,8 @@ export interface PMRecommendItemResponse {
   domain: string | null;
   match_score: number;
   reasoning: string;
+  dimension_scores?: Record<string, number>;
+  match_reasons?: string[];
 }
 
 /** POST /prototype-sessions/{id}/recommend-pms 응답 */

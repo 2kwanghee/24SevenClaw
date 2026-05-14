@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -44,9 +44,11 @@ interface RequiredKeyRowProps {
   config: RequiredKeyConfig;
   value: string;
   onChange: (key: string, value: string) => void;
+  isDeferred?: boolean;
+  onDefer?: () => void;
 }
 
-function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
+function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }: RequiredKeyRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const isSet = value.trim().length > 0;
@@ -62,7 +64,9 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
         "rounded-xl border px-4 py-3 transition-colors",
         isSet
           ? "border-emerald-200 bg-emerald-50"
-          : "border-red-500/20 bg-red-500/5",
+          : isDeferred
+            ? "border-amber-500/20 bg-amber-500/5"
+            : "border-red-500/20 bg-red-500/5",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -70,6 +74,11 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
           {isSet ? (
             <CheckCircle2
               className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
+              aria-hidden="true"
+            />
+          ) : isDeferred ? (
+            <Clock
+              className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
               aria-hidden="true"
             />
           ) : (
@@ -88,10 +97,12 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
                   "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                   isSet
                     ? "bg-emerald-50 text-emerald-600"
-                    : "bg-red-500/15 text-red-600",
+                    : isDeferred
+                      ? "bg-amber-500/15 text-amber-500"
+                      : "bg-red-500/15 text-red-600",
                 )}
               >
-                {isSet ? "설정됨" : "필수"}
+                {isSet ? "설정됨" : isDeferred ? "나중에 입력" : "필수"}
               </span>
             </div>
             <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -123,6 +134,16 @@ function RequiredKeyRow({ config, value, onChange }: RequiredKeyRowProps) {
           >
             {isEditing ? "취소" : isSet ? "수정" : "입력"}
           </button>
+          {!isSet && !isEditing && !isDeferred && onDefer && (
+            <button
+              type="button"
+              onClick={onDefer}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-amber-500 transition-colors hover:bg-amber-500/10"
+              aria-label={`${config.label} 나중에 입력`}
+            >
+              나중에
+            </button>
+          )}
         </div>
       </div>
 
@@ -212,6 +233,7 @@ export function StepSolutionEnv() {
 
   const envVars = useSolutionWizardStore((s) => s.data.env.envVars);
   const authMethod = useSolutionWizardStore((s) => s.data.env.authMethod ?? "api_key");
+  const deferredEnvVars = useSolutionWizardStore((s) => s.data.env.deferredEnvVars ?? []);
   const selectedSkills = useSolutionWizardStore((s) => s.data.agents.selectedSkills);
   const selectedHooks = useSolutionWizardStore((s) => s.data.agents.selectedHooks ?? []);
   const setEnv = useSolutionWizardStore((s) => s.setEnv);
@@ -245,10 +267,26 @@ export function StepSolutionEnv() {
       g.vars.filter((v) => v.required).map((v) => ({ key: v.name, label: v.name, description: v.description ?? "" }))
     ),
   ];
-  const missingKeys = allRequiredKeys.filter((c) => !envVars[c.key]?.trim());
+  // 미입력이면서 deferred도 아닌 키만 "누락"으로 간주
+  const missingKeys = allRequiredKeys.filter(
+    (c) => !envVars[c.key]?.trim() && !deferredEnvVars.includes(c.key),
+  );
+  const satisfiedCount = allRequiredKeys.filter(
+    (c) => !!envVars[c.key]?.trim() || deferredEnvVars.includes(c.key),
+  ).length;
 
   const handleRequiredKeyChange = (key: string, value: string) => {
-    setEnv({ envVars: { ...envVars, [key]: value } });
+    // 값을 입력하면 deferred 목록에서 자동 제거
+    const newDeferred = value.trim()
+      ? deferredEnvVars.filter((k) => k !== key)
+      : deferredEnvVars;
+    setEnv({ envVars: { ...envVars, [key]: value }, deferredEnvVars: newDeferred });
+  };
+
+  const handleDefer = (key: string) => {
+    if (!deferredEnvVars.includes(key)) {
+      setEnv({ deferredEnvVars: [...deferredEnvVars, key] });
+    }
   };
 
   /* ----------------------------------------------------------------
@@ -438,7 +476,7 @@ export function StepSolutionEnv() {
         <h3 className="text-sm font-medium text-zinc-700">
           필수 API 키
           <span className="ml-1.5 text-[11px] font-normal text-zinc-500">
-            ({allRequiredKeys.length - missingKeys.length}/{allRequiredKeys.length} 설정됨)
+            ({satisfiedCount}/{allRequiredKeys.length} 설정됨)
           </span>
         </h3>
         {alwaysRequired.map((config) => (
@@ -447,6 +485,8 @@ export function StepSolutionEnv() {
             config={config}
             value={envVars[config.key] ?? ""}
             onChange={handleRequiredKeyChange}
+            isDeferred={deferredEnvVars.includes(config.key)}
+            onDefer={() => handleDefer(config.key)}
           />
         ))}
       </div>
@@ -511,6 +551,8 @@ export function StepSolutionEnv() {
                   config={{ key: envVar.name, label: envVar.name, description: envVar.description ?? "" }}
                   value={envVars[envVar.name] ?? ""}
                   onChange={handleRequiredKeyChange}
+                  isDeferred={deferredEnvVars.includes(envVar.name)}
+                  onDefer={() => handleDefer(envVar.name)}
                 />
               ))}
             </div>
@@ -541,7 +583,16 @@ export function StepSolutionEnv() {
           role="alert"
           className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400"
         >
-          필수 키 {missingKeys.length}개가 미설정 상태입니다. 설정 후 다음 단계로 진행하세요.
+          필수 키 {missingKeys.length}개가 미설정 상태입니다. 값을 입력하거나 &ldquo;나중에&rdquo; 버튼으로 나중에 입력하도록 지정하세요.
+        </p>
+      )}
+      {deferredEnvVars.length > 0 && (
+        <p
+          role="status"
+          className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs text-zinc-500"
+        >
+          <Clock className="mr-1.5 inline h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+          나중에 입력할 키 {deferredEnvVars.length}개 — 최종 확인 단계에서 추가 입력할 수 있습니다.
         </p>
       )}
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   Building2,
+  Clock,
   Cpu,
   UserCircle2,
   Bot,
@@ -438,9 +439,14 @@ export function StepConfirmation() {
 
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
+  const setEnv = useSolutionWizardStore((s) => s.setEnv);
   const { company, prototypes, pm, roi, env } = data;
   const authMethodLabel =
     env.authMethod === "oauth_browser" ? "OAuth 브라우저 로그인" : "API 키";
+
+  const deferredEnvVars = env.deferredEnvVars ?? [];
+  const pendingDeferred = deferredEnvVars.filter((k) => !env.envVars[k]?.trim());
+  const [draftDeferred, setDraftDeferred] = useState<Record<string, string>>({});
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -663,6 +669,58 @@ export function StepConfirmation() {
             />
           </div>
           <p className="mt-3 text-[10px] text-emerald-600/70">공식 버전: {roi.result.formulaVersion}</p>
+        </div>
+      )}
+
+      {/* -- 미입력 API 키 게이트 -- */}
+      {pendingDeferred.length > 0 && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-amber-600">
+            <Clock className="h-4 w-4" aria-hidden="true" />
+            미입력 API 키 ({pendingDeferred.length}개)
+          </h3>
+          <p className="mb-3 text-xs text-zinc-500">
+            나중에 입력하기로 한 키입니다. 지금 입력하거나 프로젝트 생성 후{" "}
+            <code className="text-amber-400">.env</code> 파일을 직접 수정할 수 있습니다.
+          </p>
+          <div className="space-y-2">
+            {pendingDeferred.map((key) => (
+              <div key={key} className="flex items-center gap-2">
+                <code className="w-44 shrink-0 truncate font-mono text-xs text-zinc-700">
+                  {key}
+                </code>
+                <input
+                  type="password"
+                  value={draftDeferred[key] ?? ""}
+                  onChange={(e) =>
+                    setDraftDeferred((prev) => ({ ...prev, [key]: e.target.value }))
+                  }
+                  placeholder="값 입력 (선택사항)"
+                  className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs placeholder-zinc-400 outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = draftDeferred[key]?.trim();
+                    if (!val) return;
+                    setEnv({
+                      envVars: { ...env.envVars, [key]: val },
+                      deferredEnvVars: deferredEnvVars.filter((k) => k !== key),
+                    });
+                    setDraftDeferred((prev) => {
+                      const next = { ...prev };
+                      delete next[key];
+                      return next;
+                    });
+                  }}
+                  disabled={!draftDeferred[key]?.trim()}
+                  className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  저장
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

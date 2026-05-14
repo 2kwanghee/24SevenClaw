@@ -217,6 +217,8 @@ async def recommend_pms(
                 domain=profile.domain,
                 match_score=int(rec["match_score"]),
                 reasoning=str(rec["reasoning"]),
+                dimension_scores=dict(rec.get("dimension_scores") or {}),
+                match_reasons=list(rec.get("match_reasons") or []),
             )
         )
 

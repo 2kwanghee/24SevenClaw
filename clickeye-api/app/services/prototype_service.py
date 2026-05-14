@@ -368,6 +368,13 @@ class PrototypeService:
 
         return session
 
+    @staticmethod
+    def _jaccard(set_a: set[str], set_b: set[str]) -> float:
+        """자카드 유사도 계산 (교집합 / 합집합)."""
+        if not set_a or not set_b:
+            return 0.0
+        return len(set_a & set_b) / len(set_a | set_b)
+
     def _compute_rule_scores(
         self,
         profiles: list[PMProfile],
@@ -375,13 +382,25 @@ class PrototypeService:
         context_text: str,
         metrics_by_pm: dict[Any, PMMetrics],
         user_industry: str = "",
+        user_tech_stack: list[str] | None = None,
     ) -> dict[Any, dict[str, float]]:
-        """규칙 기반 점수 계산. {pm_id: {domain, specialty, metric, industry, rule_score}} 반환."""
+        """규칙 기반 점수 계산.
+
+        Returns:
+            {pm_id: {domain, specialty, metric, industry, stack, rule_score,
+                     dimension_scores, match_reasons}}
+        PM_RECO_V2_ENABLED=true 시 Jaccard 유사도 + 5차원 가중치,
+        false 시 기존 binary 방식 + 4차원 가중치를 유지한다.
+        """
+        from app.config import settings
+
+        v2 = settings.pm_reco_v2_enabled
         domains = [str(p.domain or "") for p in profiles]
         domain_scores_map = self._claude.recommend_pm_scores(design_pattern, domains)
 
         combined_text = (design_pattern + " " + context_text).lower()
         keywords = [kw for kw in combined_text.split() if len(kw) > 2]
+        user_stack_set = {s.lower() for s in (user_tech_stack or [])}
 
         result: dict[Any, dict[str, float]] = {}
         for profile in profiles:
@@ -405,30 +424,81 @@ class PrototypeService:
             else:
                 metric_score = 50.0
 
-            # 업종 매칭 점수: PM의 industry_tags에 user_industry가 포함되면 100, 없으면 30
             _industry_tags: Any = getattr(profile, "industry_tags", None) or []
-            pm_industries = [str(t).lower() for t in _industry_tags]
-            if user_industry and pm_industries:
-                industry_score = 100.0 if user_industry.lower() in pm_industries else 30.0
-            elif not pm_industries:
-                # industry_tags 미설정 PM은 중립(50)으로 처리
-                industry_score = 50.0
-            else:
-                industry_score = 50.0
+            pm_industries = {str(t).lower() for t in _industry_tags}
+            _tech_stack_tags: Any = getattr(profile, "tech_stack_tags", None) or []
+            pm_stack_set = {str(t).lower() for t in _tech_stack_tags}
 
-            # 가중치: domain 35% + specialty 25% + metric 25% + industry 15%
-            rule_score = (
-                domain_score * 0.35
-                + specialty_score * 0.25
-                + metric_score * 0.25
-                + industry_score * 0.15
-            )
+            match_reasons: list[str] = []
+
+            if v2:
+                # industry_score: 자카드 유사도 기반 (0~100)
+                # user_industry 미입력 시 신호 없음 → 모든 PM에 중립(50) 부여 (v1과 동일)
+                if user_industry and pm_industries:
+                    user_ind_set = {user_industry.lower()}
+                    jaccard_ind = self._jaccard(user_ind_set, pm_industries)
+                    industry_score = jaccard_ind * 100.0
+                    if jaccard_ind > 0:
+                        match_reasons.append(f"산업 매칭: {user_industry}")
+                else:
+                    industry_score = 50.0  # 범용 PM이거나 업종 미입력: 중립
+
+                # stack_score: 자카드 유사도 기반 (0~100)
+                if user_stack_set and pm_stack_set:
+                    jaccard_stack = self._jaccard(user_stack_set, pm_stack_set)
+                    stack_score = jaccard_stack * 100.0
+                    if jaccard_stack > 0:
+                        matched_stacks = user_stack_set & pm_stack_set
+                        match_reasons.append(f"스택 매칭: {', '.join(sorted(matched_stacks))}")
+                else:
+                    stack_score = 50.0
+
+                if domain_score >= 70:
+                    match_reasons.append(f"도메인 매칭: {domain_key}")
+
+                # 가중치: domain 25% + specialty 20% + industry 20% + stack 15% + metric 20%
+                rule_score = (
+                    domain_score * 0.25
+                    + specialty_score * 0.20
+                    + industry_score * 0.20
+                    + stack_score * 0.15
+                    + metric_score * 0.20
+                )
+            else:
+                # v1: 기존 binary 방식 유지
+                if user_industry and pm_industries:
+                    industry_score = 100.0 if user_industry.lower() in pm_industries else 30.0
+                elif not pm_industries:
+                    industry_score = 50.0
+                else:
+                    industry_score = 50.0
+                stack_score = 50.0
+
+                # 가중치: domain 35% + specialty 25% + metric 25% + industry 15%
+                rule_score = (
+                    domain_score * 0.35
+                    + specialty_score * 0.25
+                    + metric_score * 0.25
+                    + industry_score * 0.15
+                )
+
+            dimension_scores = {
+                "domain": int(domain_score),
+                "specialty": int(specialty_score),
+                "industry": int(industry_score),
+                "stack": int(stack_score),
+                "metric": int(metric_score),
+            }
+
             result[_pid] = {
                 "domain": domain_score,
                 "specialty": specialty_score,
                 "metric": metric_score,
                 "industry": industry_score,
+                "stack": stack_score,
                 "rule_score": rule_score,
+                "dimension_scores": dimension_scores,
+                "match_reasons": match_reasons,
             }
         return result
 
@@ -458,9 +528,10 @@ class PrototypeService:
         context_text = str(session.solution_prompt or "")
         design_pattern = str(prototype.design_pattern or "")
 
-        # 세션 extra에서 업종 정보 추출
+        # 세션 extra에서 업종/기술스택 정보 추출
         _extra: Any = session.extra or {}
         user_industry = str(_extra.get("user_industry", "") or "")
+        user_tech_stack: list[str] = list(_extra.get("user_tech_stack", None) or [])
 
         # 활성 PM 프로필 조회 — 업종 필터링 적용
         # 1) user_industry가 있으면 해당 업종 태그를 포함한 PM 우선 조회
@@ -494,9 +565,14 @@ class PrototypeService:
         metrics_result = await self.db.execute(metrics_stmt)
         metrics_by_pm: dict[Any, PMMetrics] = {m.pm_id: m for m in metrics_result.scalars().all()}
 
-        # 규칙 기반 점수 계산 (업종 가중치 포함)
+        # 규칙 기반 점수 계산 (업종/스택 가중치 포함)
         rule_detail = self._compute_rule_scores(
-            profiles, design_pattern, context_text, metrics_by_pm, user_industry=user_industry
+            profiles,
+            design_pattern,
+            context_text,
+            metrics_by_pm,
+            user_industry=user_industry,
+            user_tech_stack=user_tech_stack,
         )
 
         # Claude 하이브리드 추천 시도
@@ -595,6 +671,8 @@ class PrototypeService:
                     "pm_profile": profile,
                     "match_score": final_score_int,
                     "reasoning": reasoning,
+                    "dimension_scores": rule_info.get("dimension_scores", {}),
+                    "match_reasons": rule_info.get("match_reasons", []),
                 }
             )
             final_ranking_log.append(
