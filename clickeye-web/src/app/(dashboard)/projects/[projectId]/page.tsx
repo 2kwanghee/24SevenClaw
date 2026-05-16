@@ -573,6 +573,15 @@ export default function ProjectDetailPage() {
                       API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-[var(--text-secondary)]">.env</code>에 직접 작성됩니다.
                     </p>
                   )}
+                  {hasLinear && (
+                    <LinearPreflightCard
+                      compact
+                      projectId={projectId}
+                      status={linearStatus ?? null}
+                      isFetching={linearFetching}
+                      onRefresh={() => void refetchLinearStatus()}
+                    />
+                  )}
                   {ENV_FIELDS.length > 0 && (
                     <div className="grid gap-2 sm:grid-cols-2">
                       {ENV_FIELDS.map(({ key, label, placeholder }) => {
@@ -680,13 +689,7 @@ export default function ProjectDetailPage() {
           />
         )}
 
-        {/* Linear 연동 프리플라이트 카드 */}
-        <LinearPreflightCard
-          projectId={projectId}
-          status={linearStatus ?? null}
-          isFetching={linearFetching}
-          onRefresh={() => void refetchLinearStatus()}
-        />
+        {/* Linear 연동 프리플라이트 카드는 ZIP 다운로드 카드 안으로 통합 (아래 IIFE 내부) */}
 
         {/* 위험 구역 */}
         <div className="mt-6 rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -803,6 +806,8 @@ interface LinearPreflightCardProps {
   status: ProjectLinearStatus | null;
   isFetching: boolean;
   onRefresh: () => void;
+  /** true 면 ZIP 다운로드 카드 안에 임베드되는 sub-card 스타일로 렌더 */
+  compact?: boolean;
 }
 
 interface CheckItemProps {
@@ -829,15 +834,23 @@ function CheckItem({ ok, label, description }: CheckItemProps) {
   );
 }
 
-function LinearPreflightCard({ projectId, status, isFetching, onRefresh }: LinearPreflightCardProps) {
+function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact = false }: LinearPreflightCardProps) {
   const credentialsReady = status?.credentials_saved === true;
 
   return (
-    <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="mb-5 flex items-center justify-between">
+    <div
+      className={
+        compact
+          ? "rounded-xl border border-[var(--border-subtle)] bg-zinc-50 p-5"
+          : "mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+      }
+    >
+      <div className={compact ? "mb-3 flex items-center justify-between" : "mb-5 flex items-center justify-between"}>
         <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-zinc-700" />
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Linear 연동 상태</h2>
+          <Zap className={compact ? "h-3.5 w-3.5 text-zinc-700" : "h-4 w-4 text-zinc-700"} />
+          <h2 className={compact ? "text-sm font-semibold text-[var(--text-primary)]" : "text-lg font-semibold text-[var(--text-primary)]"}>
+            Linear 연동 상태 {compact && <span className="ml-1 text-[11px] font-normal text-[var(--text-muted)]">(서버 자동화용)</span>}
+          </h2>
         </div>
         <button
           onClick={onRefresh}
