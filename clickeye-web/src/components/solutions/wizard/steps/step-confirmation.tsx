@@ -30,6 +30,11 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { integrations, pmProfiles, type PMProfileWithMetrics } from "@/lib/api-client";
+import {
+  checkLinearInputs,
+  checkNotionInputs,
+  describeIntegrationError,
+} from "@/lib/integration-validators";
 import { PMRatingStars } from "../pm-rating-stars";
 import { PrototypePreview } from "../prototype-preview";
 import { IntegrationValidationBadge } from "../integration-validation-badge";
@@ -428,6 +433,11 @@ export function StepConfirmation() {
         setEnvValidation({ linearStatus: "idle", linearMessage: "" });
         return;
       }
+      const check = checkLinearInputs(apiKey, teamId);
+      if (!check.ok) {
+        setEnvValidation({ linearStatus: "invalid", linearMessage: check.message });
+        return;
+      }
       setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -440,10 +450,10 @@ export function StepConfirmation() {
             linearStatus: res.valid ? "valid" : "invalid",
             linearMessage: res.message,
           });
-        } catch {
+        } catch (err) {
           setEnvValidation({
             linearStatus: "invalid",
-            linearMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+            linearMessage: describeIntegrationError(err),
           });
         }
       }, DEBOUNCE_MS);
@@ -458,6 +468,11 @@ export function StepConfirmation() {
         setEnvValidation({ notionStatus: "idle", notionMessage: "" });
         return;
       }
+      const check = checkNotionInputs(apiKey, databaseId);
+      if (!check.ok) {
+        setEnvValidation({ notionStatus: "invalid", notionMessage: check.message });
+        return;
+      }
       setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -470,10 +485,10 @@ export function StepConfirmation() {
             notionStatus: res.valid ? "valid" : "invalid",
             notionMessage: res.message,
           });
-        } catch {
+        } catch (err) {
           setEnvValidation({
             notionStatus: "invalid",
-            notionMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+            notionMessage: describeIntegrationError(err),
           });
         }
       }, DEBOUNCE_MS);

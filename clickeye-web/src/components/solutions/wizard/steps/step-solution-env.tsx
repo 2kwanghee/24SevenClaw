@@ -9,6 +9,11 @@ import { useSession } from "next-auth/react";
 import { integrations } from "@/lib/api-client";
 import { useCatalogHooks, useCatalogSkills } from "@/hooks/use-catalog";
 import { collectEnvVars } from "@/lib/catalog-helpers";
+import {
+  checkLinearInputs,
+  checkNotionInputs,
+  describeIntegrationError,
+} from "@/lib/integration-validators";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { cn } from "@/lib/utils";
 import { IntegrationValidationBadge } from "../integration-validation-badge";
@@ -258,6 +263,12 @@ export function StepSolutionEnv() {
         setEnvValidation({ linearStatus: "idle", linearMessage: "" });
         return;
       }
+      // 클라이언트 사전 검증: 비-ASCII 입력은 fetch 호출 자체가 실패할 수 있어 차단
+      const check = checkLinearInputs(apiKey, teamId);
+      if (!check.ok) {
+        setEnvValidation({ linearStatus: "invalid", linearMessage: check.message });
+        return;
+      }
       setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -270,10 +281,10 @@ export function StepSolutionEnv() {
             linearStatus: res.valid ? "valid" : "invalid",
             linearMessage: res.message,
           });
-        } catch {
+        } catch (err) {
           setEnvValidation({
             linearStatus: "invalid",
-            linearMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+            linearMessage: describeIntegrationError(err),
           });
         }
       }, DEBOUNCE_MS);
@@ -288,6 +299,11 @@ export function StepSolutionEnv() {
         setEnvValidation({ notionStatus: "idle", notionMessage: "" });
         return;
       }
+      const check = checkNotionInputs(apiKey, databaseId);
+      if (!check.ok) {
+        setEnvValidation({ notionStatus: "invalid", notionMessage: check.message });
+        return;
+      }
       setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -300,10 +316,10 @@ export function StepSolutionEnv() {
             notionStatus: res.valid ? "valid" : "invalid",
             notionMessage: res.message,
           });
-        } catch {
+        } catch (err) {
           setEnvValidation({
             notionStatus: "invalid",
-            notionMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+            notionMessage: describeIntegrationError(err),
           });
         }
       }, DEBOUNCE_MS);

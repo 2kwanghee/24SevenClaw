@@ -48,6 +48,11 @@ import {
   IntegrationValidationBadge,
   type ValidationStatus,
 } from "@/components/solutions/wizard/integration-validation-badge";
+import {
+  checkLinearInputs,
+  checkNotionInputs,
+  describeIntegrationError,
+} from "@/lib/integration-validators";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
@@ -117,6 +122,12 @@ export default function ProjectDetailPage() {
         setLinearValidation({ status: "idle", message: "" });
         return;
       }
+      // 클라이언트 사전 검증: 한글/이모지/제어문자가 섞이면 fetch 자체가 실패하므로 차단.
+      const check = checkLinearInputs(apiKey, teamId);
+      if (!check.ok) {
+        setLinearValidation({ status: "invalid", message: check.message });
+        return;
+      }
       setLinearValidation({ status: "loading", message: "검증 중..." });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -126,8 +137,8 @@ export default function ProjectDetailPage() {
             status: res.valid ? "valid" : "invalid",
             message: res.message,
           });
-        } catch {
-          setLinearValidation({ status: "invalid", message: "검증 요청 실패. 네트워크를 확인하세요." });
+        } catch (err) {
+          setLinearValidation({ status: "invalid", message: describeIntegrationError(err) });
         }
       }, 800);
     },
@@ -141,6 +152,11 @@ export default function ProjectDetailPage() {
         setNotionValidation({ status: "idle", message: "" });
         return;
       }
+      const check = checkNotionInputs(apiKey, databaseId);
+      if (!check.ok) {
+        setNotionValidation({ status: "invalid", message: check.message });
+        return;
+      }
       setNotionValidation({ status: "loading", message: "검증 중..." });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
@@ -150,8 +166,8 @@ export default function ProjectDetailPage() {
             status: res.valid ? "valid" : "invalid",
             message: res.message,
           });
-        } catch {
-          setNotionValidation({ status: "invalid", message: "검증 요청 실패. 네트워크를 확인하세요." });
+        } catch (err) {
+          setNotionValidation({ status: "invalid", message: describeIntegrationError(err) });
         }
       }, 800);
     },

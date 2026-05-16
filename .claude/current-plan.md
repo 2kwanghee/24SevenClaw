@@ -1,22 +1,26 @@
 ## 목표
-Linear 관련 두 영역(별도 카드 'Linear 연동 상태' + ZIP 다운로드 카드 안의 Linear 키 입력/검증)을 한 카드로 통합한다. 사용자에게는 한 곳에서 "서버 자동화용 저장 자격증명 + ZIP 다운로드용 키 입력/라이브 검증"이 모두 보여야 한다.
+Linear/Notion API Key 라이브 검증 호출 전에 클라이언트 측 사전 검증을 추가해, 한글/공백/제어문자 등 백엔드까지 보낼 수 없는 입력이 들어오면 fetch 호출 자체를 건너뛰고 명확한 invalid 메시지를 노출한다. catch 절도 보강해 dev 콘솔 stacktrace를 줄이고 사용자 친화 메시지를 표시한다.
 
 ## 변경 파일 목록
+- `clickeye-web/src/lib/integration-validators.ts`: **신규** — `sanitizeForIntegrationApi(value)` / `assertAsciiInput(value)` 헬퍼 (중복 코드 회피)
 - `clickeye-web/src/app/(dashboard)/projects/[projectId]/page.tsx`:
-  - `LinearPreflightCard` 별도 호출 위치(line 683~689) 제거
-  - ZIP 다운로드 카드(IIFE) 첫 안내 문구 다음에 `hasLinear` 분기로 동일 컴포넌트를 카드 내부에 임베드
-  - `LinearPreflightCard` 컴포넌트에 `compact?: boolean` prop 추가 — true면 외부 박스/그림자 제거 + 패딩·간격 축소(안쪽 sub-card 스타일)
+  - triggerLinearValidation / triggerNotionValidation 에서 사전 검증 (헬퍼 사용)
+  - catch 절 보강 (err 메시지 표시)
+- `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`:
+  - 동일 적용
+- `clickeye-web/src/components/solutions/wizard/steps/step-confirmation.tsx`:
+  - 동일 적용
 
 ## 구현 단계
-1. `LinearPreflightCard`에 compact 모드 분기 추가 (className 토글)
-2. 메인 페이지의 별도 호출 제거
-3. ZIP 카드 안 hasLinear 영역에 임베드 호출 추가 (compact)
+1. lib/integration-validators.ts 신규 작성 (ASCII-only 검사, 메시지 반환)
+2. 세 컴포넌트의 trigger* 두 함수 보강 (사전 검증 → fetch 건너뜀, invalid 처리)
+3. catch (err) 보강 — Error 인스턴스의 message 추출, 친절한 안내
 4. typecheck + lint
 
 ## 예상 영향 범위
-- review_pipeline·setup_bootstrap의 서버 자동화 자격증명 흐름은 그대로 — 표시 위치만 변경
-- 사용자 혼란 감소: Linear 관련 정보가 한 카드로 통합
-- LinearPreflightCard의 새로고침 버튼·"AI Team 시작하기" 액션 모두 유지
-- 시각적 통일감 — outer 카드 + inner sub-card(compact) 계층 명확
+- 잘못된 입력으로 인한 fetch 실패 → dev 콘솔 stacktrace 노출 차단
+- 한글/이모지/공백 입력 시 즉시 invalid 메시지 노출 (백엔드 호출 X)
+- 정상 입력 동작은 변경 없음
+- catch 처리 일관: 네트워크 에러 / API 에러 모두 invalid 뱃지로 통합
 
 ## STATUS: APPROVED
