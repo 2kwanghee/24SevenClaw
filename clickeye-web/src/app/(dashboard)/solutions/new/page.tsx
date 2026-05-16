@@ -156,6 +156,17 @@ export default function NewSolutionPage() {
       }
       case 10:
         return !!data.roi.result;
+      case 11: {
+        // 최종 확인 — deferred 입력란에서 라이브 검증이 invalid 이면 ZIP 다운로드 차단.
+        // step 9 와 동일 정책: idle/loading/valid 통과.
+        if (data.agents.selectedSkills.includes("linear") && envValidation.linearStatus === "invalid") {
+          return false;
+        }
+        if (data.agents.selectedSkills.includes("notion") && envValidation.notionStatus === "invalid") {
+          return false;
+        }
+        return true;
+      }
       default:
         return true;
     }
