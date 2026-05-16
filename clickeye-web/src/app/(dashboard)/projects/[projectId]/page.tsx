@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
@@ -42,8 +42,12 @@ import {
   useProject,
   useUpdateProject,
 } from "@/hooks/use-projects";
-import { apiClient, ApiClientError, projectLinearCredentials, type ProjectLinearStatus } from "@/lib/api-client";
+import { apiClient, ApiClientError, integrations, projectLinearCredentials, type ProjectLinearStatus } from "@/lib/api-client";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
+import {
+  IntegrationValidationBadge,
+  type ValidationStatus,
+} from "@/components/solutions/wizard/integration-validation-badge";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
@@ -83,6 +87,88 @@ export default function ProjectDetailPage() {
     const stored = useSolutionWizardStore.getState().data.env.envVars;
     return { ...stored };
   });
+
+  /* --------------------------------------------------------------
+    Linear / Notion 라이브 검증 — projects/[projectId] ZIP 재다운로드 게이트
+    위저드 store(envValidation)와 분리된 로컬 상태로 관리한다.
+  -------------------------------------------------------------- */
+  const skillIds = useMemo<string[]>(
+    () => ((project?.wizard_data?.skills ?? []) as { id: string }[]).map((s) => s.id),
+    [project?.wizard_data?.skills],
+  );
+  const hasLinear = skillIds.includes("linear");
+  const hasNotion = skillIds.includes("notion");
+
+  const [linearValidation, setLinearValidation] = useState<{ status: ValidationStatus; message: string }>({
+    status: "idle",
+    message: "",
+  });
+  const [notionValidation, setNotionValidation] = useState<{ status: ValidationStatus; message: string }>({
+    status: "idle",
+    message: "",
+  });
+  const linearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerLinearValidation = useCallback(
+    (apiKey: string, teamId: string) => {
+      if (linearTimerRef.current) clearTimeout(linearTimerRef.current);
+      if (!apiKey.trim() || !teamId.trim()) {
+        setLinearValidation({ status: "idle", message: "" });
+        return;
+      }
+      setLinearValidation({ status: "loading", message: "검증 중..." });
+      linearTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateLinear(token, { api_key: apiKey, team_id: teamId });
+          setLinearValidation({
+            status: res.valid ? "valid" : "invalid",
+            message: res.message,
+          });
+        } catch {
+          setLinearValidation({ status: "invalid", message: "검증 요청 실패. 네트워크를 확인하세요." });
+        }
+      }, 800);
+    },
+    [token],
+  );
+
+  const triggerNotionValidation = useCallback(
+    (apiKey: string, databaseId: string) => {
+      if (notionTimerRef.current) clearTimeout(notionTimerRef.current);
+      if (!apiKey.trim() || !databaseId.trim()) {
+        setNotionValidation({ status: "idle", message: "" });
+        return;
+      }
+      setNotionValidation({ status: "loading", message: "검증 중..." });
+      notionTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateNotion(token, { api_key: apiKey, database_id: databaseId });
+          setNotionValidation({
+            status: res.valid ? "valid" : "invalid",
+            message: res.message,
+          });
+        } catch {
+          setNotionValidation({ status: "invalid", message: "검증 요청 실패. 네트워크를 확인하세요." });
+        }
+      }, 800);
+    },
+    [token],
+  );
+
+  useEffect(() => {
+    if (!hasLinear) return;
+    triggerLinearValidation(envVars["LINEAR_API_KEY"] ?? "", envVars["LINEAR_TEAM_ID"] ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVars["LINEAR_API_KEY"], envVars["LINEAR_TEAM_ID"], hasLinear]);
+
+  useEffect(() => {
+    if (!hasNotion) return;
+    triggerNotionValidation(envVars["NOTION_API_KEY"] ?? "", envVars["NOTION_DATABASE_ID"] ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVars["NOTION_API_KEY"], envVars["NOTION_DATABASE_ID"], hasNotion]);
 
   const { data: linearStatus, refetch: refetchLinearStatus, isFetching: linearFetching } = useQuery({
     queryKey: ["linear-connection-status", projectId],
@@ -438,11 +524,6 @@ export default function ProjectDetailPage() {
             {/* ZIP 재다운로드 — API 키 입력 + 다운로드 */}
             {project.wizard_data && (() => {
               const wd = project.wizard_data as unknown as Record<string, unknown>;
-              const skillIds: string[] = (project.wizard_data.skills ?? []).map(
-                (s: { id: string }) => s.id
-              );
-              const hasLinear = skillIds.includes("linear");
-              const hasNotion = skillIds.includes("notion");
 
               // authMethod: 위저드 env.authMethod 또는 solution.authMethod (이전 경로) 확인
               const authMethod: string =
@@ -469,11 +550,17 @@ export default function ProjectDetailPage() {
                   : []),
               ];
 
-              // 모든 표시된 환경변수 필드가 채워졌는지 검증 — ZIP 다운로드 게이트
+              // 모든 표시된 환경변수 필드가 채워졌는지 + 라이브 검증 결과 확인 — ZIP 다운로드 게이트
               const missingEnvKeys = ENV_FIELDS.filter(
                 ({ key }) => !envVars[key]?.trim(),
               );
-              const downloadDisabled = downloading || missingEnvKeys.length > 0;
+              const linearInvalid = hasLinear && linearValidation.status === "invalid";
+              const notionInvalid = hasNotion && notionValidation.status === "invalid";
+              const downloadDisabled =
+                downloading ||
+                missingEnvKeys.length > 0 ||
+                linearInvalid ||
+                notionInvalid;
 
               return (
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
@@ -528,6 +615,24 @@ export default function ProjectDetailPage() {
                         {missingEnvKeys.map((f) => f.label).join(", ")})를 입력해야
                         ZIP을 다운로드할 수 있습니다.
                       </p>
+                    </div>
+                  )}
+                  {(hasLinear || hasNotion) && (
+                    <div className="space-y-2">
+                      {hasLinear && (
+                        <IntegrationValidationBadge
+                          name="Linear"
+                          status={linearValidation.status}
+                          message={linearValidation.message}
+                        />
+                      )}
+                      {hasNotion && (
+                        <IntegrationValidationBadge
+                          name="Notion"
+                          status={notionValidation.status}
+                          message={notionValidation.message}
+                        />
+                      )}
                     </div>
                   )}
                   <div className="flex items-center gap-3">

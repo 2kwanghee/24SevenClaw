@@ -1,20 +1,24 @@
 ## 목표
-최종 확인(case 11) 단계의 "이대로 진행" 버튼이 라이브 검증 결과 invalid 인 경우에도 활성화되는 문제 보강. step 9와 동일한 게이트 정책(invalid 만 차단)을 case 11 에도 적용한다.
+프로젝트 상세 페이지(`projects/[projectId]/page.tsx`)의 "설정 요약 + ZIP 재다운로드" 영역에서 Linear/Notion API Key 라이브 검증을 추가하고, 검증 결과 invalid 시 ZIP 다운로드 버튼을 차단한다. 현재는 키가 채워져 있기만 하면(아무 값) 게이트가 통과되는 보안/UX 결함.
 
 ## 변경 파일 목록
-- `clickeye-web/src/app/(dashboard)/solutions/new/page.tsx`:
-  - canProceed 의 case 11 추가 — Linear/Notion 검증이 invalid 면 false
-- `clickeye-web/src/app/(dashboard)/solutions/[sessionId]/page.tsx`:
-  - 동일 변경
+- `clickeye-web/src/app/(dashboard)/projects/[projectId]/page.tsx`:
+  - import 추가: `useCallback, useEffect, useMemo, useRef` (useState는 이미 있음), `integrations`, `IntegrationValidationBadge`
+  - 컴포넌트 최상단에 hasLinear/hasNotion, 검증 상태 두 개, debounce 트리거 함수 두 개, useEffect 두 개 (envVars 변경 감지)
+  - IIFE 안의 `downloadDisabled` 조건에 `linearValidation.status === "invalid"` / `notionValidation.status === "invalid"` 추가
+  - ENV_FIELDS 그리드 아래 / 게이트 alert 위에 `IntegrationValidationBadge` 두 개 노출
 
 ## 구현 단계
-1. new/page.tsx 의 case 10 다음에 case 11 추가
-2. [sessionId]/page.tsx 의 동일 위치에 추가
-3. typecheck + lint
+1. import 보강
+2. 검증 hooks/상태 추가
+3. downloadDisabled 조건 보강
+4. 검증 뱃지 UI 추가
+5. typecheck + lint
 
 ## 예상 영향 범위
-- step 11 의 "이대로 진행" 버튼이 invalid 일 때 비활성화됨.
-- idle/loading/valid 는 통과 (step 9 정책과 일치).
-- 검증 결과가 step 9 에서 valid 인 채 step 11 에 도달한 사용자에게는 영향 없음.
+- 사용자가 잘못된 Linear/Notion 키를 입력해 ZIP을 받는 사고 차단
+- 800ms debounce로 호출 빈도 제어
+- idle/loading/valid 통과 — 위저드 step 9/11 정책과 일치
+- 위저드 store(`envValidation`)와 무관한 로컬 상태로 관리 → 위저드 흐름 영향 없음
 
 ## STATUS: APPROVED
