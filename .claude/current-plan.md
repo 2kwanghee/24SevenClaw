@@ -1,23 +1,24 @@
 ## 목표
-환경변수(Step 9) 스텝에서 외부 통합 스킬(Linear/Notion 등)의 키를 미입력해도 "다음" 버튼이 활성화되도록 canProceed 게이트를 완화한다. ANTHROPIC_API_KEY만 진짜 필수로 유지하고, 라이브 검증은 invalid 상태만 차단한다.
+최종 확인 단계(step-confirmation)에서 deferred한 Linear/Notion 키를 추가 입력할 때 라이브 검증이 작동하지 않는 버그 수정. 검증 결과(valid/invalid) 뱃지를 노출하고, ZIP 다운로드 직전에도 잘못된 키를 사전에 잡아낸다.
 
 ## 변경 파일 목록
-- `clickeye-web/src/app/(dashboard)/solutions/new/page.tsx`:
-  - case 9에서 외부 스킬의 required env_var 강제 검증 루프 제거
-  - 라이브 검증 차단 조건을 `!== "valid"` → `=== "invalid"`로 완화
-- `clickeye-web/src/app/(dashboard)/solutions/[sessionId]/page.tsx`:
-  - 동일 수정
-  - ANTHROPIC deferred 분기를 new/page.tsx와 일관성 있게 추가
+- `clickeye-web/src/components/solutions/wizard/integration-validation-badge.tsx`: **신규** — step-solution-env.tsx 안의 검증 뱃지 컴포넌트를 분리해 재사용 가능하게 함
+- `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`: 내부 정의 제거 → 분리된 컴포넌트 import
+- `clickeye-web/src/components/solutions/wizard/steps/step-confirmation.tsx`:
+  - `integrations`, store의 `envValidation/setEnvValidation` import 추가
+  - `useEffect`로 envVars.LINEAR_API_KEY + LINEAR_TEAM_ID 변경 시 debounce 검증
+  - Notion(NOTION_API_KEY + NOTION_DATABASE_ID) 동일 처리
+  - "미입력 API 키" 섹션 하단에 IntegrationValidationBadge 표시
 
 ## 구현 단계
-1. new/page.tsx case 9 수정
-2. [sessionId]/page.tsx case 9 수정 (ANTHROPIC deferred 분기 포함)
-3. lint + typecheck 확인
-4. 기존 테스트(solution-wizard-store.test.ts, solution-wizard-layout.test.tsx)에 영향 있는지 확인 — canProceed 테스트가 store 외부에 있으므로 영향 적을 것
+1. integration-validation-badge.tsx 추출 (props/타입 유지)
+2. step-solution-env.tsx에서 인라인 정의 제거 + import 교체
+3. step-confirmation.tsx에 검증 useEffect 두 개 + 뱃지 노출
+4. typecheck + lint
 
 ## 예상 영향 범위
-- UX: 외부 통합 키 미입력 상태에서도 다음 진행 가능. ZIP에는 빈 값으로 들어가며 사용자가 로컬에서 채워 사용한다 (기존 "필수 미설정" 시각적 경고는 유지).
-- 라이브 검증: 잘못된 키(invalid)는 여전히 차단 — 사용자가 잘못된 키 입력 후 진행하는 사고는 방지.
-- ANTHROPIC API key 게이트는 변경 없음(api_key 모드에서 강제, deferred 우회 가능).
+- step-solution-env.tsx: 동작 변화 없음(컴포넌트만 분리)
+- step-confirmation.tsx: deferred 키 입력 시 자동 검증 + invalid 시 사용자 인지 가능 (게이트 차단은 별도 — 이 PR에서는 안내만 추가)
+- 라이브 검증은 키 두 개가 모두 truthy 일 때만 호출됨 → 한 쪽만 입력해도 안전
 
 ## STATUS: APPROVED

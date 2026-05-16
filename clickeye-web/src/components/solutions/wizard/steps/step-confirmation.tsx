@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -29,9 +29,10 @@ import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-import { pmProfiles, type PMProfileWithMetrics } from "@/lib/api-client";
+import { integrations, pmProfiles, type PMProfileWithMetrics } from "@/lib/api-client";
 import { PMRatingStars } from "../pm-rating-stars";
 import { PrototypePreview } from "../prototype-preview";
+import { IntegrationValidationBadge } from "../integration-validation-badge";
 import { useCatalogSkills, useCatalogHooks } from "@/hooks/use-catalog";
 import { usePMComposition } from "@/hooks/use-pm-profiles";
 import { collectEnvVars } from "@/lib/catalog-helpers";
@@ -400,6 +401,8 @@ export function StepConfirmation() {
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
   const setEnv = useSolutionWizardStore((s) => s.setEnv);
+  const envValidation = useSolutionWizardStore((s) => s.envValidation);
+  const setEnvValidation = useSolutionWizardStore((s) => s.setEnvValidation);
   const { company, prototypes, pm, roi, env } = data;
   const authMethodLabel =
     env.authMethod === "oauth_browser" ? "OAuth 브라우저 로그인" : "API 키";
@@ -407,6 +410,94 @@ export function StepConfirmation() {
   const deferredEnvVars = env.deferredEnvVars ?? [];
   const pendingDeferred = deferredEnvVars.filter((k) => !env.envVars[k]?.trim());
   const [draftDeferred, setDraftDeferred] = useState<Record<string, string>>({});
+
+  /* ----------------------------------------------------------------
+    deferred 키 입력 시 라이브 검증 트리거 — env step과 동일 패턴
+    (LINEAR_API_KEY + LINEAR_TEAM_ID 쌍, NOTION_API_KEY + NOTION_DATABASE_ID 쌍)
+  ---------------------------------------------------------------- */
+  const DEBOUNCE_MS = 800;
+  const selectedSkills = data.agents.selectedSkills;
+  const envVarsRef = env.envVars;
+  const linearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerLinearValidation = useCallback(
+    (apiKey: string, teamId: string) => {
+      if (linearTimerRef.current) clearTimeout(linearTimerRef.current);
+      if (!apiKey.trim() || !teamId.trim()) {
+        setEnvValidation({ linearStatus: "idle", linearMessage: "" });
+        return;
+      }
+      setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
+      linearTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateLinear(token, {
+            api_key: apiKey,
+            team_id: teamId,
+          });
+          setEnvValidation({
+            linearStatus: res.valid ? "valid" : "invalid",
+            linearMessage: res.message,
+          });
+        } catch {
+          setEnvValidation({
+            linearStatus: "invalid",
+            linearMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+          });
+        }
+      }, DEBOUNCE_MS);
+    },
+    [token, setEnvValidation],
+  );
+
+  const triggerNotionValidation = useCallback(
+    (apiKey: string, databaseId: string) => {
+      if (notionTimerRef.current) clearTimeout(notionTimerRef.current);
+      if (!apiKey.trim() || !databaseId.trim()) {
+        setEnvValidation({ notionStatus: "idle", notionMessage: "" });
+        return;
+      }
+      setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
+      notionTimerRef.current = setTimeout(async () => {
+        if (!token) return;
+        try {
+          const res = await integrations.validateNotion(token, {
+            api_key: apiKey,
+            database_id: databaseId,
+          });
+          setEnvValidation({
+            notionStatus: res.valid ? "valid" : "invalid",
+            notionMessage: res.message,
+          });
+        } catch {
+          setEnvValidation({
+            notionStatus: "invalid",
+            notionMessage: "검증 요청 실패. 네트워크를 확인하세요.",
+          });
+        }
+      }, DEBOUNCE_MS);
+    },
+    [token, setEnvValidation],
+  );
+
+  useEffect(() => {
+    if (!selectedSkills.includes("linear")) return;
+    triggerLinearValidation(
+      envVarsRef["LINEAR_API_KEY"] ?? "",
+      envVarsRef["LINEAR_TEAM_ID"] ?? "",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVarsRef["LINEAR_API_KEY"], envVarsRef["LINEAR_TEAM_ID"], selectedSkills]);
+
+  useEffect(() => {
+    if (!selectedSkills.includes("notion")) return;
+    triggerNotionValidation(
+      envVarsRef["NOTION_API_KEY"] ?? "",
+      envVarsRef["NOTION_DATABASE_ID"] ?? "",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envVarsRef["NOTION_API_KEY"], envVarsRef["NOTION_DATABASE_ID"], selectedSkills]);
 
   const selectedProto = prototypes.generatedPrototypes.find(
     (p) => p.id === prototypes.selectedPrototypeId,
@@ -683,6 +774,26 @@ export function StepConfirmation() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* -- 통합 키 라이브 검증 결과 (Linear / Notion) -- */}
+      {(selectedSkills.includes("linear") || selectedSkills.includes("notion")) && (
+        <div className="space-y-2">
+          {selectedSkills.includes("linear") && (
+            <IntegrationValidationBadge
+              name="Linear"
+              status={envValidation.linearStatus}
+              message={envValidation.linearMessage}
+            />
+          )}
+          {selectedSkills.includes("notion") && (
+            <IntegrationValidationBadge
+              name="Notion"
+              status={envValidation.notionStatus}
+              message={envValidation.notionMessage}
+            />
+          )}
         </div>
       )}
 

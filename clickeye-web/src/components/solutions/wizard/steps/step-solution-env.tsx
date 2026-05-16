@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Clock, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,6 +11,7 @@ import { useCatalogHooks, useCatalogSkills } from "@/hooks/use-catalog";
 import { collectEnvVars } from "@/lib/catalog-helpers";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { cn } from "@/lib/utils";
+import { IntegrationValidationBadge } from "../integration-validation-badge";
 
 /* ------------------------------------------------------------------
   Anthropic 기본 키 — DB에 없는 고정 필수 키
@@ -172,51 +173,6 @@ function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------
-  통합 검증 뱃지 컴포넌트 (Linear / Notion 쌍 검증)
------------------------------------------------------------------- */
-
-type ValidationStatus = "idle" | "loading" | "valid" | "invalid";
-
-interface IntegrationValidationBadgeProps {
-  name: string;
-  status: ValidationStatus;
-  message: string;
-}
-
-function IntegrationValidationBadge({
-  name,
-  status,
-  message,
-}: IntegrationValidationBadgeProps) {
-  if (status === "idle") return null;
-
-  return (
-    <div
-      role="status"
-      className={cn(
-        "flex items-center gap-2 rounded-lg px-3 py-2 text-xs",
-        status === "loading" && "border border-zinc-200 bg-zinc-100 text-zinc-500",
-        status === "valid" && "border border-emerald-200 bg-emerald-50 text-emerald-600",
-        status === "invalid" && "border border-red-200 bg-red-50 text-red-600",
-      )}
-    >
-      {status === "loading" && (
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
-      )}
-      {status === "valid" && (
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      )}
-      {status === "invalid" && (
-        <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      )}
-      <span>
-        <strong>{name}</strong> {message}
-      </span>
     </div>
   );
 }
