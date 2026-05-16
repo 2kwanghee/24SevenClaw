@@ -46,6 +46,7 @@ def serialize_pm_to_markdown(profile: PMProfile) -> str:
         "tech_stack_tags": list(raw.tech_stack_tags or []),
         "industry_tags": list(raw.industry_tags or []),
         "preferred_solution_types": list(raw.preferred_solution_types or []),
+        "supported_platforms": list(getattr(raw, "supported_platforms", None) or []),
     }
     # None 값 제거 (선택 필드)
     frontmatter = {k: v for k, v in frontmatter.items() if v is not None}
@@ -104,6 +105,7 @@ def parse_markdown_to_pm_dict(markdown: str) -> dict[str, Any]:
             "tech_stack_tags",
             "industry_tags",
             "preferred_solution_types",
+            "supported_platforms",
         )
         for field in list_fields:
             if field in fm and isinstance(fm[field], list):

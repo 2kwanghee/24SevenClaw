@@ -1,8 +1,8 @@
 """생성 엔진용 카탈로그 어댑터.
 
 공개 함수:
-- prefetch_for_generator(db, agent_ids, skill_ids, hook_ids) → CatalogPrefetch
-- get_selected_agents(prefetch) / get_selected_skills(prefetch) / get_selected_hooks(prefetch)
+- prefetch_for_generator(db, agent_ids, skill_ids, hook_ids, mcp_ids) → CatalogPrefetch
+- get_selected_agents/skills/hooks/mcps(prefetch)
 - get_env_var_definitions(prefetch) / find_stack(stack_id)
 
 기존 하드코딩 AGENTS/SKILLS 상수는 DB로 대체됐으므로 제거됨.
@@ -82,6 +82,7 @@ class CatalogPrefetch:
     agents: list[dict[str, Any]] = field(default_factory=list)
     skills: list[dict[str, Any]] = field(default_factory=list)
     hooks: list[dict[str, Any]] = field(default_factory=list)
+    mcps: list[dict[str, Any]] = field(default_factory=list)
 
 
 async def prefetch_for_generator(
@@ -89,13 +90,15 @@ async def prefetch_for_generator(
     agent_ids: list[str],
     skill_ids: list[str],
     hook_ids: list[str] | None = None,
+    mcp_ids: list[str] | None = None,
 ) -> CatalogPrefetch:
     """DB에서 카탈로그를 미리 로드하여 sync generate_all 에 주입할 수 있게 반환."""
     svc = get_catalog_service()
     agents = await svc.get_agents_by_slugs(db, agent_ids)
     skills = await svc.get_skills_by_slugs(db, skill_ids)
     hooks = await svc.get_hooks_by_slugs(db, hook_ids or [])
-    return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks)
+    mcps = await svc.get_mcps_by_slugs(db, mcp_ids or [])
+    return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks, mcps=mcps)
 
 
 def get_selected_agents(
@@ -129,6 +132,15 @@ def get_selected_hooks(
     return []
 
 
+def get_selected_mcps(
+    mcp_ids: list[str], prefetch: CatalogPrefetch | None = None
+) -> list[dict[str, Any]]:
+    """선택된 MCP 서버 반환."""
+    if prefetch is not None:
+        return prefetch.mcps
+    return []
+
+
 def get_env_var_definitions(
     workflow_ids: list[str], prefetch: CatalogPrefetch | None = None
 ) -> list[dict[str, Any]]:
@@ -141,11 +153,13 @@ def get_env_var_definitions(
         for var in skill.get("env_vars", []):
             var_name = var.get("name", "")
             if var_name and var_name not in seen:
-                env_vars.append({
-                    **var,
-                    "skill_id": skill["id"],
-                    "skill_name": skill.get("label", skill["id"]),
-                })
+                env_vars.append(
+                    {
+                        **var,
+                        "skill_id": skill["id"],
+                        "skill_name": skill.get("label", skill["id"]),
+                    }
+                )
                 seen.add(var_name)
 
     hooks = get_selected_hooks([], prefetch)
@@ -153,11 +167,13 @@ def get_env_var_definitions(
         for var in hook.get("env_vars", []):
             var_name = var.get("name", "")
             if var_name and var_name not in seen:
-                env_vars.append({
-                    **var,
-                    "skill_id": hook["id"],
-                    "skill_name": hook.get("label", hook["id"]),
-                })
+                env_vars.append(
+                    {
+                        **var,
+                        "skill_id": hook["id"],
+                        "skill_name": hook.get("label", hook["id"]),
+                    }
+                )
                 seen.add(var_name)
 
     return env_vars

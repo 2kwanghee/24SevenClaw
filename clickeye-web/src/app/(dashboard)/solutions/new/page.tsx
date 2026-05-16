@@ -198,12 +198,16 @@ export default function NewSolutionPage() {
       });
       setOrganizationId(org.id);
 
-      // 2. 프로토타입 세션 생성
+      // 2. 프로토타입 세션 생성 — 회사 컨텍스트 전부 전달
       const ps = await prototypeSessions.create(token, {
         organization_id: org.id,
         solution_prompt: company.solutionRequest,
         tech_stack: company.techStack,
         industry: company.industry ?? null,
+        company_size: company.companySize ?? null,
+        business_type: company.businessType ?? null,
+        main_product: company.mainProduct || null,
+        company_description: company.companyDescription || null,
       });
       setSessionId(ps.id);
 

@@ -19,6 +19,7 @@ export const pmProfileSchema = z.object({
   tech_stack_tags: z.array(z.string()),
   industry_tags: z.array(z.string()),
   preferred_solution_types: z.array(z.string()),
+  supported_platforms: z.array(z.string()),
 });
 
 export type PMProfileFormData = {
@@ -36,4 +37,5 @@ export type PMProfileFormData = {
   tech_stack_tags: string[];
   industry_tags: string[];
   preferred_solution_types: string[];
+  supported_platforms: string[];
 };

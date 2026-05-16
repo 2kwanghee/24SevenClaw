@@ -1,974 +1,187 @@
 {
-  "version": "2.0",
-  "description": "PM 컴포지션 시드 데이터 v2 (에이전트 + 카탈로그 스킬)",
+  "version": "3.0",
+  "description": "PM 컴포지션 시드 데이터 v3 — platform 분리, MCP composition 추가",
   "compositions": {
-    "atlas": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "pixel": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "nova": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "sentinel": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "verify-implementation",
-        "component_name": "구현 검증",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "forge": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "shield": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "verify-implementation",
-        "component_name": "구현 검증",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "spark": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "bridge": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "forge-mech": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "forge-vision": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "fin-shield": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "verify-implementation",
-        "component_name": "구현 검증",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "fin-quant": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "retail-cart": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "retail-stock": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "med-compliance": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "verify-implementation",
-        "component_name": "구현 검증",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "med-pixel": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "saas-multi": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "codex",
-        "component_name": "Codex",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "gov-bridge": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 3,
-        "is_required": false
-      }
-    ],
-    "edu-spark": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "cursor",
-        "component_name": "Cursor",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "uiux",
-        "component_name": "UI/UX 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ],
-    "media-stream": [
-      {
-        "component_type": "agent",
-        "component_slug": "claude-code",
-        "component_name": "Claude Code",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "agent",
-        "component_slug": "gemini-cli",
-        "component_name": "Gemini CLI",
-        "config": {},
-        "display_order": 1,
-        "is_required": false
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "fullstack",
-        "component_name": "풀스택 엔지니어",
-        "config": {},
-        "display_order": 0,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "tdd-smart-coding",
-        "component_name": "TDD 스마트 코딩",
-        "config": {},
-        "display_order": 1,
-        "is_required": true
-      },
-      {
-        "component_type": "skill",
-        "component_slug": "ai-critique",
-        "component_name": "AI 코드 리뷰",
-        "config": {},
-        "display_order": 2,
-        "is_required": false
-      }
-    ]
+    "atlas": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "linear", "component_name": "Linear MCP", "config": {}, "display_order": 0, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "github", "component_name": "GitHub MCP", "config": {}, "display_order": 1, "is_required": false }
+      ]
+    },
+    "pixel": {
+      "supported_platforms": ["claude-code", "cursor"],
+      "components": [
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "figma", "component_name": "Figma MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "nova": {
+      "supported_platforms": ["claude-code", "gemini-cli", "cursor", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 3, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "github", "component_name": "GitHub MCP", "config": {}, "display_order": 0, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "figma", "component_name": "Figma MCP", "config": {}, "display_order": 1, "is_required": false }
+      ]
+    },
+    "sentinel": {
+      "supported_platforms": ["claude-code", "gemini-cli"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "verify-implementation", "component_name": "구현 검증", "config": {}, "display_order": 3, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "github", "component_name": "GitHub MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "forge": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "linear", "component_name": "Linear MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "shield": {
+      "supported_platforms": ["claude-code", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "verify-implementation", "component_name": "구현 검증", "config": {}, "display_order": 3, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "github", "component_name": "GitHub MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "spark": {
+      "supported_platforms": ["claude-code", "cursor"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "bridge": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "slack", "component_name": "Slack MCP", "config": {}, "display_order": 0, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "github", "component_name": "GitHub MCP", "config": {}, "display_order": 1, "is_required": false }
+      ]
+    },
+    "forge-mech": {
+      "supported_platforms": ["claude-code", "gemini-cli"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "forge-vision": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "fin-shield": {
+      "supported_platforms": ["claude-code", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "verify-implementation", "component_name": "구현 검증", "config": {}, "display_order": 3, "is_required": false }
+      ]
+    },
+    "fin-quant": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "retail-cart": {
+      "supported_platforms": ["claude-code", "gemini-cli", "cursor"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 3, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "slack", "component_name": "Slack MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "retail-stock": {
+      "supported_platforms": ["claude-code", "gemini-cli"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "med-compliance": {
+      "supported_platforms": ["claude-code", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "verify-implementation", "component_name": "구현 검증", "config": {}, "display_order": 3, "is_required": false }
+      ]
+    },
+    "med-pixel": {
+      "supported_platforms": ["claude-code", "cursor"],
+      "components": [
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "figma", "component_name": "Figma MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "saas-multi": {
+      "supported_platforms": ["claude-code", "gemini-cli", "codex"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "linear", "component_name": "Linear MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    },
+    "gov-bridge": {
+      "supported_platforms": ["claude-code", "gemini-cli"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 3, "is_required": false }
+      ]
+    },
+    "edu-spark": {
+      "supported_platforms": ["claude-code", "cursor"],
+      "components": [
+        { "component_type": "skill", "component_slug": "uiux", "component_name": "UI/UX 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false }
+      ]
+    },
+    "media-stream": {
+      "supported_platforms": ["claude-code", "gemini-cli"],
+      "components": [
+        { "component_type": "skill", "component_slug": "fullstack", "component_name": "풀스택 엔지니어", "config": {}, "display_order": 0, "is_required": true },
+        { "component_type": "skill", "component_slug": "tdd-smart-coding", "component_name": "TDD 스마트 코딩", "config": {}, "display_order": 1, "is_required": true },
+        { "component_type": "skill", "component_slug": "ai-critique", "component_name": "AI 코드 리뷰", "config": {}, "display_order": 2, "is_required": false },
+        { "component_type": "mcp_server", "component_slug": "slack", "component_name": "Slack MCP", "config": {}, "display_order": 0, "is_required": false }
+      ]
+    }
   }
 }

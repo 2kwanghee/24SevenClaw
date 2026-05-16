@@ -29,3 +29,11 @@ export function useCatalogHooks() {
     staleTime: CATALOG_STALE_TIME,
   });
 }
+
+export function useCatalogMCPs() {
+  return useQuery({
+    queryKey: ["catalog", "mcps"],
+    queryFn: () => catalog.mcps.list(),
+    staleTime: CATALOG_STALE_TIME,
+  });
+}

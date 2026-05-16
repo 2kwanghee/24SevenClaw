@@ -19,6 +19,10 @@ class GenerateRequest(PreviewRequest):
         default_factory=list,
         description="선택된 훅 ID 목록",
     )
+    mcp_ids: list[str] = Field(
+        default_factory=list,
+        description="선택된 MCP 서버 슬러그 목록",
+    )
     pm_profile_id: UUID | None = Field(
         default=None,
         description="선택된 PM 프로필 ID — pm_slug보다 우선하여 DB에서 조회",

@@ -59,6 +59,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       tech_stack_tags: [],
       industry_tags: [],
       preferred_solution_types: [],
+      supported_platforms: [],
     },
   });
 
@@ -79,6 +80,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         tech_stack_tags: profile.tech_stack_tags ?? [],
         industry_tags: profile.industry_tags ?? [],
         preferred_solution_types: profile.preferred_solution_types ?? [],
+        supported_platforms: profile.supported_platforms ?? [],
       });
     }
   }, [profile, reset]);
@@ -133,6 +135,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       tech_stack_tags: data.tech_stack_tags,
       industry_tags: data.industry_tags,
       preferred_solution_types: data.preferred_solution_types,
+      supported_platforms: data.supported_platforms,
     };
     updateMutation.mutate(payload);
   };
@@ -261,7 +264,12 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         </div>
       </CollapsibleSection>
 
-      {/* 블록 2: 태그 */}
+      {/* 블록 2: 구성 컴포넌트 (팀) */}
+      <CollapsibleSection title="구성 컴포넌트" defaultOpen>
+        <CompositionPanel profileId={profileId} />
+      </CollapsibleSection>
+
+      {/* 블록 3: 태그 */}
       <CollapsibleSection title="전문분야 태그">
         <Controller
           name="specialties"
@@ -352,9 +360,24 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         />
       </CollapsibleSection>
 
-      {/* 블록 7: 구성 관리 (인라인) */}
-      <CollapsibleSection title="구성 컴포넌트" defaultOpen={false}>
-        <CompositionPanel profileId={profileId} />
+      {/* 블록 6-b: 지원 플랫폼 */}
+      <CollapsibleSection title="지원 플랫폼">
+        <Controller
+          name="supported_platforms"
+          control={control}
+          render={({ field }) => (
+            <TagInput
+              label="지원 AI 플랫폼"
+              values={field.value}
+              onChange={field.onChange}
+              placeholder="예: claude-code, cursor, gemini-cli, codex"
+            />
+          )}
+        />
+        <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+          이 PM이 지원하는 AI 에이전트 플랫폼 슬러그를 입력하세요.
+          위저드 Step 7(플랫폼 선택)에서 미지원 플랫폼은 비활성화됩니다.
+        </p>
       </CollapsibleSection>
 
       {/* 블록 8: 사용자 피드백 */}

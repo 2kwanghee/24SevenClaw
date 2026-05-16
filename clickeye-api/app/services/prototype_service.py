@@ -37,6 +37,32 @@ def _slugify(text: str) -> str:
     return re.sub(r"-+", "-", slug).strip("-")
 
 
+def _jaccard(a: set[str], b: set[str]) -> float:
+    """두 집합의 Jaccard 유사도. 둘 다 비어있으면 1.0."""
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    union = len(a | b)
+    return inter / union if union else 0.0
+
+
+def _avg_pairwise_jaccard(stacks: list[list[str]]) -> float:
+    """프로토타입들의 tech_stack_tags 쌍별 평균 Jaccard 유사도."""
+    sets = [{s.lower() for s in lst} for lst in stacks]
+    n = len(sets)
+    if n < 2:
+        return 0.0
+    total = 0.0
+    pairs = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            total += _jaccard(sets[i], sets[j])
+            pairs += 1
+    return total / pairs if pairs else 0.0
+
+
 class PrototypeService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -52,6 +78,10 @@ class PrototypeService:
             extra={
                 "user_tech_stack": list(data.tech_stack),
                 "user_industry": data.industry or "",
+                "user_company_size": data.company_size or "",
+                "user_business_type": data.business_type or "",
+                "user_main_product": data.main_product or "",
+                "user_company_description": data.company_description or "",
             },
         )
         self.db.add(session)
@@ -142,15 +172,21 @@ class PrototypeService:
         prompt = str(session.solution_prompt or "")
 
         # 재진입(race condition) 방어: 기존 프로토타입을 모두 제거하고 새로 생성
-        await self.db.execute(
-            delete(Prototype).where(Prototype.session_id == session_id)
-        )
+        await self.db.execute(delete(Prototype).where(Prototype.session_id == session_id))
         await self.db.commit()
 
         try:
             extra: dict[str, Any] = session.extra or {}  # type: ignore[assignment]
             user_tech_stack: list[str] = list(extra.get("user_tech_stack", []))
             org_context: dict[str, Any] = {"user_tech_stack": user_tech_stack}
+            # 회사 컨텍스트 — Claude variant 생성 시 회사 특성 반영용
+            company_context: dict[str, Any] = {
+                "company_size": extra.get("user_company_size") or None,
+                "industry": extra.get("user_industry") or None,
+                "business_type": extra.get("user_business_type") or None,
+                "main_product": extra.get("user_main_product") or None,
+                "company_description": extra.get("user_company_description") or None,
+            }
 
             # 1. 요구사항 분석 — Claude API, 실패 시 규칙 기반 폴백
             try:
@@ -206,6 +242,8 @@ class PrototypeService:
             # 4. variant별 역할 목록 생성
             variant_roles = _build_variant_roles(variant_count, user_tech_stack)
 
+            generated_protos: list[Prototype] = []
+
             for idx in range(variant_count):
                 proto: Prototype
                 role_config = variant_roles[idx]
@@ -218,6 +256,7 @@ class PrototypeService:
                         role_config,
                         catalog_entry=catalog_entry_dict,
                         catalog_references=catalog_refs if catalog_refs else None,
+                        company_context=company_context,
                     )
                     design_style = str(ui_data.get("design_style", "minimal"))
                     arch_pattern = str(ui_data.get("architecture_pattern", design_style))
@@ -256,6 +295,64 @@ class PrototypeService:
 
                 self.db.add(proto)
                 await self.db.commit()
+                await self.db.refresh(proto)
+                generated_protos.append(proto)
+
+            # 4-b. Variant 다양성 검증 — tech_stack_tags 쌍별 Jaccard 평균 > 0.6 시
+            # variant 2를 다른 스택으로 1회 재생성 시도
+            ready_protos = [p for p in generated_protos if p.status == "ready"]
+            if len(ready_protos) >= 3:
+                stacks = [list(p.tech_stack_tags) for p in ready_protos]
+                avg_sim = _avg_pairwise_jaccard(stacks)
+                if avg_sim > 0.6:
+                    logger.info(
+                        "Variant 다양성 부족 (avg_jaccard=%.2f), variant 2 재생성 시도 "
+                        "(session_id=%s)",
+                        avg_sim, session_id,
+                    )
+                    # variant 0, 1에서 이미 사용한 스택 모두 회피
+                    avoid_stacks: list[str] = []
+                    for p in ready_protos[:2]:
+                        avoid_stacks.extend(p.tech_stack_tags)
+                    target_proto = next(
+                        (p for p in ready_protos if p.variant_index == 2), None
+                    )
+                    if target_proto is not None:
+                        try:
+                            retry_catalog_entry = (
+                                fallback_entries[2]
+                                if len(fallback_entries) > 2
+                                else None
+                            )
+                            ui_data = await self._claude.generate_ui_structure(
+                                requirements,
+                                2,
+                                variant_roles[2],
+                                catalog_entry=retry_catalog_entry,
+                                catalog_references=catalog_refs if catalog_refs else None,
+                                company_context=company_context,
+                                avoid_tech_stacks=avoid_stacks,
+                            )
+                            arch_pattern = str(
+                                ui_data.get("architecture_pattern")
+                                or ui_data.get("design_style", "minimal")
+                            )
+                            target_proto.title = f"프로토타입 3 — {arch_pattern}"  # type: ignore[assignment]
+                            target_proto.design_pattern = str(  # type: ignore[assignment]
+                                ui_data.get("design_style", "minimal")
+                            )
+                            target_proto.menu_structure = ui_data.get("menu_structure")  # type: ignore[assignment]
+                            target_proto.ui_structure = ui_data  # type: ignore[assignment]
+                            target_proto.color_palette = ui_data.get("color_palette")  # type: ignore[assignment]
+                            await self.db.commit()
+                            logger.info(
+                                "Variant 2 재생성 성공 (session_id=%s)", session_id
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Variant 2 재생성 실패, 원본 유지 (session_id=%s)",
+                                session_id,
+                            )
 
             # 5. 세션 완료 처리
             await self.db.execute(
@@ -266,9 +363,7 @@ class PrototypeService:
             await self.db.commit()
 
         except Exception:
-            logger.exception(
-                "run_generation 실패 (session_id=%s)", session_id
-            )
+            logger.exception("run_generation 실패 (session_id=%s)", session_id)
             await self.db.execute(
                 update(PrototypeSession)
                 .where(PrototypeSession.id == session_id)
@@ -402,7 +497,7 @@ class PrototypeService:
         keywords = [kw for kw in combined_text.split() if len(kw) > 2]
         user_stack_set = {s.lower() for s in (user_tech_stack or [])}
 
-        result: dict[Any, dict[str, float]] = {}
+        result: dict[Any, dict[str, Any]] = {}
         for profile in profiles:
             domain_key = str(profile.domain or "")
             domain_score = float(domain_scores_map.get(domain_key, 40))
@@ -547,11 +642,11 @@ class PrototypeService:
         # (단, 설정되지 않은 PM은 포함)
         if user_industry:
             profiles = [
-                p for p in all_profiles
+                p
+                for p in all_profiles
                 if not getattr(p, "industry_tags", None)  # 범용 PM
-                or user_industry.lower() in [
-                    str(t).lower() for t in (getattr(p, "industry_tags", None) or [])
-                ]
+                or user_industry.lower()
+                in [str(t).lower() for t in (getattr(p, "industry_tags", None) or [])]
             ]
             # 필터 후 PM이 2명 미만이면 전체 포함 (추천 최소 수 보장)
             if len(profiles) < 2:
@@ -779,6 +874,10 @@ class PrototypeService:
             rec_skills = [
                 s for s in list(catalog_entry.recommended_skills or []) if s in valid_skill_ids
             ]
+            # PM 전문분야 부스트: compatible_pm_specialties가 PM specialties와 겹치는 항목 우선 정렬
+            rec_agents, rec_skills = await _boost_by_pm_specialties(
+                self.db, session, rec_agents, rec_skills, agent_list, skill_list
+            )
             return {
                 "agents": rec_agents,
                 "skills": rec_skills,
@@ -788,7 +887,18 @@ class PrototypeService:
             }
 
         # 폴백: design_pattern 키워드 기반 기본 추천
-        return _default_component_recommendation(prototype, valid_agent_ids, valid_skill_ids)
+        fallback = _default_component_recommendation(prototype, valid_agent_ids, valid_skill_ids)
+        f_agents, f_skills = await _boost_by_pm_specialties(
+            self.db,
+            session,
+            fallback["agents"],
+            fallback["skills"],
+            agent_list,
+            skill_list,
+        )
+        fallback["agents"] = f_agents
+        fallback["skills"] = f_skills
+        return fallback
 
     async def finalize_session(
         self,
@@ -858,7 +968,7 @@ class PrototypeService:
 
         # PM 사용 횟수 증가 (실패해도 프로젝트 생성은 성공으로 처리)
         try:
-            await self._increment_pm_usage_count(session.selected_pm_id)
+            await self._increment_pm_usage_count(UUID(str(session.selected_pm_id)))
         except Exception as exc:
             logger.warning("PM 사용 횟수 증가 실패: %s", exc)
 
@@ -884,7 +994,7 @@ class PrototypeService:
             metric = PMMetrics(pm_id=pm_id, usage_count=1)
             self.db.add(metric)
         else:
-            metric.usage_count = (metric.usage_count or 0) + 1  # type: ignore[operator]
+            metric.usage_count = (metric.usage_count or 0) + 1  # type: ignore[assignment]
         await self.db.commit()
 
     async def _register_initial_tasks(self, data: FinalizeRequest) -> str | None:
@@ -1041,3 +1151,72 @@ def _build_proto_from_catalog(
         color_palette=catalog_entry.get("color_palette"),
         status="ready",
     )
+
+
+async def _boost_by_pm_specialties(
+    db: Any,
+    session: Any,
+    agent_slugs: list[str],
+    skill_slugs: list[str],
+    agent_list: list[dict[str, Any]],
+    skill_list: list[dict[str, Any]],
+) -> tuple[list[str], list[str]]:
+    """PM의 specialties와 compatible_pm_specialties가 겹치는 항목을 앞으로 정렬.
+
+    PM이 선택되지 않았거나 레지스트리 메타가 비어 있으면 원래 순서 그대로 반환.
+    """
+    from sqlalchemy import select as sa_select
+
+    from app.models.pm_profile import PMProfile
+    from app.models.registry import Agent, Skill
+
+    selected_pm_id = getattr(session, "selected_pm_id", None)
+    if not selected_pm_id:
+        return agent_slugs, skill_slugs
+
+    pm = await db.get(PMProfile, selected_pm_id)
+    if pm is None:
+        return agent_slugs, skill_slugs
+
+    pm_specs: set[str] = {s.lower() for s in (pm.specialties or [])}
+    if not pm_specs:
+        return agent_slugs, skill_slugs
+
+    def _sort_key(slug: str, registry_items: list[dict[str, Any]]) -> int:
+        item = next((i for i in registry_items if i["id"] == slug), None)
+        if item is None:
+            return 1
+        compat: list[str] = item.get("compatible_pm_specialties", [])
+        overlap = {c.lower() for c in compat} & pm_specs
+        return 0 if overlap else 1
+
+    # compatible_pm_specialties가 없으면 DB에서 보완
+    slugs_needing_meta = {
+        s
+        for s in agent_slugs + skill_slugs
+        if not any(
+            i["id"] == s and "compatible_pm_specialties" in i for i in agent_list + skill_list
+        )
+    }
+    if slugs_needing_meta:
+        a_rows = (
+            (await db.execute(sa_select(Agent).where(Agent.slug.in_(slugs_needing_meta))))
+            .scalars()
+            .all()
+        )
+        s_rows = (
+            (await db.execute(sa_select(Skill).where(Skill.slug.in_(slugs_needing_meta))))
+            .scalars()
+            .all()
+        )
+        for row in list(a_rows) + list(s_rows):
+            for lst in (agent_list, skill_list):
+                for item in lst:
+                    if item["id"] == row.slug:
+                        item["compatible_pm_specialties"] = list(
+                            row.compatible_pm_specialties or []
+                        )
+
+    sorted_agents = sorted(agent_slugs, key=lambda s: _sort_key(s, agent_list))
+    sorted_skills = sorted(skill_slugs, key=lambda s: _sort_key(s, skill_list))
+    return sorted_agents, sorted_skills

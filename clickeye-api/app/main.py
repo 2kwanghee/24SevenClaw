@@ -148,10 +148,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     await init_redis()
     monitor_task = asyncio.create_task(_queue_monitor_loop())
+    # 프리셋 시드 자동 로드 (최초 기동 시에만 삽입, 이미 존재하면 건너뜀)
+    await _seed_presets_on_startup()
     yield
     # 종료 시 정리
     monitor_task.cancel()
     await close_redis()
+
+
+async def _seed_presets_on_startup() -> None:
+    from app.database import async_session
+    from app.services.preset_service import PresetService
+
+    try:
+        async with async_session() as db:
+            service = PresetService(db)
+            count = await service.seed_presets()
+            if count:
+                logging.getLogger("startup").info("프리셋 시드 %d개 삽입 완료", count)
+    except Exception:
+        logging.getLogger("startup").exception("프리셋 시드 로드 실패 (무시하고 계속)")
 
 
 def create_app() -> FastAPI:

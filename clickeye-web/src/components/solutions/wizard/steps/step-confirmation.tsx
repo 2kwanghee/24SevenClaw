@@ -13,7 +13,6 @@ import {
   Wrench,
   Webhook,
   Server,
-  Puzzle,
   ArrowLeft,
   CheckCircle2,
   Download,
@@ -34,6 +33,7 @@ import { pmProfiles, type PMProfileWithMetrics } from "@/lib/api-client";
 import { PMRatingStars } from "../pm-rating-stars";
 import { PrototypePreview } from "../prototype-preview";
 import { useCatalogSkills, useCatalogHooks } from "@/hooks/use-catalog";
+import { usePMComposition } from "@/hooks/use-pm-profiles";
 import { collectEnvVars } from "@/lib/catalog-helpers";
 
 // ---------------------------------------------------------------------------
@@ -68,46 +68,6 @@ const SOLUTION_TYPE_LABELS: Record<string, string> = {
   mvp: "MVP",
   custom: "커스텀",
 };
-
-// ---------------------------------------------------------------------------
-// PM 구성 요소 수 계산 (pm-composition-view.tsx 와 동일 로직)
-// ---------------------------------------------------------------------------
-
-const MCP_SKILL_NAMES = new Set([
-  "linear",
-  "github",
-  "slack",
-  "notion",
-  "telegram",
-  "figma",
-]);
-
-function deriveCompositionCounts(profile: PMProfileWithMetrics) {
-  const traits = profile.personality as Record<string, unknown>;
-
-  const agents =
-    (traits.agents as string[] | undefined) ??
-    profile.specialties
-      .slice(0, 3)
-      .map((a) => a.toLowerCase().replace(/\s+/g, "-"));
-  const skills =
-    (traits.skills as string[] | undefined) ?? profile.specialties;
-  const hooks =
-    (traits.hooks as string[] | undefined) ?? ["pre-commit", "test-runner"];
-  const mcp_servers =
-    (traits.mcp_servers as string[] | undefined) ??
-    profile.specialties.filter((s) => MCP_SKILL_NAMES.has(s.toLowerCase()));
-  const plugins =
-    (traits.plugins as string[] | undefined) ?? ["code-review"];
-
-  return {
-    agents: agents.length,
-    skills: skills.length,
-    hooks: hooks.length,
-    mcp_servers: mcp_servers.length,
-    plugins: plugins.length,
-  };
-}
 
 // ---------------------------------------------------------------------------
 // 하위 컴포넌트
@@ -462,7 +422,16 @@ export function StepConfirmation() {
       .catch(() => {});
   }, [token, pm.selectedPmProfileId]);
 
-  const compositionCounts = pmProfile ? deriveCompositionCounts(pmProfile) : null;
+  // 관리자 화면과 동일하게 pm_compositions DB 값을 단일 source-of-truth로 사용
+  const { data: pmComposition } = usePMComposition(pm.selectedPmProfileId ?? "");
+  const compositionCounts = pmComposition
+    ? {
+        agents: pmComposition.agents.length,
+        skills: pmComposition.skills.length,
+        hooks: pmComposition.hooks.length,
+        mcp_servers: pmComposition.mcp_servers.length,
+      }
+    : null;
 
   if (createdProjectId) {
     return (
@@ -593,7 +562,7 @@ export function StepConfirmation() {
                 <p className="mb-2 text-[11px] font-medium text-zinc-500">
                   PM 구성 요소
                 </p>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <CompositionCountBadge
                     icon={Bot}
                     label="에이전트"
@@ -609,13 +578,6 @@ export function StepConfirmation() {
                     bg="bg-sky-500/10"
                   />
                   <CompositionCountBadge
-                    icon={Webhook}
-                    label="훅"
-                    count={compositionCounts.hooks}
-                    color="text-violet-400"
-                    bg="bg-violet-500/10"
-                  />
-                  <CompositionCountBadge
                     icon={Server}
                     label="MCP"
                     count={compositionCounts.mcp_servers}
@@ -623,11 +585,11 @@ export function StepConfirmation() {
                     bg="bg-amber-500/10"
                   />
                   <CompositionCountBadge
-                    icon={Puzzle}
-                    label="플러그인"
-                    count={compositionCounts.plugins}
-                    color="text-rose-400"
-                    bg="bg-rose-500/10"
+                    icon={Webhook}
+                    label="Hook"
+                    count={compositionCounts.hooks}
+                    color="text-violet-400"
+                    bg="bg-violet-500/10"
                   />
                 </div>
               </div>

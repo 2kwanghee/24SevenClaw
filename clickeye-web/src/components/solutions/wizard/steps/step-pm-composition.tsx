@@ -8,6 +8,7 @@ import {
   Bot,
   ChevronDown,
   ChevronRight,
+  Info,
   Loader2,
   Puzzle,
   RefreshCw,
@@ -202,6 +203,7 @@ export function StepPMComposition() {
   const recommendedItems = useSolutionWizardStore(
     (s) => s.data.pm.recommendedItems,
   );
+  const setPM = useSolutionWizardStore((s) => s.setPM);
   const goToStep = useSolutionWizardStore((s) => s.goToStep);
 
   const [composition, setComposition] = useState<GroupedComposition | null>(
@@ -223,17 +225,19 @@ export function StepPMComposition() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const data = await pmProfiles.getComposition(
-          token,
-          selectedPmProfileId,
-        );
+        const [compData, profileData] = await Promise.all([
+          pmProfiles.getComposition(token, selectedPmProfileId),
+          pmProfiles.get(token, selectedPmProfileId),
+        ]);
         setComposition({
-          agents: data.agents,
-          skills: data.skills,
-          hooks: data.hooks,
-          mcp_servers: data.mcp_servers,
-          plugins: data.plugins,
+          agents: compData.agents,
+          skills: compData.skills,
+          hooks: compData.hooks,
+          mcp_servers: compData.mcp_servers,
+          plugins: compData.plugins,
         });
+        // 다음 스텝(플랫폼 선택)에서 PM 지원 플랫폼 필터링에 사용
+        setPM({ pmSupportedPlatforms: profileData.supported_platforms ?? [] });
       } catch {
         setFetchError("PM 구성 정보를 불러오지 못했습니다.");
       } finally {
@@ -362,6 +366,15 @@ export function StepPMComposition() {
           ))}
         </div>
       )}
+
+      {/* 다음 단계 안내 */}
+      <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden={true} />
+        <p className="text-xs text-zinc-600">
+          이 PM의 기본 팀(에이전트·스킬·MCP·훅)이 다음 에이전트 구성 단계에서
+          자동으로 선택됩니다. PM 팀 항목은 잠금 처리되며, 추가 항목은 자유롭게 선택할 수 있습니다.
+        </p>
+      </div>
 
       {/* PM 재선택 버튼 */}
       <div className="pt-2">

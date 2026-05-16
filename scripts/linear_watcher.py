@@ -30,9 +30,62 @@ FIX_PLAN_PATH = os.path.join(PROJECT_DIR, ".ralph", "fix_plan.md")
 TASK_MAPPING_PATH = os.path.join(PROJECT_DIR, ".ralph", ".task_mapping.json")
 TASKS_DIR = os.path.join(PROJECT_DIR, ".ralph", "tasks")
 
+# 종결 상태 — 자식 이슈 확장 시 이 상태의 자식은 건너뜀
+TERMINAL_STATES = {"Done", "Canceled", "Duplicate"}
+
+
+def fetch_children(api_key: str, team_id: str, parent_id: str) -> list[dict]:
+    """부모 이슈의 직접 자식 이슈들을 조회한다.
+
+    Linear의 parent-child 관계를 GraphQL `parent: { id: { eq } }` 필터로 추출.
+    """
+    query = """
+    query($teamId: ID!, $parentId: ID!) {
+        issues(
+            filter: {
+                team: { id: { eq: $teamId } }
+                parent: { id: { eq: $parentId } }
+            }
+            orderBy: createdAt
+        ) {
+            nodes {
+                id identifier title description priority dueDate url
+                labels { nodes { name } }
+                state { id name }
+            }
+        }
+    }
+    """
+    data = linear_request(api_key, query, {"teamId": team_id, "parentId": parent_id})
+    if not data:
+        return []
+    return data.get("issues", {}).get("nodes", [])
+
+
+def expand_to_leaves(api_key: str, team_id: str, issue: dict) -> list[dict]:
+    """부모 이슈를 재귀적으로 리프 태스크까지 확장.
+
+    - 자식이 없으면 자기 자신을 리프로 반환
+    - 자식 중 TERMINAL_STATES(Done/Canceled/Duplicate)는 건너뜀
+    - 다단계 계층(grandchild 등)도 자동 재귀
+    """
+    children = fetch_children(api_key, team_id, issue["id"])
+    if not children:
+        return [issue]
+    leaves: list[dict] = []
+    for child in children:
+        if child.get("state", {}).get("name") in TERMINAL_STATES:
+            continue
+        leaves.extend(expand_to_leaves(api_key, team_id, child))
+    return leaves
+
 
 def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
-    """Fetch all issues with state 'DayQueued', 'NightQueued', or 'Queued', sorted by priority."""
+    """큐 상태 이슈를 조회하고 부모 이슈는 활성 리프 태스크로 확장해 반환한다.
+
+    DayQueued/NightQueued/Queued 상태로 들어온 부모 이슈도 자동으로 자식 리프까지 펼쳐
+    하나의 평면 리스트로 만든다. 자식이 없는 일반 이슈는 그대로 단일 항목으로 유지.
+    """
     query = """
     query($teamId: ID!) {
         issues(
@@ -60,7 +113,24 @@ def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
     if not data:
         return []
     nodes = data.get("issues", {}).get("nodes", [])
-    # identifier 숫자 순서로 정렬 (24S-1 → 24S-2 → ... → 24S-10)
+
+    # 부모 이슈 → 활성 리프 태스크로 확장 (중복 제거)
+    # 자식이 없는 일반 이슈는 expand_to_leaves가 [issue]로 반환하므로 백워드 호환.
+    seen_ids: set[str] = set()
+    expanded: list[dict] = []
+    for node in nodes:
+        parent_identifier = node.get("identifier")
+        for leaf in expand_to_leaves(api_key, team_id, node):
+            if leaf["id"] in seen_ids:
+                continue
+            seen_ids.add(leaf["id"])
+            # 자기 자신이 리프인 경우(자식 없음)는 parent_identifier 비움
+            if leaf["id"] != node["id"]:
+                leaf["_parent_identifier"] = parent_identifier
+            expanded.append(leaf)
+    nodes = expanded
+
+    # identifier 숫자 순서로 정렬 (CE-1 → CE-2 → ... → CE-10)
     # 동일 번호 내에서는 priority로 2차 정렬
     import re
     def sort_key(x):
@@ -91,6 +161,9 @@ def extract_task_info(issue: dict) -> dict:
         "branch": f"ralph/{identifier}",
         "url": issue.get("url", ""),
         "mode": mode,
+        # fetch_queued_issues가 부모 이슈에서 펼친 리프인 경우 부모 식별자를 저장
+        # 자기 자신이 리프(자식 없음)인 경우는 None
+        "parent_identifier": issue.get("_parent_identifier"),
     }
 
 
@@ -203,6 +276,8 @@ def save_task_mapping(tasks: list[dict]):
             "description": task["description"],
             "branch": task["branch"],
             "url": task.get("url", ""),
+            # 부모 이슈에서 펼친 자식이면 부모 식별자, 단일 이슈면 None
+            "parent_identifier": task.get("parent_identifier"),
         }
     with open(TASK_MAPPING_PATH, "w") as f:
         json.dump(mapping, f, ensure_ascii=False, indent=2)

@@ -19,6 +19,9 @@ class RegistryItemBase(BaseModel):
     category: str | None = Field(None, max_length=50)
     is_public: bool = True
     config_schema: dict[str, Any] = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+    compatible_pm_specialties: list[str] = Field(default_factory=list)
 
 
 class RegistryItemUpdate(BaseModel):
@@ -30,6 +33,9 @@ class RegistryItemUpdate(BaseModel):
     category: str | None = Field(None, max_length=50)
     is_public: bool | None = None
     config_schema: dict[str, Any] | None = None
+    tags: list[str] | None = None
+    domains: list[str] | None = None
+    compatible_pm_specialties: list[str] | None = None
 
 
 class RegistryItemResponse(BaseModel):
@@ -43,6 +49,9 @@ class RegistryItemResponse(BaseModel):
     category: str | None
     is_public: bool
     config_schema: dict[str, Any]
+    tags: list[str]
+    domains: list[str]
+    compatible_pm_specialties: list[str]
     created_at: datetime
     updated_at: datetime
 

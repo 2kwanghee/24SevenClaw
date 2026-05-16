@@ -3,18 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, ArrowRight, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 import { cn } from "@/lib/utils";
 import { usePresets } from "@/hooks/use-presets";
 import { PresetCard } from "@/components/presets/preset-card";
 import { NaturalLanguageInput } from "@/components/presets/natural-language-input";
-import type { PresetResponse, NaturalLanguageConfigResponse } from "@/lib/api-client";
+import { presets, type PresetResponse, type NaturalLanguageConfigResponse } from "@/lib/api-client";
+import { NL_ANALYSIS_STORAGE_KEY } from "@/lib/storage-keys";
 
 export default function PresetSelectionPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? "";
   const { data, isLoading } = usePresets();
   const [selectedPreset, setSelectedPreset] = useState<PresetResponse | null>(null);
   const [nlResult, setNlResult] = useState<NaturalLanguageConfigResponse | null>(null);
+  const [nlText, setNlText] = useState<string>("");
   const [nlLoading, setNlLoading] = useState(false);
 
   const presetList = data?.items ?? [];
@@ -28,52 +34,37 @@ export default function PresetSelectionPage() {
     router.push("/solutions/new");
   };
 
-  const handleNlAnalyze = (text: string) => {
+  const handleNlAnalyze = async (text: string) => {
+    if (!token) {
+      toast.error("로그인이 필요합니다.");
+      return;
+    }
     setNlLoading(true);
-    // 자연어 분석은 현재 클라이언트 측 키워드 매칭으로 동작
-    // 향후 API 엔드포인트 완성 시 교체 예정
-    setTimeout(() => {
-      const lower = text.toLowerCase();
-      const agents: string[] = ["harness"];
-      const skills: string[] = [];
-      const pipelines: string[] = [];
-
-      if (lower.includes("백엔드") || lower.includes("api") || lower.includes("fastapi")) {
-        agents.push("backend");
-      }
-      if (lower.includes("프론트") || lower.includes("react") || lower.includes("next")) {
-        agents.push("frontend");
-      }
-      if (lower.includes("풀스택") || lower.includes("fullstack")) {
-        agents.push("fullstack");
-      }
-      if (lower.includes("ui") || lower.includes("디자인") || lower.includes("ux")) {
-        agents.push("uiux");
-      }
-      if (lower.includes("devops") || lower.includes("배포") || lower.includes("docker")) {
-        agents.push("devops");
-      }
-      if (lower.includes("리뷰") || lower.includes("review")) {
-        skills.push("code-review");
-        pipelines.push("ai-review");
-      }
-      if (lower.includes("테스트") || lower.includes("test")) {
-        skills.push("testing-basic");
-        pipelines.push("simple-build");
-      }
-      if (lower.includes("코드 생성") || lower.includes("generation")) {
-        skills.push("code-generation");
-      }
-
-      setNlResult({
-        suggested_agents: agents,
-        suggested_skills: skills,
-        suggested_pipelines: pipelines,
-        confidence: 0.7 + Math.random() * 0.25,
-        reasoning: `입력에서 ${agents.length - 1}개 에이전트, ${skills.length}개 스킬, ${pipelines.length}개 파이프라인을 추출했습니다. 프리셋을 선택하면 추가 최적화가 적용됩니다.`,
-      });
+    setNlText(text);
+    try {
+      const result = await presets.analyzeText(token, text);
+      setNlResult(result);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "분석에 실패했습니다.";
+      toast.error(message);
+      setNlResult(null);
+    } finally {
       setNlLoading(false);
-    }, 800);
+    }
+  };
+
+  const handleNlProceed = () => {
+    if (!nlResult) return;
+    // 분석 결과 + 원본 입력 텍스트를 sessionStorage에 저장 → 위저드 Step 1에서 prefill
+    try {
+      sessionStorage.setItem(
+        NL_ANALYSIS_STORAGE_KEY,
+        JSON.stringify({ ...nlResult, sourceText: nlText }),
+      );
+    } catch {
+      // sessionStorage 사용 불가 시 무시 (SSR/프라이버시 모드)
+    }
+    router.push("/solutions/new");
   };
 
   const handleSkip = () => {
@@ -97,6 +88,7 @@ export default function PresetSelectionPage() {
       <div className="mb-8 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
         <NaturalLanguageInput
           onAnalyze={handleNlAnalyze}
+          onProceed={handleNlProceed}
           isLoading={nlLoading}
           result={nlResult}
         />

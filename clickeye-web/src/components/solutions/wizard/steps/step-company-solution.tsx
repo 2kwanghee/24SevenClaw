@@ -17,6 +17,81 @@ import { useEffect } from "react";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import type { BusinessType, CompanySize, IndustryType } from "@/types/solution-wizard";
 import { useWizardPreview } from "@/hooks/use-wizard-preview";
+import type { NaturalLanguageConfigResponse } from "@/lib/api-client";
+import { NL_ANALYSIS_STORAGE_KEY } from "@/lib/storage-keys";
+
+/** 분석 결과 industry 문자열을 IndustryType으로 매핑 */
+const INDUSTRY_KEYWORD_MAP: Record<string, IndustryType> = {
+  fintech: "fintech",
+  finance: "fintech",
+  핀테크: "fintech",
+  금융: "fintech",
+  ecommerce: "ecommerce",
+  retail: "ecommerce",
+  이커머스: "ecommerce",
+  리테일: "ecommerce",
+  healthcare: "healthcare",
+  health: "healthcare",
+  헬스케어: "healthcare",
+  의료: "healthcare",
+  education: "education",
+  교육: "education",
+  edutech: "education",
+  manufacturing: "manufacturing",
+  제조: "manufacturing",
+  logistics: "logistics",
+  물류: "logistics",
+  배송: "logistics",
+  marketing: "marketing",
+  마케팅: "marketing",
+  광고: "marketing",
+  game: "game",
+  gaming: "game",
+  게임: "game",
+  it: "it",
+  saas: "it",
+  software: "it",
+};
+
+/** 분석 결과에서 IndustryType 추론 */
+function inferIndustry(analysis: NaturalLanguageConfigResponse): IndustryType | null {
+  const candidates: string[] = [];
+  if (analysis.primary_tag) candidates.push(analysis.primary_tag);
+  if (analysis.tags) candidates.push(...analysis.tags);
+  if (analysis.target_users) candidates.push(analysis.target_users);
+  for (const cand of candidates) {
+    const lower = cand.toLowerCase();
+    for (const [keyword, industry] of Object.entries(INDUSTRY_KEYWORD_MAP)) {
+      if (lower.includes(keyword)) return industry;
+    }
+  }
+  return null;
+}
+
+/** 분석 결과의 tech_stack/tags 중 카탈로그 옵션과 일치하는 항목만 추출 */
+function inferTechStack(analysis: NaturalLanguageConfigResponse): string[] {
+  const all = new Set<string>();
+  if (analysis.tech_stack) {
+    for (const v of Object.values(analysis.tech_stack)) {
+      if (v) all.add(v);
+    }
+  }
+  if (analysis.tags) {
+    for (const t of analysis.tags) all.add(t);
+  }
+  const result: string[] = [];
+  // 원래 케이스를 보존하기 위해 카탈로그를 다시 순회
+  for (const cat of TECH_STACK_CATEGORIES) {
+    for (const opt of cat.options) {
+      for (const item of all) {
+        if (item.toLowerCase() === opt.toLowerCase() && !result.includes(opt)) {
+          result.push(opt);
+        }
+      }
+    }
+  }
+  return result;
+}
 
 /* -- 상수 -- */
 
@@ -134,11 +209,47 @@ type FormData = z.infer<typeof schema>;
 
 /* -- 컴포넌트 -- */
 
+/** sessionStorage에서 자연어 분석 결과를 읽어 form 기본값에 병합한다 (일회성). */
+function consumeNlAnalysisPrefill(): {
+  industry?: IndustryType;
+  techStack?: string[];
+  solutionRequest?: string;
+  companyDescription?: string;
+} {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = sessionStorage.getItem(NL_ANALYSIS_STORAGE_KEY);
+    if (!raw) return {};
+    sessionStorage.removeItem(NL_ANALYSIS_STORAGE_KEY);
+    const parsed = JSON.parse(raw) as NaturalLanguageConfigResponse & { sourceText?: string };
+    const industry = inferIndustry(parsed) ?? undefined;
+    const techStack = inferTechStack(parsed);
+    const reasoning = parsed.reasoning ?? "";
+    const features = (parsed.features ?? []).join(", ");
+    const description = parsed.target_users
+      ? `대상 사용자: ${parsed.target_users}${features ? `. 주요 기능: ${features}` : ""}`
+      : features
+        ? `주요 기능: ${features}`
+        : reasoning;
+    return {
+      industry,
+      techStack: techStack.length > 0 ? techStack : undefined,
+      solutionRequest: parsed.sourceText || undefined,
+      companyDescription: description || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function StepCompanySolution() {
   // defaultValues 초기화에만 필요 — reactive 구독 없이 1회 읽기
   const initialCompany = useSolutionWizardStore.getState().data.company;
   const setCompany = useSolutionWizardStore((s) => s.setCompany);
   const setStep0Valid = useSolutionWizardStore((s) => s.setStep0Valid);
+
+  // 빠른 시작에서 넘어온 자연어 분석 결과가 있으면 초기값에 병합 (mount 시 1회만)
+  const nlPrefill = consumeNlAnalysisPrefill();
 
   const {
     register,
@@ -151,12 +262,12 @@ export function StepCompanySolution() {
     defaultValues: {
       companyName: initialCompany.companyName,
       companySize: initialCompany.companySize ?? undefined,
-      industry: initialCompany.industry ?? undefined,
-      techStack: initialCompany.techStack,
+      industry: nlPrefill.industry ?? initialCompany.industry ?? undefined,
+      techStack: nlPrefill.techStack ?? initialCompany.techStack,
       mainProduct: initialCompany.mainProduct,
       businessType: initialCompany.businessType ?? undefined,
-      companyDescription: initialCompany.companyDescription,
-      solutionRequest: initialCompany.solutionRequest,
+      companyDescription: nlPrefill.companyDescription ?? initialCompany.companyDescription,
+      solutionRequest: nlPrefill.solutionRequest ?? initialCompany.solutionRequest,
       enableAutoDecompose: initialCompany.enableAutoDecompose ?? false,
     },
   });

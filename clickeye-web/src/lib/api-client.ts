@@ -478,6 +478,14 @@ export interface NaturalLanguageConfigResponse {
   suggested_pipelines: string[];
   confidence: number;
   reasoning: string;
+  // Claude 분석 풍부한 필드 (위저드 prefill용)
+  primary_tag?: string | null;
+  tags?: string[];
+  tech_stack?: Record<string, string | null>;
+  features?: string[];
+  complexity?: string | null;
+  target_users?: string | null;
+  key_requirements?: string[];
 }
 
 // --- Reports ---
@@ -565,6 +573,12 @@ export const presets = {
     authRequest<MaturityAssessmentResponse>("/api/v1/presets/assess", token, {
       method: "POST",
       body: JSON.stringify({ answers }),
+    }),
+
+  analyzeText: (token: string, text: string) =>
+    authRequest<NaturalLanguageConfigResponse>("/api/v1/presets/analyze-text", token, {
+      method: "POST",
+      body: JSON.stringify({ text }),
     }),
 };
 
@@ -724,6 +738,11 @@ export interface PrototypeSessionCreateRequest {
   solution_prompt: string;
   tech_stack?: string[];
   industry?: string | null;
+  // 회사 컨텍스트 — Claude variant 생성 시 회사 특성을 고려하기 위해 전달
+  company_size?: string | null;
+  business_type?: string | null;
+  main_product?: string | null;
+  company_description?: string | null;
 }
 
 export interface PrototypeSessionResponse {
@@ -772,6 +791,19 @@ export interface PrototypeResponse {
   is_recommended: boolean;
   pros: string[];
   cons: string[];
+  // 정량 지표 (Phase A — Claude 생성, 폴백 시 누락)
+  estimated_weeks_min?: number | null;
+  estimated_weeks_max?: number | null;
+  team_size_min?: number | null;
+  team_size_max?: number | null;
+  team_roles?: string[];
+  complexity_score?: number | null;
+  scalability_score?: number | null;
+  monthly_cost_min_usd?: number | null;
+  monthly_cost_max_usd?: number | null;
+  maintenance_difficulty?: string | null;
+  skill_requirements?: string[];
+  match_reasoning?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -923,6 +955,7 @@ export interface PMProfileResponse {
   industry_tags: string[];
   language: string;
   updated_at: string | null;
+  supported_platforms: string[];
 }
 
 export interface PMProfileCreateRequest {
@@ -941,6 +974,7 @@ export interface PMProfileCreateRequest {
   tech_stack_tags?: string[];
   industry_tags?: string[];
   language?: string;
+  supported_platforms?: string[];
 }
 
 export type PMProfileUpdateRequest = Partial<PMProfileCreateRequest>;
@@ -1221,6 +1255,9 @@ export interface RegistryItemResponse {
   category: string | null;
   is_public: boolean;
   config_schema: Record<string, unknown>;
+  tags: string[];
+  domains: string[];
+  compatible_pm_specialties: string[];
   created_at: string;
   updated_at: string;
 }
@@ -1240,6 +1277,9 @@ export interface RegistryItemCreateRequest {
   category?: string | null;
   is_public?: boolean;
   config_schema?: Record<string, unknown>;
+  tags?: string[];
+  domains?: string[];
+  compatible_pm_specialties?: string[];
 }
 
 export interface RegistryItemUpdateRequest {
@@ -1251,6 +1291,9 @@ export interface RegistryItemUpdateRequest {
   category?: string | null;
   is_public?: boolean;
   config_schema?: Record<string, unknown>;
+  tags?: string[];
+  domains?: string[];
+  compatible_pm_specialties?: string[];
 }
 
 export interface RegistryListParams {
@@ -1977,6 +2020,14 @@ export interface CatalogHook {
   required: boolean;
 }
 
+export interface CatalogMCP {
+  id: string;
+  label: string;
+  description: string | null;
+  category: string | null;
+  body_md: string | null;
+}
+
 export interface CatalogListResponse<T> {
   items: T[];
   total: number;
@@ -1994,6 +2045,10 @@ export const catalog = {
   hooks: {
     list: () =>
       request<CatalogListResponse<CatalogHook>>("/api/v1/catalog/hooks"),
+  },
+  mcps: {
+    list: () =>
+      request<CatalogListResponse<CatalogMCP>>("/api/v1/catalog/mcps"),
   },
 };
 

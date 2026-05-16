@@ -59,13 +59,9 @@ class PMService:
         if specialty:
             # JSON 배열에서 specialty 문자열 포함 여부 확인
             # SQLite/PostgreSQL 모두 호환: 텍스트로 캐스트 후 "specialty" 검색
-            conditions.append(
-                cast(PMProfile.specialties, SAString).contains(f'"{specialty}"')
-            )
+            conditions.append(cast(PMProfile.specialties, SAString).contains(f'"{specialty}"'))
 
-        count_stmt = (
-            select(func.count()).select_from(PMProfile).where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(PMProfile).where(*conditions)
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
 
@@ -84,9 +80,7 @@ class PMService:
         """PM 프로필과 메트릭을 함께 조회한다."""
         profile = await self.db.get(PMProfile, profile_id)
         if profile is None:
-            raise AppError(
-                "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
-            )
+            raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
 
         # 메트릭 로드 (없으면 기본값 사용)
         stmt = select(PMMetrics).where(PMMetrics.pm_id == profile_id)
@@ -121,9 +115,7 @@ class PMService:
 
     async def create_profile(self, data: PMProfileCreate) -> PMProfile:
         """PM 프로필을 생성한다."""
-        existing = await self.db.execute(
-            select(PMProfile).where(PMProfile.slug == data.slug)
-        )
+        existing = await self.db.execute(select(PMProfile).where(PMProfile.slug == data.slug))
         if existing.scalar_one_or_none() is not None:
             raise AppError("SLUG_CONFLICT", "이미 사용 중인 slug입니다", 409)
 
@@ -143,6 +135,7 @@ class PMService:
             tech_stack_tags=data.tech_stack_tags,
             industry_tags=data.industry_tags,
             language=data.language,
+            supported_platforms=data.supported_platforms or [],
         )
         self.db.add(profile)
         await self.db.commit()
@@ -201,9 +194,7 @@ class PMService:
         # 프로토타입 조회
         prototype = await self.db.get(Prototype, prototype_id)
         if prototype is None:
-            raise AppError(
-                "PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404
-            )
+            raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
 
         # 세션 컨텍스트 로드 (있는 경우)
         context_text = ""
@@ -233,9 +224,40 @@ class PMService:
         pm_ids = [p.id for p in profiles]
         metrics_stmt = select(PMMetrics).where(PMMetrics.pm_id.in_(pm_ids))
         metrics_result = await self.db.execute(metrics_stmt)
-        metrics_by_pm: dict[Any, PMMetrics] = {
-            m.pm_id: m for m in metrics_result.scalars().all()
-        }
+        metrics_by_pm: dict[Any, PMMetrics] = {m.pm_id: m for m in metrics_result.scalars().all()}
+
+        # 4단계: 레지스트리 도메인 메타 기반 보너스 — PM 구성 슬러그의 domains 집합 수집
+        # 모든 PM의 compositions를 한 번에 로드
+        from app.models.registry import Agent, Skill
+
+        comps_stmt = select(PMComposition).where(PMComposition.pm_id.in_(pm_ids))
+        comps_result = await self.db.execute(comps_stmt)
+        all_comps = list(comps_result.scalars().all())
+
+        agent_slugs = {c.component_slug for c in all_comps if c.component_type == "agent"}
+        skill_slugs = {c.component_slug for c in all_comps if c.component_type == "skill"}
+
+        # 레지스트리에서 slug → domains 맵 구성
+        reg_domain_map: dict[str, list[str]] = {}
+        if agent_slugs:
+            a_stmt = select(Agent).where(Agent.slug.in_(agent_slugs))
+            for a in (await self.db.execute(a_stmt)).scalars().all():
+                reg_domain_map[str(a.slug)] = list(a.domains or [])
+        if skill_slugs:
+            s_stmt = select(Skill).where(Skill.slug.in_(skill_slugs))
+            for s in (await self.db.execute(s_stmt)).scalars().all():
+                reg_domain_map[str(s.slug)] = list(s.domains or [])
+
+        # PM별 레지스트리 도메인 집합
+        pm_reg_domains: dict[Any, set[str]] = {}
+        for comp in all_comps:
+            _pid_c: Any = comp.pm_id
+            if _pid_c not in pm_reg_domains:
+                pm_reg_domains[_pid_c] = set()
+            pm_reg_domains[_pid_c].update(reg_domain_map.get(str(comp.component_slug), []))
+
+        # 세션 도메인 키워드 (design_pattern + context_text에서 추출)
+        session_domain_tokens = {t.lower() for t in combined_text.split() if len(t) > 2}
 
         recommendations: list[dict[str, Any]] = []
         for profile in profiles:
@@ -247,9 +269,7 @@ class PMService:
             pm_specialties = [s.lower() for s in (_specs or [])]
             if keywords and pm_specialties:
                 matched = sum(
-                    1
-                    for kw in keywords
-                    if any(kw in spec or spec in kw for spec in pm_specialties)
+                    1 for kw in keywords if any(kw in spec or spec in kw for spec in pm_specialties)
                 )
                 specialty_score = min(matched / max(len(keywords), 1) * 200, 100.0)
             else:
@@ -263,11 +283,18 @@ class PMService:
             else:
                 metric_score = 50.0  # 평가 없는 경우 중립값
 
-            # 가중 합산
-            final_score = int(
-                domain_score * 0.4
-                + specialty_score * 0.3
-                + metric_score * 0.3
+            # 레지스트리 도메인 보너스: PM 구성 items의 domains가 세션 컨텍스트와 교집합
+            reg_domains = pm_reg_domains.get(_pid, set())
+            if reg_domains and session_domain_tokens:
+                overlap = reg_domains & session_domain_tokens
+                domain_bonus = min(len(overlap) / max(len(reg_domains), 1) * 100, 10.0)
+            else:
+                domain_bonus = 0.0
+
+            # 가중 합산 (도메인 보너스는 최대 +10점)
+            final_score = min(
+                int(domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3 + domain_bonus),
+                100,
             )
 
             reasoning = (
@@ -275,8 +302,9 @@ class PMService:
                 f"{design_pattern or '해당'} 프로젝트에 "
                 f"도메인({int(domain_score)}pt)·"
                 f"전문분야({int(specialty_score)}pt)·"
-                f"평가({int(metric_score)}pt) 기준으로 "
-                f"종합 {final_score}점입니다."
+                f"평가({int(metric_score)}pt)"
+                + (f"·레지스트리({int(domain_bonus)}pt)" if domain_bonus > 0 else "")
+                + f" 기준으로 종합 {final_score}점입니다."
             )
             recommendations.append(
                 {
@@ -292,9 +320,7 @@ class PMService:
 
     # ── PM 구성 ──
 
-    async def get_composition(
-        self, pm_id: UUID
-    ) -> PMCompositionGroupedResponse:
+    async def get_composition(self, pm_id: UUID) -> PMCompositionGroupedResponse:
         """PM 프로필의 구성 컴포넌트를 타입별로 그룹화하여 반환한다."""
         stmt = (
             select(PMComposition)
@@ -324,15 +350,11 @@ class PMService:
 
         return PMCompositionGroupedResponse(**grouped)
 
-    async def create_composition(
-        self, pm_id: UUID, data: PMCompositionCreate
-    ) -> PMComposition:
+    async def create_composition(self, pm_id: UUID, data: PMCompositionCreate) -> PMComposition:
         """PM 구성 컴포넌트를 추가한다."""
         pm_profile = await self.db.get(PMProfile, pm_id)
         if pm_profile is None:
-            raise AppError(
-                "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
-            )
+            raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
 
         composition = PMComposition(
             pm_id=pm_id,
@@ -354,9 +376,7 @@ class PMService:
         """PM 구성 컴포넌트를 수정한다."""
         composition = await self.db.get(PMComposition, composition_id)
         if composition is None:
-            raise AppError(
-                "COMPOSITION_NOT_FOUND", "PM 구성을 찾을 수 없습니다", 404
-            )
+            raise AppError("COMPOSITION_NOT_FOUND", "PM 구성을 찾을 수 없습니다", 404)
 
         update_data = data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -368,15 +388,11 @@ class PMService:
 
     # ── PM 평가 ──
 
-    async def rate_pm(
-        self, pm_profile_id: UUID, user_id: UUID, data: PMRatingCreate
-    ) -> PMRating:
+    async def rate_pm(self, pm_profile_id: UUID, user_id: UUID, data: PMRatingCreate) -> PMRating:
         """PM을 평가하고 메트릭을 갱신한다."""
         pm_profile = await self.db.get(PMProfile, pm_profile_id)
         if pm_profile is None:
-            raise AppError(
-                "PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404
-            )
+            raise AppError("PM_PROFILE_NOT_FOUND", "PM 프로필을 찾을 수 없습니다", 404)
 
         rating = PMRating(
             pm_id=pm_profile_id,
@@ -399,9 +415,7 @@ class PMService:
     ) -> tuple[list[PMRating], int]:
         """PM 평가 목록을 반환한다."""
         count_stmt = (
-            select(func.count())
-            .select_from(PMRating)
-            .where(PMRating.pm_id == pm_profile_id)
+            select(func.count()).select_from(PMRating).where(PMRating.pm_id == pm_profile_id)
         )
         total_result = await self.db.execute(count_stmt)
         total = int(total_result.scalar_one())
@@ -419,15 +433,11 @@ class PMService:
 
     async def get_metrics(self, pm_profile_id: UUID) -> PMMetrics:
         """PM 메트릭을 조회한다."""
-        stmt = select(PMMetrics).where(
-            PMMetrics.pm_id == pm_profile_id
-        )
+        stmt = select(PMMetrics).where(PMMetrics.pm_id == pm_profile_id)
         result = await self.db.execute(stmt)
         metric = result.scalar_one_or_none()
         if metric is None:
-            raise AppError(
-                "METRICS_NOT_FOUND", "PM 메트릭을 찾을 수 없습니다", 404
-            )
+            raise AppError("METRICS_NOT_FOUND", "PM 메트릭을 찾을 수 없습니다", 404)
         return metric
 
     async def _update_metrics(self, pm_profile_id: UUID) -> None:
@@ -435,12 +445,12 @@ class PMService:
         stmt = select(
             func.count().label("total"),
             func.avg(PMRating.rating).label("avg_rating"),
-            func.coalesce(
-                func.sum(case((PMRating.reaction == "like", 1), else_=0)), 0
-            ).label("like_count"),
-            func.coalesce(
-                func.sum(case((PMRating.reaction == "dislike", 1), else_=0)), 0
-            ).label("dislike_count"),
+            func.coalesce(func.sum(case((PMRating.reaction == "like", 1), else_=0)), 0).label(
+                "like_count"
+            ),
+            func.coalesce(func.sum(case((PMRating.reaction == "dislike", 1), else_=0)), 0).label(
+                "dislike_count"
+            ),
         ).where(PMRating.pm_id == pm_profile_id)
         result = await self.db.execute(stmt)
         row = result.one()
@@ -450,9 +460,7 @@ class PMService:
         like_count = int(row.like_count or 0)
         dislike_count = int(row.dislike_count or 0)
 
-        stmt_metric = select(PMMetrics).where(
-            PMMetrics.pm_id == pm_profile_id
-        )
+        stmt_metric = select(PMMetrics).where(PMMetrics.pm_id == pm_profile_id)
         metric_result = await self.db.execute(stmt_metric)
         metric = metric_result.scalar_one_or_none()
 

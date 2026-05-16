@@ -11,6 +11,7 @@ import {
 } from "@/lib/api-client";
 import type { RegistryAdminType } from "@/hooks/use-registry-admin";
 import { useCreateRegistryItem, useUpdateRegistryItem } from "@/hooks/use-registry-admin";
+import { TagInput } from "@/components/admin/pm/tag-input";
 
 const TYPE_LABELS: Record<RegistryAdminType, string> = {
   agents: "에이전트",
@@ -27,6 +28,9 @@ interface FormState {
   version: string;
   category: string;
   is_public: boolean;
+  tags: string[];
+  domains: string[];
+  compatible_pm_specialties: string[];
 }
 
 function itemToForm(item: RegistryItemResponse): FormState {
@@ -38,6 +42,9 @@ function itemToForm(item: RegistryItemResponse): FormState {
     version: item.version,
     category: item.category ?? "",
     is_public: item.is_public,
+    tags: item.tags ?? [],
+    domains: item.domains ?? [],
+    compatible_pm_specialties: item.compatible_pm_specialties ?? [],
   };
 }
 
@@ -49,6 +56,9 @@ const EMPTY_FORM: FormState = {
   version: "0.1.0",
   category: "",
   is_public: true,
+  tags: [],
+  domains: [],
+  compatible_pm_specialties: [],
 };
 
 interface DrawerFormProps {
@@ -74,6 +84,9 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
         version: form.version,
         category: form.category || null,
         is_public: form.is_public,
+        tags: form.tags,
+        domains: form.domains,
+        compatible_pm_specialties: form.compatible_pm_specialties,
       };
       updateMutation.mutate(
         { id: item.id, data },
@@ -95,6 +108,9 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
         category: form.category || null,
         is_public: form.is_public,
         config_schema: {},
+        tags: form.tags,
+        domains: form.domains,
+        compatible_pm_specialties: form.compatible_pm_specialties,
       };
       createMutation.mutate(data, {
         onSuccess: () => {
@@ -204,6 +220,29 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
           <label htmlFor="drawer_is_public" className="text-sm text-[var(--text-secondary)]">
             공개 (일반 사용자에게 표시)
           </label>
+        </div>
+
+        {/* 메타데이터 */}
+        <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] p-4">
+          <p className="text-xs font-medium text-[var(--text-muted)]">메타데이터 (추천 알고리즘 활용)</p>
+          <TagInput
+            label="태그"
+            values={form.tags}
+            onChange={(v) => setForm({ ...form, tags: v })}
+            placeholder="예: project-management, automation"
+          />
+          <TagInput
+            label="도메인"
+            values={form.domains}
+            onChange={(v) => setForm({ ...form, domains: v })}
+            placeholder="예: fintech, ecommerce, healthcare"
+          />
+          <TagInput
+            label="호환 PM 전문분야"
+            values={form.compatible_pm_specialties}
+            onChange={(v) => setForm({ ...form, compatible_pm_specialties: v })}
+            placeholder="예: fullstack, backend, frontend"
+          />
         </div>
       </div>
 

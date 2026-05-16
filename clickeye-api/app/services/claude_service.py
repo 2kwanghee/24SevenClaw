@@ -63,19 +63,54 @@ _GENERATE_UI_STRUCTURE_SYSTEM = (
     "Choose the best-fit stack for this architecture regardless of user preference. "
     "Mark is_recommended=false.\n\n"
     "If user_tech_stack is empty, freely propose three distinct stacks covering: "
-    "(0) a popular mainstream stack, (1) a JS-ecosystem alternative, (2) a serverless/BaaS approach.\n\n"
-    "PROS AND CONS: For each variant, list 2-3 concise pros and 1-2 cons specific to this "
-    "stack+architecture combination in the context of the given solution.\n\n"
+    "(0) a popular mainstream stack, "
+    "(1) a JS-ecosystem alternative, "
+    "(2) a serverless/BaaS approach.\n\n"
+    "COMPANY CONTEXT — adapt recommendations to the company profile:\n"
+    "- company_size 'startup'/'small' → prefer simple stacks, managed services, "
+    "avoid enterprise microservices in Variant 0. "
+    "Variant 0 deployable by a 1-3 person team in 4-8 weeks.\n"
+    "- company_size 'enterprise'/'mid-large' → emphasize auditability, "
+    "role-based access, scalability. Variant 2 may include enterprise MSA.\n"
+    "- industry 'fintech'/'healthcare' → prioritize compliance "
+    "(audit logging, encryption at rest), avoid bleeding-edge stacks.\n"
+    "- industry 'ecommerce' → include search/cart/payment patterns in pages.\n"
+    "- business_type 'internal' → Variant 2 admin-portal/low-cost focused "
+    "(e.g., Retool/Appsmith-like).\n"
+    "- business_type 'b2c' → emphasize mobile-first, performance, "
+    "public-facing patterns.\n\n"
+    "PROS AND CONS: For each variant, list 2-3 concise pros and 1-2 cons "
+    "specific to this stack+architecture combination in the context of the "
+    "given solution AND company profile.\n\n"
+    "QUANTITATIVE METRICS — realistic estimates calibrated to company_size:\n"
+    "- estimated_weeks: development time range (min, max) for MVP.\n"
+    "- team_size: min/max headcount with roles (e.g., ['BE','FE','DevOps']).\n"
+    "- complexity_score (1-10): architectural/operational complexity.\n"
+    "- scalability_score (1-10): user base capacity without redesign.\n"
+    "- monthly_cost_usd: infra cost range (min,max) at MVP scale (~1k DAU).\n"
+    "- maintenance_difficulty: 'low'/'medium'/'high'.\n"
+    "- skill_requirements: 2-5 specific skills the team must have.\n"
+    "- match_reasoning: one Korean sentence explaining why THIS company "
+    "profile (size+industry+business_type) fits this variant. "
+    "Reference at least one company attribute.\n\n"
     "IMPORTANT: Always respond with valid JSON only "
     "— no markdown, no code blocks, no extra text.\n\n"
     "Return exactly this JSON structure:\n"
     "{\n"
     '  "tech_stack_tags": ["<tech 1>", "<tech 2>", "<tech 3>"],\n'
-    '  "architecture_pattern": "<human-readable pattern in Korean, e.g. 모놀리식 3-tier | 마이크로서비스 | 서버리스>",\n'
-    '  "variant_rationale": "<1-2 sentences in Korean explaining why this stack+architecture fits>",\n'
+    '  "architecture_pattern": "<Korean pattern, e.g. 모놀리식 3-tier>",\n'
+    '  "variant_rationale": "<1-2 Korean sentences>",\n'
     '  "is_recommended": <true|false>,\n'
     '  "pros": ["<장점 1>", "<장점 2>", "<장점 3>"],\n'
     '  "cons": ["<단점 1>", "<단점 2>"],\n'
+    '  "estimated_weeks": {"min": <int>, "max": <int>},\n'
+    '  "team_size": {"min": <int>, "max": <int>, "roles": ["<role1>", "<role2>"]},\n'
+    '  "complexity_score": <int 1-10>,\n'
+    '  "scalability_score": <int 1-10>,\n'
+    '  "monthly_cost_usd": {"min": <int>, "max": <int>},\n'
+    '  "maintenance_difficulty": "<low|medium|high>",\n'
+    '  "skill_requirements": ["<skill 1>", "<skill 2>"],\n'
+    '  "match_reasoning": "<한국어 한 문장 — 회사 규모/산업/비즈니스타입 중 하나 이상 명시>",\n'
     '  "menu_structure": {\n'
     '    "nav_type": "<sidebar | topbar | hybrid>",\n'
     '    "items": [\n'
@@ -338,6 +373,8 @@ class ClaudeService:
         variant_config: dict[str, Any] | None = None,
         catalog_entry: dict[str, Any] | None = None,
         catalog_references: list[dict[str, Any]] | None = None,
+        company_context: dict[str, Any] | None = None,
+        avoid_tech_stacks: list[str] | None = None,
     ) -> dict[str, Any]:
         """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러, 스택/아키텍처)을 생성한다.
 
@@ -347,10 +384,14 @@ class ClaudeService:
             variant_config: 변형별 역할 정보 {role, is_recommended, user_tech_stack}
             catalog_entry: 단일 카탈로그 참조 엔트리 (폴백 베이스라인용)
             catalog_references: RAG 참조용 카탈로그 엔트리 목록 — 있으면 다수 참조 자료로 주입
+            company_context: 회사 컨텍스트 — {company_size, industry, business_type,
+                main_product, company_description}. 시스템 프롬프트의 회사별 가이드 활성화.
 
         Returns:
             {tech_stack_tags, architecture_pattern, variant_rationale, is_recommended,
-             menu_structure, pages, color_palette, typography, design_style}
+             menu_structure, pages, color_palette, typography, design_style,
+             estimated_weeks, team_size, complexity_score, scalability_score,
+             monthly_cost_usd, maintenance_difficulty, skill_requirements, match_reasoning}
         """
         cfg = variant_config or {}
         role = cfg.get("role", "user_stack_recommended")
@@ -388,16 +429,41 @@ class ClaudeService:
                 f"Cons: {json.dumps(catalog_entry.get('cons', []), ensure_ascii=False)}\n"
             )
 
+        # 회사 컨텍스트 직렬화 — 시스템 프롬프트의 회사별 가이드에 사용
+        company_block = ""
+        if company_context:
+            company_block = (
+                "\n\nCompany context (use to calibrate variant complexity, "
+                "team size, cost, and match_reasoning):\n"
+                f"  company_size: {company_context.get('company_size') or 'unknown'}\n"
+                f"  industry: {company_context.get('industry') or 'unknown'}\n"
+                f"  business_type: {company_context.get('business_type') or 'unknown'}\n"
+                f"  main_product: {company_context.get('main_product') or 'unknown'}\n"
+                f"  company_description: {company_context.get('company_description') or 'unknown'}"
+            )
+
+        avoid_block = ""
+        if avoid_tech_stacks:
+            avoid_block = (
+                f"\n\nAVOID these tech stacks (already used by other variants — "
+                f"choose meaningfully different alternatives): "
+                f"{json.dumps(avoid_tech_stacks, ensure_ascii=False)}"
+            )
+
         user_content = (
             f"Requirements:\n{json.dumps(requirements, ensure_ascii=False)}\n\n"
             f"Variant index: {variant_index}\n"
             f"Variant role: {role}\n"
             f"User preferred tech stack: {json.dumps(user_tech_stack)}\n"
             f"is_recommended: {json.dumps(is_recommended)}"
+            f"{company_block}"
+            f"{avoid_block}"
             f"{catalog_context}\n\n"
             "Generate a unique UI structure following the variant role instructions. "
-            "Ensure tech_stack_tags, architecture_pattern, variant_rationale, "
-            "and is_recommended are included in the response."
+            "Calibrate quantitative metrics (estimated_weeks, team_size, complexity_score, "
+            "scalability_score, monthly_cost_usd, maintenance_difficulty, skill_requirements) "
+            "to the company context. The match_reasoning MUST reference at least one "
+            "company attribute (size, industry, or business_type)."
         )
 
         client = self._get_client()

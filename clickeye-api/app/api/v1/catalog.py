@@ -40,6 +40,16 @@ async def list_hooks(
     return CatalogListResponse(items=items, total=len(items))
 
 
+@router.get("/mcps", response_model=CatalogListResponse)
+async def list_mcps(
+    db: AsyncSession = Depends(get_db),
+) -> CatalogListResponse:
+    """MCP 서버 카탈로그 조회 (id, label, description 반환)."""
+    svc = get_catalog_service()
+    items = await svc.list_mcps(db)
+    return CatalogListResponse(items=items, total=len(items))
+
+
 @router.get("/platforms", response_model=CatalogResponse)
 async def list_platforms() -> CatalogResponse:
     """플랫폼 카탈로그 조회 (JSON)."""

@@ -132,6 +132,19 @@ export interface PrototypeOption {
   isRecommended?: boolean;
   pros?: string[];
   cons?: string[];
+  // 정량 지표 (Phase A — 백엔드 PrototypeResponse와 동일 키 사용)
+  estimatedWeeksMin?: number | null;
+  estimatedWeeksMax?: number | null;
+  teamSizeMin?: number | null;
+  teamSizeMax?: number | null;
+  teamRoles?: string[];
+  complexityScore?: number | null;
+  scalabilityScore?: number | null;
+  monthlyCostMinUsd?: number | null;
+  monthlyCostMaxUsd?: number | null;
+  maintenanceDifficulty?: string | null;
+  skillRequirements?: string[];
+  matchReasoning?: string | null;
 }
 
 /** Step 2 위저드 상태 */
@@ -206,6 +219,8 @@ export interface PMStep {
   selectedPmProfileId: string | null;
   /** Step 3 (PM 추천) 결과 캐시 — Step 4에서 소비 */
   recommendedItems: PMRecommendedItem[];
+  /** 선택된 PM이 지원하는 플랫폼 슬러그 — Step 7 플랫폼 필터링에 사용 */
+  pmSupportedPlatforms: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +232,7 @@ export interface AgentsStep {
   selectedAgents: string[];
   selectedSkills: string[];
   selectedHooks: string[];
+  selectedMcps: string[];
 }
 
 /** Step 5: 플랫폼 선택 */
@@ -315,11 +331,13 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
   pm: {
     selectedPmProfileId: null,
     recommendedItems: [],
+    pmSupportedPlatforms: [],
   },
   agents: {
     selectedAgents: [],
     selectedSkills: [],
     selectedHooks: [],
+    selectedMcps: [],
   },
   platform: {
     platformId: null,

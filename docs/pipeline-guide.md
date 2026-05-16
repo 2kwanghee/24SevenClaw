@@ -88,16 +88,49 @@
 
 ### 1. Webhook — 실시간 자동 트리거
 
-Linear에서 이슈 상태가 **Queued**로 바뀌는 순간 파이프라인이 자동 실행됩니다.
+Linear에서 이슈 상태가 **DayQueued / NightQueued / Queued**로 바뀌는 순간 파이프라인이 자동 실행됩니다.
 
-#### 시작 방법
+#### 시작 방법 — `webhook-doctor.sh` (권장)
+
+한 번의 명령으로 **진단 → 자체 정리 → webhook+ngrok 기동 → 로컬/외부 health 검증 → Linear 등록 URL 매칭 확인**까지 모두 수행합니다. 다른 프로젝트가 같은 reserved 도메인 또는 포트를 점유하는 충돌도 자동 감지합니다.
+
+```bash
+bash scripts/webhook-doctor.sh             # 기본: 진단 → 정리 → 기동 → 검증
+bash scripts/webhook-doctor.sh --check     # 진단만 (상태 점검)
+bash scripts/webhook-doctor.sh --stop      # 자체 webhook+ngrok 종료
+bash scripts/webhook-doctor.sh --force     # 타 프로젝트 ngrok도 종료 후 기동
+bash scripts/webhook-doctor.sh --no-ngrok  # webhook만 (ngrok skip)
+bash scripts/webhook-doctor.sh --help      # 옵션 전체 도움말
+```
+
+진단 단계에서 다음을 확인합니다:
+
+| 항목 | 내용 |
+|------|------|
+| [1/4] 포트 점유 | 9876 (webhook) / 4040 (ngrok web UI) — 본 프로젝트 vs 타 프로젝트 식별 |
+| [2/4] webhook 프로세스 | `/proc/$PID/cwd`로 본 프로젝트 webhook_server.py 와 타 프로젝트 webhook 분리 |
+| [3/4] ngrok 프로세스 | 동일 — reserved 도메인 점유 충돌 사전 감지 |
+| [4/4] Linear 등록 매칭 | Linear에 등록된 webhook URL이 현재 ngrok 도메인을 가리키는지 확인 |
+
+**안전장치**: 타 프로젝트 프로세스는 `--force` 없이는 절대 종료하지 않습니다. 충돌 시 reserved 도메인 안내 메시지와 함께 `exit 3`으로 안전하게 멈춥니다.
+
+#### 환경 변수 (`.env`)
+
+```env
+WEBHOOK_PORT=9876                                                       # 기본 9876
+NGROK_DOMAIN=understandingly-unforecasted-raymundo.ngrok-free.dev      # reserved 도메인
+NGROK_WEB_PORT=4040                                                     # ngrok 로컬 UI
+WEBHOOK_SECRET=<Linear signing secret>                                  # 권장 (서명 검증)
+```
+
+#### 수동 기동 (레거시 — doctor를 사용할 수 없을 때만)
 
 ```bash
 # 서버 시작 (백그라운드)
 nohup python3 scripts/webhook_server.py > logs/webhook.log 2>&1 &
 
 # ngrok 터널 (로컬 PC에서 실행 시)
-nohup ~/bin/ngrok http 9876 > logs/ngrok.log 2>&1 &
+nohup ~/bin/ngrok http 9876 --url=https://<your-reserved-domain> > logs/ngrok.log 2>&1 &
 
 # 공개 URL 확인
 curl -s http://localhost:4040/api/tunnels | python3 -c "
@@ -478,6 +511,8 @@ Backlog ──(수동)──→ Wait ──(수동)──→ Queued
 | 스크립트 | 용도 | 실행 주체 |
 |----------|------|-----------|
 | `auto_dev_pipeline.sh` | 파이프라인 오케스트레이터 (v6 멀티 Agent) | Webhook / 수동 |
+| `webhook-doctor.sh` | webhook 환경 자동 진단·정리·기동·검증 (권장 진입점) | 수동 1회 실행 |
+| `webhook_doctor_linear_check.py` | Linear 등록 webhook URL ↔ ngrok 도메인 매칭 확인 헬퍼 | doctor에서 호출 |
 | `webhook_server.py` | Linear Webhook 수신 서버 | 상시 실행 데몬 |
 | `linear_watcher.py` | Queued 이슈 감지 → fix_plan 생성 | 파이프라인 Step 1 |
 | `fix_plan_generator.py` | ChatGPT FC로 구조화된 fix_plan 생성 | watcher (--use-gpt-plan) |

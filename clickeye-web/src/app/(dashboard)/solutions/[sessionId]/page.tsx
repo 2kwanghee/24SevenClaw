@@ -115,6 +115,19 @@ export default function SolutionSessionPage() {
                     isRecommended: p.is_recommended,
                     pros: Array.isArray(p.pros) ? p.pros : [],
                     cons: Array.isArray(p.cons) ? p.cons : [],
+                    // 정량 지표 (Phase A)
+                    estimatedWeeksMin: p.estimated_weeks_min ?? null,
+                    estimatedWeeksMax: p.estimated_weeks_max ?? null,
+                    teamSizeMin: p.team_size_min ?? null,
+                    teamSizeMax: p.team_size_max ?? null,
+                    teamRoles: p.team_roles ?? [],
+                    complexityScore: p.complexity_score ?? null,
+                    scalabilityScore: p.scalability_score ?? null,
+                    monthlyCostMinUsd: p.monthly_cost_min_usd ?? null,
+                    monthlyCostMaxUsd: p.monthly_cost_max_usd ?? null,
+                    maintenanceDifficulty: p.maintenance_difficulty ?? null,
+                    skillRequirements: p.skill_requirements ?? [],
+                    matchReasoning: p.match_reasoning ?? null,
                   })),
                 );
                 goToStep(2);
@@ -258,6 +271,7 @@ export default function SolutionSessionPage() {
             agents: data.agents.selectedAgents.map((id) => ({ id })),
             skills: data.agents.selectedSkills.map((id) => ({ id })),
             hooks: (data.agents.selectedHooks ?? []).map((id) => ({ id })),
+            mcps: (data.agents.selectedMcps ?? []).map((id) => ({ id })),
             pipelines: [],
             platform: { platformId: data.platform.platformId ?? null },
           },

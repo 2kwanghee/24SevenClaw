@@ -33,10 +33,13 @@ router = APIRouter(prefix="/admin/registry", tags=["admin-registry"])
 
 # ─── Agents ───
 
+
 @router.get("/agents", response_model=AgentListResponse)
 async def list_agents(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
+    domain: str | None = Query(None),
+    tag: str | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
@@ -44,7 +47,12 @@ async def list_agents(
 ) -> AgentListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_agents(
-        category=category, is_public=is_public, offset=offset, limit=limit
+        category=category,
+        is_public=is_public,
+        domain=domain,
+        tag=tag,
+        offset=offset,
+        limit=limit,
     )
     return AgentListResponse(
         items=[AgentResponse.model_validate(i) for i in items],
@@ -98,10 +106,13 @@ async def delete_agent(
 
 # ─── Skills ───
 
+
 @router.get("/skills", response_model=SkillListResponse)
 async def list_skills(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
+    domain: str | None = Query(None),
+    tag: str | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
@@ -109,7 +120,12 @@ async def list_skills(
 ) -> SkillListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_skills(
-        category=category, is_public=is_public, offset=offset, limit=limit
+        category=category,
+        is_public=is_public,
+        domain=domain,
+        tag=tag,
+        offset=offset,
+        limit=limit,
     )
     return SkillListResponse(
         items=[SkillResponse.model_validate(i) for i in items],
@@ -163,11 +179,14 @@ async def delete_skill(
 
 # ─── Hooks ───
 
+
 @router.get("/hooks", response_model=HookListResponse)
 async def list_hooks(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
     event: str | None = Query(None),
+    domain: str | None = Query(None),
+    tag: str | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
@@ -175,7 +194,13 @@ async def list_hooks(
 ) -> HookListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_hooks(
-        category=category, is_public=is_public, event=event, offset=offset, limit=limit
+        category=category,
+        is_public=is_public,
+        event=event,
+        domain=domain,
+        tag=tag,
+        offset=offset,
+        limit=limit,
     )
     return HookListResponse(
         items=[HookResponse.model_validate(i) for i in items],
@@ -229,10 +254,13 @@ async def delete_hook(
 
 # ─── MCP Servers ───
 
+
 @router.get("/mcp-servers", response_model=RegistryItemListResponse)
 async def list_mcp_servers(
     category: str | None = Query(None),
     is_public: bool | None = Query(None),
+    domain: str | None = Query(None),
+    tag: str | None = Query(None),
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(require_permission("registry:manage")),
@@ -240,7 +268,12 @@ async def list_mcp_servers(
 ) -> RegistryItemListResponse:
     svc = RegistryService(db)
     items, total = await svc.list_mcp_servers(
-        category=category, is_public=is_public, offset=offset, limit=limit
+        category=category,
+        is_public=is_public,
+        domain=domain,
+        tag=tag,
+        offset=offset,
+        limit=limit,
     )
     return RegistryItemListResponse(
         items=[MCPServerResponse.model_validate(i) for i in items],

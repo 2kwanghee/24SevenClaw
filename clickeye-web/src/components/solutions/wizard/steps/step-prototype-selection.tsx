@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { AlertCircle, Sparkles } from "lucide-react";
+import { AlertCircle, Sparkles, LayoutGrid, Columns3 } from "lucide-react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions } from "@/lib/api-client";
 import { PrototypeCard } from "../prototype-card";
+import { PrototypeComparisonTable } from "@/components/prototypes/prototype-comparison-table";
+import { cn } from "@/lib/utils";
 
 /**
  * Step 3: 프로토타입 선택 (API 연동 버전)
  *
- * - 카드 클릭 → 선택 하이라이트 + 프리뷰 확대
+ * - 카드 모드: 카드 클릭 → 선택 하이라이트 + 프리뷰 확대
+ * - 비교 모드: 표 형태로 정량 지표 차별점 비교 (Phase B)
  * - 선택 시 PATCH /prototype-sessions/{id} (selected_prototype_id) 호출
- * - "다음" 클릭 → Step 4로 이동 (wizard layout 제어)
  */
 export function StepPrototypeSelection() {
   const { data: session } = useSession();
@@ -26,6 +28,7 @@ export function StepPrototypeSelection() {
   const [expandedId, setExpandedId] = useState<string | null>(
     prototypes.selectedPrototypeId,
   );
+  const [viewMode, setViewMode] = useState<"cards" | "compare">("cards");
 
   const handleSelect = (prototypeId: string) => {
     selectPrototype(prototypeId);
@@ -59,24 +62,66 @@ export function StepPrototypeSelection() {
   /* -- 프로토타입 카드 목록 ---------------------------------------------- */
   return (
     <div className="space-y-4">
-      <p className="text-xs text-zinc-500">
-        <Sparkles
-          className="mr-1 inline-block h-3.5 w-3.5 text-emerald-600"
-          aria-hidden="true"
-        />
-        AI가 분석한 솔루션 후보입니다. 가장 적합한 방향을 선택하세요.
-      </p>
-      <div className="space-y-3" role="list" aria-label="솔루션 프로토타입 목록">
-        {prototypes.generatedPrototypes.map((proto) => (
-          <PrototypeCard
-            key={proto.id}
-            prototype={proto}
-            isSelected={prototypes.selectedPrototypeId === proto.id}
-            isExpanded={expandedId === proto.id}
-            onSelect={handleSelect}
+      {/* 안내 + 보기 모드 토글 */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs text-zinc-500">
+          <Sparkles
+            className="mr-1 inline-block h-3.5 w-3.5 text-emerald-600"
+            aria-hidden="true"
           />
-        ))}
+          AI가 분석한 솔루션 후보입니다. 가장 적합한 방향을 선택하세요.
+        </p>
+        <div className="inline-flex shrink-0 rounded-lg border border-zinc-200 bg-white p-0.5">
+          <button
+            type="button"
+            onClick={() => setViewMode("cards")}
+            aria-pressed={viewMode === "cards"}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+              viewMode === "cards"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-600 hover:bg-zinc-50",
+            )}
+          >
+            <LayoutGrid className="h-3 w-3" />
+            카드
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("compare")}
+            aria-pressed={viewMode === "compare"}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+              viewMode === "compare"
+                ? "bg-zinc-900 text-white"
+                : "text-zinc-600 hover:bg-zinc-50",
+            )}
+          >
+            <Columns3 className="h-3 w-3" />
+            비교
+          </button>
+        </div>
       </div>
+
+      {viewMode === "cards" ? (
+        <div className="space-y-3" role="list" aria-label="솔루션 프로토타입 목록">
+          {prototypes.generatedPrototypes.map((proto) => (
+            <PrototypeCard
+              key={proto.id}
+              prototype={proto}
+              isSelected={prototypes.selectedPrototypeId === proto.id}
+              isExpanded={expandedId === proto.id}
+              onSelect={handleSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <PrototypeComparisonTable
+          prototypes={prototypes.generatedPrototypes}
+          selectedId={prototypes.selectedPrototypeId}
+          onSelect={handleSelect}
+        />
+      )}
     </div>
   );
 }

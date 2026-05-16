@@ -42,11 +42,16 @@ def _load_json(path: Path) -> Any:
 
 
 async def _get_or_create_profile(
-    db: AsyncSession, profile_data: dict[str, Any], *, force: bool = False
+    db: AsyncSession,
+    profile_data: dict[str, Any],
+    *,
+    supported_platforms: list[str] | None = None,
+    force: bool = False,
 ) -> tuple[UUID, bool]:
     """PM 프로필을 조회하거나 새로 생성한다.
 
     Args:
+        supported_platforms: pm_compositions.json의 v3.0 포맷에서 추출한 플랫폼 목록.
         force: True이면 기존 레코드의 태그/메타 필드를 업데이트한다.
 
     Returns:
@@ -68,6 +73,8 @@ async def _get_or_create_profile(
             existing.industry_tags = profile_data.get("industry_tags", [])
             existing.tech_stack_tags = profile_data.get("tech_stack_tags", [])
             existing.preferred_solution_types = profile_data.get("preferred_solution_types", [])
+            if supported_platforms is not None:
+                existing.supported_platforms = supported_platforms  # type: ignore[assignment]
             existing.updated_at = datetime.now(UTC)
             await db.flush()
             logger.info("업데이트: PMProfile slug=%s id=%s", slug, existing.id)
@@ -88,6 +95,7 @@ async def _get_or_create_profile(
         industry_tags=profile_data.get("industry_tags", []),
         tech_stack_tags=profile_data.get("tech_stack_tags", []),
         preferred_solution_types=profile_data.get("preferred_solution_types", []),
+        supported_platforms=supported_platforms or [],
     )
     db.add(profile)
     await db.flush()
@@ -187,7 +195,9 @@ async def seed_pm_data(
     compositions_path = effective_dir / "pm_compositions.json"
 
     profiles_raw: list[dict[str, Any]] = _load_json(profiles_path)["profiles"]
-    compositions_map: dict[str, list[dict[str, Any]]] = (
+    # v3.0: 각 항목이 {supported_platforms: [...], components: [...]}
+    # v2.0 (레거시): 각 항목이 flat list
+    compositions_map: dict[str, Any] = (
         _load_json(compositions_path)["compositions"]
         if compositions_path.exists()
         else {}
@@ -200,15 +210,31 @@ async def seed_pm_data(
     metrics_created = 0
 
     for profile_data in profiles_raw:
-        pm_id, created = await _get_or_create_profile(db, profile_data, force=force)
+        slug: str = profile_data["slug"]
+        pm_comp_entry = compositions_map.get(slug)
+
+        # v3.0 포맷(dict)과 v2.0 포맷(list) 모두 지원
+        if isinstance(pm_comp_entry, dict):
+            comp_list: list[dict[str, Any]] = pm_comp_entry.get("components", [])
+            platform_list: list[str] = pm_comp_entry.get("supported_platforms", [])
+        elif isinstance(pm_comp_entry, list):
+            logger.warning("v2.0 포맷 감지 (slug=%s) — 플랫폼 슬러그가 누락될 수 있습니다.", slug)
+            comp_list = pm_comp_entry
+            platform_list = []
+        else:
+            comp_list = []
+            platform_list = []
+
+        pm_id, created = await _get_or_create_profile(
+            db, profile_data, supported_platforms=platform_list, force=force
+        )
         pm_ids.append(pm_id)
         if created:
             profiles_created += 1
         elif force:
             profiles_updated += 1
 
-        slug: str = profile_data["slug"]
-        for comp in compositions_map.get(slug, []):
+        for comp in comp_list:
             if await _get_or_create_composition(db, pm_id, comp):
                 compositions_created += 1
 
@@ -251,7 +277,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--force",
         action="store_true",
-        help="기존 PM 레코드의 industry_tags/tech_stack_tags/preferred_solution_types를 업데이트한다",
+        help="기존 PM 레코드의 태그/메타/supported_platforms를 업데이트한다",
     )
     args = parser.parse_args()
     asyncio.run(main(force=args.force))

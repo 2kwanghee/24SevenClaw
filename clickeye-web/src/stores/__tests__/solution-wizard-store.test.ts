@@ -127,6 +127,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
         selectedAgents: ["frontend", "backend", "qa"],
         selectedSkills: ["linear", "github"],
         selectedHooks: [],
+        selectedMcps: [],
       });
     });
 
@@ -192,7 +193,7 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
       ]);
       result.current.selectPrototype("proto-1");
       result.current.setPM({ selectedPmProfileId: "pm-abc" });
-      result.current.setAgents({ selectedAgents: ["frontend"], selectedSkills: [], selectedHooks: [] });
+      result.current.setAgents({ selectedAgents: ["frontend"], selectedSkills: [], selectedHooks: [], selectedMcps: [] });
       result.current.setPlatform({ platformId: "claude-code" });
       result.current.setEnv({ envVars: { API_KEY: "secret" } });
 

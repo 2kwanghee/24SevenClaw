@@ -39,12 +39,17 @@ async def generate_zip(
     agent_ids = request.agents
     workflow_ids = request.skills + request.pipelines
     hook_ids: list[str] = getattr(request, "hook_ids", []) or []
+    mcp_ids: list[str] = getattr(request, "mcp_ids", []) or []
     platform_id = str(request.platform.get("platformId", "claude-code"))
 
     catalog_prefetch = None
     if db is not None:
         catalog_prefetch = await prefetch_for_generator(
-            db, agent_ids=agent_ids, skill_ids=workflow_ids, hook_ids=hook_ids
+            db,
+            agent_ids=agent_ids,
+            skill_ids=workflow_ids,
+            hook_ids=hook_ids,
+            mcp_ids=mcp_ids,
         )
 
     clickeye_vars: dict[str, str] | None = None
@@ -84,6 +89,7 @@ async def generate_zip(
         catalog_entry=catalog_entry,
         catalog_prefetch=catalog_prefetch,
         hook_ids=hook_ids or None,
+        mcp_ids=mcp_ids or None,
         clickeye_vars=clickeye_vars,
         enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
         auth_method=auth_method,

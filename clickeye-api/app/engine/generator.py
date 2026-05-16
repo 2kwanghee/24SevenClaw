@@ -13,6 +13,7 @@ from app.engine.catalog import (
     get_env_var_definitions,
     get_selected_agents,
     get_selected_hooks,
+    get_selected_mcps,
     get_selected_skills,
 )
 from app.engine.env_generator import generate_env_files
@@ -77,6 +78,7 @@ def generate_all(
     catalog_entry: dict[str, Any] | None = None,
     catalog_prefetch: CatalogPrefetch | None = None,
     hook_ids: list[str] | None = None,
+    mcp_ids: list[str] | None = None,
     clickeye_vars: dict[str, str] | None = None,
     enable_auto_decompose: bool = False,
     auth_method: str = "api_key",
@@ -89,27 +91,35 @@ def generate_all(
     # PM compositions ?°ì  ë³í© ??composition???ì´?í¸/?¤í¬???°ì ?¼ë¡ ?¬í¨
     if pm_compositions:
         comp_agents = [
-            c["component_slug"]
-            for c in pm_compositions
-            if c.get("component_type") == "agent"
+            c["component_slug"] for c in pm_compositions if c.get("component_type") == "agent"
         ]
         comp_skills = [
-            c["component_slug"]
-            for c in pm_compositions
-            if c.get("component_type") == "skill"
+            c["component_slug"] for c in pm_compositions if c.get("component_type") == "skill"
         ]
         agent_ids = _merge_unique(comp_agents, agent_ids)
         workflow_ids = _merge_unique(comp_skills, workflow_ids)
 
     # ?ì´?í¸ ?ì¼ ?ì±
-    _generate_agent_files(files, dirs, project_name, project_type, stack, agent_ids, catalog_prefetch)
+    _generate_agent_files(
+        files, dirs, project_name, project_type, stack, agent_ids, catalog_prefetch
+    )
 
     # ?¤í¬ ?ì¼ ?ì±
-    _generate_skill_files(files, dirs, project_name, project_type, stack, workflow_ids, catalog_prefetch)
+    _generate_skill_files(
+        files, dirs, project_name, project_type, stack, workflow_ids, catalog_prefetch
+    )
 
     # ë£¨í¸ ê°?´ë ?ì± (CLAUDE.md / GEMINI.md ??
     _generate_root_guide(
-        files, dirs, platform_id, project_name, project_type, stack, agent_ids, catalog_entry, catalog_prefetch
+        files,
+        dirs,
+        platform_id,
+        project_name,
+        project_type,
+        stack,
+        agent_ids,
+        catalog_entry,
+        catalog_prefetch,
     )
 
     # settings.json ?ì±
@@ -117,6 +127,8 @@ def generate_all(
 
     # Hook ?¤í¬ë¦½í¸ ?ì±
     _generate_hook_files(files, stack, workflow_ids, catalog_prefetch, hook_ids)
+    # MCP 파일 생성
+    _generate_mcp_files(files, dirs, mcp_ids or [], catalog_prefetch)
 
     # ?ë???¤í¬ë¦½í¸ ?ì±
     _generate_script_files(files, stack, workflow_ids)
@@ -138,7 +150,11 @@ def generate_all(
     _emit_remove_command(files, platform_id, project_name)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
     _emit_first_run_artifacts(
-        files, platform_id, os_id, workflow_ids, project_name,
+        files,
+        platform_id,
+        os_id,
+        workflow_ids,
+        project_name,
         enable_auto_decompose=enable_auto_decompose,
         auth_method=auth_method,
     )
@@ -230,8 +246,12 @@ def _generate_root_guide(
     """루트 가이드 파일 생성 (CLAUDE.md / GEMINI.md 등)."""
     agents = get_selected_agents(agent_ids, catalog_prefetch)
     agent_refs = [
-        {"file": f"{dirs['agent_dir']}/{a['output_file']}", "name": a.get("label", a.get("name", a["id"]))}
-        for a in agents if a.get("output_file")
+        {
+            "file": f"{dirs['agent_dir']}/{a['output_file']}",
+            "name": a.get("label", a.get("name", a["id"])),
+        }
+        for a in agents
+        if a.get("output_file")
     ]
 
     template_name = _get_root_guide_template(platform_id)
@@ -422,6 +442,27 @@ def _generate_webhook_files(
     if docs_src.exists():
         tpl = _env.get_template("docs/webhook/WEBHOOK_SETUP.md.j2")
         files["docs/WEBHOOK_SETUP.md"] = tpl.render(**ctx)
+
+
+def _generate_mcp_files(
+    files: dict[str, str | bytes],
+    dirs: PlatformDirs,
+    mcp_ids: list[str],
+    catalog_prefetch: CatalogPrefetch | None = None,
+) -> None:
+    """선택된 MCP 서버 파일 생성 (.{platform}/mcps/{slug}.md)."""
+    mcps = get_selected_mcps(mcp_ids, catalog_prefetch)
+    if not mcps:
+        return
+    mcps_dir = f"{dirs['config_dir']}/mcps"
+    for mcp in mcps:
+        body = mcp.get("body_md")
+        if not body:
+            continue
+        slug = mcp.get("id", "")
+        if not slug:
+            continue
+        files[f"{mcps_dir}/{slug}.md"] = body
 
 
 def _generate_script_files(
@@ -725,8 +766,7 @@ def _emit_first_run_artifacts(
             "TUNNEL_PROVIDER=cloudflare\n"
         )
         _tunnel_example = (
-            "\n# 터널 방식: cloudflare | ngrok | polling\n"
-            "TUNNEL_PROVIDER=cloudflare\n"
+            "\n# 터널 방식: cloudflare | ngrok | polling\nTUNNEL_PROVIDER=cloudflare\n"
         )
         for _ef, _section in ((".env", _tunnel_section), (".env.example", _tunnel_example)):
             if (
@@ -734,7 +774,8 @@ def _emit_first_run_artifacts(
                 and isinstance(files[_ef], str)
                 and "TUNNEL_PROVIDER=" not in files[_ef]
             ):
-                files[_ef] += _section
+                files[_ef] = str(files[_ef]) + _section
     except Exception:
         import logging as _logging
+
         _logging.getLogger(__name__).exception("_emit_first_run_artifacts 실패")

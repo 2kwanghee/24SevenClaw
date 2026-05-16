@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.registry import Agent, Hook, Skill
+from app.models.registry import Agent, Hook, MCPServer, Skill
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "catalog"
 _JSON_TYPES = ("platforms", "pipelines")
@@ -61,6 +61,16 @@ def _hook_to_dict(h: Hook) -> dict[str, Any]:
         "required": h.required,
         "event": h.event,
         "output_file": h.output_file,
+    }
+
+
+def _mcp_to_dict(m: MCPServer) -> dict[str, Any]:
+    return {
+        "id": m.slug,
+        "label": m.name,
+        "description": m.description,
+        "category": m.category,
+        "body_md": m.body_md,
     }
 
 
@@ -133,6 +143,17 @@ class CatalogService:
             }
             for h in hooks
         ]
+
+    async def list_mcps(self, db: AsyncSession) -> list[dict[str, Any]]:
+        stmt = select(MCPServer).where(MCPServer.is_public == True).order_by(MCPServer.name.asc())  # noqa: E712
+        result = await db.execute(stmt)
+        return [_mcp_to_dict(m) for m in result.scalars().all()]
+
+    async def get_mcps_by_slugs(self, db: AsyncSession, slugs: list[str]) -> list[dict[str, Any]]:
+        """ZIP 생성 엔진용 — slug 목록에 해당하는 MCP 서버를 반환."""
+        stmt = select(MCPServer).where(MCPServer.slug.in_(slugs)).order_by(MCPServer.name.asc())
+        result = await db.execute(stmt)
+        return [_mcp_to_dict(m) for m in result.scalars().all()]
 
 
 _service = CatalogService()

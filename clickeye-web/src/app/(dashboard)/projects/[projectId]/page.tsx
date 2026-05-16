@@ -469,7 +469,11 @@ export default function ProjectDetailPage() {
                   : []),
               ];
 
-              const downloadDisabled = downloading || (!isOAuth && !envVars["ANTHROPIC_API_KEY"]?.trim());
+              // 모든 표시된 환경변수 필드가 채워졌는지 검증 — ZIP 다운로드 게이트
+              const missingEnvKeys = ENV_FIELDS.filter(
+                ({ key }) => !envVars[key]?.trim(),
+              );
+              const downloadDisabled = downloading || missingEnvKeys.length > 0;
 
               return (
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
@@ -484,22 +488,46 @@ export default function ProjectDetailPage() {
                   )}
                   {ENV_FIELDS.length > 0 && (
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {ENV_FIELDS.map(({ key, label, placeholder }) => (
-                        <div key={key}>
-                          <label className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
-                            {label}
-                          </label>
-                          <input
-                            type="text"
-                            value={envVars[key] ?? ""}
-                            onChange={(e) =>
-                              setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
-                            }
-                            placeholder={placeholder}
-                            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-200"
-                          />
-                        </div>
-                      ))}
+                      {ENV_FIELDS.map(({ key, label, placeholder }) => {
+                        const isEmpty = !envVars[key]?.trim();
+                        return (
+                          <div key={key}>
+                            <label className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">
+                              {label}
+                              {isEmpty && (
+                                <span className="ml-1 text-red-600">*</span>
+                              )}
+                            </label>
+                            <input
+                              type="text"
+                              value={envVars[key] ?? ""}
+                              onChange={(e) =>
+                                setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
+                              }
+                              placeholder={placeholder}
+                              aria-invalid={isEmpty}
+                              className={`w-full rounded-lg border bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 ${
+                                isEmpty
+                                  ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+                                  : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200"
+                              }`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {missingEnvKeys.length > 0 && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2"
+                    >
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                      <p className="text-xs text-amber-700">
+                        필수 환경변수 {missingEnvKeys.length}개(
+                        {missingEnvKeys.map((f) => f.label).join(", ")})를 입력해야
+                        ZIP을 다운로드할 수 있습니다.
+                      </p>
                     </div>
                   )}
                   <div className="flex items-center gap-3">
@@ -521,7 +549,9 @@ export default function ProjectDetailPage() {
                       )}
                     </button>
                     <span className="text-xs text-[var(--text-muted)]">
-                      저장된 설정 + 입력한 API 키로 ZIP을 생성합니다
+                      {missingEnvKeys.length > 0
+                        ? "환경변수 입력 후 다운로드할 수 있습니다"
+                        : "저장된 설정 + 입력한 API 키로 ZIP을 생성합니다"}
                     </span>
                   </div>
                   {downloadError && (

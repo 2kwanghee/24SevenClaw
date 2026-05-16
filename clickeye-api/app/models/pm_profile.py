@@ -38,3 +38,4 @@ class PMProfile(Base):
     language = Column(String(8), nullable=False, default="ko")
     updated_at = Column(DateTime(timezone=True), nullable=True)
     markdown_body = Column(Text, nullable=True)
+    supported_platforms = Column(JSON, nullable=False, default=list)

@@ -92,3 +92,64 @@ class Prototype(Base):
         data = self.ui_structure or {}
         val = data.get("cons", [])
         return list(val) if isinstance(val, list) else []
+
+    # ── 정량 지표 (Phase A) ─────────────────────────────────────────────────
+    @property
+    def estimated_weeks_min(self) -> int | None:
+        v = ((self.ui_structure or {}).get("estimated_weeks") or {}).get("min")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def estimated_weeks_max(self) -> int | None:
+        v = ((self.ui_structure or {}).get("estimated_weeks") or {}).get("max")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def team_size_min(self) -> int | None:
+        v = ((self.ui_structure or {}).get("team_size") or {}).get("min")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def team_size_max(self) -> int | None:
+        v = ((self.ui_structure or {}).get("team_size") or {}).get("max")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def team_roles(self) -> list[str]:
+        v = ((self.ui_structure or {}).get("team_size") or {}).get("roles", [])
+        return [str(x) for x in v] if isinstance(v, list) else []
+
+    @property
+    def complexity_score(self) -> int | None:
+        v = (self.ui_structure or {}).get("complexity_score")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def scalability_score(self) -> int | None:
+        v = (self.ui_structure or {}).get("scalability_score")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def monthly_cost_min_usd(self) -> int | None:
+        v = ((self.ui_structure or {}).get("monthly_cost_usd") or {}).get("min")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def monthly_cost_max_usd(self) -> int | None:
+        v = ((self.ui_structure or {}).get("monthly_cost_usd") or {}).get("max")
+        return int(v) if isinstance(v, int | float) else None
+
+    @property
+    def maintenance_difficulty(self) -> str | None:
+        v = (self.ui_structure or {}).get("maintenance_difficulty")
+        return str(v) if v else None
+
+    @property
+    def skill_requirements(self) -> list[str]:
+        v = (self.ui_structure or {}).get("skill_requirements", [])
+        return [str(x) for x in v] if isinstance(v, list) else []
+
+    @property
+    def match_reasoning(self) -> str | None:
+        v = (self.ui_structure or {}).get("match_reasoning")
+        return str(v) if v else None

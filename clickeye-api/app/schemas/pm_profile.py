@@ -4,16 +4,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-IndustryTag = Literal[
-    "manufacturing",
-    "finance",
-    "retail",
-    "healthcare",
-    "it-saas",
-    "public",
-    "education",
-    "media",
-]
+# 다국어 지원: 영문 슬러그(canonical) + 한국어 레이블 혼용 허용
+# 영문 슬러그는 위저드 필터링·추천 알고리즘에서 사용
+# 한국어 레이블은 UI 표시 및 관리자 입력 시 사용
+IndustryTag = str
+
+# 영문 슬러그 정규값 (추천 알고리즘 매칭용)
+INDUSTRY_TAG_SLUGS: frozenset[str] = frozenset([
+    "it", "fintech", "ecommerce", "healthcare", "education",
+    "manufacturing", "logistics", "marketing", "game", "other",
+    "finance", "retail", "it-saas", "public", "media",
+    "b2b", "b2c", "b2b2c", "internal", "startup", "enterprise", "saas",
+])
 
 # --- PMProfile ---
 
@@ -34,6 +36,7 @@ class PMProfileCreate(BaseModel):
     tech_stack_tags: list[str] = Field(default_factory=list)
     industry_tags: list[IndustryTag] = Field(default_factory=list)
     language: str = Field(default="ko", max_length=8)
+    supported_platforms: list[str] = Field(default_factory=list)
 
 
 class PMProfileUpdate(BaseModel):
@@ -52,6 +55,7 @@ class PMProfileUpdate(BaseModel):
     industry_tags: list[IndustryTag] | None = None
     language: str | None = Field(None, max_length=8)
     markdown_body: str | None = None
+    supported_platforms: list[str] | None = None
 
 
 class PMProfileResponse(BaseModel):
@@ -74,6 +78,7 @@ class PMProfileResponse(BaseModel):
     language: str = "ko"
     updated_at: datetime | None = None
     markdown_body: str | None = None
+    supported_platforms: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -100,6 +105,7 @@ class PMProfileWithMetrics(BaseModel):
     language: str = "ko"
     updated_at: datetime | None = None
     markdown_body: str | None = None
+    supported_platforms: list[str] = Field(default_factory=list)
     # 메트릭 (없을 경우 기본값)
     usage_count: int = 0
     completed_projects: int = 0

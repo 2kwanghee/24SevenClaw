@@ -90,3 +90,11 @@ class NaturalLanguageConfigResponse(BaseModel):
     suggested_pipelines: list[str]
     confidence: float
     reasoning: str
+    # Claude analyze_solution() 풍부한 분석 필드 (위저드 prefill용)
+    primary_tag: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    tech_stack: dict[str, str | None] = Field(default_factory=dict)
+    features: list[str] = Field(default_factory=list)
+    complexity: str | None = None
+    target_users: str | None = None
+    key_requirements: list[str] = Field(default_factory=list)

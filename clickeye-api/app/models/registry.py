@@ -24,6 +24,9 @@ class Agent(Base):
     output_file = Column(String(200), nullable=True)
     dependencies = Column(JSON, nullable=False, default=list)
     config_schema = Column(JSON, nullable=False, default=dict)
+    tags = Column(JSON, nullable=False, default=list)
+    domains = Column(JSON, nullable=False, default=list)
+    compatible_pm_specialties = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         DateTime(timezone=True),
@@ -50,6 +53,9 @@ class Skill(Base):
     hook_events = Column(JSON, nullable=False, default=list)
     env_vars = Column(JSON, nullable=False, default=list)
     config_schema = Column(JSON, nullable=False, default=dict)
+    tags = Column(JSON, nullable=False, default=list)
+    domains = Column(JSON, nullable=False, default=list)
+    compatible_pm_specialties = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         DateTime(timezone=True),
@@ -77,6 +83,9 @@ class Hook(Base):
     required = Column(Boolean, nullable=False, default=False)
     output_file = Column(String(200), nullable=True)
     config_schema = Column(JSON, nullable=False, default=dict)
+    tags = Column(JSON, nullable=False, default=list)
+    domains = Column(JSON, nullable=False, default=list)
+    compatible_pm_specialties = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         DateTime(timezone=True),
@@ -98,6 +107,9 @@ class MCPServer(Base):
     category = Column(String(50), nullable=True)
     is_public = Column(Boolean, nullable=False, default=True)
     config_schema = Column(JSON, nullable=False, default=dict)
+    tags = Column(JSON, nullable=False, default=list)
+    domains = Column(JSON, nullable=False, default=list)
+    compatible_pm_specialties = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         DateTime(timezone=True),

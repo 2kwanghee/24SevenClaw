@@ -14,6 +14,15 @@ class PrototypeSessionCreate(BaseModel):
     industry: str | None = Field(
         None, description="업종 코드 (it, fintech, ecommerce, healthcare, ...)"
     )
+    # 회사 컨텍스트 — Claude variant 생성 시 회사 특성에 맞는 추천 위해 전달
+    company_size: str | None = Field(
+        None, description="회사 규모 (startup/small/medium/mid-large/enterprise)"
+    )
+    business_type: str | None = Field(
+        None, description="비즈니스 유형 (b2b/b2c/b2b2c/internal)"
+    )
+    main_product: str | None = Field(None, description="주력 제품/서비스")
+    company_description: str | None = Field(None, description="회사 설명 (자연어)")
 
 
 class PrototypeSessionResponse(BaseModel):
@@ -64,6 +73,19 @@ class PrototypeResponse(BaseModel):
     is_recommended: bool = False
     pros: list[str] = Field(default_factory=list)
     cons: list[str] = Field(default_factory=list)
+    # 정량 지표 (Phase A — Claude 생성. 폴백 시 누락 허용)
+    estimated_weeks_min: int | None = None
+    estimated_weeks_max: int | None = None
+    team_size_min: int | None = None
+    team_size_max: int | None = None
+    team_roles: list[str] = Field(default_factory=list)
+    complexity_score: int | None = None
+    scalability_score: int | None = None
+    monthly_cost_min_usd: int | None = None
+    monthly_cost_max_usd: int | None = None
+    maintenance_difficulty: str | None = None
+    skill_requirements: list[str] = Field(default_factory=list)
+    match_reasoning: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -99,6 +121,19 @@ class PrototypeDetailResponse(BaseModel):
     architecture_pattern: str | None = None
     variant_rationale: str | None = None
     is_recommended: bool = False
+    # 정량 지표 (Phase A)
+    estimated_weeks_min: int | None = None
+    estimated_weeks_max: int | None = None
+    team_size_min: int | None = None
+    team_size_max: int | None = None
+    team_roles: list[str] = Field(default_factory=list)
+    complexity_score: int | None = None
+    scalability_score: int | None = None
+    monthly_cost_min_usd: int | None = None
+    monthly_cost_max_usd: int | None = None
+    maintenance_difficulty: str | None = None
+    skill_requirements: list[str] = Field(default_factory=list)
+    match_reasoning: str | None = None
     # 세션 요약
     solution_prompt: str | None
     session_status: str

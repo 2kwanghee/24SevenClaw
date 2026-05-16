@@ -1,10 +1,18 @@
 "use client";
 
-import { CheckCircle2, ChevronRight, Star, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle2, ChevronRight, Star, ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { PrototypeOption } from "@/types/solution-wizard";
 import { PrototypePreview } from "./prototype-preview";
+import {
+  EstimatedWeeksBadge,
+  TeamSizeBadge,
+  MonthlyCostBadge,
+  MaintenanceBadge,
+  ScoreBar,
+  hasAnyMetric,
+} from "@/components/prototypes/metric-badges";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
@@ -158,6 +166,69 @@ export function PrototypeCard({
                   +{prototype.techStack.length - 5}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* AI 매칭 근거 박스 — match_reasoning (회사 컨텍스트 적합성) */}
+          {prototype.matchReasoning && (
+            <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-2">
+              <Sparkles className="h-3 w-3 shrink-0 text-violet-600 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-violet-800">
+                {prototype.matchReasoning}
+              </p>
+            </div>
+          )}
+
+          {/* 정량 지표 섹션 */}
+          {hasAnyMetric(prototype) && (
+            <div className="mt-2 space-y-2 rounded-lg border border-zinc-200 bg-white p-2.5">
+              <div className="flex flex-wrap gap-1.5">
+                <EstimatedWeeksBadge
+                  min={prototype.estimatedWeeksMin}
+                  max={prototype.estimatedWeeksMax}
+                />
+                <TeamSizeBadge
+                  min={prototype.teamSizeMin}
+                  max={prototype.teamSizeMax}
+                  roles={prototype.teamRoles}
+                />
+                <MonthlyCostBadge
+                  minUsd={prototype.monthlyCostMinUsd}
+                  maxUsd={prototype.monthlyCostMaxUsd}
+                />
+                <MaintenanceBadge level={prototype.maintenanceDifficulty} />
+              </div>
+              {(prototype.complexityScore != null ||
+                prototype.scalabilityScore != null) && (
+                <div className="space-y-1 pt-1">
+                  <ScoreBar
+                    label="복잡도"
+                    score={prototype.complexityScore}
+                    variant="complexity"
+                  />
+                  <ScoreBar
+                    label="확장성"
+                    score={prototype.scalabilityScore}
+                    variant="scalability"
+                  />
+                </div>
+              )}
+              {prototype.skillRequirements &&
+                prototype.skillRequirements.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[10px] text-zinc-500 mb-1">필요 역량</p>
+                    <div className="flex flex-wrap gap-1">
+                      {prototype.skillRequirements.map((s) => (
+                        <span
+                          key={s}
+                          className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           )}
 

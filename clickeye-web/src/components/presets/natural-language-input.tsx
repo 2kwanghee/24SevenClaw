@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface NaturalLanguageInputProps {
   onAnalyze: (text: string) => void;
+  onProceed?: () => void;
   isLoading?: boolean;
   result?: {
     suggested_agents: string[];
@@ -19,6 +20,7 @@ interface NaturalLanguageInputProps {
 
 export function NaturalLanguageInput({
   onAnalyze,
+  onProceed,
   isLoading = false,
   result,
 }: NaturalLanguageInputProps) {
@@ -50,32 +52,35 @@ export function NaturalLanguageInput({
           원하는 프로젝트를 자연어로 설명하면 최적의 설정을 추천합니다
         </p>
 
-        <div className="relative">
-          <textarea data-gramm="false" data-gramm_editor="false"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="예: Next.js + FastAPI로 SaaS를 만들고 싶어요. 코드 리뷰와 테스트 자동화가 필요합니다."
-            rows={3}
-            maxLength={2000}
-            disabled={isLoading}
-            aria-label="자연어 설정 입력"
-            className={cn(
-              "w-full resize-none rounded-xl border bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)]",
-              "placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2",
-              "transition-all duration-200",
-              isLoading
-                ? "border-[var(--border-subtle)] opacity-60"
-                : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-400/20",
-            )}
-          />
+        <textarea data-gramm="false" data-gramm_editor="false"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="예: Next.js + FastAPI로 SaaS를 만들고 싶어요. 코드 리뷰와 테스트 자동화가 필요합니다."
+          rows={3}
+          maxLength={2000}
+          disabled={isLoading}
+          aria-label="자연어 설정 입력"
+          className={cn(
+            "w-full resize-none rounded-xl border bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-primary)]",
+            "placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2",
+            "transition-all duration-200",
+            isLoading
+              ? "border-[var(--border-subtle)] opacity-60"
+              : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-400/20",
+          )}
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[10px] text-[var(--text-muted)]">
+            {text.length}/2000
+          </span>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!text.trim() || isLoading}
             aria-label="설정 분석하기"
             className={cn(
-              "absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              "flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium transition-all",
               !text.trim() || isLoading
                 ? "cursor-not-allowed bg-[var(--bg-hover)] text-[var(--text-muted)]"
                 : "bg-zinc-900 text-white hover:bg-zinc-800",
@@ -93,9 +98,6 @@ export function NaturalLanguageInput({
               </>
             )}
           </button>
-        </div>
-        <div className="mt-1 text-right text-[10px] text-[var(--text-muted)]">
-          {text.length}/2000
         </div>
       </div>
 
@@ -129,6 +131,18 @@ export function NaturalLanguageInput({
               </span>
             )}
           </div>
+          {onProceed && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onProceed}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
+              >
+                이 분석 결과로 위저드 시작하기
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
