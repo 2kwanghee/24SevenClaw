@@ -204,22 +204,16 @@ export default function SolutionSessionPage() {
       case 9: {
         const ev = data.env.envVars;
         const am = data.env.authMethod ?? "api_key";
-        if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim()) return false;
-        // 선택된 스킬의 required env_vars 전체 검증
-        if (skillsData?.items) {
-          for (const skill of skillsData.items) {
-            if (!data.agents.selectedSkills.includes(skill.id)) continue;
-            for (const v of skill.env_vars) {
-              if (v.required && !ev[v.name]?.trim()) return false;
-            }
-          }
+        const deferred = data.env.deferredEnvVars ?? [];
+        // Anthropic 자격증명만 진짜 필수 (deferred로 우회 가능)
+        if (am === "api_key" && !ev["ANTHROPIC_API_KEY"]?.trim() && !deferred.includes("ANTHROPIC_API_KEY")) return false;
+        // 외부 통합 스킬(linear/notion 등) required env_vars 는 미입력이어도 통과 — new/page.tsx와 동일 정책.
+        // 라이브 검증: invalid 일 때만 차단. idle/loading 은 통과.
+        if (data.agents.selectedSkills.includes("linear") && envValidation.linearStatus === "invalid") {
+          return false;
         }
-        // 라이브 검증 (linear / notion)
-        if (data.agents.selectedSkills.includes("linear")) {
-          if (envValidation.linearStatus !== "valid") return false;
-        }
-        if (data.agents.selectedSkills.includes("notion")) {
-          if (envValidation.notionStatus !== "valid") return false;
+        if (data.agents.selectedSkills.includes("notion") && envValidation.notionStatus === "invalid") {
+          return false;
         }
         return true;
       }
