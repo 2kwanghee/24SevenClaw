@@ -34,6 +34,7 @@ import {
   checkLinearInputs,
   checkNotionInputs,
   describeIntegrationError,
+  sanitizeIntegrationInput,
 } from "@/lib/integration-validators";
 import { PMRatingStars } from "../pm-rating-stars";
 import { PrototypePreview } from "../prototype-preview";
@@ -760,10 +761,11 @@ export function StepConfirmation() {
                 <input
                   type="password"
                   value={draftDeferred[key] ?? ""}
-                  onChange={(e) =>
-                    setDraftDeferred((prev) => ({ ...prev, [key]: e.target.value }))
-                  }
-                  placeholder="값 입력 (선택사항)"
+                  onChange={(e) => {
+                    const sanitized = sanitizeIntegrationInput(e.target.value);
+                    setDraftDeferred((prev) => ({ ...prev, [key]: sanitized }));
+                  }}
+                  placeholder="값 입력 (영문·숫자)"
                   className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs placeholder-zinc-400 outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20"
                 />
                 <button

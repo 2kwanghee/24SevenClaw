@@ -13,6 +13,7 @@ import {
   checkLinearInputs,
   checkNotionInputs,
   describeIntegrationError,
+  sanitizeIntegrationInput,
 } from "@/lib/integration-validators";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { cn } from "@/lib/utils";
@@ -57,11 +58,19 @@ interface RequiredKeyRowProps {
 function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }: RequiredKeyRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [sanitizedDropped, setSanitizedDropped] = useState(false);
   const isSet = value.trim().length > 0;
 
   const handleSave = () => {
     onChange(config.key, draft);
     setIsEditing(false);
+    setSanitizedDropped(false);
+  };
+
+  const handleDraftChange = (raw: string) => {
+    const sanitized = sanitizeIntegrationInput(raw);
+    setDraft(sanitized);
+    setSanitizedDropped(sanitized.length !== raw.length);
   };
 
   return (
@@ -154,29 +163,41 @@ function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }
       </div>
 
       {isEditing && (
-        <div className="mt-2.5 flex gap-2">
-          <input
-            type="password"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSave();
-              if (e.key === "Escape") setIsEditing(false);
-            }}
-            placeholder={`${config.key} 값 입력`}
-            autoFocus
-            className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20"
-            aria-label={`${config.label} 입력`}
-          />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!draft.trim()}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            저장
-          </button>
-        </div>
+        <>
+          <div className="mt-2.5 flex gap-2">
+            <input
+              type="password"
+              value={draft}
+              onChange={(e) => handleDraftChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+                if (e.key === "Escape") setIsEditing(false);
+              }}
+              placeholder={`${config.key} 값 입력`}
+              autoFocus
+              aria-invalid={sanitizedDropped}
+              className={`flex-1 rounded-lg border bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:ring-1 ${
+                sanitizedDropped
+                  ? "border-amber-400 focus:border-amber-500 focus:ring-amber-200"
+                  : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-400/20"
+              }`}
+              aria-label={`${config.label} 입력`}
+            />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!draft.trim()}
+              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              저장
+            </button>
+          </div>
+          {sanitizedDropped && (
+            <p className="mt-1 text-[10px] text-amber-600">
+              한글/이모지 등 비-ASCII 문자는 자동 제거됩니다. 영문·숫자만 입력하세요.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -632,7 +653,12 @@ export function StepSolutionEnv() {
                 type="password"
                 value={envVars["NGROK_AUTH_TOKEN"] ?? ""}
                 onChange={(e) =>
-                  setEnv({ envVars: { ...envVars, NGROK_AUTH_TOKEN: e.target.value } })
+                  setEnv({
+                    envVars: {
+                      ...envVars,
+                      NGROK_AUTH_TOKEN: sanitizeIntegrationInput(e.target.value),
+                    },
+                  })
                 }
                 placeholder="ngrok 인증 토큰"
                 className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none focus:border-violet-500/50"
@@ -728,9 +754,9 @@ export function StepSolutionEnv() {
           <input
             type="text"
             value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
+            onChange={(e) => setNewValue(sanitizeIntegrationInput(e.target.value))}
             onKeyDown={handleKeyPress}
-            placeholder="값 (나중에 입력 가능)"
+            placeholder="값 (나중에 입력 가능 · 영문/숫자)"
             className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           />
           <button

@@ -1,23 +1,23 @@
 ## 목표
-프로젝트 상세 페이지의 ZIP 재다운로드 영역에서 Linear API Key 등 통합 키 input 에 한글이 들어가면 fetch 가 실패하는 케이스를, 가장 안쪽 layer 인 **input onChange sanitize** 로 차단한다. 비-printable ASCII 가 입력되면 그 글자는 input value 에 들어가지 않고 inline 경고가 뜬다.
+위저드의 모든 환경변수 입력 input 에도 sanitizeIntegrationInput 을 적용해, 한글/이모지/제어문자가 envVars 에 절대 들어가지 않도록 한다. project page 와 동일 정책.
 
 ## 변경 파일 목록
-- `clickeye-web/src/lib/integration-validators.ts`:
-  - `sanitizeIntegrationInput(value)` 헬퍼 추가 — 비-printable ASCII 를 제거한 문자열 반환
-- `clickeye-web/src/app/(dashboard)/projects/[projectId]/page.tsx`:
-  - ENV_FIELDS 의 input onChange 에 sanitize 적용
-  - sanitize 로 글자가 잘렸을 때 inline 경고 노출 (필드별)
-- `clickeye-web/src/lib/__tests__/integration-validators.test.ts`: **신규** — sanitize 시나리오 검증
+- `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`:
+  - `RequiredKeyRow` 의 draft 입력 onChange 에 sanitize 적용 + 잘림 발생 시 inline 경고
+  - 추가 환경변수 폼 (newKey/newValue) 의 newValue 에 sanitize
+  - ngrok 인증 토큰 input 에도 sanitize
+- `clickeye-web/src/components/solutions/wizard/steps/step-confirmation.tsx`:
+  - "미입력 API 키 게이트" 의 draftDeferred input 에 sanitize + 잘림 안내
 
 ## 구현 단계
-1. integration-validators.ts 에 sanitizeIntegrationInput 추가
-2. project page input onChange 보강 + inline 경고 state
-3. 테스트 추가 + npm test
+1. step-solution-env.tsx 의 RequiredKeyRow 보강 (sanitize + 안내 flag)
+2. 환경변수 추가 input · ngrok 토큰 input 에 sanitize 적용
+3. step-confirmation.tsx 의 deferred input 에 sanitize + 안내
+4. typecheck + lint + vitest
 
 ## 예상 영향 범위
-- 한글/이모지 입력은 input 표시 단계에서 차단 → state 에 한글이 절대 들어가지 않음
-- 따라서 useEffect 의 라이브 검증은 ASCII-only 값만 받음 → fetch 가 검증 가능한 형태로 호출
-- 정상 ASCII 입력은 동작 변경 없음
-- 위저드 step 9 / step 11 의 input 들은 별도 컴포넌트라 이번 PR 범위 아님 (필요 시 다음 PR)
+- 위저드 7-Step 환경변수 입력 모두 ASCII-only 보장
+- IME 합성 결과로 한글이 한 번에 들어와도 envVars 에 절대 저장 안 됨
+- 백엔드 라이브 검증 fetch 는 항상 ASCII body 로만 호출됨
 
 ## STATUS: APPROVED
