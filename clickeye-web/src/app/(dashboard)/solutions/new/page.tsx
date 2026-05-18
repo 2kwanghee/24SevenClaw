@@ -24,6 +24,7 @@ import {
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { organizations, prototypeSessions, integrations, ApiClientError, NetworkError, type PrototypeSessionResponse } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
+import { canProceedAgentsStep } from "@/lib/wizard-gates";
 import { BaseModal } from "@/components/common/base-modal";
 import { cn } from "@/lib/utils";
 
@@ -119,22 +120,12 @@ export default function NewSolutionPage() {
         // PM 구성 확인 단계: 항상 진행 가능 (검토 후 이대로 진행)
         return true;
       case 6: {
-        if (data.agents.selectedAgents.length === 0) return false;
         // 카탈로그 로딩 중에는 티켓 소스 검증 불가 → 차단
         if (skillsLoading || !skillsData) return false;
         const ticketSourceIds = skillsData.items
           .filter((s) => s.category === "ticket_source")
           .map((s) => s.id);
-        if (ticketSourceIds.length > 0) {
-          // PM 이 ticket_source 통합(linear/notion 등)을 MCP 서버로만 잠금한 케이스가 있어
-          // selectedSkills 와 selectedMcps 양쪽에서 충족 여부를 확인한다.
-          const selectedMcps = data.agents.selectedMcps ?? [];
-          const hasTicketSource =
-            data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s)) ||
-            selectedMcps.some((m) => ticketSourceIds.includes(m));
-          if (!hasTicketSource) return false;
-        }
-        return true;
+        return canProceedAgentsStep(data.agents, ticketSourceIds);
       }
       case 7:
         return !!data.platform.platformId;

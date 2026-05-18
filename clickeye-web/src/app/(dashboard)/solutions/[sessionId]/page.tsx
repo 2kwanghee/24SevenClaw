@@ -23,6 +23,7 @@ import {
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, integrations, organizations } from "@/lib/api-client";
 import { useCatalogSkills } from "@/hooks/use-catalog";
+import { canProceedAgentsStep } from "@/lib/wizard-gates";
 import { toast } from "sonner";
 
 // 인덱스: 0=회사정보, 1=솔루션생성, 2=프로토타입선택, 3=PM추천, 4=PM선택, 5=PM구성, 6=에이전트, 7=플랫폼, 8=OS환경, 9=환경변수, 10=ROI비교, 11=최종확인
@@ -184,20 +185,11 @@ export default function SolutionSessionPage() {
       case 5:
         return true;
       case 6: {
-        if (data.agents.selectedAgents.length === 0) return false;
         if (skillsLoading || !skillsData) return false;
         const ticketSourceIds = skillsData.items
           .filter((s) => s.category === "ticket_source")
           .map((s) => s.id);
-        if (ticketSourceIds.length > 0) {
-          // PM 이 ticket_source 통합을 MCP 서버로만 잠금한 케이스도 인정 (new/page.tsx 와 동일 정책)
-          const selectedMcps = data.agents.selectedMcps ?? [];
-          const hasTicketSource =
-            data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s)) ||
-            selectedMcps.some((m) => ticketSourceIds.includes(m));
-          if (!hasTicketSource) return false;
-        }
-        return true;
+        return canProceedAgentsStep(data.agents, ticketSourceIds);
       }
       case 7:
         return !!data.platform.platformId;
