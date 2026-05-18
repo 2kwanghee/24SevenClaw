@@ -55,7 +55,7 @@ interface RequiredKeyRowProps {
   onDefer?: () => void;
 }
 
-function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }: RequiredKeyRowProps) {
+export function RequiredKeyRow({ config, value, onChange, isDeferred = false, onDefer }: RequiredKeyRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [sanitizedDropped, setSanitizedDropped] = useState(false);

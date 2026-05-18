@@ -1,23 +1,24 @@
 ## 목표
-위저드의 모든 환경변수 입력 input 에도 sanitizeIntegrationInput 을 적용해, 한글/이모지/제어문자가 envVars 에 절대 들어가지 않도록 한다. project page 와 동일 정책.
+위저드 input sanitize 동작을 vitest + React Testing Library 로 실제 React 렌더링 + paste 이벤트 레벨에서 결정적 검증한다. WSL 환경에서 GUI 브라우저 자동화가 어려우므로 jsdom 컴포넌트 테스트로 사용자 입력 시뮬레이션.
 
 ## 변경 파일 목록
 - `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`:
-  - `RequiredKeyRow` 의 draft 입력 onChange 에 sanitize 적용 + 잘림 발생 시 inline 경고
-  - 추가 환경변수 폼 (newKey/newValue) 의 newValue 에 sanitize
-  - ngrok 인증 토큰 input 에도 sanitize
-- `clickeye-web/src/components/solutions/wizard/steps/step-confirmation.tsx`:
-  - "미입력 API 키 게이트" 의 draftDeferred input 에 sanitize + 잘림 안내
+  - `RequiredKeyRow` 함수에 `export` 추가 (RTL 테스트에서 직접 import 하기 위함). 동작 변화 없음.
+- `clickeye-web/src/components/solutions/wizard/steps/__tests__/required-key-row.test.tsx`: **신규**
+  - 한글 paste → 잘림 검증 (state 에 한글 안 들어감)
+  - amber 안내 메시지 노출 검증
+  - ASCII 입력은 그대로 통과 검증
+  - 저장 버튼 → onChange 콜백 호출 검증
 
 ## 구현 단계
-1. step-solution-env.tsx 의 RequiredKeyRow 보강 (sanitize + 안내 flag)
-2. 환경변수 추가 input · ngrok 토큰 input 에 sanitize 적용
-3. step-confirmation.tsx 의 deferred input 에 sanitize + 안내
-4. typecheck + lint + vitest
+1. step-solution-env.tsx: `function RequiredKeyRow` → `export function RequiredKeyRow`
+2. 테스트 파일 작성 (RTL + userEvent.paste)
+3. vitest 실행
+4. (보너스) dev 서버 + 변경 반영 확인 + 사용자 측 브라우저 시나리오 가이드
 
 ## 예상 영향 범위
-- 위저드 7-Step 환경변수 입력 모두 ASCII-only 보장
-- IME 합성 결과로 한글이 한 번에 들어와도 envVars 에 절대 저장 안 됨
-- 백엔드 라이브 검증 fetch 는 항상 ASCII body 로만 호출됨
+- export 추가만 — 다른 사용처 영향 없음
+- RTL 테스트로 sanitize 가 React 이벤트 단계에서 동작함을 결정적 확인
+- 위저드 step 9 의 핵심 입력 컴포넌트 동작 회귀 방지
 
 ## STATUS: APPROVED
