@@ -86,3 +86,38 @@ class CodebaseAnalysisResponse(BaseModel):
     analyzed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# ModernizeRecommendation — 권장안 (M6)
+# ---------------------------------------------------------------------------
+
+
+class ModernizeRecommendationResponse(BaseModel):
+    """권장안 응답 항목."""
+
+    id: UUID
+    idx: int
+    category: str
+    target_path: str | None = None
+    before: dict[str, Any] | None = None
+    after: dict[str, Any] | None = None
+    title: str
+    rationale_md: str | None = None
+    effort: str
+    risk: str
+    priority: int
+    prompt_md: str | None = None
+    linear_issue_id: str | None = None
+    linear_identifier: str | None = None
+    selected: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ModernizeRecommendationUpdate(BaseModel):
+    """`PATCH /recommendations/{id}` 요청 body — 사용자 검수용."""
+
+    selected: bool | None = None
+    priority: int | None = Field(None, ge=1, le=100)
+    prompt_md: str | None = None

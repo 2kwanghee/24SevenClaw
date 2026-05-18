@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import { StepModernizeDiagnose } from "@/components/solutions/wizard/steps/step-modernize-diagnose";
+import { StepModernizeDiagnosisReview } from "@/components/solutions/wizard/steps/step-modernize-diagnosis-review";
 import { StepModernizeRepoConnect } from "@/components/solutions/wizard/steps/step-modernize-repo-connect";
 import { StepModernizeRepoSelect } from "@/components/solutions/wizard/steps/step-modernize-repo-select";
 import { isModernizeEnabled } from "@/lib/feature-flags";
@@ -13,17 +14,18 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 /**
  * Modernize 위저드 entry page — `/solutions/modernize/new`.
  *
- * M5 범위: Step 0~2 (repo-connect → repo-select → diagnose) 구현.
- * 이후 step (diagnosis-review / 공유 PM/agents/...) 는 M6~M7 에서 추가.
+ * M6 범위: Step 0~3 (repo-connect → repo-select → diagnose → diagnosis-review) 구현.
+ * 이후 step (공유 PM/agents/...) 는 M7 에서 추가.
  *
  * `isModernizeEnabled()` flag OFF 시 즉시 dashboard 로 redirect — 베타 사용자만 노출.
  */
 
-// 인덱스: 0=repo-connect, 1=repo-select, 2=diagnose
+// 인덱스: 0=repo-connect, 1=repo-select, 2=diagnose, 3=diagnosis-review
 const STEP_COMPONENTS = [
   StepModernizeRepoConnect,
   StepModernizeRepoSelect,
   StepModernizeDiagnose,
+  StepModernizeDiagnosisReview,
 ];
 
 export default function ModernizeNewPage() {
@@ -36,6 +38,10 @@ export default function ModernizeNewPage() {
   );
   const repo = useSolutionWizardStore((s) => s.modernize.repo);
   const diagnoseDone = useSolutionWizardStore((s) => s.modernize.diagnoseDone);
+  const scenario = useSolutionWizardStore((s) => s.modernize.scenario);
+  const acceptedIds = useSolutionWizardStore(
+    (s) => s.modernize.acceptedRecommendationIds,
+  );
 
   // Feature flag OFF 시 즉시 redirect
   useEffect(() => {
@@ -58,6 +64,8 @@ export default function ModernizeNewPage() {
         return !!repo?.fullName && !!repo?.branch;
       case 2:
         return diagnoseDone;
+      case 3:
+        return scenario !== null && acceptedIds.length > 0;
       default:
         return false;
     }
@@ -73,9 +81,9 @@ export default function ModernizeNewPage() {
       onSubmit={
         isLastStep
           ? () => {
-              // M6 에서 diagnosis-review step 추가 + 권장안 검토 흐름 연결 예정.
+              // M7 에서 PM/agents/env/confirm 공유 step 재사용 + Linear 자동 등록 + ZIP 생성 연결 예정.
               alert(
-                "M6 (권장안 생성 + 검토 UI) 구현 후 다음 단계로 자동 진입합니다.",
+                "M7 (공유 step + Linear 등록 + ZIP 생성) 구현 후 다음 단계로 자동 진입합니다.",
               );
             }
           : undefined

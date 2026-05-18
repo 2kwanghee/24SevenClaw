@@ -2573,6 +2573,30 @@ export interface CodebaseAnalysisResponse {
   analyzed_at: string | null;
 }
 
+export interface ModernizeRecommendationResponse {
+  id: string;
+  idx: number;
+  category: string;
+  target_path: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  title: string;
+  rationale_md: string | null;
+  effort: "S" | "M" | "L";
+  risk: "low" | "med" | "high";
+  priority: number;
+  prompt_md: string | null;
+  linear_issue_id: string | null;
+  linear_identifier: string | null;
+  selected: boolean;
+}
+
+export interface ModernizeRecommendationUpdate {
+  selected?: boolean;
+  priority?: number;
+  prompt_md?: string;
+}
+
 export const modernize = {
   /** GitHub App 설치 URL + CSRF state (M3 endpoint). flag OFF 시 404, settings 미설정 시 503 */
   installUrl: (token: string) =>
@@ -2609,6 +2633,24 @@ export const modernize = {
     authRequest<CodebaseAnalysisResponse>(
       `/api/v1/modernize/sessions/${sessionId}/analysis`,
       token,
+    ),
+  /** 권장안 목록 (priority asc 정렬) */
+  listRecommendations: (token: string, sessionId: string) =>
+    authRequest<ModernizeRecommendationResponse[]>(
+      `/api/v1/modernize/sessions/${sessionId}/recommendations`,
+      token,
+    ),
+  /** 권장안 편집 — selected / priority / prompt_md 만 변경 */
+  updateRecommendation: (
+    token: string,
+    sessionId: string,
+    recId: string,
+    data: ModernizeRecommendationUpdate,
+  ) =>
+    authRequest<ModernizeRecommendationResponse>(
+      `/api/v1/modernize/sessions/${sessionId}/recommendations/${recId}`,
+      token,
+      { method: "PATCH", body: JSON.stringify(data) },
     ),
 };
 

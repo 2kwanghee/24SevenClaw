@@ -20,11 +20,14 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
 from app.schemas.modernize import (
     CodebaseAnalysisResponse,
     InstallationListItem,
+    ModernizeRecommendationResponse,
+    ModernizeRecommendationUpdate,
     ModernizeSessionCreate,
     ModernizeSessionResponse,
     RepoListItem,
@@ -287,3 +290,102 @@ async def get_session_analysis(
         )
 
     return CodebaseAnalysisResponse.model_validate(analysis_row)
+
+
+# ----------------------------------------------------------------------
+# ModernizeRecommendation — 권장안 조회/편집 (M6)
+# ----------------------------------------------------------------------
+
+
+async def _get_recommendation_with_ownership(
+    db: AsyncSession,
+    user: User,
+    session_id: UUID,
+    rec_id: UUID | None = None,
+) -> tuple[ModernizeSession, ModernizeRecommendation | None]:
+    """세션 소유 검증 + (옵션) 권장안 조회."""
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+    if rec_id is None:
+        return session_row, None
+
+    rec_result = await db.execute(
+        select(ModernizeRecommendation).where(
+            ModernizeRecommendation.id == rec_id,
+            ModernizeRecommendation.session_id == session_id,
+        )
+    )
+    rec_row = rec_result.scalar_one_or_none()
+    if rec_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="권장안을 찾을 수 없습니다.",
+        )
+    return session_row, rec_row
+
+
+@router.get(
+    "/sessions/{session_id}/recommendations",
+    response_model=list[ModernizeRecommendationResponse],
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def list_recommendations(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ModernizeRecommendationResponse]:
+    """세션의 권장안 목록. priority asc 정렬."""
+    await _get_recommendation_with_ownership(db, user, session_id, rec_id=None)
+    result = await db.execute(
+        select(ModernizeRecommendation)
+        .where(ModernizeRecommendation.session_id == session_id)
+        .order_by(
+            ModernizeRecommendation.priority.asc(),
+            ModernizeRecommendation.idx.asc(),
+        )
+    )
+    rows = list(result.scalars().all())
+    return [ModernizeRecommendationResponse.model_validate(r) for r in rows]
+
+
+@router.patch(
+    "/sessions/{session_id}/recommendations/{rec_id}",
+    response_model=ModernizeRecommendationResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def update_recommendation(
+    session_id: UUID,
+    rec_id: UUID,
+    body: ModernizeRecommendationUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizeRecommendationResponse:
+    """권장안 편집 — selected / priority / prompt_md 만 변경 가능."""
+    _, rec_row = await _get_recommendation_with_ownership(db, user, session_id, rec_id)
+    assert rec_row is not None  # noqa: S101 — helper invariant
+
+    changed = False
+    if body.selected is not None:
+        rec_row.selected = body.selected  # type: ignore[assignment]
+        changed = True
+    if body.priority is not None:
+        rec_row.priority = body.priority  # type: ignore[assignment]
+        changed = True
+    if body.prompt_md is not None:
+        rec_row.prompt_md = body.prompt_md  # type: ignore[assignment]
+        changed = True
+
+    if changed:
+        await db.commit()
+        await db.refresh(rec_row)
+    return ModernizeRecommendationResponse.model_validate(rec_row)

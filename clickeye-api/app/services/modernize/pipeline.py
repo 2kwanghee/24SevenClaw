@@ -24,8 +24,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.models.codebase_analysis import CodebaseAnalysis
+from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
-from app.services.modernize import clone, llm_summary, manifest, outdated, sample, scan
+from app.services.modernize import (
+    clone,
+    llm_summary,
+    manifest,
+    outdated,
+    sample,
+    scan,
+)
+from app.services.modernize import (
+    recommendations as recommendations_svc,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +106,19 @@ async def _execute(db: AsyncSession, session_row: ModernizeSession) -> None:
         outdated_packages=outdated_result["outdated_packages"],  # type: ignore[arg-type]
         snippets=snippets,
     )
+    await _update_status(db, session_id, status="recommending", progress=85)
+
+    # Step 7 권장안 생성 (M6) — 시나리오별 LLM 호출 또는 deterministic fallback
+    recs = await recommendations_svc.generate_recommendations(
+        scenario=str(session_row.scenario),
+        goals_text=str(session_row.goals_text or ""),
+        lang_distribution=scan_result["lang_distribution"],  # type: ignore[arg-type]
+        framework_signals=manifest_result["framework_signals"],  # type: ignore[arg-type]
+        outdated_packages=outdated_result["outdated_packages"],  # type: ignore[arg-type]
+        manifests=manifest_result["manifests"],  # type: ignore[arg-type]
+        llm_summary=summary_md,
+    )
+    await _upsert_recommendations(db, session_id=session_id, recs=recs)
     await _update_status(db, session_id, status="recommending", progress=95)
 
     # 결과 영속 — CodebaseAnalysis upsert (1:1)
@@ -197,3 +221,56 @@ async def _upsert_analysis(
         for k, v in fields.items():
             setattr(row, k, v)
     await db.commit()
+
+
+async def _upsert_recommendations(
+    db: AsyncSession,
+    *,
+    session_id: UUID,
+    recs: list[dict[str, object]],
+) -> None:
+    """기존 세션의 권장안 모두 삭제 후 새로 insert (재분석 시 깔끔).
+
+    M7 finalize 후 linear_issue_id 가 채워져도, 재분석 시 그 정보는 손실됨 — MVP 단순화.
+    M7+ 에서는 finalize 후 ModernizeSession.status='finalized' 이면 재분석 차단 또는
+    권장안 보존 정책 도입 검토.
+    """
+    # 기존 권장안 삭제
+    existing = await db.execute(
+        select(ModernizeRecommendation).where(ModernizeRecommendation.session_id == session_id)
+    )
+    for row in existing.scalars().all():
+        await db.delete(row)
+    await db.flush()
+
+    # 새 권장안 insert
+    for idx, rec in enumerate(recs):
+        row = ModernizeRecommendation(
+            session_id=session_id,
+            idx=idx,
+            category=str(rec.get("category", "upgrade")),
+            target_path=_cast_str_or_none(rec.get("target_path")),
+            before=rec.get("before") if isinstance(rec.get("before"), dict) else None,
+            after=rec.get("after") if isinstance(rec.get("after"), dict) else None,
+            title=str(rec.get("title", ""))[:300],
+            rationale_md=_cast_str_or_none(rec.get("rationale_md")),
+            effort=str(rec.get("effort", "M"))[:2],
+            risk=str(rec.get("risk", "med"))[:10],
+            priority=_extract_priority(rec.get("priority")),
+            prompt_md=_cast_str_or_none(rec.get("prompt_md")),
+            selected=True,
+        )
+        db.add(row)
+    await db.commit()
+
+
+def _cast_str_or_none(v: object) -> str | None:
+    if isinstance(v, str) and v:
+        return v
+    return None
+
+
+def _extract_priority(v: object) -> int:
+    if isinstance(v, int) and not isinstance(v, bool):
+        return max(1, min(100, v))
+    return 50
