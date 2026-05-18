@@ -125,11 +125,14 @@ export default function NewSolutionPage() {
         const ticketSourceIds = skillsData.items
           .filter((s) => s.category === "ticket_source")
           .map((s) => s.id);
-        if (
-          ticketSourceIds.length > 0 &&
-          !data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s))
-        ) {
-          return false;
+        if (ticketSourceIds.length > 0) {
+          // PM 이 ticket_source 통합(linear/notion 등)을 MCP 서버로만 잠금한 케이스가 있어
+          // selectedSkills 와 selectedMcps 양쪽에서 충족 여부를 확인한다.
+          const selectedMcps = data.agents.selectedMcps ?? [];
+          const hasTicketSource =
+            data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s)) ||
+            selectedMcps.some((m) => ticketSourceIds.includes(m));
+          if (!hasTicketSource) return false;
         }
         return true;
       }

@@ -189,11 +189,13 @@ export default function SolutionSessionPage() {
         const ticketSourceIds = skillsData.items
           .filter((s) => s.category === "ticket_source")
           .map((s) => s.id);
-        if (
-          ticketSourceIds.length > 0 &&
-          !data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s))
-        ) {
-          return false;
+        if (ticketSourceIds.length > 0) {
+          // PM 이 ticket_source 통합을 MCP 서버로만 잠금한 케이스도 인정 (new/page.tsx 와 동일 정책)
+          const selectedMcps = data.agents.selectedMcps ?? [];
+          const hasTicketSource =
+            data.agents.selectedSkills.some((s) => ticketSourceIds.includes(s)) ||
+            selectedMcps.some((m) => ticketSourceIds.includes(m));
+          if (!hasTicketSource) return false;
         }
         return true;
       }

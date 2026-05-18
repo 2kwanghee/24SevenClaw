@@ -1,26 +1,32 @@
 ## 목표
-Linear/Notion API Key 라이브 검증 호출 전에 클라이언트 측 사전 검증을 추가해, 한글/공백/제어문자 등 백엔드까지 보낼 수 없는 입력이 들어오면 fetch 호출 자체를 건너뛰고 명확한 invalid 메시지를 노출한다. catch 절도 보강해 dev 콘솔 stacktrace를 줄이고 사용자 친화 메시지를 표시한다.
+위저드 7단계(case 6, 에이전트 단계)에서 "티켓 소스 필수" 게이트가, PM 잠금으로 Linear가 MCP 서버로만 들어있는 경우를 인식하지 못해 다음 버튼이 비활성화되는 버그 수정.
+
+## 원인
+- 카탈로그(integrations.json): `linear`는 `category=ticket_source` 의 skill 로 등록.
+- pm_compositions.json: `linear`는 `component_type=mcp_server` 의 MCP 로 등록.
+- step-solution-agents.tsx 의 PM composition 자동 채우기 useEffect: `comp.mcp_servers` → `selectedMcps`, `comp.skills` → `selectedSkills` 로 분리 저장.
+- 결과: 사용자가 PM 선택 시 `selectedMcps` 에는 "linear" 가 들어가지만 `selectedSkills` 에는 안 들어감.
+- canProceed case 6 검사가 `selectedSkills` 만 보고 ticket_source 충족 여부 판정 → 게이트 닫힘.
 
 ## 변경 파일 목록
-- `clickeye-web/src/lib/integration-validators.ts`: **신규** — `sanitizeForIntegrationApi(value)` / `assertAsciiInput(value)` 헬퍼 (중복 코드 회피)
-- `clickeye-web/src/app/(dashboard)/projects/[projectId]/page.tsx`:
-  - triggerLinearValidation / triggerNotionValidation 에서 사전 검증 (헬퍼 사용)
-  - catch 절 보강 (err 메시지 표시)
-- `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`:
-  - 동일 적용
-- `clickeye-web/src/components/solutions/wizard/steps/step-confirmation.tsx`:
-  - 동일 적용
+- `clickeye-web/src/app/(dashboard)/solutions/new/page.tsx`:
+  - case 6: ticketSource 충족 여부를 `selectedSkills` + `selectedMcps` 양쪽에서 검사
+- `clickeye-web/src/app/(dashboard)/solutions/[sessionId]/page.tsx`:
+  - 동일
+- `clickeye-web/src/components/solutions/wizard/steps/step-solution-agents.tsx`:
+  - `ticketSourceSkills.map` 의 isSelected/isLocked 도 selectedMcps/pmLocked.mcps 양쪽 검사
+  - "티켓 소스 미선택" 경고도 양쪽 검사
+  - selectTicketSource 도 mcp 잠금 보호 추가 (안전성)
 
 ## 구현 단계
-1. lib/integration-validators.ts 신규 작성 (ASCII-only 검사, 메시지 반환)
-2. 세 컴포넌트의 trigger* 두 함수 보강 (사전 검증 → fetch 건너뜀, invalid 처리)
-3. catch (err) 보강 — Error 인스턴스의 message 추출, 친절한 안내
-4. typecheck + lint
+1. 두 페이지의 case 6 검사 로직 보강
+2. step-solution-agents.tsx UI 표시 + 안내 경고 + 클릭 가드 보강
+3. typecheck + lint
 
 ## 예상 영향 범위
-- 잘못된 입력으로 인한 fetch 실패 → dev 콘솔 stacktrace 노출 차단
-- 한글/이모지/공백 입력 시 즉시 invalid 메시지 노출 (백엔드 호출 X)
-- 정상 입력 동작은 변경 없음
-- catch 처리 일관: 네트워크 에러 / API 에러 모두 invalid 뱃지로 통합
+- PM 이 Linear/Notion 을 MCP 서버로만 잠금한 케이스에서 정상 진행
+- 기존 PM 이 skill 로 잠근 케이스도 그대로 동작 (양쪽 OR 조건)
+- 사용자가 ticket_source 를 자유 선택한 케이스도 변동 없음
+- UI 잠금/선택 표시가 게이트와 일관 동작
 
 ## STATUS: APPROVED

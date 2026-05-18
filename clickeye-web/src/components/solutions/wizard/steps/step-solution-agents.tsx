@@ -171,7 +171,8 @@ export function StepSolutionAgents() {
   };
 
   const selectTicketSource = (skillId: string) => {
-    if (pmLocked.skills.has(skillId)) return;
+    // PM 이 동일 slug 를 skill 또는 MCP 서버로 잠금했으면 사용자 변경 차단
+    if (pmLocked.skills.has(skillId) || pmLocked.mcps.has(skillId)) return;
     const ticketSourceIds = ticketSourceSkills.map((s) => s.id);
     const isCurrentlySelected = agents.selectedSkills.includes(skillId);
     // 잠금 티켓소스는 제거하지 않음
@@ -310,8 +311,11 @@ export function StepSolutionAgents() {
             <>
               <div className="flex flex-wrap gap-2">
                 {ticketSourceSkills.map(({ id, label, env_vars }) => {
-                  const isSelected = agents.selectedSkills.includes(id);
-                  const isLocked = pmLocked.skills.has(id);
+                  // PM 이 동일 slug 를 MCP 서버로 잠금한 케이스도 "선택/잠금" 으로 인식
+                  const isSelected =
+                    agents.selectedSkills.includes(id) ||
+                    (agents.selectedMcps ?? []).includes(id);
+                  const isLocked = pmLocked.skills.has(id) || pmLocked.mcps.has(id);
                   const isRecommended = catalogRecommended.skills.includes(id);
                   const needsApiKey = env_vars && env_vars.length > 0;
                   return (
@@ -346,7 +350,8 @@ export function StepSolutionAgents() {
                 })}
               </div>
               {ticketSourceSkills.length > 0 &&
-                !agents.selectedSkills.some((id) => ticketSourceSkills.some((s) => s.id === id)) && (
+                !agents.selectedSkills.some((id) => ticketSourceSkills.some((s) => s.id === id)) &&
+                !(agents.selectedMcps ?? []).some((id) => ticketSourceSkills.some((s) => s.id === id)) && (
                   <p role="alert" className="text-xs text-rose-400">
                     티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다
                   </p>
