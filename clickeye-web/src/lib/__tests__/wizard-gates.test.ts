@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { canProceedAgentsStep, type AgentsStepState } from "../wizard-gates";
+import {
+  canProceedAgentsStep,
+  findLockedTicketSourceId,
+  type AgentsStepState,
+} from "../wizard-gates";
 
 const TICKET_SOURCE_IDS = ["linear", "notion"];
 
@@ -95,5 +99,43 @@ describe("canProceedAgentsStep (Step 6 — 에이전트 단계 게이트)", () =
       selectedSkills: [],
     };
     expect(canProceedAgentsStep(agents, TICKET_SOURCE_IDS)).toBe(false);
+  });
+});
+
+describe("findLockedTicketSourceId (PM 잠금 ticket_source 식별)", () => {
+  it("PM 잠금이 전혀 없으면 null", () => {
+    expect(
+      findLockedTicketSourceId(TICKET_SOURCE_IDS, new Set(), new Set()),
+    ).toBeNull();
+  });
+
+  it("PM 이 Linear 를 SKILL 로 잠금 → 'linear' 반환", () => {
+    expect(
+      findLockedTicketSourceId(
+        TICKET_SOURCE_IDS,
+        new Set(["linear", "ai-critique"]),
+        new Set(),
+      ),
+    ).toBe("linear");
+  });
+
+  it("PM 이 Linear 를 MCP 서버로만 잠금 → 'linear' 반환 (사용자 케이스)", () => {
+    expect(
+      findLockedTicketSourceId(
+        TICKET_SOURCE_IDS,
+        new Set(),
+        new Set(["linear", "github"]),
+      ),
+    ).toBe("linear");
+  });
+
+  it("PM 이 ticket_source 가 아닌 다른 스킬만 잠금 → null", () => {
+    expect(
+      findLockedTicketSourceId(
+        TICKET_SOURCE_IDS,
+        new Set(["ai-critique", "tdd"]),
+        new Set(["github"]),
+      ),
+    ).toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 
 import { pmProfiles, prototypeSessions } from "@/lib/api-client";
 import { useCatalogAgents, useCatalogHooks, useCatalogMCPs, useCatalogSkills } from "@/hooks/use-catalog";
+import { findLockedTicketSourceId } from "@/lib/wizard-gates";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 
 /* ---------- 스켈레톤 / 에러 ---------- */
@@ -174,6 +175,14 @@ export function StepSolutionAgents() {
     // PM 이 동일 slug 를 skill 또는 MCP 서버로 잠금했으면 사용자 변경 차단
     if (pmLocked.skills.has(skillId) || pmLocked.mcps.has(skillId)) return;
     const ticketSourceIds = ticketSourceSkills.map((s) => s.id);
+    // 다른 ticket_source 가 PM 잠금이면 단일 선택 정책상 변경 차단
+    const lockedTicketSourceId = findLockedTicketSourceId(
+      ticketSourceIds,
+      pmLocked.skills,
+      pmLocked.mcps,
+    );
+    if (lockedTicketSourceId && lockedTicketSourceId !== skillId) return;
+
     const isCurrentlySelected = agents.selectedSkills.includes(skillId);
     // 잠금 티켓소스는 제거하지 않음
     const withoutFreeTicketSources = agents.selectedSkills.filter(
@@ -310,52 +319,94 @@ export function StepSolutionAgents() {
           {skillsData && (
             <>
               <div className="flex flex-wrap gap-2">
-                {ticketSourceSkills.map(({ id, label, env_vars }) => {
-                  // PM 이 동일 slug 를 MCP 서버로 잠금한 케이스도 "선택/잠금" 으로 인식
-                  const isSelected =
-                    agents.selectedSkills.includes(id) ||
-                    (agents.selectedMcps ?? []).includes(id);
-                  const isLocked = pmLocked.skills.has(id) || pmLocked.mcps.has(id);
-                  const isRecommended = catalogRecommended.skills.includes(id);
-                  const needsApiKey = env_vars && env_vars.length > 0;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => selectTicketSource(id)}
-                      aria-pressed={isSelected}
-                      disabled={isLocked}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
-                        isLocked
-                          ? "cursor-default border-amber-300/60 bg-amber-50 text-zinc-800"
-                          : isSelected
-                            ? "border-zinc-900 bg-zinc-50 text-zinc-900 ring-2 ring-zinc-900/10"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300"
-                      }`}
-                    >
-                      {label}
-                      {isLocked && <PmLockBadge pmName={selectedPMInfo?.name} />}
-                      {!isLocked && isRecommended && (
-                        <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
-                          <Sparkles className="h-2.5 w-2.5" />
-                        </span>
-                      )}
-                      {needsApiKey && (
-                        <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-400/10 px-1 py-0.5 text-[10px] font-medium text-amber-400">
-                          <KeyRound className="h-2.5 w-2.5" />
-                        </span>
-                      )}
-                    </button>
+                {(() => {
+                  const ticketSourceIds = ticketSourceSkills.map((s) => s.id);
+                  const lockedTicketSourceId = findLockedTicketSourceId(
+                    ticketSourceIds,
+                    pmLocked.skills,
+                    pmLocked.mcps,
                   );
-                })}
+                  return ticketSourceSkills.map(({ id, label, env_vars }) => {
+                    // PM 이 동일 slug 를 MCP 서버로 잠금한 케이스도 "선택/잠금" 으로 인식
+                    const isSelected =
+                      agents.selectedSkills.includes(id) ||
+                      (agents.selectedMcps ?? []).includes(id);
+                    const isLocked = pmLocked.skills.has(id) || pmLocked.mcps.has(id);
+                    // PM 이 다른 ticket_source 를 잠금 → 단일 선택 정책상 본 버튼은 비활성
+                    const isBlockedByOtherLock =
+                      !!lockedTicketSourceId && lockedTicketSourceId !== id;
+                    const isDisabled = isLocked || isBlockedByOtherLock;
+                    const isRecommended = catalogRecommended.skills.includes(id);
+                    const needsApiKey = env_vars && env_vars.length > 0;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => selectTicketSource(id)}
+                        aria-pressed={isSelected}
+                        disabled={isDisabled}
+                        title={
+                          isBlockedByOtherLock
+                            ? `${selectedPMInfo?.name ?? "선택된 PM"} 이(가) ${lockedTicketSourceId} 를 이미 잠금했습니다`
+                            : undefined
+                        }
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
+                          isLocked
+                            ? "cursor-default border-amber-300/60 bg-amber-50 text-zinc-800"
+                            : isBlockedByOtherLock
+                              ? "cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400 opacity-60"
+                              : isSelected
+                                ? "border-zinc-900 bg-zinc-50 text-zinc-900 ring-2 ring-zinc-900/10"
+                                : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:border-zinc-300"
+                        }`}
+                      >
+                        {label}
+                        {isLocked && <PmLockBadge pmName={selectedPMInfo?.name} />}
+                        {!isLocked && isRecommended && (
+                          <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1 py-0.5 text-[10px] font-medium text-blue-400">
+                            <Sparkles className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                        {needsApiKey && (
+                          <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-400/10 px-1 py-0.5 text-[10px] font-medium text-amber-400">
+                            <KeyRound className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
-              {ticketSourceSkills.length > 0 &&
-                !agents.selectedSkills.some((id) => ticketSourceSkills.some((s) => s.id === id)) &&
-                !(agents.selectedMcps ?? []).some((id) => ticketSourceSkills.some((s) => s.id === id)) && (
-                  <p role="alert" className="text-xs text-rose-400">
-                    티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다
-                  </p>
-                )}
+              {(() => {
+                const ticketSourceIds = ticketSourceSkills.map((s) => s.id);
+                const lockedTicketSourceId = findLockedTicketSourceId(
+                  ticketSourceIds,
+                  pmLocked.skills,
+                  pmLocked.mcps,
+                );
+                if (lockedTicketSourceId) {
+                  const lockedLabel =
+                    ticketSourceSkills.find((s) => s.id === lockedTicketSourceId)?.label
+                    ?? lockedTicketSourceId;
+                  return (
+                    <p className="text-[11px] text-zinc-500">
+                      <Lock className="mr-1 inline h-3 w-3 text-amber-500" aria-hidden="true" />
+                      {selectedPMInfo?.name ?? "선택된 PM"} 이(가) <strong>{lockedLabel}</strong> 를 잠금했습니다. 다른 티켓 소스는 선택할 수 없습니다.
+                    </p>
+                  );
+                }
+                const hasSelection =
+                  agents.selectedSkills.some((id) => ticketSourceIds.includes(id)) ||
+                  (agents.selectedMcps ?? []).some((id) => ticketSourceIds.includes(id));
+                if (!hasSelection && ticketSourceSkills.length > 0) {
+                  return (
+                    <p role="alert" className="text-xs text-rose-400">
+                      티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </>
           )}
         </div>

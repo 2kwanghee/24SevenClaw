@@ -35,3 +35,22 @@ export function canProceedAgentsStep(
     selectedMcps.some((m) => ticketSourceSkillIds.includes(m));
   return hasTicketSource;
 }
+
+/**
+ * PM 이 잠금한 ticket_source 의 id 를 반환. 잠금 ticket_source 가 없으면 null.
+ * 한 ticket_source 가 PM 잠금이면 다른 ticket_source 는 단일 선택 정책에 따라 변경 불가하다.
+ *
+ * @param ticketSourceSkillIds 카탈로그 ticket_source 카테고리 skill id 목록
+ * @param pmLockedSkills PM 이 잠금한 skill slug 집합
+ * @param pmLockedMcps   PM 이 잠금한 mcp_server slug 집합
+ */
+export function findLockedTicketSourceId(
+  ticketSourceSkillIds: string[],
+  pmLockedSkills: ReadonlySet<string>,
+  pmLockedMcps: ReadonlySet<string>,
+): string | null {
+  for (const id of ticketSourceSkillIds) {
+    if (pmLockedSkills.has(id) || pmLockedMcps.has(id)) return id;
+  }
+  return null;
+}
