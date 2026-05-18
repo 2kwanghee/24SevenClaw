@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import ExpiredSignatureError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.security import decode_access_token
 from app.database import get_db
 from app.models.user import User
@@ -21,11 +22,11 @@ async def get_current_user(
     token = credentials.credentials
     try:
         payload = decode_access_token(token)
-    except ExpiredSignatureError:
+    except ExpiredSignatureError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="로그인 세션(액세스 토큰)이 만료되었습니다. 다시 로그인해 주세요.",
-        )
+        ) from e
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -63,3 +64,16 @@ def require_permission(permission: str) -> Callable[..., User]:
         return user
 
     return _check
+
+
+def require_modernize_feature() -> None:
+    """ClickEye Modernize feature flag 가드.
+
+    `feature_modernize_enabled = False` 일 때 신규 endpoint 가 모두 404 응답.
+    기존 사용자에게 베타 기능이 노출되지 않도록 보장 (비침습성 원칙).
+    """
+    if not settings.feature_modernize_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not Found",
+        )

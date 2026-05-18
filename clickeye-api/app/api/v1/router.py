@@ -10,6 +10,7 @@ from app.api.v1.contracts import project_contracts_router
 from app.api.v1.contracts import router as contracts_router
 from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.control_tower import router as control_tower_router
+from app.api.v1.github_app import router as github_app_router
 from app.api.v1.health import router as health_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.linear_credentials import router as linear_credentials_router
@@ -62,6 +63,7 @@ api_v1_router.include_router(contracts_sync_router)
 api_v1_router.include_router(anthropic_credentials_router)
 api_v1_router.include_router(linear_credentials_router)
 api_v1_router.include_router(integrations_router)
+api_v1_router.include_router(github_app_router)
 api_v1_router.include_router(control_tower_router)
 api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)

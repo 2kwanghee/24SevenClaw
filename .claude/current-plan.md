@@ -1,45 +1,62 @@
 ## 목표
-M2 — Modernize 파이프라인을 위한 신규 백엔드 모델 5종 + Alembic migration 039 추가.
-plan 의 비침습성 원칙에 따라 **기존 테이블 컬럼·인덱스·제약 변경 0**, 모든 변경은 신규 테이블 추가에 한정.
+M3 — GitHub App 인프라 + install/callback/webhook 엔드포인트.
+사용자가 자신의 GitHub 계정/조직에 ClickEye GitHub App 을 설치하고, 그 installation 정보를 백엔드가 안전하게 수신·검증·영속하는 흐름. 실 코드 호출은 사용자가 GitHub 개발자 콘솔에서 App 등록 후 활성화.
+
+## 비침습성 보장
+- 기존 GitHub OAuth login (`auth.py`) 흐름 절대 미변경 — 별개 endpoint prefix 사용
+- Feature flag `feature_modernize_enabled = False` 일 때 신규 endpoint 모두 404
+- GitHub App settings (id/private_key/secret) 미설정 시 endpoint 503 + 명확한 에러
+- 신규 라우터 1 개만 router.py 에 include 추가, 기존 라우터 영향 없음
 
 ## 변경 파일 목록
 
-### 신규 모델 (5 파일 — 모두 신규)
-- `clickeye-api/app/models/github_installation.py` — GitHub App 설치 정보 (installation token 비저장)
-- `clickeye-api/app/models/github_repo.py` — 설치된 repo 캐시 (24h TTL)
-- `clickeye-api/app/models/modernize_session.py` — 위저드 세션 + 분석 진행률
-- `clickeye-api/app/models/codebase_analysis.py` — 정적 분석 + LLM 요약 영속
-- `clickeye-api/app/models/modernize_recommendation.py` — 권장안 1:1 = 이슈 1건
+### 신규
+- `clickeye-api/app/services/github_app_service.py` — JWT(RS256) 발급, installation token 발급, webhook 서명 검증, user-to-server OAuth code 교환
+- `clickeye-api/app/schemas/github_app.py` — Pydantic 스키마 (Install URL / Installation / Webhook payload)
+- `clickeye-api/app/api/v1/github_app.py` — 3 endpoint + Feature flag 가드
+- `clickeye-api/tests/services/test_github_app_service.py` — JWT/서명/is_configured 단위 테스트
+- `docs/modernize-github-app-setup.md` — App 등록 가이드 (사용자 측)
 
-### 수정 (모델 등록만)
-- `clickeye-api/app/models/__init__.py` — 5 신규 모델 import 등록 (alembic autogenerate 인식)
+### 수정 (옵트인 분기)
+- `clickeye-api/app/config.py` — GitHub App settings 6 필드 + frontend URL 추가 (default 비어있어 endpoint 비활성)
+- `clickeye-api/app/dependencies.py` — `require_modernize_feature` 의존성 추가
+- `clickeye-api/app/api/v1/router.py` — 신규 router include
+- `clickeye-api/.env.example` — App 관련 env 추가 (모두 빈 값)
 
-### 신규 마이그레이션
-- `clickeye-api/alembic/versions/039_modernize_tables.py` — 5 신규 테이블 create_table + index, downgrade 시 역순 drop_table
+## 핵심 함수 시그니처
 
-## 모델 시그니처 요약
-
-| 모델 | 핵심 컬럼 | FK |
+| 함수 | 시그니처 | 비고 |
 |---|---|---|
-| GitHubInstallation | installation_id (BigInt unique), account_login, account_type, permissions JSON, repository_selection, suspended_at?, revoked_at? | user_id (CASCADE), organization_id (SET NULL) |
-| GitHubRepo | gh_repo_id (BigInt), full_name, default_branch, private (Bool), language_primary, pushed_at, cached_at, unique(installation_id, gh_repo_id) | installation_id (CASCADE) |
-| ModernizeSession | repo_full_name, repo_branch, commit_sha, scenario, goals_text, target_stack JSON, status, progress_pct, error JSON, extra JSON | user_id (CASCADE), organization_id (SET NULL), installation_id (SET NULL) |
-| CodebaseAnalysis | loc_total, file_count, lang_distribution JSON, manifests JSON, outdated_packages JSON, framework_signals, risk_flags, llm_summary_md, tokens_used | session_id (CASCADE, UNIQUE 1:1) |
-| ModernizeRecommendation | idx, category, target_path, before/after JSON, title, rationale_md, effort, risk, priority, prompt_md, linear_issue_id?, linear_identifier?, selected | session_id (CASCADE) + Index(session_id, idx) |
+| `is_configured()` | `() -> bool` | 6 settings 모두 비어있지 않은지 |
+| `create_app_jwt()` | `() -> str` | iss=app_id, iat=now-60s, exp=now+9m, RS256 서명 |
+| `get_installation_token(id)` | `async (int) -> dict` | `POST /app/installations/{id}/access_tokens` 호출, 1h 토큰 반환 |
+| `verify_webhook_signature(payload, sig)` | `(bytes, str) -> bool` | HMAC-SHA256 with `github_app_webhook_secret` |
+| `exchange_user_oauth_code(code)` | `async (str) -> dict` | user-to-server OAuth code → user token |
+| `fetch_installation_meta(id)` | `async (int) -> dict` | App JWT 로 installation 상세 조회 |
 
-모든 모델: UUIDPKMixin + TimestampMixin + Base.
+## Endpoint 시그니처
+
+| Method | Path | Auth | Body / Query | Response |
+|---|---|---|---|---|
+| GET | `/integrations/github/app/install-url` | user | — | `{install_url, state}` (state = 10분 만료 JWT) |
+| GET | `/integrations/github/app/callback` | user + state | `?installation_id&setup_action&state&code?` | 302 → frontend `/modernize/connected?installation_id=...` |
+| POST | `/integrations/github/app/webhook` | 서명 검증 | GitHub event payload | 204 |
+
+webhook 처리 이벤트: `installation` (created/deleted/suspended/unsuspended), `installation_repositories` (added/removed)
 
 ## 구현 단계
-1. 5 신규 모델 파일 작성 (기존 패턴 일관 — Column(Uuid, ForeignKey(..., ondelete=...), ...))
-2. `__init__.py` 에 import + __all__ 등록
-3. Alembic 039 migration 직접 작성 (autogenerate 미사용 — DB 연결 의존 회피)
-4. ruff + mypy 통과 확인
-5. (가능하면) `alembic upgrade head` → `alembic downgrade -1` → 기존 테이블 변경 0 확인 (R-7)
+1. config.py + .env.example 보강
+2. dependencies.py — require_modernize_feature 추가
+3. services/github_app_service.py 작성
+4. schemas/github_app.py
+5. api/v1/github_app.py + router 등록
+6. 단위 테스트 (JWT, 서명, is_configured)
+7. docs/modernize-github-app-setup.md 작성
+8. ruff + mypy + pytest
 
-## 예상 영향 범위
-- 기존 테이블 모두 무변경 (R-2 ZIP 골든 미해당, R-5 위저드 store 미해당)
-- 신규 테이블 5종만 추가
-- `app/models/__init__.py` 의 import 추가만 — 기존 reader 영향 없음
-- 신규 테이블은 어떤 기존 코드도 참조하지 않음 (M3 이후 사용)
+## 비침습성 회귀 항목
+- R-3 OpenAPI diff: 기존 endpoint 변경 0 — 신규 path 만 추가
+- R-6 Feature flag OFF: `feature_modernize_enabled=false` 시 신규 endpoint 모두 404 (require_modernize_feature 의존성으로 보장)
+- 기존 pytest: 신규 코드는 기존 흐름 import 안 함 — 영향 없음
 
 ## STATUS: APPROVED
