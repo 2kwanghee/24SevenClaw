@@ -1,24 +1,49 @@
 ## 목표
-위저드 input sanitize 동작을 vitest + React Testing Library 로 실제 React 렌더링 + paste 이벤트 레벨에서 결정적 검증한다. WSL 환경에서 GUI 브라우저 자동화가 어려우므로 jsdom 컴포넌트 테스트로 사용자 입력 시뮬레이션.
+M1 — Feature flag (`FEATURE_MODERNIZE_ENABLED`) + wizard-store 의 `mode` 분기 도입.
+plan 의 비침습성 원칙 입증을 위해 **기존 사용처 시그니처 변경 0**, **기존 SOLUTION_WIZARD_STEPS export 그대로 유지**, **default mode='new'** 로 기존 동작 100% 유지.
 
 ## 변경 파일 목록
-- `clickeye-web/src/components/solutions/wizard/steps/step-solution-env.tsx`:
-  - `RequiredKeyRow` 함수에 `export` 추가 (RTL 테스트에서 직접 import 하기 위함). 동작 변화 없음.
-- `clickeye-web/src/components/solutions/wizard/steps/__tests__/required-key-row.test.tsx`: **신규**
-  - 한글 paste → 잘림 검증 (state 에 한글 안 들어감)
-  - amber 안내 메시지 노출 검증
-  - ASCII 입력은 그대로 통과 검증
-  - 저장 버튼 → onChange 콜백 호출 검증
+
+### 프론트엔드 (추가 only)
+- `clickeye-web/src/types/solution-wizard.ts`:
+  - 추가: `SolutionWizardMode = "new" | "modernize"` 타입
+  - 추가: `MODERNIZE_WIZARD_STEPS` placeholder 배열 (M4 에서 채워짐)
+  - 추가: `getWizardSteps(mode)` helper — mode 에 따라 적절한 STEPS 배열 반환
+  - **기존 `SOLUTION_WIZARD_STEPS` 미변경**
+- `clickeye-web/src/stores/solution-wizard-store.ts`:
+  - state 에 `mode: SolutionWizardMode` 필드 추가 (initialState.mode = "new")
+  - actions 에 `setMode(mode)` 추가
+  - **기존 setter 시그니처 미변경, 기본 동작 100% 유지**
+- `clickeye-web/src/lib/feature-flags.ts` — **신규**:
+  - `isModernizeEnabled()` → `process.env.NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED === "true"`
+- `clickeye-web/.env.example`:
+  - `NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED=false` 추가
+
+### 백엔드 (추가 only)
+- `clickeye-api/app/config.py`:
+  - `Settings` 에 `feature_modernize_enabled: bool = False` 필드 추가
+- `clickeye-api/.env.example`:
+  - `FEATURE_MODERNIZE_ENABLED=false` 추가
+
+### 테스트
+- `clickeye-web/src/lib/__tests__/feature-flags.test.ts` — **신규** (3 케이스)
+- `clickeye-web/src/stores/__tests__/solution-wizard-store.test.ts` — 기존 케이스 확인 + `mode` default + `setMode` 추가 검증 (R-5 회귀 안전 확인)
+- (선택) `clickeye-api/tests/test_config.py` — feature flag 기본값 false 확인
 
 ## 구현 단계
-1. step-solution-env.tsx: `function RequiredKeyRow` → `export function RequiredKeyRow`
-2. 테스트 파일 작성 (RTL + userEvent.paste)
-3. vitest 실행
-4. (보너스) dev 서버 + 변경 반영 확인 + 사용자 측 브라우저 시나리오 가이드
+1. types/solution-wizard.ts: SolutionWizardMode + MODERNIZE_WIZARD_STEPS placeholder + getWizardSteps helper 추가
+2. solution-wizard-store.ts: mode 필드 + setMode 추가 (기존 코드 미변경)
+3. lib/feature-flags.ts: helper 신규
+4. .env.example 양쪽 추가
+5. config.py: 백엔드 settings 필드 추가
+6. wizard-store.test.ts: R-5 회귀 + mode 추가 케이스
+7. feature-flags.test.ts 신규
+8. vitest + tsc + ruff/mypy 검증
 
 ## 예상 영향 범위
-- export 추가만 — 다른 사용처 영향 없음
-- RTL 테스트로 sanitize 가 React 이벤트 단계에서 동작함을 결정적 확인
-- 위저드 step 9 의 핵심 입력 컴포넌트 동작 회귀 방지
+- 기존 SOLUTION_WIZARD_STEPS / setter 시그니처 / 호출 결과 변화 없음
+- mode 미설정 시 기존 'new' 동작 100% 유지
+- Feature flag 미설정 시 false (Modernize 비활성)
+- 기존 vitest / pytest 100% 통과 보장 (R-5)
 
 ## STATUS: APPROVED

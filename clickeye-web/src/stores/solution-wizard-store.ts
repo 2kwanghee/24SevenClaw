@@ -5,6 +5,7 @@ import {
   INITIAL_SOLUTION_WIZARD_DATA,
   type SolutionWizardData,
   type SolutionWizardStepId,
+  type SolutionWizardMode,
   type CompanyStep,
   type PrototypesStep,
   type PMStep,
@@ -18,6 +19,7 @@ import {
 } from "@/types/solution-wizard";
 
 export { SOLUTION_WIZARD_STEPS, type SolutionWizardStepId } from "@/types/solution-wizard";
+export { type SolutionWizardMode } from "@/types/solution-wizard";
 
 type ValidationStatus = "idle" | "loading" | "valid" | "invalid";
 
@@ -32,6 +34,11 @@ interface SolutionWizardState {
   currentStep: number;
   data: SolutionWizardData;
   isGenerating: boolean;
+  /**
+   * 위저드 모드 — 'new' (기존 7-Step 솔루션 설계) / 'modernize' (기존 코드 현대화).
+   * 기본값 'new'. 기존 모든 사용처는 mode 를 모르더라도 'new' 동작 유지.
+   */
+  mode: SolutionWizardMode;
   /** Step 0 폼의 유효성 (formState.isValid 동기화) — canProceed 판단에 사용 */
   step0Valid: boolean;
   /** Step 1 (프로토타입 생성) 완료 플래그 — 부모가 감시해서 nextStep() 호출 */
@@ -56,6 +63,8 @@ interface SolutionWizardActions {
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (step: number) => void;
+  /** 위저드 모드 변경 ('new' ↔ 'modernize'). M4 진입점에서 호출 */
+  setMode: (mode: SolutionWizardMode) => void;
   setCompany: (data: Partial<CompanyStep>) => void;
   setStep0Valid: (valid: boolean) => void;
   setStep1Done: (done: boolean) => void;
@@ -86,6 +95,7 @@ const initialState: SolutionWizardState = {
   currentStep: 0,
   data: INITIAL_SOLUTION_WIZARD_DATA,
   isGenerating: false,
+  mode: "new",
   step0Valid: false,
   step1Done: false,
   step3Done: false,
@@ -133,6 +143,8 @@ export const useSolutionWizardStore = create<
         Math.min(step, SOLUTION_WIZARD_STEPS.length - 1),
       ),
     }),
+
+  setMode: (mode) => set({ mode }),
 
   setCompany: (company) =>
     set((state) => ({

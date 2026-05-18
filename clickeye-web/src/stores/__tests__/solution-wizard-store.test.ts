@@ -269,4 +269,42 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
     act(() => result.current.setIsGenerating(false));
     expect(result.current.isGenerating).toBe(false);
   });
+
+  // -- M1: 위저드 모드 분기 (Modernize 파이프라인 진입점) ----------------------
+  // 기존 사용처가 mode 를 모르더라도 'new' default 로 동작이 100% 유지되어야 한다.
+
+  it("M1: 초기 상태의 mode 는 'new' (default — 기존 사용처 영향 없음)", () => {
+    const { result } = getStore();
+    expect(result.current.mode).toBe("new");
+  });
+
+  it("M1: setMode 로 mode 를 'modernize' 로 전환", () => {
+    const { result } = getStore();
+
+    act(() => result.current.setMode("modernize"));
+    expect(result.current.mode).toBe("modernize");
+  });
+
+  it("M1: setMode('modernize') 후에도 기존 setter (setCompany 등) 동작은 동일", () => {
+    const { result } = getStore();
+
+    act(() => {
+      result.current.setMode("modernize");
+      result.current.setCompany({ companyName: "Acme", mainProduct: "ERP" });
+    });
+
+    expect(result.current.mode).toBe("modernize");
+    expect(result.current.data.company.companyName).toBe("Acme");
+  });
+
+  it("M1: reset 후 mode 가 'new' 로 복원", () => {
+    const { result } = getStore();
+
+    act(() => {
+      result.current.setMode("modernize");
+      result.current.reset();
+    });
+
+    expect(result.current.mode).toBe("new");
+  });
 });

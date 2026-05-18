@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     # PM 추천 v2 (Jaccard 유사도 + 차원별 점수) 활성화 여부
     pm_reco_v2_enabled: bool = False
 
+    # Feature flags
+    # ClickEye Modernize (기존 코드 현대화 파이프라인, MVP-2-A).
+    # 기본 False — 화이트리스트 베타 사용자만 노출. 신규 라우트/모델은 이 flag 가 True 일 때만 활성.
+    feature_modernize_enabled: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

@@ -17,6 +17,51 @@ export const SOLUTION_WIZARD_STEPS = [
 
 export type SolutionWizardStepId = (typeof SOLUTION_WIZARD_STEPS)[number]["id"];
 
+/**
+ * Modernize 위저드 단계 정의 — 기존 코드 현대화 모드 전용.
+ *
+ * MVP-2-A 의 M4 에서 실제 step 컴포넌트와 함께 활용된다. M1 에서는 모드 분기만
+ * 도입하고 사용처는 아직 없다. 기존 `SOLUTION_WIZARD_STEPS` 는 절대 미변경.
+ */
+export const MODERNIZE_WIZARD_STEPS = [
+  { id: "repo-connect", label: "GitHub 연결", description: "기존 코드베이스를 가져올 GitHub repo 를 연결합니다" },
+  { id: "repo-select", label: "저장소 선택", description: "분석할 repo 와 브랜치를 선택합니다" },
+  { id: "diagnose", label: "코드 진단", description: "AI 가 코드를 분석합니다" },
+  { id: "diagnosis-review", label: "진단 검토", description: "현대화 시나리오와 권장사항을 선택합니다" },
+  { id: "pm-recommendation", label: "PM 추천", description: "AI 가 최적의 PM 을 분석합니다" },
+  { id: "pm-selection", label: "PM 선택", description: "프로젝트 매니저 AI 선택" },
+  { id: "pm-composition", label: "PM 구성", description: "선택한 PM 의 구성 요소 확인" },
+  { id: "agents", label: "에이전트", description: "AI 에이전트 구성 확인" },
+  { id: "platform", label: "플랫폼", description: "Agent 플랫폼 선택" },
+  { id: "env", label: "환경변수", description: "API 키 및 환경변수 입력" },
+  { id: "confirm", label: "최종 확인", description: "설정 확인 및 Linear 등록 + ZIP 생성" },
+] as const;
+
+export type ModernizeWizardStepId = (typeof MODERNIZE_WIZARD_STEPS)[number]["id"];
+
+/** 위저드 단계 정의의 공통 형태 — getWizardSteps 의 반환 타입 */
+export interface WizardStepDef {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+}
+
+/**
+ * 위저드 모드 — 'new' (기존 7-Step 솔루션 설계) / 'modernize' (기존 코드 현대화).
+ * 기본값은 항상 'new'. 기존 호출자는 mode 를 모를 수 있고, 그 경우 자동으로 기존 동작 유지.
+ */
+export type SolutionWizardMode = "new" | "modernize";
+
+/**
+ * 모드에 따라 적절한 STEPS 배열 반환.
+ * 기존 `SOLUTION_WIZARD_STEPS` 직접 사용 호출자는 영향 없다 (mode='new' 와 동일 결과).
+ */
+export function getWizardSteps(
+  mode: SolutionWizardMode = "new",
+): readonly WizardStepDef[] {
+  return mode === "modernize" ? MODERNIZE_WIZARD_STEPS : SOLUTION_WIZARD_STEPS;
+}
+
 // ---------------------------------------------------------------------------
 // Step 1: 회사 정보
 // ---------------------------------------------------------------------------
