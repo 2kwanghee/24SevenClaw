@@ -9,6 +9,16 @@
 // ASCII printable (0x20~0x7E) 외 문자 검출.
 // 토큰에는 보통 줄바꿈/탭이 들어갈 일이 없으므로 제어문자도 거른다.
 const NON_PRINTABLE_ASCII = /[^\x20-\x7E]/;
+const NON_PRINTABLE_ASCII_GLOBAL = /[^\x20-\x7E]/g;
+
+/**
+ * 통합 키 input 의 onChange 단계에서 사용. 비-printable ASCII (한글/이모지/제어문자)를
+ * 모두 제거한 문자열을 반환한다. IME 합성 결과로 한글이 한꺼번에 들어오는 경우에도
+ * state 에 한글이 절대 저장되지 않도록 가장 안쪽 layer 에서 차단한다.
+ */
+export function sanitizeIntegrationInput(value: string): string {
+  return value.replace(NON_PRINTABLE_ASCII_GLOBAL, "");
+}
 
 export interface IntegrationInputCheck {
   ok: boolean;

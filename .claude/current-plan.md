@@ -1,25 +1,23 @@
 ## 목표
-위저드 Step 6 에이전트 단계에서 PM 잠금으로 ticket_source 한 개가 이미 선택된 경우, 다른 ticket_source 는 추가/변경 불가능해야 한다. (티켓 소스 단일 선택 정책 + PM 잠금 우선)
+프로젝트 상세 페이지의 ZIP 재다운로드 영역에서 Linear API Key 등 통합 키 input 에 한글이 들어가면 fetch 가 실패하는 케이스를, 가장 안쪽 layer 인 **input onChange sanitize** 로 차단한다. 비-printable ASCII 가 입력되면 그 글자는 input value 에 들어가지 않고 inline 경고가 뜬다.
 
 ## 변경 파일 목록
-- `clickeye-web/src/lib/wizard-gates.ts`:
-  - `findLockedTicketSourceId(ticketSourceSkillIds, pmLockedSkills, pmLockedMcps)` 헬퍼 추가 (단위 테스트용)
-- `clickeye-web/src/components/solutions/wizard/steps/step-solution-agents.tsx`:
-  - ticket_source 버튼 렌더링: 다른 ticket_source 가 PM 잠금이면 `disabled` + cursor-not-allowed 스타일
-  - `selectTicketSource` 함수에 가드 추가 — 다른 ticket_source 가 PM 잠금이면 early return
-  - 안내 텍스트: 잠금 사유 표시 (어떤 PM 이 어떤 ticket_source 를 잠갔는지)
-- `clickeye-web/src/lib/__tests__/wizard-gates.test.ts`:
-  - `findLockedTicketSourceId` 시나리오 4 가지 추가
+- `clickeye-web/src/lib/integration-validators.ts`:
+  - `sanitizeIntegrationInput(value)` 헬퍼 추가 — 비-printable ASCII 를 제거한 문자열 반환
+- `clickeye-web/src/app/(dashboard)/projects/[projectId]/page.tsx`:
+  - ENV_FIELDS 의 input onChange 에 sanitize 적용
+  - sanitize 로 글자가 잘렸을 때 inline 경고 노출 (필드별)
+- `clickeye-web/src/lib/__tests__/integration-validators.test.ts`: **신규** — sanitize 시나리오 검증
 
 ## 구현 단계
-1. wizard-gates.ts 에 findLockedTicketSourceId 추가
-2. step-solution-agents.tsx 의 ticketSourceSkills.map / selectTicketSource 보강
-3. 테스트 추가
-4. typecheck + lint + vitest
+1. integration-validators.ts 에 sanitizeIntegrationInput 추가
+2. project page input onChange 보강 + inline 경고 state
+3. 테스트 추가 + npm test
 
 ## 예상 영향 범위
-- PM 잠금 ticket_source 가 있는 경우, 다른 ticket_source 버튼 자체가 클릭 불가
-- PM 잠금이 없으면 기존 단일 선택 라디오 동작 그대로
-- 게이트(canProceedAgentsStep) 동작 변화 없음 — 이미 OR 조건으로 통과
+- 한글/이모지 입력은 input 표시 단계에서 차단 → state 에 한글이 절대 들어가지 않음
+- 따라서 useEffect 의 라이브 검증은 ASCII-only 값만 받음 → fetch 가 검증 가능한 형태로 호출
+- 정상 ASCII 입력은 동작 변경 없음
+- 위저드 step 9 / step 11 의 input 들은 별도 컴포넌트라 이번 PR 범위 아님 (필요 시 다음 PR)
 
 ## STATUS: APPROVED

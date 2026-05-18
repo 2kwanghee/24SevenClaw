@@ -52,6 +52,7 @@ import {
   checkLinearInputs,
   checkNotionInputs,
   describeIntegrationError,
+  sanitizeIntegrationInput,
 } from "@/lib/integration-validators";
 
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
@@ -92,6 +93,8 @@ export default function ProjectDetailPage() {
     const stored = useSolutionWizardStore.getState().data.env.envVars;
     return { ...stored };
   });
+  // 입력 단계에서 sanitize 로 잘려나간 글자가 있는 필드(키)별 플래그 — inline 경고용
+  const [sanitizedKeys, setSanitizedKeys] = useState<Record<string, boolean>>({});
 
   /* --------------------------------------------------------------
     Linear / Notion 라이브 검증 — projects/[projectId] ZIP 재다운로드 게이트
@@ -613,17 +616,28 @@ export default function ProjectDetailPage() {
                             <input
                               type="text"
                               value={envVars[key] ?? ""}
-                              onChange={(e) =>
-                                setEnvVars((prev) => ({ ...prev, [key]: e.target.value }))
-                              }
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const sanitized = sanitizeIntegrationInput(raw);
+                                const dropped = sanitized.length !== raw.length;
+                                setEnvVars((prev) => ({ ...prev, [key]: sanitized }));
+                                setSanitizedKeys((prev) => ({ ...prev, [key]: dropped }));
+                              }}
                               placeholder={placeholder}
-                              aria-invalid={isEmpty}
+                              aria-invalid={isEmpty || sanitizedKeys[key]}
                               className={`w-full rounded-lg border bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 ${
                                 isEmpty
                                   ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-                                  : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200"
+                                  : sanitizedKeys[key]
+                                    ? "border-amber-400 focus:border-amber-500 focus:ring-amber-200"
+                                    : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200"
                               }`}
                             />
+                            {sanitizedKeys[key] && (
+                              <p className="mt-1 text-[10px] text-amber-600">
+                                한글/이모지 등 비-ASCII 문자는 자동 제거됩니다. 영문·숫자만 입력하세요.
+                              </p>
+                            )}
                           </div>
                         );
                       })}
