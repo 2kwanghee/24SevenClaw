@@ -7,9 +7,21 @@ import {
   SOLUTION_WIZARD_STEPS,
   useSolutionWizardStore,
 } from "@/stores/solution-wizard-store";
+import type { WizardStepDef } from "@/types/solution-wizard";
 
-export function SolutionWizardStepper() {
-  const { currentStep, goToStep } = useSolutionWizardStore();
+interface SolutionWizardStepperProps {
+  /** 표시할 step 배열. 미지정 시 SOLUTION_WIZARD_STEPS (기존 동작) */
+  steps?: readonly WizardStepDef[];
+  /** currentStep override. 미지정 시 store currentStep */
+  currentStep?: number;
+}
+
+export function SolutionWizardStepper({
+  steps = SOLUTION_WIZARD_STEPS,
+  currentStep: currentStepProp,
+}: SolutionWizardStepperProps = {}) {
+  const { currentStep: storeCurrentStep, goToStep } = useSolutionWizardStore();
+  const currentStep = currentStepProp ?? storeCurrentStep;
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "ArrowRight") {
@@ -27,7 +39,7 @@ export function SolutionWizardStepper() {
     <nav aria-label="솔루션 위저드 진행 단계" className="w-full">
       {/* 데스크톱: 가로 스텝 */}
       <ol className="hidden items-center gap-0 md:flex">
-        {SOLUTION_WIZARD_STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const isCompleted = index < currentStep;
           const isCurrent = index === currentStep;
           const isClickable = index <= currentStep;
@@ -44,7 +56,7 @@ export function SolutionWizardStepper() {
                   isClickable ? "cursor-pointer" : "cursor-default",
                 )}
                 aria-current={isCurrent ? "step" : undefined}
-                aria-label={`${step.label} (${index + 1}/${SOLUTION_WIZARD_STEPS.length}단계)${isCompleted ? " - 완료됨" : isCurrent ? " - 현재 단계" : " - 미완료"}`}
+                aria-label={`${step.label} (${index + 1}/${steps.length}단계)${isCompleted ? " - 완료됨" : isCurrent ? " - 현재 단계" : " - 미완료"}`}
               >
                 <div className="flex w-full items-center">
                   {index > 0 ? (
@@ -75,7 +87,7 @@ export function SolutionWizardStepper() {
                     )}
                   </div>
 
-                  {index < SOLUTION_WIZARD_STEPS.length - 1 ? (
+                  {index < steps.length - 1 ? (
                     <div
                       className={cn(
                         "h-0.5 flex-1 transition-colors duration-300",
@@ -111,7 +123,7 @@ export function SolutionWizardStepper() {
           <div
             className="h-full rounded-full bg-zinc-900 transition-all duration-500 ease-out"
             style={{
-              width: `${((currentStep + 1) / SOLUTION_WIZARD_STEPS.length) * 100}%`,
+              width: `${((currentStep + 1) / steps.length) * 100}%`,
             }}
           />
         </div>
@@ -122,15 +134,15 @@ export function SolutionWizardStepper() {
               {currentStep + 1}
             </span>
             <span className="text-sm font-medium text-zinc-950">
-              {SOLUTION_WIZARD_STEPS[currentStep].label}
+              {steps[currentStep]?.label ?? ""}
             </span>
           </div>
           <span className="text-xs text-zinc-500">
-            {currentStep + 1} / {SOLUTION_WIZARD_STEPS.length}
+            {currentStep + 1} / {steps.length}
           </span>
         </div>
         <p className="mt-1 text-xs text-zinc-500">
-          {SOLUTION_WIZARD_STEPS[currentStep].description}
+          {steps[currentStep]?.description ?? ""}
         </p>
       </div>
     </nav>

@@ -15,6 +15,7 @@ from app.api.v1.health import router as health_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.maturity import router as maturity_router
+from app.api.v1.modernize import router as modernize_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.pm_profiles import router as pm_profiles_router
@@ -64,6 +65,7 @@ api_v1_router.include_router(anthropic_credentials_router)
 api_v1_router.include_router(linear_credentials_router)
 api_v1_router.include_router(integrations_router)
 api_v1_router.include_router(github_app_router)
+api_v1_router.include_router(modernize_router)
 api_v1_router.include_router(control_tower_router)
 api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)

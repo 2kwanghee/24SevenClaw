@@ -197,3 +197,39 @@ def build_install_url() -> str:
     if not settings.github_app_slug:
         raise RuntimeError("GITHUB_APP_SLUG is not configured.")
     return f"https://github.com/apps/{settings.github_app_slug}/installations/new"
+
+
+async def list_installation_repos(
+    installation_id: int, *, per_page: int = 100
+) -> list[dict[str, Any]]:
+    """installation 에 속한 repo 목록 조회.
+
+    `POST /app/installations/{id}/access_tokens` → installation token →
+    `GET /installation/repositories?per_page=100` 호출. 페이지네이션은 단순화 (per_page 까지).
+
+    Returns:
+        repository 객체의 list. 핵심 필드: id, full_name, default_branch, private,
+        language, pushed_at.
+    """
+    token_meta = await get_installation_token(installation_id)
+    inst_token = token_meta.get("token")
+    if not inst_token:
+        raise RuntimeError("installation token 응답에 'token' 필드 없음")
+
+    url = f"{_GITHUB_API_BASE}/installation/repositories"
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        res = await client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {inst_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            params={"per_page": per_page},
+        )
+    if res.status_code != 200:
+        raise RuntimeError(
+            f"GitHub installation repos 조회 실패 (status={res.status_code}): {res.text[:300]}"
+        )
+    body = cast(dict[str, Any], res.json())
+    return cast(list[dict[str, Any]], body.get("repositories", []))

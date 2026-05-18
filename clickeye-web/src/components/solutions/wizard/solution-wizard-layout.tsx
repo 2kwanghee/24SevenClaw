@@ -6,11 +6,9 @@ import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, HelpCircle, PanelRightOpen } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import {
-  SOLUTION_WIZARD_STEPS,
-  useSolutionWizardStore,
-} from "@/stores/solution-wizard-store";
+import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
+import { getWizardSteps, type SolutionWizardMode } from "@/types/solution-wizard";
 
 import { SolutionWizardStepper } from "./solution-wizard-stepper";
 import { WizardArtifactPanel } from "./artifact-panel/wizard-artifact-panel";
@@ -26,7 +24,7 @@ const WizardTourWrapper = dynamic(
 interface SolutionWizardLayoutProps {
   children: React.ReactNode;
   /** 마지막 스텝에서 호출되는 제출 핸들러 */
-  onSubmit: () => void;
+  onSubmit?: () => void;
   /** 중간 스텝에서 "다음" 클릭 시 호출 (미제공 시 내부 nextStep 호출) */
   onNextStep?: () => Promise<void>;
   isSubmitting?: boolean;
@@ -34,6 +32,13 @@ interface SolutionWizardLayoutProps {
   canProceed?: boolean;
   /** 다음 버튼 레이블 오버라이드 */
   nextLabel?: string;
+  /**
+   * 위저드 모드 — 'new' (기본, 기존 솔루션 위저드) / 'modernize' (기존 코드 현대화).
+   * 기본값 'new'. 기존 호출자는 mode 를 모르더라도 'new' 동작 유지.
+   */
+  mode?: SolutionWizardMode;
+  /** currentStep override — 미지정 시 store 의 currentStep 사용 */
+  currentStep?: number;
 }
 
 export function SolutionWizardLayout({
@@ -43,10 +48,19 @@ export function SolutionWizardLayout({
   isSubmitting = false,
   canProceed = true,
   nextLabel,
+  mode = "new",
+  currentStep: currentStepProp,
 }: SolutionWizardLayoutProps) {
-  const { currentStep, nextStep, prevStep, isGenerating, togglePreviewPanel } =
-    useSolutionWizardStore();
+  const {
+    currentStep: storeCurrentStep,
+    nextStep,
+    prevStep,
+    isGenerating,
+    togglePreviewPanel,
+  } = useSolutionWizardStore();
   const { restartWizardTour } = useOnboardingStore();
+
+  const currentStep = currentStepProp ?? storeCurrentStep;
 
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -55,13 +69,15 @@ export function SolutionWizardLayout({
     stepHeadingRef.current?.focus();
   }, [currentStep]);
 
+  // mode 에 따라 적절한 step 배열 사용. mode='new' 일 때 기존 SOLUTION_WIZARD_STEPS 와 동일.
+  const steps = getWizardSteps(mode);
   const isFirst = currentStep === 0;
-  const isLast = currentStep === SOLUTION_WIZARD_STEPS.length - 1;
+  const isLast = currentStep === steps.length - 1;
   const isBlocked = isSubmitting || isGenerating;
 
   const handleNext = () => {
     if (isLast) {
-      onSubmit();
+      onSubmit?.();
     } else if (onNextStep) {
       void onNextStep();
     } else {
@@ -81,9 +97,13 @@ export function SolutionWizardLayout({
       {/* 헤더 */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-950">새 솔루션</h1>
+          <h1 className="text-2xl font-bold text-zinc-950">
+            {mode === "modernize" ? "기존 코드 현대화" : "새 솔루션"}
+          </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            AI가 회사에 맞는 솔루션을 자동 설계합니다
+            {mode === "modernize"
+              ? "GitHub repo 를 연결하면 AI 가 코드를 진단하고 현대화 작업을 자동 등록합니다"
+              : "AI가 회사에 맞는 솔루션을 자동 설계합니다"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -119,7 +139,7 @@ export function SolutionWizardLayout({
 
       {/* Stepper */}
       <div className="mb-8" data-tour="wizard-stepper">
-        <SolutionWizardStepper />
+        <SolutionWizardStepper steps={steps} currentStep={currentStep} />
       </div>
 
       {/* 메인 영역 — 데스크탑(xl+): 폼(좌) + 프리뷰 패널(우) split view */}
@@ -138,10 +158,10 @@ export function SolutionWizardLayout({
               tabIndex={-1}
               className="mb-1 text-lg font-semibold text-zinc-950 outline-none"
             >
-              {SOLUTION_WIZARD_STEPS[currentStep].label}
+              {steps[currentStep]?.label ?? ""}
             </h2>
             <p className="mb-6 text-sm text-zinc-500">
-              {SOLUTION_WIZARD_STEPS[currentStep].description}
+              {steps[currentStep]?.description ?? ""}
             </p>
 
             <div key={currentStep} className="animate-fade-in-up">
@@ -179,7 +199,7 @@ export function SolutionWizardLayout({
               aria-label={
                 isLast
                   ? "프로젝트 생성하기"
-                  : `다음 단계로 이동 (${SOLUTION_WIZARD_STEPS[currentStep + 1]?.label ?? ""})`
+                  : `다음 단계로 이동 (${steps[currentStep + 1]?.label ?? ""})`
               }
               aria-busy={isSubmitting || isGenerating}
               className={cn(

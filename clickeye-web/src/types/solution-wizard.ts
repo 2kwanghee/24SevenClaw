@@ -400,3 +400,44 @@ export const INITIAL_SOLUTION_WIZARD_DATA: SolutionWizardData = {
     result: null,
   },
 };
+
+// ---------------------------------------------------------------------------
+// Modernize (MVP-2-A) — 기존 코드 현대화 위저드 sub-state
+// 기본 mode='new' 일 때는 사용되지 않음. mode='modernize' 일 때만 의미가 있다.
+// ---------------------------------------------------------------------------
+
+/** Modernize 시나리오 — VersionUp 우선, 이후 Refactor / LanguageMigrate */
+export type ModernizeScenario = "versionup" | "refactor" | "language_migrate";
+
+/** Modernize 위저드 데이터 */
+export interface ModernizeData {
+  /** GitHubInstallation.id (UUID 문자열) — Step 0 에서 설정 */
+  githubInstallationPk: string | null;
+  /** GitHub 측 installation id — 표시/검증용 */
+  githubInstallationId: number | null;
+  /** 선택된 repo (Step 1) */
+  repo: {
+    fullName: string;
+    branch: string;
+    /** 옵셔널 monorepo 하위 경로 */
+    subpath: string | null;
+  } | null;
+  /** Step 2 진단 완료 플래그 — 부모가 nextStep() 트리거 */
+  diagnoseDone: boolean;
+  /** ModernizeSession.id — POST /modernize/sessions 응답에서 설정 */
+  sessionId: string | null;
+  /** 시나리오 (Step 3) */
+  scenario: ModernizeScenario | null;
+  /** 사용자가 selected=true 로 유지한 권장안 ID 목록 */
+  acceptedRecommendationIds: string[];
+}
+
+export const INITIAL_MODERNIZE_DATA: ModernizeData = {
+  githubInstallationPk: null,
+  githubInstallationId: null,
+  repo: null,
+  diagnoseDone: false,
+  sessionId: null,
+  scenario: null,
+  acceptedRecommendationIds: [],
+};

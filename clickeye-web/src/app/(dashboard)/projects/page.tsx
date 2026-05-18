@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
 import { useProjects } from "@/hooks/use-projects";
+import { isModernizeEnabled } from "@/lib/feature-flags";
 
 const PAGE_SIZE = 10;
 
@@ -103,6 +104,33 @@ function ProjectsContent() {
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
+
+      {/* Modernize 진입 카드 (FEATURE_MODERNIZE_ENABLED=true 인 베타 사용자만 노출) */}
+      {isModernizeEnabled() && (
+        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+              <GitBranch className="h-5 w-5 text-amber-700" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                기존 코드 현대화 <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">BETA</span>
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                GitHub 저장소를 연결하면 AI가 코드를 진단하고 현대화 작업을 Linear에 자동 등록합니다
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/solutions/modernize/new"
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-zinc-900 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50"
+            aria-label="기존 코드 현대화 위저드 시작"
+          >
+            저장소 연결하기
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      )}
 
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

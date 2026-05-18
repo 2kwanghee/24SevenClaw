@@ -3,9 +3,11 @@ import { create } from "zustand";
 import {
   SOLUTION_WIZARD_STEPS,
   INITIAL_SOLUTION_WIZARD_DATA,
+  INITIAL_MODERNIZE_DATA,
   type SolutionWizardData,
   type SolutionWizardStepId,
   type SolutionWizardMode,
+  type ModernizeData,
   type CompanyStep,
   type PrototypesStep,
   type PMStep,
@@ -19,7 +21,7 @@ import {
 } from "@/types/solution-wizard";
 
 export { SOLUTION_WIZARD_STEPS, type SolutionWizardStepId } from "@/types/solution-wizard";
-export { type SolutionWizardMode } from "@/types/solution-wizard";
+export { type SolutionWizardMode, type ModernizeData } from "@/types/solution-wizard";
 
 type ValidationStatus = "idle" | "loading" | "valid" | "invalid";
 
@@ -39,6 +41,11 @@ interface SolutionWizardState {
    * 기본값 'new'. 기존 모든 사용처는 mode 를 모르더라도 'new' 동작 유지.
    */
   mode: SolutionWizardMode;
+  /**
+   * Modernize 모드 sub-state. mode='new' 일 때는 사용되지 않으며 INITIAL 값 유지.
+   * 신규 store 사용처는 modernize.* 만 사용하여 기존 data.* 와 분리.
+   */
+  modernize: ModernizeData;
   /** Step 0 폼의 유효성 (formState.isValid 동기화) — canProceed 판단에 사용 */
   step0Valid: boolean;
   /** Step 1 (프로토타입 생성) 완료 플래그 — 부모가 감시해서 nextStep() 호출 */
@@ -65,6 +72,8 @@ interface SolutionWizardActions {
   goToStep: (step: number) => void;
   /** 위저드 모드 변경 ('new' ↔ 'modernize'). M4 진입점에서 호출 */
   setMode: (mode: SolutionWizardMode) => void;
+  /** Modernize sub-state 부분 갱신 (M4~M6 step 컴포넌트에서 사용) */
+  setModernize: (data: Partial<ModernizeData>) => void;
   setCompany: (data: Partial<CompanyStep>) => void;
   setStep0Valid: (valid: boolean) => void;
   setStep1Done: (done: boolean) => void;
@@ -96,6 +105,7 @@ const initialState: SolutionWizardState = {
   data: INITIAL_SOLUTION_WIZARD_DATA,
   isGenerating: false,
   mode: "new",
+  modernize: INITIAL_MODERNIZE_DATA,
   step0Valid: false,
   step1Done: false,
   step3Done: false,
@@ -145,6 +155,11 @@ export const useSolutionWizardStore = create<
     }),
 
   setMode: (mode) => set({ mode }),
+
+  setModernize: (data) =>
+    set((state) => ({
+      modernize: { ...state.modernize, ...data },
+    })),
 
   setCompany: (company) =>
     set((state) => ({

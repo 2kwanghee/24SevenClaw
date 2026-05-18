@@ -307,4 +307,75 @@ describe("solution-wizard-store — 7단계 E2E 플로우", () => {
 
     expect(result.current.mode).toBe("new");
   });
+
+  // -- M4: Modernize sub-state ----------------------------------------------
+
+  it("M4: 초기 modernize 상태는 모두 null/빈 값", () => {
+    const { result } = getStore();
+    expect(result.current.modernize.githubInstallationPk).toBeNull();
+    expect(result.current.modernize.githubInstallationId).toBeNull();
+    expect(result.current.modernize.repo).toBeNull();
+    expect(result.current.modernize.scenario).toBeNull();
+    expect(result.current.modernize.acceptedRecommendationIds).toEqual([]);
+  });
+
+  it("M4: setModernize 로 githubInstallationPk + installationId 저장", () => {
+    const { result } = getStore();
+    act(() =>
+      result.current.setModernize({
+        githubInstallationPk: "uuid-123",
+        githubInstallationId: 4567,
+      }),
+    );
+    expect(result.current.modernize.githubInstallationPk).toBe("uuid-123");
+    expect(result.current.modernize.githubInstallationId).toBe(4567);
+    // 다른 필드는 변동 없음
+    expect(result.current.modernize.repo).toBeNull();
+  });
+
+  it("M4: setModernize 로 repo 저장 + 부분 갱신 동작", () => {
+    const { result } = getStore();
+    act(() =>
+      result.current.setModernize({
+        repo: { fullName: "acme/api", branch: "main", subpath: null },
+      }),
+    );
+    expect(result.current.modernize.repo).toEqual({
+      fullName: "acme/api",
+      branch: "main",
+      subpath: null,
+    });
+
+    // 추가 갱신 — branch 만 변경
+    act(() =>
+      result.current.setModernize({
+        repo: { fullName: "acme/api", branch: "develop", subpath: null },
+      }),
+    );
+    expect(result.current.modernize.repo?.branch).toBe("develop");
+  });
+
+  it("M4: reset 후 modernize sub-state 도 초기값으로 복원", () => {
+    const { result } = getStore();
+    act(() => {
+      result.current.setMode("modernize");
+      result.current.setModernize({
+        githubInstallationPk: "uuid-xyz",
+        repo: { fullName: "x/y", branch: "main", subpath: null },
+      });
+      result.current.reset();
+    });
+    expect(result.current.modernize.githubInstallationPk).toBeNull();
+    expect(result.current.modernize.repo).toBeNull();
+  });
+
+  it("M4: mode='modernize' 라도 기존 data.company setter 동작은 동일 (회귀 안전)", () => {
+    const { result } = getStore();
+    act(() => {
+      result.current.setMode("modernize");
+      result.current.setCompany({ companyName: "Acme" });
+    });
+    expect(result.current.data.company.companyName).toBe("Acme");
+    expect(result.current.mode).toBe("modernize");
+  });
 });

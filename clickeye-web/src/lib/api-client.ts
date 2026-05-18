@@ -2501,4 +2501,54 @@ export const wizardPreview = {
     }),
 };
 
+// ============================================================================
+// ClickEye Modernize (MVP-2-A) — GitHub App 기반 기존 코드 현대화 파이프라인
+// ============================================================================
+
+export interface ModernizeInstallUrlResponse {
+  install_url: string;
+  state: string;
+}
+
+export interface ModernizeInstallationItem {
+  id: string;
+  installation_id: number;
+  account_login: string;
+  account_type: string;
+  repository_selection: string;
+  installed_at: string;
+  suspended_at: string | null;
+  repo_count: number;
+}
+
+export interface ModernizeRepoItem {
+  gh_repo_id: number;
+  full_name: string;
+  default_branch: string;
+  private: boolean;
+  language_primary: string | null;
+  pushed_at: string | null;
+}
+
+export const modernize = {
+  /** GitHub App 설치 URL + CSRF state (M3 endpoint). flag OFF 시 404, settings 미설정 시 503 */
+  installUrl: (token: string) =>
+    authRequest<ModernizeInstallUrlResponse>(
+      "/api/v1/integrations/github/app/install-url",
+      token,
+    ),
+  /** 현재 사용자의 활성 installation 목록 */
+  listInstallations: (token: string) =>
+    authRequest<ModernizeInstallationItem[]>(
+      "/api/v1/modernize/installations",
+      token,
+    ),
+  /** 특정 installation 의 repo 목록 (24h 캐시). refresh=true 면 즉시 GitHub API 호출 */
+  listRepos: (token: string, installationPk: string, refresh = false) =>
+    authRequest<ModernizeRepoItem[]>(
+      `/api/v1/modernize/installations/${installationPk}/repos?refresh=${refresh}`,
+      token,
+    ),
+};
+
 export { ApiClientError, NetworkError };
