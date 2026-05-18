@@ -6,21 +6,32 @@ Feature flag `feature_modernize_enabled` OFF 시 모든 endpoint 404.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime  # noqa: TC003 — runtime cast 에 필요
 from typing import cast
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_modernize_feature
+from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_session import ModernizeSession
 from app.models.user import User
-from app.schemas.modernize import InstallationListItem, RepoListItem
-from app.services.modernize import repo_service
+from app.schemas.modernize import (
+    CodebaseAnalysisResponse,
+    InstallationListItem,
+    ModernizeSessionCreate,
+    ModernizeSessionResponse,
+    RepoListItem,
+)
+from app.services.modernize import pipeline, repo_service
+
+_ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
 
 router = APIRouter(
     prefix="/modernize",
@@ -142,3 +153,137 @@ async def list_installation_repos(
         )
         for r in repos
     ]
+
+
+# ----------------------------------------------------------------------
+# ModernizeSession — 분석 세션 생성/조회/결과
+# ----------------------------------------------------------------------
+
+
+@router.post(
+    "/sessions",
+    response_model=ModernizeSessionResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def create_session(
+    body: ModernizeSessionCreate,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizeSessionResponse:
+    """ModernizeSession 생성 + 백그라운드 7-step pipeline 시작."""
+    if body.scenario not in _ALLOWED_SCENARIOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"scenario 는 {sorted(_ALLOWED_SCENARIOS)} 중 하나여야 합니다.",
+        )
+
+    # 소유 검증 — installation 이 현재 사용자 것이어야
+    result = await db.execute(
+        select(GitHubInstallation).where(
+            GitHubInstallation.id == body.installation_pk,
+            GitHubInstallation.user_id == user.id,
+            GitHubInstallation.revoked_at.is_(None),
+        )
+    )
+    inst = result.scalar_one_or_none()
+    if inst is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Installation 을 찾을 수 없거나 접근 권한이 없습니다.",
+        )
+
+    # pipeline 이 사용할 수 있도록 GitHub 측 installation_id 를 extra 에 저장
+    extra = {"github_installation_id": int(cast(int, inst.installation_id))}
+
+    session_row = ModernizeSession(
+        user_id=user.id,
+        organization_id=user.organization_id,
+        installation_id=cast(UUID, inst.id),
+        repo_full_name=body.repo_full_name,
+        repo_branch=body.branch,
+        scenario=body.scenario,
+        goals_text=body.goals_text,
+        target_stack=body.target_stack,
+        status="pending",
+        progress_pct=0,
+        extra=extra,
+    )
+    db.add(session_row)
+    await db.commit()
+    await db.refresh(session_row)
+
+    # 백그라운드 pipeline 시작 — BackgroundTasks 는 response 반환 후 실행됨
+    session_id = cast(UUID, session_row.id)
+
+    async def _runner() -> None:
+        await pipeline.run_pipeline(session_id)
+
+    background_tasks.add_task(asyncio.create_task, _runner())
+
+    return ModernizeSessionResponse.model_validate(session_row)
+
+
+@router.get(
+    "/sessions/{session_id}",
+    response_model=ModernizeSessionResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def get_session(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizeSessionResponse:
+    """세션 상태 + 진행률 폴링."""
+    result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+    return ModernizeSessionResponse.model_validate(row)
+
+
+@router.get(
+    "/sessions/{session_id}/analysis",
+    response_model=CodebaseAnalysisResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def get_session_analysis(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CodebaseAnalysisResponse:
+    """분석 완료 후 코드베이스 분석 결과 조회. 미완료 시 404."""
+    # 소유 검증 + 세션 조회
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    analysis_result = await db.execute(
+        select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
+    )
+    analysis_row = analysis_result.scalar_one_or_none()
+    if analysis_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="분석이 아직 완료되지 않았습니다.",
+        )
+
+    return CodebaseAnalysisResponse.model_validate(analysis_row)

@@ -2530,6 +2530,49 @@ export interface ModernizeRepoItem {
   pushed_at: string | null;
 }
 
+export interface ModernizeSessionCreate {
+  installation_pk: string;
+  repo_full_name: string;
+  branch?: string;
+  scenario: "versionup" | "refactor" | "language_migrate";
+  goals_text?: string;
+  target_stack?: Record<string, unknown>;
+}
+
+export interface ModernizeSessionResponse {
+  id: string;
+  repo_full_name: string;
+  repo_branch: string;
+  commit_sha: string | null;
+  scenario: string;
+  status:
+    | "pending"
+    | "cloning"
+    | "analyzing"
+    | "recommending"
+    | "ready"
+    | "finalized"
+    | "failed";
+  progress_pct: number;
+  error: Record<string, unknown> | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CodebaseAnalysisResponse {
+  session_id: string;
+  loc_total: number | null;
+  file_count: number | null;
+  lang_distribution: Record<string, number>;
+  manifests: Record<string, unknown>[];
+  outdated_packages: Record<string, unknown>[];
+  framework_signals: Record<string, unknown>;
+  risk_flags: string[];
+  llm_summary_md: string | null;
+  tokens_used: number | null;
+  analyzed_at: string | null;
+}
+
 export const modernize = {
   /** GitHub App 설치 URL + CSRF state (M3 endpoint). flag OFF 시 404, settings 미설정 시 503 */
   installUrl: (token: string) =>
@@ -2547,6 +2590,24 @@ export const modernize = {
   listRepos: (token: string, installationPk: string, refresh = false) =>
     authRequest<ModernizeRepoItem[]>(
       `/api/v1/modernize/installations/${installationPk}/repos?refresh=${refresh}`,
+      token,
+    ),
+  /** ModernizeSession 생성 + 백그라운드 7-step pipeline 시작 */
+  createSession: (token: string, data: ModernizeSessionCreate) =>
+    authRequest<ModernizeSessionResponse>("/api/v1/modernize/sessions", token, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  /** 세션 상태/진행률 폴링 */
+  getSession: (token: string, sessionId: string) =>
+    authRequest<ModernizeSessionResponse>(
+      `/api/v1/modernize/sessions/${sessionId}`,
+      token,
+    ),
+  /** 분석 완료 후 결과 조회 (status='ready' 또는 'finalized' 일 때) */
+  getAnalysis: (token: string, sessionId: string) =>
+    authRequest<CodebaseAnalysisResponse>(
+      `/api/v1/modernize/sessions/${sessionId}/analysis`,
       token,
     ),
 };
