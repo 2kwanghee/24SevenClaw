@@ -1,79 +1,46 @@
 ## 목표
-M7 — Modernize finalize 흐름: Linear 자동 등록 + ZIP 생성기 modernize 분기 + step-modernize-confirm UI.
-사용자가 시나리오와 권장안을 검토 완료한 직후 한 번의 클릭으로 Linear 이슈 N+1 건 등록 + ZIP 다운로드까지.
+M8 — 비침습성 회귀 검증 R-1~R-7 자동화 + Modernize 단위 테스트 + 회귀 체크리스트 문서화.
+MVP-2-A 의 마지막 마일스톤. 신규 기능 추가 X, 검증 인프라 + 문서만 추가.
 
 ## 비침습성 보장
-- 기존 `linear_service.create_initial_task` / `create_issues` 미변경. 신규 함수 2 개 추가만.
-- 기존 `generator.py.generate_all()` 미변경. 신규 `generate_modernize_zip()` 함수 추가.
-- 신규 endpoint 2 개만 추가 (`POST /sessions/{id}/finalize`, `GET /sessions/{id}/zip`)
-- 공유 step (PM/agents/env) 재사용은 M7-B 로 분리. M7-A 는 confirm step 만 추가하여 finalize 핵심 흐름 완성.
+- 신규 테스트 파일 / 스크립트 / 문서만 추가
+- 기존 vitest/pytest 회귀 케이스는 이미 매 마일스톤마다 통과 입증 (77/77)
+- R-1 (브라우저 E2E) 와 R-7 (Alembic) 은 환경 의존이라 자동화 스크립트 + 수동 가이드 병행
 
 ## 변경 파일 목록
 
-### Backend (신규)
-- `app/services/modernize/finalize.py` — Linear 등록 + ZIP 빌드 통합 흐름
-- `app/services/modernize/zip_builder.py` — Modernize ZIP 트리 생성 (MODERNIZE_README, .ralph/tasks/, .clickeye/linear-issues.json, docs/diagnosis.*)
+### Backend 단위 테스트 (신규)
+- `tests/services/modernize/test_scan.py` — 확장자 분포 / 50k 파일 cap
+- `tests/services/modernize/test_manifest.py` — pyproject/package.json/go.mod 파싱
+- `tests/services/modernize/test_recommendations_fallback.py` — Anthropic 미설정 시 deterministic fallback
+- `tests/services/modernize/test_zip_builder.py` — ZIP 트리 구조 / 파일 내용 검증
+- `tests/services/modernize/__init__.py` — 패키지 초기화
 
-### Backend (수정)
-- `app/services/linear_service.py` — `create_modernize_parent_issue`, `create_modernize_child_issues` 신규 함수 추가
-- `app/schemas/modernize.py` — `FinalizeRequest`, `FinalizeResponse` 추가
-- `app/api/v1/modernize.py` — `POST /sessions/{id}/finalize`, `GET /sessions/{id}/zip` 추가
+### 자동화 스크립트 (신규)
+- `scripts/modernize-check-catalog-unchanged.sh` — R-4 카탈로그 git diff 검사
+- `scripts/modernize-check-flag-off.sh` — R-6 Feature flag OFF 동작 검증
 
-### Frontend (신규)
-- `src/components/solutions/wizard/steps/step-modernize-confirm.tsx` — 최종 요약 + finalize 트리거 + ZIP 다운로드 버튼
+### 문서 (신규)
+- `docs/modernize-regression-checklist.md` — 매 PR 머지 전 R-1~R-7 체크리스트
 
-### Frontend (수정)
-- `src/lib/api-client.ts` — `finalizeSession`, `downloadZip` 추가
-- `src/app/(dashboard)/solutions/modernize/new/page.tsx` — STEP_COMPONENTS 에 confirm 추가 (5 step)
+## 검증 항목 매핑
 
-## Finalize 흐름
-
-```
-POST /modernize/sessions/{id}/finalize
-  ├─ 0. 자격 검증: project_linear_credentials OR user_linear_credentials
-  ├─ 1. selected=true 인 recommendations 정렬 (priority ASC)
-  ├─ 2. Linear parent issue 생성 (옵션) — "Modernize: <repo> (<scenario>)"
-  ├─ 3. 각 recommendation → child issue 일괄 생성
-  │      → 응답의 identifier/id 를 ModernizeRecommendation.linear_issue_id/identifier 에 저장
-  ├─ 4. ZIP 빌드 — generate_modernize_zip()
-  ├─ 5. ModernizeSession.status = 'finalized'
-  └─ 6. 응답: { linear_parent_url, linear_issues_count, zip_url }
-
-GET /modernize/sessions/{id}/zip
-  └─ ZIP streaming download
-```
-
-## ZIP 트리
-
-```
-project-root/
-├── .clickeye/
-│   └── linear-issues.json      # 등록된 이슈 매핑 (중복 등록 방지)
-├── .ralph/
-│   └── tasks/
-│       └── <linear-identifier>.md  # rec.prompt_md
-├── docs/
-│   ├── diagnosis.md            # CodebaseAnalysis.llm_summary_md
-│   └── diagnosis.json          # 분석 결과 머신리더블
-├── MODERNIZE_README.md         # 1-pager 실행 가이드
-└── .env.example                # LINEAR_API_KEY/TEAM_ID/REPO_URL 안내
-```
-
-기존 ZIP 자산 (auto_dev_pipeline.sh, harness-gate.sh, linear_tracker.py 등) 은 M7-B 에서 통합 — 일단 핵심 산출물만.
+| R# | 항목 | M8 자동화 |
+|---|---|---|
+| R-1 | 기존 위저드 E2E | 수동 가이드 (docs) + dev 서버 fetch 200 확인 스크립트 |
+| R-2 | ZIP 골든파일 | pytest 픽스처 — Modernize ZIP 트리 구조 검증 (test_zip_builder) |
+| R-3 | OpenAPI diff | 가이드 (openapi-diff 도구 사용법). 기존 endpoint 미변경은 코드 리뷰로 |
+| R-4 | 카탈로그 변경 0 | `scripts/modernize-check-catalog-unchanged.sh` — git diff 검사 |
+| R-5 | wizard-store snapshot | 이미 vitest 회귀 케이스 통과 (77/77) — 매 마일스톤 검증 완료 |
+| R-6 | Feature flag OFF | `scripts/modernize-check-flag-off.sh` — env=false 시 라우트 404 |
+| R-7 | Alembic downgrade | M2 실측 완료. 가이드 + 재실행 명령 문서화 |
 
 ## 구현 단계
-1. linear_service Modernize 헬퍼 2 개
-2. zip_builder.py 작성
-3. finalize.py 통합 흐름
-4. schemas + endpoint 2 개
-5. api-client + step-modernize-confirm UI
-6. page.tsx STEP_COMPONENTS 확장
-7. ruff + mypy + tsc + vitest
-
-## 회귀 검증
-- R-3 OpenAPI diff: 신규 2 path 추가
-- R-5 wizard-store: 회귀 케이스 보존
-- R-6 Feature flag OFF: 신규 endpoint 모두 404
-- 기존 linear_service / generator.py 의 기존 export 미변경
+1. Modernize 단위 테스트 4 종
+2. R-4 catalog 검사 스크립트
+3. R-6 Feature flag OFF 검증 스크립트
+4. docs/modernize-regression-checklist.md
+5. 모든 테스트 격리 실행 (격리: pytest --no-header tests/services/modernize/)
+6. 최종 vitest 회귀 확인 + 마일스톤 마무리 보고
 
 ## STATUS: APPROVED
