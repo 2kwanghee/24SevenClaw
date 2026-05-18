@@ -121,3 +121,28 @@ class ModernizeRecommendationUpdate(BaseModel):
     selected: bool | None = None
     priority: int | None = Field(None, ge=1, le=100)
     prompt_md: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Finalize (M7)
+# ---------------------------------------------------------------------------
+
+
+class FinalizeRequest(BaseModel):
+    """`POST /sessions/{id}/finalize` 요청 body."""
+
+    create_linear_issues: bool = True
+    project_id: UUID | None = Field(None, description="ProjectLinearCredentials 우선 사용 시")
+
+
+class FinalizeResponse(BaseModel):
+    """finalize 응답."""
+
+    session_id: UUID
+    status: str
+    linear_parent_url: str | None = None
+    linear_parent_identifier: str | None = None
+    linear_child_count: int = 0
+    linear_errors: list[str] = Field(default_factory=list)
+    zip_url: str
+    selected_recommendation_count: int = 0

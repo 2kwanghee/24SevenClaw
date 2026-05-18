@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
+import { StepModernizeConfirm } from "@/components/solutions/wizard/steps/step-modernize-confirm";
 import { StepModernizeDiagnose } from "@/components/solutions/wizard/steps/step-modernize-diagnose";
 import { StepModernizeDiagnosisReview } from "@/components/solutions/wizard/steps/step-modernize-diagnosis-review";
 import { StepModernizeRepoConnect } from "@/components/solutions/wizard/steps/step-modernize-repo-connect";
@@ -14,18 +15,19 @@ import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 /**
  * Modernize 위저드 entry page — `/solutions/modernize/new`.
  *
- * M6 범위: Step 0~3 (repo-connect → repo-select → diagnose → diagnosis-review) 구현.
- * 이후 step (공유 PM/agents/...) 는 M7 에서 추가.
+ * M7 범위: Step 0~4 (repo-connect → repo-select → diagnose → diagnosis-review → confirm) 구현.
+ * 공유 step (PM/agents/env) 재사용은 M7-B 또는 후속 마일스톤.
  *
  * `isModernizeEnabled()` flag OFF 시 즉시 dashboard 로 redirect — 베타 사용자만 노출.
  */
 
-// 인덱스: 0=repo-connect, 1=repo-select, 2=diagnose, 3=diagnosis-review
+// 인덱스: 0=repo-connect, 1=repo-select, 2=diagnose, 3=diagnosis-review, 4=confirm
 const STEP_COMPONENTS = [
   StepModernizeRepoConnect,
   StepModernizeRepoSelect,
   StepModernizeDiagnose,
   StepModernizeDiagnosisReview,
+  StepModernizeConfirm,
 ];
 
 export default function ModernizeNewPage() {
@@ -66,6 +68,10 @@ export default function ModernizeNewPage() {
         return diagnoseDone;
       case 3:
         return scenario !== null && acceptedIds.length > 0;
+      case 4:
+        // confirm step 은 finalize 버튼이 따로 있으므로 "이대로 진행" 버튼은 항상 활성.
+        // onSubmit 은 단순히 사용자에게 confirm 완료를 알리는 용도.
+        return true;
       default:
         return false;
     }
@@ -81,10 +87,9 @@ export default function ModernizeNewPage() {
       onSubmit={
         isLastStep
           ? () => {
-              // M7 에서 PM/agents/env/confirm 공유 step 재사용 + Linear 자동 등록 + ZIP 생성 연결 예정.
-              alert(
-                "M7 (공유 step + Linear 등록 + ZIP 생성) 구현 후 다음 단계로 자동 진입합니다.",
-              );
+              // confirm step 자체의 "Linear 자동 등록 + ZIP 다운로드" 버튼이 finalize 를 수행하므로,
+              // 레이아웃 "이대로 진행" 버튼은 단순히 dashboard 로 이동.
+              router.push("/projects");
             }
           : undefined
       }

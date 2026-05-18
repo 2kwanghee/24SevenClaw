@@ -25,6 +25,8 @@ from app.models.modernize_session import ModernizeSession
 from app.models.user import User
 from app.schemas.modernize import (
     CodebaseAnalysisResponse,
+    FinalizeRequest,
+    FinalizeResponse,
     InstallationListItem,
     ModernizeRecommendationResponse,
     ModernizeRecommendationUpdate,
@@ -32,7 +34,8 @@ from app.schemas.modernize import (
     ModernizeSessionResponse,
     RepoListItem,
 )
-from app.services.modernize import pipeline, repo_service
+from app.services.modernize import finalize as finalize_svc
+from app.services.modernize import pipeline, repo_service, zip_builder
 
 _ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
 
@@ -389,3 +392,196 @@ async def update_recommendation(
         await db.commit()
         await db.refresh(rec_row)
     return ModernizeRecommendationResponse.model_validate(rec_row)
+
+
+# ----------------------------------------------------------------------
+# Finalize + ZIP download (M7)
+# ----------------------------------------------------------------------
+
+
+from fastapi.responses import StreamingResponse  # noqa: E402 — endpoint-only import
+
+
+@router.post(
+    "/sessions/{session_id}/finalize",
+    response_model=FinalizeResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def finalize_session(
+    session_id: UUID,
+    body: FinalizeRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FinalizeResponse:
+    """Linear 이슈 일괄 등록 + ZIP URL 응답 + 세션 상태 'finalized'."""
+    # 세션 + 소유 검증
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+    if str(session_row.status) not in ("ready", "finalized"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"세션이 finalize 가능한 상태가 아닙니다. (status={session_row.status})",
+        )
+
+    # selected=true 권장안
+    rec_result = await db.execute(
+        select(ModernizeRecommendation)
+        .where(
+            ModernizeRecommendation.session_id == session_id,
+            ModernizeRecommendation.selected.is_(True),
+        )
+        .order_by(ModernizeRecommendation.priority.asc())
+    )
+    selected_recs = list(rec_result.scalars().all())
+
+    # Linear 등록 (옵션)
+    linear_result = {
+        "parent_url": "",
+        "parent_identifier": "",
+        "child_count": 0,
+        "errors": [],
+    }
+    if body.create_linear_issues and selected_recs:
+        creds = await finalize_svc.resolve_linear_credentials(
+            db, cast(UUID, user.id), project_id=body.project_id
+        )
+        if creds is not None:
+            api_key, team_id = creds
+            # CodebaseAnalysis 조회
+            analysis_result = await db.execute(
+                select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
+            )
+            analysis = analysis_result.scalar_one_or_none()
+            linear_result = await finalize_svc.register_linear_issues(
+                db,
+                session_row=session_row,
+                analysis=analysis,
+                selected_recs=selected_recs,
+                api_key=api_key,
+                team_id=team_id,
+            )
+
+    # 세션 상태 finalized
+    await finalize_svc.mark_finalized(db, session_id)
+
+    return FinalizeResponse(
+        session_id=session_id,
+        status="finalized",
+        linear_parent_url=linear_result["parent_url"] or None,
+        linear_parent_identifier=linear_result["parent_identifier"] or None,
+        linear_child_count=cast(int, linear_result["child_count"]),
+        linear_errors=linear_result["errors"],
+        zip_url=f"/api/v1/modernize/sessions/{session_id}/zip",
+        selected_recommendation_count=len(selected_recs),
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/zip",
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def download_zip(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Modernize ZIP 다운로드. finalize 후 또는 ready 상태에서 호출 가능."""
+    # 소유 검증
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    # 분석 + 권장안 조회
+    analysis_result = await db.execute(
+        select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
+    )
+    analysis = analysis_result.scalar_one_or_none()
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="분석이 완료되지 않았습니다.",
+        )
+
+    rec_result = await db.execute(
+        select(ModernizeRecommendation)
+        .where(
+            ModernizeRecommendation.session_id == session_id,
+            ModernizeRecommendation.selected.is_(True),
+        )
+        .order_by(ModernizeRecommendation.priority.asc())
+    )
+    recs = list(rec_result.scalars().all())
+
+    analysis_data = {
+        "loc_total": analysis.loc_total,
+        "file_count": analysis.file_count,
+        "lang_distribution": analysis.lang_distribution,
+        "manifests": analysis.manifests,
+        "outdated_packages": analysis.outdated_packages,
+        "framework_signals": analysis.framework_signals,
+        "risk_flags": analysis.risk_flags,
+        "tokens_used": analysis.tokens_used,
+    }
+
+    rec_payloads = [
+        {
+            "id": str(rec.id),
+            "linear_identifier": rec.linear_identifier,
+            "title": rec.title,
+            "rationale_md": rec.rationale_md,
+            "prompt_md": rec.prompt_md,
+            "target_path": rec.target_path,
+            "risk": rec.risk,
+            "effort": rec.effort,
+            "category": rec.category,
+        }
+        for rec in recs
+    ]
+    linear_issues = [
+        {
+            "rec_id": str(rec.id),
+            "linear_issue_id": rec.linear_issue_id,
+            "linear_identifier": rec.linear_identifier,
+            "title": rec.title,
+        }
+        for rec in recs
+        if rec.linear_identifier
+    ]
+
+    zip_bytes = zip_builder.generate_modernize_zip(
+        repo_full_name=str(session_row.repo_full_name),
+        scenario=str(session_row.scenario),
+        session_id=str(session_id),
+        llm_summary_md=cast("str | None", analysis.llm_summary_md),
+        analysis_data=analysis_data,
+        recommendations=rec_payloads,
+        linear_issues=linear_issues,
+    )
+
+    safe_name = str(session_row.repo_full_name).replace("/", "_")
+    filename = f"modernize_{safe_name}_{session_id}.zip"
+
+    return StreamingResponse(
+        iter([zip_bytes]),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

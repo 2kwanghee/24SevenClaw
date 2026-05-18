@@ -2652,6 +2652,31 @@ export const modernize = {
       token,
       { method: "PATCH", body: JSON.stringify(data) },
     ),
+  /** finalize — Linear 등록 + ZIP URL 응답 + 세션 상태 'finalized' */
+  finalizeSession: (
+    token: string,
+    sessionId: string,
+    data: { create_linear_issues?: boolean; project_id?: string } = {},
+  ) =>
+    authRequest<{
+      session_id: string;
+      status: string;
+      linear_parent_url: string | null;
+      linear_parent_identifier: string | null;
+      linear_child_count: number;
+      linear_errors: string[];
+      zip_url: string;
+      selected_recommendation_count: number;
+    }>(`/api/v1/modernize/sessions/${sessionId}/finalize`, token, {
+      method: "POST",
+      body: JSON.stringify({
+        create_linear_issues: data.create_linear_issues ?? true,
+        project_id: data.project_id,
+      }),
+    }),
+  /** ZIP 다운로드 URL (브라우저가 직접 GET) */
+  zipDownloadUrl: (sessionId: string) =>
+    `/api/v1/modernize/sessions/${sessionId}/zip`,
 };
 
 export { ApiClientError, NetworkError };
