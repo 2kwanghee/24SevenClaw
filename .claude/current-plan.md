@@ -1,49 +1,45 @@
 ## 목표
-M1 — Feature flag (`FEATURE_MODERNIZE_ENABLED`) + wizard-store 의 `mode` 분기 도입.
-plan 의 비침습성 원칙 입증을 위해 **기존 사용처 시그니처 변경 0**, **기존 SOLUTION_WIZARD_STEPS export 그대로 유지**, **default mode='new'** 로 기존 동작 100% 유지.
+M2 — Modernize 파이프라인을 위한 신규 백엔드 모델 5종 + Alembic migration 039 추가.
+plan 의 비침습성 원칙에 따라 **기존 테이블 컬럼·인덱스·제약 변경 0**, 모든 변경은 신규 테이블 추가에 한정.
 
 ## 변경 파일 목록
 
-### 프론트엔드 (추가 only)
-- `clickeye-web/src/types/solution-wizard.ts`:
-  - 추가: `SolutionWizardMode = "new" | "modernize"` 타입
-  - 추가: `MODERNIZE_WIZARD_STEPS` placeholder 배열 (M4 에서 채워짐)
-  - 추가: `getWizardSteps(mode)` helper — mode 에 따라 적절한 STEPS 배열 반환
-  - **기존 `SOLUTION_WIZARD_STEPS` 미변경**
-- `clickeye-web/src/stores/solution-wizard-store.ts`:
-  - state 에 `mode: SolutionWizardMode` 필드 추가 (initialState.mode = "new")
-  - actions 에 `setMode(mode)` 추가
-  - **기존 setter 시그니처 미변경, 기본 동작 100% 유지**
-- `clickeye-web/src/lib/feature-flags.ts` — **신규**:
-  - `isModernizeEnabled()` → `process.env.NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED === "true"`
-- `clickeye-web/.env.example`:
-  - `NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED=false` 추가
+### 신규 모델 (5 파일 — 모두 신규)
+- `clickeye-api/app/models/github_installation.py` — GitHub App 설치 정보 (installation token 비저장)
+- `clickeye-api/app/models/github_repo.py` — 설치된 repo 캐시 (24h TTL)
+- `clickeye-api/app/models/modernize_session.py` — 위저드 세션 + 분석 진행률
+- `clickeye-api/app/models/codebase_analysis.py` — 정적 분석 + LLM 요약 영속
+- `clickeye-api/app/models/modernize_recommendation.py` — 권장안 1:1 = 이슈 1건
 
-### 백엔드 (추가 only)
-- `clickeye-api/app/config.py`:
-  - `Settings` 에 `feature_modernize_enabled: bool = False` 필드 추가
-- `clickeye-api/.env.example`:
-  - `FEATURE_MODERNIZE_ENABLED=false` 추가
+### 수정 (모델 등록만)
+- `clickeye-api/app/models/__init__.py` — 5 신규 모델 import 등록 (alembic autogenerate 인식)
 
-### 테스트
-- `clickeye-web/src/lib/__tests__/feature-flags.test.ts` — **신규** (3 케이스)
-- `clickeye-web/src/stores/__tests__/solution-wizard-store.test.ts` — 기존 케이스 확인 + `mode` default + `setMode` 추가 검증 (R-5 회귀 안전 확인)
-- (선택) `clickeye-api/tests/test_config.py` — feature flag 기본값 false 확인
+### 신규 마이그레이션
+- `clickeye-api/alembic/versions/039_modernize_tables.py` — 5 신규 테이블 create_table + index, downgrade 시 역순 drop_table
+
+## 모델 시그니처 요약
+
+| 모델 | 핵심 컬럼 | FK |
+|---|---|---|
+| GitHubInstallation | installation_id (BigInt unique), account_login, account_type, permissions JSON, repository_selection, suspended_at?, revoked_at? | user_id (CASCADE), organization_id (SET NULL) |
+| GitHubRepo | gh_repo_id (BigInt), full_name, default_branch, private (Bool), language_primary, pushed_at, cached_at, unique(installation_id, gh_repo_id) | installation_id (CASCADE) |
+| ModernizeSession | repo_full_name, repo_branch, commit_sha, scenario, goals_text, target_stack JSON, status, progress_pct, error JSON, extra JSON | user_id (CASCADE), organization_id (SET NULL), installation_id (SET NULL) |
+| CodebaseAnalysis | loc_total, file_count, lang_distribution JSON, manifests JSON, outdated_packages JSON, framework_signals, risk_flags, llm_summary_md, tokens_used | session_id (CASCADE, UNIQUE 1:1) |
+| ModernizeRecommendation | idx, category, target_path, before/after JSON, title, rationale_md, effort, risk, priority, prompt_md, linear_issue_id?, linear_identifier?, selected | session_id (CASCADE) + Index(session_id, idx) |
+
+모든 모델: UUIDPKMixin + TimestampMixin + Base.
 
 ## 구현 단계
-1. types/solution-wizard.ts: SolutionWizardMode + MODERNIZE_WIZARD_STEPS placeholder + getWizardSteps helper 추가
-2. solution-wizard-store.ts: mode 필드 + setMode 추가 (기존 코드 미변경)
-3. lib/feature-flags.ts: helper 신규
-4. .env.example 양쪽 추가
-5. config.py: 백엔드 settings 필드 추가
-6. wizard-store.test.ts: R-5 회귀 + mode 추가 케이스
-7. feature-flags.test.ts 신규
-8. vitest + tsc + ruff/mypy 검증
+1. 5 신규 모델 파일 작성 (기존 패턴 일관 — Column(Uuid, ForeignKey(..., ondelete=...), ...))
+2. `__init__.py` 에 import + __all__ 등록
+3. Alembic 039 migration 직접 작성 (autogenerate 미사용 — DB 연결 의존 회피)
+4. ruff + mypy 통과 확인
+5. (가능하면) `alembic upgrade head` → `alembic downgrade -1` → 기존 테이블 변경 0 확인 (R-7)
 
 ## 예상 영향 범위
-- 기존 SOLUTION_WIZARD_STEPS / setter 시그니처 / 호출 결과 변화 없음
-- mode 미설정 시 기존 'new' 동작 100% 유지
-- Feature flag 미설정 시 false (Modernize 비활성)
-- 기존 vitest / pytest 100% 통과 보장 (R-5)
+- 기존 테이블 모두 무변경 (R-2 ZIP 골든 미해당, R-5 위저드 store 미해당)
+- 신규 테이블 5종만 추가
+- `app/models/__init__.py` 의 import 추가만 — 기존 reader 영향 없음
+- 신규 테이블은 어떤 기존 코드도 참조하지 않음 (M3 이후 사용)
 
 ## STATUS: APPROVED

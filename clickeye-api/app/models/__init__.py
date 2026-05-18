@@ -8,8 +8,13 @@ from app.models.central_contract import (  # noqa: F401
     ContractAuditLog,
     CustomerContractOverride,
 )
+from app.models.codebase_analysis import CodebaseAnalysis  # noqa: F401
+from app.models.github_installation import GitHubInstallation  # noqa: F401
+from app.models.github_repo import GitHubRepo  # noqa: F401
 from app.models.license import License  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
+from app.models.modernize_recommendation import ModernizeRecommendation  # noqa: F401
+from app.models.modernize_session import ModernizeSession  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
 from app.models.pm_composition import PMComposition  # noqa: F401
@@ -39,11 +44,16 @@ __all__ = [
     "Artifact",
     "ArtifactEvent",
     "CentralContract",
+    "CodebaseAnalysis",
     "ContractAuditLog",
     "CustomerContractOverride",
+    "GitHubInstallation",
+    "GitHubRepo",
     "License",
     "MaturityAssessment",
     "MCPServer",
+    "ModernizeRecommendation",
+    "ModernizeSession",
     "OrchestratorSession",
     "Organization",
     "OrganizationMembership",
