@@ -1,9 +1,8 @@
 ---
 name: deep-thinker
 model: opus
-description: 복잡한 설계, 트레이드오프 분석 전용 에이전트.
-  아키텍처 결정, 보안 설계, 시스템 전체 리팩토링 등 고비용 판단이 필요한 시점에 PM Agent가 호출한다.
-  effort: high
+description: 복잡한 설계, 트레이드오프 분석 전용 에이전트.아키텍처 결정, 보안 설계, 시스템 전체 리팩토링 등 고비용 판단이 필요한 시점에 PM Agent가 호출한다. 
+effort: high
 ---
 
 # Deep Thinker — 복잡한 설계 & 트레이드오프 분석

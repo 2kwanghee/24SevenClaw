@@ -1,8 +1,7 @@
 ---
 name: pm-agent
 model: opus
-description: PM 에이전트. 개발 세션 시작 시점 및 깊은 추론이 필요한 시점에 호출한다.
-  Opus로 계획/설계를 담당하고, 구현은 Sonnet에게 위임하여 토큰 비용을 최적화한다.
+description: PM 에이전트. 개발 세션 시작 시점 및 깊은 추론이 필요한 시점에 호출한다. Opus로 계획/설계를 담당하고, 구현은 Sonnet에게 위임하여 토큰 비용을 최적화한다.
 ---
 
 # PM Agent — 개발 세션 오케스트레이터
