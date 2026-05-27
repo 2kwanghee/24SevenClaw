@@ -1,5 +1,6 @@
 ---
 name: ralph-loop
+model: sonnet
 description: Ralph Loop 자율 반복 개발 루프를 시작한다. fix_plan.md 기반으로 미완료 항목을 순서대로 구현하며, 완료 조건 충족 시까지 반복한다.
 disable-model-invocation: true
 user-invocable: true

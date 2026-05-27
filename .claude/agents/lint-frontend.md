@@ -1,5 +1,6 @@
 ---
 name: lint-frontend
+model: haiku
 description: Frontend 코드 품질 관리 에이전트.
   ESLint, TypeScript 타입 체크 실행 시 호출.
 ---

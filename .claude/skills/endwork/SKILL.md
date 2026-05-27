@@ -1,5 +1,6 @@
 ---
 name: endwork
+model: haiku
 description: 하루 마감 시 TODO.md를 docs/daily/YYYYMMDD_Todo.md로 아카이브하고 TODO.md를 초기화한다.
 user-invocable: true
 ---

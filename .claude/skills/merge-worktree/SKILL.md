@@ -1,5 +1,6 @@
 ---
 name: merge-worktree
+model: haiku
 description: 현재 워크트리 브랜치를 메인 브랜치(또는 지정 브랜치)에 squash-merge한다. git 히스토리와 소스 코드를 분석하여 포괄적인 커밋 메시지를 작성한다.
 argument-hint: "[target-branch]"
 disable-model-invocation: true

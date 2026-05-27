@@ -1,5 +1,6 @@
 ---
 name: tdd-smart-coding
+model: sonnet
 description: TDD 기반 소규모 루프 개발. "TDD로 개발해줘", "테스트 먼저 짜고 구현해", "Red-Green-Refactor로 해줘", "테스트 주도로 만들어" 등 테스트 우선 개발을 요청할 때 사용합니다.
 disable-model-invocation: true
 user-invocable: true

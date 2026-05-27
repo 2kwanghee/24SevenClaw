@@ -1,5 +1,6 @@
 ---
 name: harness-worker
+model: sonnet
 description: 하네스 엔지니어링 4단계 — 코드 작성자와 리뷰어를 완전히 분리하여 컨텍스트 오염을 방지한다. 각 역할별 시스템 프롬프트와 동작 규칙을 정의.
 disable-model-invocation: false
 user-invocable: false

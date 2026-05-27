@@ -1,5 +1,6 @@
 ---
 name: lint-python
+model: haiku
 description: Python 코드 품질 관리 에이전트.
   ruff check/format, mypy 타입 체크 실행 시 호출.
 ---

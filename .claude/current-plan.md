@@ -1,36 +1,70 @@
 ## 목표
 
-clickeye-web에 next-intl v4 기반 i18n 인프라(Phase 0)를 도입한다. 쿠키 기반 로케일 결정, Accept-Language fallback, `/admin/*` 한국어 강제, 사용자 향 페이지에 토글 UI 노출. fix_plan.md P1 "[infra] Phase 0" 항목 구현.
+`.claude/MODEL-ROUTING.md` 가이드가 실제 시스템에 wiring되지 않아 ralph 헤드리스 루프가 전부 opus로 동작하는 문제를 해결한다. 진입점·서브에이전트·스킬 3개 레이어에 모델 라우팅을 실제로 적용한다.
 
 ## 변경 파일 목록
 
-- `clickeye-web/next.config.ts` — `createNextIntlPlugin('./src/i18n/request.ts')` 래핑
-- `clickeye-web/src/proxy.ts` (수정) — 기존 auth proxy에 locale 로직 통합. Next.js 16은 `middleware.ts`와 `proxy.ts` 공존 시 빌드 에러를 던지므로(`Both middleware ... and proxy ... are detected`) 신규 `middleware.ts` 대신 기존 `proxy.ts`를 확장한다.
-- `clickeye-web/src/i18n/routing.ts` (신규) — `locales: ["ko","en"]`, `defaultLocale: "en"`, 쿠키명 상수
-- `clickeye-web/src/i18n/request.ts` (신규) — `getRequestConfig`: 쿠키 → Accept-Language → "en" fallback, `/admin/*`은 ko 강제, ko 카탈로그로 en fallback
-- `clickeye-web/messages/ko.json`, `clickeye-web/messages/en.json` (신규) — 빈 카탈로그 `{}`
-- `clickeye-web/src/app/layout.tsx` — `<NextIntlClientProvider>` 래핑 + `<html lang>` 동적화
-- `clickeye-web/src/components/common/locale-toggle.tsx` (신규) — 쿠키 set + `router.refresh()`
-- `clickeye-web/src/components/layout/header.tsx` — LocaleToggle 마운트, `/admin/*` 경로는 미노출
-- `.ralph/fix_plan.md` — Phase 0 항목 `[x]` 처리 + 진행 로그
+### 1단계: ralph 헤드리스 진입점 (2개)
+
+- `scripts/auto_dev_pipeline.sh` — `claude -p` 호출(L248)에 `--model sonnet` 추가
+- `scripts/ralph-loop.sh` — `claude -p` 호출(L99)에 `--model sonnet` 추가
+
+근거: MODEL-ROUTING.md L92 `ralph-loop = T2 sonnet`.
+
+### 2단계: T3 서브에이전트 프론트매터 (3개)
+
+- `.claude/agents/docs.md` — frontmatter에 `model: haiku` 추가
+- `.claude/agents/lint-frontend.md` — frontmatter에 `model: haiku` 추가
+- `.claude/agents/lint-python.md` — frontmatter에 `model: haiku` 추가
+
+근거: MODEL-ROUTING.md L42-44.
+
+### 3단계: 스킬 SKILL.md (18개)
+
+MODEL-ROUTING.md L52-100 표 기준으로 매핑:
+
+| 스킬 | 모델 | 근거 라인 |
+|------|------|-----------|
+| ai-critique | sonnet | L90 |
+| daily-close | haiku | L96 |
+| endwork | haiku | L96 |
+| fullstack | sonnet | L88 |
+| harness-context | haiku | L71 |
+| harness-loop | sonnet | L72 |
+| harness-router | sonnet | L70 |
+| harness-worker | sonnet | L73 (역할별 차등이지만 기본 T2) |
+| log-work | haiku | L95 |
+| manage-skills | haiku | L99 |
+| merge-worktree | haiku | L98 |
+| prd-to-linear | sonnet | L97 |
+| ralph-loop | sonnet | L92 |
+| run-pipeline | haiku | L93 |
+| setup | haiku | L100 |
+| tdd-smart-coding | sonnet | L91 |
+| uiux | sonnet | L89 |
+| verify-implementation | sonnet | L94 |
+
+총 sonnet 9개 / haiku 9개.
 
 ## 구현 단계
 
-1. `next.config.ts`에 `createNextIntlPlugin` 적용
-2. `src/i18n/routing.ts`, `src/i18n/request.ts` 작성
-3. `messages/ko.json`, `messages/en.json` 빈 카탈로그 생성
-4. `src/proxy.ts` 확장: `x-pathname` 헤더 주입 + locale 쿠키 자동 설정 + 매처 확장
-5. `src/app/layout.tsx`에 NextIntlClientProvider 적용 (서버에서 getLocale/getMessages)
-6. `src/components/common/locale-toggle.tsx` 작성
-7. `src/components/layout/header.tsx`에 토글 조건부 마운트 (`/admin/*` 미노출)
-8. `cd clickeye-web && npm run typecheck`로 빌드 검증
-9. `.ralph/fix_plan.md` 항목 `[x]` 처리 + 진행 로그 기록
+1. 1단계: `auto_dev_pipeline.sh`, `ralph-loop.sh` 의 claude 호출 라인 수정
+2. 2단계: 3개 에이전트 파일 frontmatter에 `model: haiku` 추가 (frontmatter가 없는 경우 새로 작성)
+3. 3단계: 18개 SKILL.md 의 frontmatter에 `model:` 필드 일괄 추가
+4. 검증: bash 문법 체크 + frontmatter 형식 확인
 
 ## 예상 영향 범위
 
-- 전체 페이지가 `NextIntlClientProvider` 컨텍스트 아래에서 렌더링됨. 현 단계에서는 메시지 카탈로그가 비어있어 시각 변화 없음.
-- `<html lang>`이 고정 `"ko"` → 사용자 로케일에 따라 동적.
-- `proxy.ts` 매처가 `/admin/*` 한정에서 모든 사용자 향 경로로 확장됨. 매처를 두 개로 분리하거나 `/((?!api|_next|favicon).*)`로 확장.
-- 후속 이슈에서 메시지 키 도입 시 본 인프라 사용.
+- **ralph 헤드리스 루프 비용 대폭 감소**: 메인 자율 루프가 opus → sonnet으로 강등, 그 안의 모든 Agent 호출도 부모 모델(sonnet) 상속
+- **T3 작업(린트/문서/로그) 추가 절감**: haiku로 강등되어 비용·지연 감소
+- **품질 변화 가능성**: opus → sonnet/haiku 강등으로 일부 복잡한 판단의 정확도가 떨어질 수 있음. MODEL-ROUTING.md L195-203의 격상 규칙으로 보안/아키텍처 작업은 자동 격상되도록 설계되어 있어 영향 제한적.
+- **부모(메인) Claude Code 세션은 변화 없음**: 변경은 자식 headless ralph와 그 서브에이전트만 영향.
+- **롤백 쉬움**: 모든 변경이 추가형(--model 옵션, frontmatter 필드)이라 git revert만으로 원복.
+
+## 검증 방법
+
+1. `bash -n scripts/auto_dev_pipeline.sh scripts/ralph-loop.sh` 문법 통과
+2. 변경된 frontmatter들이 `---` 블록 안에 올바른 YAML 형태로 들어갔는지 grep 검증
+3. 다음 DayQueued 트리거 시 `logs/claude_*.log` 의 init 라인 `"model"` 필드가 `claude-sonnet-*`인지 확인
 
 ## STATUS: APPROVED

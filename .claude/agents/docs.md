@@ -1,5 +1,6 @@
 ---
 name: docs
+model: haiku
 description: 문서 작성 및 업데이트 전문 에이전트.
   docs/, CLAUDE.md, README.md 등 문서 작업 시 호출.
 ---

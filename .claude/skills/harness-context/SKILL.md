@@ -1,5 +1,6 @@
 ---
 name: harness-context
+model: haiku
 description: 하네스 엔지니어링 2단계 — 현재 작업에 필요한 정보만 AI에게 선별 제공한다. 전체 코드베이스를 읽고 정작 중요한 제약을 잊는 것을 방지하는 가림막 역할.
 disable-model-invocation: false
 user-invocable: false

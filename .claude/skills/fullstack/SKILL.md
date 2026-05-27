@@ -1,5 +1,6 @@
 ---
 name: fullstack
+model: sonnet
 description: 시니어 풀스택 엔지니어 모드. FastAPI 백엔드 + Next.js 프론트엔드 코드 작업 시 실무 관점의 설계와 구현을 수행한다.
 disable-model-invocation: false
 user-invocable: true

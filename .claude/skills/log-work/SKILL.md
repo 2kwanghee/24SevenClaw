@@ -1,5 +1,6 @@
 ---
 name: log-work
+model: haiku
 description: 코드 작업 완료 후 즉시 Linear에 작업 로그를 기록한다. 유의미한 코드 변경(기능 구현, 버그 수정, 리팩토링, 테스트 추가, 인프라 변경) 완료 시 자율적으로 호출한다.
 disable-model-invocation: false
 user-invocable: true

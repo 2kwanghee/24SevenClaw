@@ -1,5 +1,6 @@
 ---
 name: daily-close
+model: haiku
 description: 하루 마감 시 git 로그, 변경 파일, 코드베이스를 종합 분석하여 Linear에 일일 작업 로그와 향후 과제를 일괄 등록한다.
 disable-model-invocation: true
 user-invocable: true

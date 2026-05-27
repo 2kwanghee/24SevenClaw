@@ -1,5 +1,6 @@
 ---
 name: harness-router
+model: sonnet
 description: 하네스 엔지니어링 1단계 — 사용자 요청의 의도를 분석하여 모호한 요청은 되물어보고, 
    명확한 작업만 하네스 루프로 라우팅한다. 코드 작성 전 방향 확인 게이트웨이.
 disable-model-invocation: false

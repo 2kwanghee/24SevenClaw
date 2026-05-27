@@ -246,6 +246,7 @@ for title, meta in m.items():
   unset ANTHROPIC_API_KEY
 
   claude -p "$(cat .ralph/PROMPT.md)" \
+    --model sonnet \
     --dangerously-skip-permissions \
     --verbose \
     --output-format stream-json \

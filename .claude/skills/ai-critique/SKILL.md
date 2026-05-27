@@ -1,5 +1,6 @@
 ---
 name: ai-critique
+model: sonnet
 description: 외부 AI(GPT, Gemini)에 코드 리뷰를 요청합니다. 사용자가 "다른 AI한테도 리뷰 받아봐", "GPT한테 검토 시켜", "외부 리뷰", "AI critique" 등을 요청할 때 사용합니다. 구현 완료 후 품질 검증이 필요할 때 유용합니다.
 disable-model-invocation: true
 user-invocable: true

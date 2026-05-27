@@ -1,5 +1,6 @@
 ---
 name: harness-loop
+model: sonnet
 description: 하네스 엔지니어링 3단계 — 코드 작성 → 자동 테스트 → 실패 시 에러 피드백 → 수정을 반복하는 자동 교정 루프. 테스트를 통과하기 전까지 빠져나갈 수 없다.
 disable-model-invocation: false
 user-invocable: false

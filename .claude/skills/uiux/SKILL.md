@@ -1,5 +1,6 @@
 ---
 name: uiux
+model: sonnet
 description: 시니어 UI/UX 엔지니어 모드. Figma MCP를 활용하여 디자인 소스를 참조하고, 접근성/반응형/디자인 시스템을 고려한 프론트엔드 구현을 수행한다.
 disable-model-invocation: false
 user-invocable: true

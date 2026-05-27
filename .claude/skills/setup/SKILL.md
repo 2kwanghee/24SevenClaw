@@ -1,5 +1,6 @@
 ---
 name: setup
+model: haiku
 description: 자동화 워크플로우 환경 셋업 (Linear → AI 자율개발 → 승인 → 머지 → Telegram 보고)
 user-invocable: true
 disable-model-invocation: true

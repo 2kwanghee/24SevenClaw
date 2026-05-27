@@ -1,5 +1,6 @@
 ---
 name: run-pipeline
+model: haiku
 description: Linear Queued 이슈를 감지하여 자동 개발 파이프라인을 즉시 실행한다. "파이프라인 실행", "Queued 이슈 처리해", "자동 개발 시작", "이슈 작업 시작" 등의 요청 시 사용.
 disable-model-invocation: true
 user-invocable: true

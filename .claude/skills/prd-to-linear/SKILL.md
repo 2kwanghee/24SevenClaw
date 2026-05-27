@@ -1,5 +1,6 @@
 ---
 name: prd-to-linear
+model: sonnet
 description: PRD 마크다운 파일을 분석하여 Linear에 태스크를 자동 등록한다. "PRD 올려줘", "이 기획서 태스크로 분리해", "요구사항을 Linear에 등록해" 등의 요청 시 사용.
 disable-model-invocation: false
 user-invocable: true
