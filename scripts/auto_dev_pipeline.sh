@@ -242,6 +242,9 @@ for title, meta in m.items():
   export RALPH_MAX_ITERATIONS=$MAX_ITERATIONS
   rm -f .ralph/.iteration_count
 
+  # ANTHROPIC_API_KEY를 unset — claude.ai 구독 세션 사용 (API 크레딧 차감 방지)
+  unset ANTHROPIC_API_KEY
+
   claude -p "$(cat .ralph/PROMPT.md)" \
     --dangerously-skip-permissions \
     --verbose \

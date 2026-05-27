@@ -93,6 +93,9 @@ echo "  -> 작업 큐: .ralph/fix_plan.md"
 echo "  -> max-iterations: $MAX_ITERATIONS"
 echo ""
 
+# ANTHROPIC_API_KEY를 unset — claude.ai 구독 세션 사용 (API 크레딧 차감 방지)
+unset ANTHROPIC_API_KEY
+
 claude -p "$(cat .ralph/PROMPT.md)" \
   --dangerously-skip-permissions
 
