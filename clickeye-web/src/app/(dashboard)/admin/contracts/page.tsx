@@ -14,6 +14,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
@@ -84,6 +85,7 @@ function CreateContractDialog({
   onClose: () => void;
 }) {
   const createContract = useCreateContract();
+  const tT = useTranslations("toast.contracts");
   const [formData, setFormData] = useState<CentralContractCreateRequest>({
     slug: "",
     contract_type: "settings",
@@ -124,11 +126,11 @@ function CreateContractDialog({
       { ...formData, content, allowed_overrides },
       {
         onSuccess: () => {
-          toast.success("계약이 생성되었습니다");
+          toast.success(tT("createSuccess"));
           onClose();
         },
         onError: (err) => {
-          toast.error(err.message || "계약 생성에 실패했습니다");
+          toast.error(err.message || tT("createFail"));
         },
       },
     );

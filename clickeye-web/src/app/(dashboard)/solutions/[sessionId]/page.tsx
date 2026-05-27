@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
 import {
@@ -49,6 +50,8 @@ export default function SolutionSessionPage() {
 
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const tS = useTranslations("toast.solutions");
+  const tP = useTranslations("toast.projects");
 
   const {
     currentStep,
@@ -234,11 +237,11 @@ export default function SolutionSessionPage() {
   const handleSubmit = async () => {
     const effectiveSessionId = data.sessionId ?? sessionId;
     if (!effectiveSessionId) {
-      setError("세션 정보가 없습니다. 처음부터 다시 시작해 주세요.");
+      setError(tS("sessionMissing"));
       return;
     }
     if (!data.company.companyName?.trim()) {
-      const msg = "회사 이름이 없습니다. 1단계로 돌아가 회사 이름을 입력해 주세요.";
+      const msg = tS("companyNameMissing");
       toast.error(msg);
       setError(msg);
       goToStep(0);
@@ -278,7 +281,7 @@ export default function SolutionSessionPage() {
       });
 
       if (res.status === 401) {
-        const msg = "세션이 만료되었습니다. 다시 로그인해 주세요.";
+        const msg = tS("sessionExpired");
         toast.error(msg);
         setError(msg);
         return;
@@ -293,7 +296,7 @@ export default function SolutionSessionPage() {
         const msg =
           typeof body.detail === "string"
             ? body.detail
-            : "프로젝트 생성에 실패했습니다.";
+            : tP("createFail");
         toast.error(msg);
         setError(msg);
         return;
@@ -317,7 +320,7 @@ export default function SolutionSessionPage() {
         }
       }
     } catch {
-      const msg = "네트워크 연결을 확인해 주세요";
+      const msg = tS("networkError");
       toast.error(msg);
       setError(msg);
     } finally {

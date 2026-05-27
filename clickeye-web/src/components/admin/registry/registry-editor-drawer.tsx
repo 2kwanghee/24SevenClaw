@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -72,6 +73,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
   const createMutation = useCreateRegistryItem(type);
   const updateMutation = useUpdateRegistryItem(type);
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const tT = useTranslations("toast.registry");
 
   const [form, setForm] = useState<FormState>(item ? itemToForm(item) : EMPTY_FORM);
 
@@ -92,7 +94,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
         { id: item.id, data },
         {
           onSuccess: () => {
-            toast.success("항목이 업데이트되었습니다.");
+            toast.success(tT("updateSuccess"));
             onClose();
           },
           onError: (e: Error) => toast.error(e.message),
@@ -114,7 +116,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
       };
       createMutation.mutate(data, {
         onSuccess: () => {
-          toast.success("항목이 추가되었습니다.");
+          toast.success(tT("addSuccess"));
           onClose();
         },
         onError: (e: Error) => toast.error(e.message),

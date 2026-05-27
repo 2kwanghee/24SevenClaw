@@ -1,1 +1,133 @@
-{}
+{
+  "common": {
+    "actions": {
+      "create": "Create",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete",
+      "close": "Close",
+      "submit": "Submit",
+      "processing": "Processing...",
+      "loginIn": "Signing in...",
+      "login": "Sign in"
+    },
+    "aria": {
+      "close": "Close",
+      "languageToggle": "Change language",
+      "notifications": "Notifications",
+      "help": "Help"
+    },
+    "header": {
+      "viewGuide": "View guide",
+      "restartTour": "Restart tutorial",
+      "logout": "Sign out"
+    },
+    "roleGuard": {
+      "title": "Access denied",
+      "description": "You need administrator privileges to access this page."
+    },
+    "projectForm": {
+      "nameLabel": "Project name",
+      "namePlaceholder": "e.g. My AI project",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of your project (optional)"
+    },
+    "projectDialog": {
+      "newProject": "New project",
+      "deleteTitle": "Delete project",
+      "deleteConfirm": "Are you sure you want to delete the <name>{name}</name> project? This action cannot be undone.",
+      "deleting": "Deleting..."
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email",
+    "url": "Please enter a valid URL",
+    "name": "Please enter a name",
+    "slug": "Please enter a slug",
+    "slugPattern": "Only lowercase letters, numbers, and hyphens are allowed",
+    "password": "Please enter your password",
+    "passwordMin": "Password must be at least 8 characters",
+    "confirmPassword": "Please confirm your password",
+    "projectName": "Please enter a project name",
+    "max100": "Must be 100 characters or less",
+    "max200": "Must be 200 characters or less",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "toast": {
+    "generic": {
+      "saveSuccess": "Saved",
+      "saveFail": "Failed to save",
+      "deleteSuccess": "Deleted",
+      "deleteFail": "Failed to delete",
+      "requestError": "An error occurred while processing your request",
+      "loginRequired": "You must be signed in.",
+      "loginRequiredRefresh": "You must be signed in. Please refresh the page.",
+      "sessionDeleteError": "An error occurred while deleting the session."
+    },
+    "contracts": {
+      "createSuccess": "Contract created",
+      "createFail": "Failed to create contract",
+      "updateSuccess": "Contract updated",
+      "updateFail": "Failed to update contract",
+      "deleteSuccess": "Contract deleted",
+      "deleteFail": "Failed to delete contract",
+      "applySuccess": "Contract applied to the project",
+      "applyFail": "Failed to apply contract",
+      "syncSuccess": "Synced {count} contract(s) to the agent",
+      "syncFail": "Failed to sync",
+      "overrideUpdateSuccess": "Override updated",
+      "overrideUpdateFail": "Failed to update override"
+    },
+    "pm": {
+      "createSuccess": "PM profile created.",
+      "deleteSuccess": "PM profile deleted.",
+      "updateSuccess": "PM profile updated.",
+      "nameSlugRequired": "Name and slug are required.",
+      "markdownLoadFail": "Failed to load Markdown.",
+      "markdownSaveSuccess": "Markdown saved.",
+      "compositionAddSuccess": "{count} item(s) added.",
+      "compositionAddFail": "An error occurred while adding."
+    },
+    "users": {
+      "roleChangeSuccess": "Role changed to {role}",
+      "roleChangeFail": "Failed to change role"
+    },
+    "projects": {
+      "fetchFail": "Failed to load projects",
+      "createFail": "Failed to create project."
+    },
+    "solutions": {
+      "sessionCreateFail": "Failed to create session.",
+      "sessionMissing": "Session info missing. Please restart from the beginning.",
+      "companyNameMissing": "Company name is missing. Please go back to step 1 and enter the company name.",
+      "sessionExpired": "Session expired. Please sign in again.",
+      "networkError": "Please check your network connection"
+    },
+    "members": {
+      "addSuccess": "Member added",
+      "addFail": "Failed to add member",
+      "removeSuccess": "Member removed",
+      "removeFail": "Failed to remove member",
+      "userIdRequired": "Please enter a user ID"
+    },
+    "registry": {
+      "updateSuccess": "Item updated.",
+      "addSuccess": "Item added.",
+      "deleteSuccess": "Item deleted."
+    },
+    "prototypeCatalog": {
+      "updateSuccess": "Catalog item updated",
+      "createSuccess": "Catalog item created",
+      "saveFail": "Failed to save",
+      "deleteSuccess": "Deleted",
+      "deleteFail": "Failed to delete",
+      "tagUpdateSuccess": "Tag updated",
+      "tagCreateSuccess": "Tag created"
+    },
+    "appSettings": {
+      "prototypeVariantSaveSuccess": "Prototype variant count saved",
+      "ragTopKSaveSuccess": "RAG top-k saved"
+    }
+  }
+}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, ArrowRight, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import { usePresets } from "@/hooks/use-presets";
@@ -17,6 +18,7 @@ export default function PresetSelectionPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const tT = useTranslations("toast.generic");
   const { data, isLoading } = usePresets();
   const [selectedPreset, setSelectedPreset] = useState<PresetResponse | null>(null);
   const [nlResult, setNlResult] = useState<NaturalLanguageConfigResponse | null>(null);
@@ -36,7 +38,7 @@ export default function PresetSelectionPage() {
 
   const handleNlAnalyze = async (text: string) => {
     if (!token) {
-      toast.error("로그인이 필요합니다.");
+      toast.error(tT("loginRequired"));
       return;
     }
     setNlLoading(true);
@@ -45,7 +47,7 @@ export default function PresetSelectionPage() {
       const result = await presets.analyzeText(token, text);
       setNlResult(result);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "분석에 실패했습니다.";
+      const message = e instanceof Error ? e.message : tT("requestError");
       toast.error(message);
       setNlResult(null);
     } finally {
