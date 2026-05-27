@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { UserPlus, Users2, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 
@@ -37,6 +38,7 @@ interface InviteFormData {
 function InviteMemberForm({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);
   const addMember = useAddOrgMember(orgId);
+  const tT = useTranslations("toast.members");
   const { register, handleSubmit, reset, setValue, watch } =
     useForm<InviteFormData>({
       defaultValues: { email: "", userId: "", role: "org_member" },
@@ -46,7 +48,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
 
   const onSubmit = (data: InviteFormData) => {
     if (!data.userId.trim()) {
-      toast.error("사용자 ID를 입력하세요");
+      toast.error(tT("userIdRequired"));
       return;
     }
 
@@ -54,12 +56,12 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
       { user_id: data.userId, org_role: data.role },
       {
         onSuccess: () => {
-          toast.success("멤버가 추가되었습니다");
+          toast.success(tT("addSuccess"));
           reset();
           setOpen(false);
         },
         onError: (err) => {
-          toast.error(err.message || "멤버 추가에 실패했습니다");
+          toast.error(err.message || tT("addFail"));
         },
       },
     );
@@ -154,15 +156,16 @@ function MemberRow({
 }) {
   const removeMember = useRemoveOrgMember(orgId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const tT = useTranslations("toast.members");
 
   const handleRemove = () => {
     removeMember.mutate(member.user_id, {
       onSuccess: () => {
-        toast.success("멤버가 제거되었습니다");
+        toast.success(tT("removeSuccess"));
         setConfirmDelete(false);
       },
       onError: (err) => {
-        toast.error(err.message || "멤버 제거에 실패했습니다");
+        toast.error(err.message || tT("removeFail"));
         setConfirmDelete(false);
       },
     });

@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { usePermissions } from "@/hooks/use-rbac";
 import { useRBACStore } from "@/stores/rbac-store";
@@ -60,6 +61,7 @@ export function RoleGuard({
 }
 
 function AccessDenied() {
+  const t = useTranslations("common.roleGuard");
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
@@ -67,10 +69,10 @@ function AccessDenied() {
       </div>
       <div>
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-          접근 권한이 없습니다
+          {t("title")}
         </h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          이 페이지에 접근하려면 관리자 권한이 필요합니다.
+          {t("description")}
         </p>
       </div>
     </div>

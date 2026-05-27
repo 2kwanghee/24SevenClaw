@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Plus, Users, Pencil, Trash2, AlertCircle, CheckCircle2, XCircle, Heart, Frown } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -18,6 +19,7 @@ function PMListPage() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
   const qc = useQueryClient();
+  const tT = useTranslations("toast.pm");
 
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState<PMProfileCreateRequest>({
@@ -50,7 +52,7 @@ function PMListPage() {
   const createMutation = useMutation({
     mutationFn: (req: PMProfileCreateRequest) => pmProfiles.create(token, req),
     onSuccess: () => {
-      toast.success("PM 프로필이 생성되었습니다.");
+      toast.success(tT("createSuccess"));
       qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
       setShowCreate(false);
       setCreateForm({
@@ -65,7 +67,7 @@ function PMListPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => pmProfiles.delete(token, id),
     onSuccess: () => {
-      toast.success("PM 프로필이 삭제되었습니다.");
+      toast.success(tT("deleteSuccess"));
       qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -73,7 +75,7 @@ function PMListPage() {
 
   const handleCreate = () => {
     if (!createForm.name || !createForm.slug) {
-      toast.error("이름과 slug는 필수입니다.");
+      toast.error(tT("nameSlugRequired"));
       return;
     }
     createMutation.mutate(createForm);

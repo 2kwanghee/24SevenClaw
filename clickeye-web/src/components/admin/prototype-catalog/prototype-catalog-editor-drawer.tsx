@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { PrototypeCatalogEntry } from "@/lib/api-client";
@@ -111,6 +112,7 @@ export function PrototypeCatalogEditorDrawer({
   const createMutation = useCreateCatalogEntry();
   const updateMutation = useUpdateCatalogEntry();
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const tT = useTranslations("toast.prototypeCatalog");
 
   const set = (key: keyof FormState) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -147,14 +149,14 @@ export function PrototypeCatalogEditorDrawer({
     try {
       if (entry) {
         await updateMutation.mutateAsync({ id: entry.id, data: payload });
-        toast.success("카탈로그 항목이 수정되었습니다");
+        toast.success(tT("updateSuccess"));
       } else {
         await createMutation.mutateAsync(payload);
-        toast.success("카탈로그 항목이 생성되었습니다");
+        toast.success(tT("createSuccess"));
       }
       onClose();
     } catch {
-      toast.error("저장에 실패했습니다");
+      toast.error(tT("saveFail"));
     }
   };
 

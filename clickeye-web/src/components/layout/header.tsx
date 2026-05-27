@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { LogOut, Bell, HelpCircle, BookOpen, RotateCcw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -12,6 +13,8 @@ function HelpDropdown() {
   const { restartTour } = useOnboardingStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const tA = useTranslations("common.aria");
+  const tH = useTranslations("common.header");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -27,7 +30,7 @@ function HelpDropdown() {
     <div ref={ref} className="relative">
       <button
         data-tour="help-button"
-        aria-label="도움말"
+        aria-label={tA("help")}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
@@ -50,7 +53,7 @@ function HelpDropdown() {
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <BookOpen className="h-4 w-4 shrink-0" />
-            가이드 보기
+            {tH("viewGuide")}
           </button>
           <button
             role="menuitem"
@@ -61,7 +64,7 @@ function HelpDropdown() {
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <RotateCcw className="h-4 w-4 shrink-0" />
-            튜토리얼 다시 시작
+            {tH("restartTour")}
           </button>
         </div>
       )}
@@ -71,6 +74,8 @@ function HelpDropdown() {
 
 export function Header() {
   const { data: session } = useSession();
+  const tA = useTranslations("common.aria");
+  const tH = useTranslations("common.header");
 
   if (!session) return null;
 
@@ -87,7 +92,7 @@ export function Header() {
 
         {/* 알림 */}
         <button
-          aria-label="알림"
+          aria-label={tA("notifications")}
           className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >
           <Bell className="h-4 w-4" />
@@ -122,7 +127,7 @@ export function Header() {
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover-danger)] hover:text-red-400"
-          title="로그아웃"
+          title={tH("logout")}
         >
           <LogOut className="h-4 w-4" />
         </button>

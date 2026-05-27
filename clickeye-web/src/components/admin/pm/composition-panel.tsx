@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -67,6 +68,7 @@ function CompositionTypeSection({ label, type, items, profileId, token, onBulkAd
   const [pickerOpen, setPickerOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const deleteMutation = useDeleteComposition(profileId);
+  const tT = useTranslations("toast.pm");
 
   const existingSlugs = items.map((i) => i.component_slug);
 
@@ -85,10 +87,10 @@ function CompositionTypeSection({ label, type, items, profileId, token, onBulkAd
           }),
         ),
       );
-      toast.success(`${selections.length}개 항목이 추가되었습니다.`);
+      toast.success(tT("compositionAddSuccess", { count: selections.length }));
       onBulkAdded();
     } catch {
-      toast.error("추가 중 오류가 발생했습니다.");
+      toast.error(tT("compositionAddFail"));
     } finally {
       setAdding(false);
     }

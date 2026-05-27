@@ -2,9 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -19,20 +20,28 @@ import {
   Chrome,
 } from "lucide-react";
 
-const loginSchema = z.object({
-  email: z.string().email("올바른 이메일을 입력하세요"),
-  password: z.string().min(1, "비밀번호를 입력하세요"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = {
+  email: string;
+  password: string;
+};
 
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tV = useTranslations("validation");
   const callbackUrl = searchParams.get("callbackUrl") ?? "/projects";
   const registered = searchParams.get("registered");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(tV("email")),
+        password: z.string().min(1, tV("password")),
+      }),
+    [tV],
+  );
 
   const {
     register,

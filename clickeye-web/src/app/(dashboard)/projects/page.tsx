@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ProjectList } from "@/components/projects/project-list";
@@ -19,6 +20,7 @@ function ProjectsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const tT = useTranslations("toast.projects");
 
   // URL searchParams에서 상태 추출
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -74,9 +76,9 @@ function ProjectsContent() {
 
   useEffect(() => {
     if (error) {
-      toast.error("프로젝트 목록을 불러오지 못했습니다");
+      toast.error(tT("fetchFail"));
     }
-  }, [error]);
+  }, [error, tT]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 

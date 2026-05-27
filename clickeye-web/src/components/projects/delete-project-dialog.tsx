@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface DeleteProjectDialogProps {
   projectName: string;
@@ -17,6 +18,9 @@ export function DeleteProjectDialog({
   onConfirm,
   onCancel,
 }: DeleteProjectDialogProps) {
+  const tC = useTranslations("common");
+  const tD = useTranslations("common.projectDialog");
+
   if (!isOpen) return null;
 
   return (
@@ -28,7 +32,7 @@ export function DeleteProjectDialog({
         onKeyDown={(e) => e.key === "Escape" && onCancel()}
         role="button"
         tabIndex={0}
-        aria-label="닫기"
+        aria-label={tC("aria.close")}
       />
 
       {/* 다이얼로그 */}
@@ -38,10 +42,13 @@ export function DeleteProjectDialog({
           <AlertTriangle className="h-6 w-6 text-red-700" />
         </div>
 
-        <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">프로젝트 삭제</h3>
+        <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">{tD("deleteTitle")}</h3>
         <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-          <strong className="text-[var(--text-secondary)]">{projectName}</strong> 프로젝트를 삭제하시겠습니까?
-          이 작업은 되돌릴 수 없습니다.
+          {tD.rich("deleteConfirm", {
+            name: () => (
+              <strong className="text-[var(--text-secondary)]">{projectName}</strong>
+            ),
+          })}
         </p>
 
         <div className="mt-6 flex gap-3">
@@ -50,7 +57,7 @@ export function DeleteProjectDialog({
             onClick={onCancel}
             className="flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
-            취소
+            {tC("actions.cancel")}
           </button>
           <button
             type="button"
@@ -58,7 +65,7 @@ export function DeleteProjectDialog({
             disabled={isDeleting}
             className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-medium text-white shadow-lg shadow-red-600/25 transition-all hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isDeleting ? "삭제 중..." : "삭제"}
+            {isDeleting ? tD("deleting") : tC("actions.delete")}
           </button>
         </div>
       </div>

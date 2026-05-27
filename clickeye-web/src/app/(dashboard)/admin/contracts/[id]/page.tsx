@@ -11,6 +11,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
@@ -44,6 +45,7 @@ function EditForm({
   onCancel: () => void;
 }) {
   const updateContract = useUpdateContract(contract.id);
+  const tT = useTranslations("toast.contracts");
   const [formData, setFormData] = useState<CentralContractUpdateRequest>({
     contract_type: contract.contract_type,
     source: contract.source,
@@ -79,11 +81,11 @@ function EditForm({
       { ...formData, content, allowed_overrides },
       {
         onSuccess: () => {
-          toast.success("계약이 수정되었습니다");
+          toast.success(tT("updateSuccess"));
           onCancel();
         },
         onError: (err) => {
-          toast.error(err.message || "계약 수정에 실패했습니다");
+          toast.error(err.message || tT("updateFail"));
         },
       },
     );
@@ -230,6 +232,7 @@ function ContractDetailContent() {
   const { data: contract, isLoading, error } = useContract(id);
   const deleteContract = useDeleteContract();
   const [isEditing, setIsEditing] = useState(false);
+  const tT = useTranslations("toast.contracts");
 
   if (isLoading) {
     return (
@@ -256,11 +259,11 @@ function ContractDetailContent() {
     if (!confirm("이 계약을 삭제하시겠습니까?")) return;
     deleteContract.mutate(contract.id, {
       onSuccess: () => {
-        toast.success("계약이 삭제되었습니다");
+        toast.success(tT("deleteSuccess"));
         router.push("/admin/contracts");
       },
       onError: (err) => {
-        toast.error(err.message || "계약 삭제에 실패했습니다");
+        toast.error(err.message || tT("deleteFail"));
       },
     });
   };

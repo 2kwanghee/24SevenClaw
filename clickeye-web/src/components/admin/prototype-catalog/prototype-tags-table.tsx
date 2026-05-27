@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, AlertCircle, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { PrototypeTag } from "@/lib/api-client";
@@ -42,6 +43,7 @@ function TagEditorDrawer({ tag, open, onClose }: { tag: PrototypeTag | null; ope
   const createMutation = useCreatePrototypeTag();
   const updateMutation = useUpdatePrototypeTag();
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const tT = useTranslations("toast.prototypeCatalog");
 
   useState(() => { if (open) setForm(tagToForm(tag)); });
 
@@ -63,13 +65,13 @@ function TagEditorDrawer({ tag, open, onClose }: { tag: PrototypeTag | null; ope
     try {
       if (tag) {
         await updateMutation.mutateAsync({ id: tag.id, data: payload });
-        toast.success("태그가 수정되었습니다");
+        toast.success(tT("tagUpdateSuccess"));
       } else {
         await createMutation.mutateAsync(payload);
-        toast.success("태그가 생성되었습니다");
+        toast.success(tT("tagCreateSuccess"));
       }
       onClose();
-    } catch { toast.error("저장에 실패했습니다"); }
+    } catch { toast.error(tT("saveFail")); }
   };
 
   if (!open) return null;
@@ -117,10 +119,11 @@ export function PrototypeTagsTable() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const { data, isLoading, error } = usePrototypeTags();
   const deleteMutation = useDeletePrototypeTag();
+  const tT = useTranslations("toast.prototypeCatalog");
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); toast.success("삭제되었습니다"); }
-    catch { toast.error("삭제에 실패했습니다"); }
+    try { await deleteMutation.mutateAsync(id); toast.success(tT("deleteSuccess")); }
+    catch { toast.error(tT("deleteFail")); }
     setDeleteConfirm(null);
   };
 

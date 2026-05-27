@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, AlertCircle, Eye } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import {
@@ -78,6 +79,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
 
   const { data, isLoading, error } = useRegistryItems(type, { limit: 200 });
   const deleteMutation = useDeleteRegistryItem(type);
+  const tT = useTranslations("toast.registry");
 
   const items = data?.items ?? [];
 
@@ -189,7 +191,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
                         onClick={() => {
                           if (!confirm(`"${item.name}" 항목을 삭제하시겠습니까?`)) return;
                           deleteMutation.mutate(item.id, {
-                            onSuccess: () => toast.success("항목이 삭제되었습니다."),
+                            onSuccess: () => toast.success(tT("deleteSuccess")),
                             onError: (e: Error) => toast.error(e.message),
                           });
                         }}

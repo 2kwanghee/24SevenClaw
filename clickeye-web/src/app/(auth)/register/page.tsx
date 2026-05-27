@@ -3,10 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { apiClient, ApiClientError } from "@/lib/api-client";
 import {
   Mail,
@@ -21,22 +22,12 @@ import {
   Check,
 } from "lucide-react";
 
-const registerSchema = z
-  .object({
-    email: z.string().email("올바른 이메일을 입력하세요"),
-    displayName: z
-      .string()
-      .min(1, "이름을 입력하세요")
-      .max(100, "이름은 100자 이하로 입력하세요"),
-    password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다"),
-    confirmPassword: z.string().min(1, "비밀번호 확인을 입력하세요"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "비밀번호가 일치하지 않습니다",
-    path: ["confirmPassword"],
-  });
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = {
+  email: string;
+  displayName: string;
+  password: string;
+  confirmPassword: string;
+};
 
 const passwordRequirements = [
   { test: (v: string) => v.length >= 8, label: "8자 이상" },
@@ -46,9 +37,26 @@ const passwordRequirements = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const tV = useTranslations("validation");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const registerSchema = useMemo(
+    () =>
+      z
+        .object({
+          email: z.string().email(tV("email")),
+          displayName: z.string().min(1, tV("name")).max(100, tV("max100")),
+          password: z.string().min(8, tV("passwordMin")),
+          confirmPassword: z.string().min(1, tV("confirmPassword")),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: tV("passwordMismatch"),
+          path: ["confirmPassword"],
+        }),
+    [tV],
+  );
 
   const {
     register,
