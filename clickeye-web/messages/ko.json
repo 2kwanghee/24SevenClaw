@@ -203,6 +203,8 @@
       "platform": {
         "description": "생성된 솔루션을 실행할 Agent 플랫폼을 선택하세요.",
         "notSupportedByPm": "PM 미지원",
+        "recommended": "추천",
+        "comingSoon": "Coming soon",
         "comingSoonNote": "Gemini CLI · Cursor · Codex 지원은 추후 업데이트에서 제공될 예정입니다.",
         "claudeCodeDesc": "Anthropic Claude 기반 AI 코딩 에이전트",
         "geminiCliDesc": "Google Gemini 기반 CLI 에이전트",
@@ -211,6 +213,8 @@
       },
       "os": {
         "description": "ZIP을 압축 해제하고 실행할 OS 환경을 선택하세요. 선택한 환경에 맞는 런처 스크립트가 포함됩니다.",
+        "recommended": "추천",
+        "comingSoon": "Coming soon",
         "wslNotInstalled": "WSL2가 설치되어 있지 않으신가요?",
         "wslGuideDesc": "WSL2는 Windows에서 Linux 환경을 실행할 수 있는 Microsoft 공식 기능입니다.",
         "wslStep1": "PowerShell (관리자)에서 실행:",

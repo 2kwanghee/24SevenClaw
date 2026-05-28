@@ -42,6 +42,8 @@ export function StepSolutionOS() {
     macos: t("macosDesc"),
     linux: t("linuxDesc"),
   };
+  const recommendedLabel = t("recommended");
+  const comingSoonLabel = t("comingSoon");
 
   useEffect(() => {
     if (!osId) {
@@ -58,7 +60,7 @@ export function StepSolutionOS() {
           const isSelected = osId === opt.id;
           const isAvailable = opt.available;
 
-          const badgeText = opt.id === "wsl2" ? "Recommended" : "Coming soon";
+          const badgeText = opt.id === "wsl2" ? recommendedLabel : comingSoonLabel;
           const badgeClass =
             opt.id === "wsl2"
               ? "bg-emerald-100 text-emerald-600"

@@ -50,6 +50,8 @@ export function StepSolutionPlatform() {
     "cursor": t("cursorDesc"),
     "codex": t("codexDesc"),
   };
+  const recommendedLabel = t("recommended");
+  const comingSoonLabel = t("comingSoon");
 
   useEffect(() => {
     if (hasPmFilter) {
@@ -86,8 +88,8 @@ export function StepSolutionPlatform() {
           const badgeText = showPmUnsupported
             ? t("notSupportedByPm")
             : opt.id === "claude-code"
-              ? "Recommended"
-              : "Coming soon";
+              ? recommendedLabel
+              : comingSoonLabel;
           const badgeClass = showPmUnsupported
             ? "bg-amber-100 text-amber-600"
             : opt.id === "claude-code"

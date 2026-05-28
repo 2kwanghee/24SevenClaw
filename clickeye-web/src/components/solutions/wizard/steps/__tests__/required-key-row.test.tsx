@@ -7,8 +7,10 @@
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import koMessages from "../../../../../../messages/ko.json";
 import { RequiredKeyRow } from "../step-solution-env";
 
 const CONFIG = {
@@ -19,7 +21,9 @@ const CONFIG = {
 
 function renderRow(onChange = vi.fn()) {
   const utils = render(
-    <RequiredKeyRow config={CONFIG} value="" onChange={onChange} />,
+    <NextIntlClientProvider locale="ko" messages={koMessages}>
+      <RequiredKeyRow config={CONFIG} value="" onChange={onChange} />
+    </NextIntlClientProvider>,
   );
   return { onChange, ...utils };
 }

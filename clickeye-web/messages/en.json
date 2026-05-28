@@ -203,6 +203,8 @@
       "platform": {
         "description": "Select the Agent platform to run your generated solution.",
         "notSupportedByPm": "Not supported by PM",
+        "recommended": "Recommended",
+        "comingSoon": "Coming soon",
         "comingSoonNote": "Gemini CLI, Cursor, and Codex support will be available in future updates.",
         "claudeCodeDesc": "AI coding agent based on Anthropic Claude",
         "geminiCliDesc": "CLI agent based on Google Gemini",
@@ -211,6 +213,8 @@
       },
       "os": {
         "description": "Select the OS environment to unzip and run the project. A launcher script for your selected environment will be included.",
+        "recommended": "Recommended",
+        "comingSoon": "Coming soon",
         "wslNotInstalled": "Don't have WSL2 installed?",
         "wslGuideDesc": "WSL2 is Microsoft's official feature for running a Linux environment on Windows.",
         "wslStep1": "Run in PowerShell (as Administrator):",
