@@ -14,6 +14,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
@@ -42,6 +43,7 @@ function OverrideCard({
 }) {
   const [editing, setEditing] = useState(false);
   const updateOverride = useUpdateOverride(projectId);
+  const tT = useTranslations("toast.contracts");
 
   const { data: parentContract } = useContract(override.central_contract_id);
 
@@ -104,11 +106,11 @@ function OverrideCard({
               { overrideId: override.id, data: { override_content: content } },
               {
                 onSuccess: () => {
-                  toast.success("오버라이드가 수정되었습니다");
+                  toast.success(tT("overrideUpdateSuccess"));
                   setEditing(false);
                 },
                 onError: (err) => {
-                  toast.error(err.message || "오버라이드 수정에 실패했습니다");
+                  toast.error(err.message || tT("overrideUpdateFail"));
                 },
               },
             );
@@ -142,6 +144,7 @@ function ApplyContractDialog({
   const { data } = useContractsList({ limit: 100 });
   const applyContract = useApplyContractToProject(projectId);
   const [selectedId, setSelectedId] = useState<string>("");
+  const tT = useTranslations("toast.contracts");
 
   if (!isOpen) return null;
 
@@ -151,11 +154,11 @@ function ApplyContractDialog({
       { central_contract_id: selectedId, override_content: {} },
       {
         onSuccess: () => {
-          toast.success("계약이 프로젝트에 적용되었습니다");
+          toast.success(tT("applySuccess"));
           onClose();
         },
         onError: (err) => {
-          toast.error(err.message || "계약 적용에 실패했습니다");
+          toast.error(err.message || tT("applyFail"));
         },
       },
     );
@@ -247,16 +250,15 @@ function ProjectContractsContent() {
   const { data, isLoading, error } = useProjectOverrides(projectId);
   const syncContracts = useSyncContracts(projectId);
   const [applyOpen, setApplyOpen] = useState(false);
+  const tT = useTranslations("toast.contracts");
 
   const handleSync = () => {
     syncContracts.mutate(undefined, {
       onSuccess: (result) => {
-        toast.success(
-          `${result.synced_count}개 계약이 에이전트에 동기화되었습니다`,
-        );
+        toast.success(tT("syncSuccess", { count: result.synced_count }));
       },
       onError: (err) => {
-        toast.error(err.message || "동기화에 실패했습니다");
+        toast.error(err.message || tT("syncFail"));
       },
     });
   };

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft, Save, AlertCircle, Heart, Frown, MessageSquare, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RoleGuard } from "@/components/common/role-guard";
 import { pmProfiles, pmMarkdown, type PMProfileUpdateRequest, type PMRatingResponse } from "@/lib/api-client";
-import { pmProfileSchema, type PMProfileFormData } from "@/lib/validations/pm";
+import { createPmProfileSchema, type PMProfileFormData } from "@/lib/validations/pm";
 import { CollapsibleSection } from "@/components/admin/markdown/collapsible-section";
 import { PMMarkdownPane } from "@/components/admin/pm/pm-markdown-pane";
 import { TagInput } from "@/components/admin/pm/tag-input";
@@ -25,10 +26,14 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
   const qc = useQueryClient();
+  const tV = useTranslations("validation");
+  const tT = useTranslations("toast.pm");
 
   const [markdownText, setMarkdownText] = useState("");
   const [mdLoaded, setMdLoaded] = useState(false);
   const [mdDirty, setMdDirty] = useState(false);
+
+  const pmProfileSchema = useMemo(() => createPmProfileSchema(tV), [tV]);
 
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ["pm-profile-detail", profileId],
@@ -90,14 +95,14 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       pmMarkdown
         .get(token, profileId)
         .then((md) => { setMarkdownText(md); setMdLoaded(true); })
-        .catch(() => toast.error("Markdown 로드에 실패했습니다."));
+        .catch(() => toast.error(tT("markdownLoadFail")));
     }
-  }, [token, profileId, mdLoaded]);
+  }, [token, profileId, mdLoaded, tT]);
 
   const updateMutation = useMutation({
     mutationFn: (data: PMProfileUpdateRequest) => pmProfiles.update(token, profileId, data),
     onSuccess: () => {
-      toast.success("PM 프로필이 업데이트되었습니다.");
+      toast.success(tT("updateSuccess"));
       qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
       qc.invalidateQueries({ queryKey: ["pm-profile-detail", profileId] });
       setMdLoaded(false);
@@ -108,7 +113,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
   const mdUpdateMutation = useMutation({
     mutationFn: (md: string) => pmMarkdown.update(token, profileId, md),
     onSuccess: () => {
-      toast.success("Markdown이 저장되었습니다.");
+      toast.success(tT("markdownSaveSuccess"));
       setMdDirty(false);
       qc.invalidateQueries({ queryKey: ["admin-pm-profiles"] });
       qc.invalidateQueries({ queryKey: ["pm-profile-detail", profileId] });

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,8 @@ export function BaseModal({
   className,
   titleId,
 }: BaseModalProps) {
+  const tA = useTranslations("common.aria");
+
   useEffect(() => {
     if (!open || !onClose) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -88,7 +91,7 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="닫기"
+                aria-label={tA("close")}
                 className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <X className="h-4 w-4" aria-hidden="true" />

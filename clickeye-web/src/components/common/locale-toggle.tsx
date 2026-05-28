@@ -1,7 +1,7 @@
 "use client";
 
 import { Languages } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -26,6 +26,7 @@ export function LocaleToggle() {
   const router = useRouter();
   const pathname = usePathname();
   const activeLocale = useLocale();
+  const tA = useTranslations("common.aria");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -52,7 +53,7 @@ export function LocaleToggle() {
     <div ref={ref} className="relative">
       <button
         type="button"
-        aria-label="언어 변경"
+        aria-label={tA("languageToggle")}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}

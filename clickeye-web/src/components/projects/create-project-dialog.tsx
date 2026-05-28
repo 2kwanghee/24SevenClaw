@@ -1,6 +1,7 @@
 "use client";
 
 import { X, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCreateProject } from "@/hooks/use-projects";
 
 import { ProjectForm } from "./project-form";
@@ -12,6 +13,8 @@ interface CreateProjectDialogProps {
 
 export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps) {
   const createProject = useCreateProject();
+  const tC = useTranslations("common");
+  const tD = useTranslations("common.projectDialog");
 
   if (!open) return null;
 
@@ -24,14 +27,14 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
         onKeyDown={(e) => e.key === "Escape" && onClose()}
         role="button"
         tabIndex={0}
-        aria-label="닫기"
+        aria-label={tC("aria.close")}
       />
 
       {/* 다이얼로그 */}
       <div className="relative w-full max-w-md mx-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-2xl shadow-black/10">
         {/* 헤더 */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">새 프로젝트</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{tD("newProject")}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -56,7 +59,7 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
             );
           }}
           isSubmitting={createProject.isPending}
-          submitLabel="생성"
+          submitLabel={tC("actions.create")}
         />
 
         <button
@@ -64,7 +67,7 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
           onClick={onClose}
           className="mt-4 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 text-center text-sm font-medium text-[var(--text-muted)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >
-          취소
+          {tC("actions.cancel")}
         </button>
       </div>
     </div>

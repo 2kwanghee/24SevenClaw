@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import type { PrototypeCatalogEntry } from "@/lib/api-client";
@@ -18,6 +19,7 @@ export function PrototypeCatalogTable() {
     showInactive ? { is_active: undefined } : { is_active: true }
   );
   const deleteMutation = useDeleteCatalogEntry();
+  const tT = useTranslations("toast.prototypeCatalog");
 
   const openCreate = () => { setEditEntry(null); setDrawerOpen(true); };
   const openEdit = (e: PrototypeCatalogEntry) => { setEditEntry(e); setDrawerOpen(true); };
@@ -25,9 +27,9 @@ export function PrototypeCatalogTable() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      toast.success("삭제되었습니다");
+      toast.success(tT("deleteSuccess"));
     } catch {
-      toast.error("삭제에 실패했습니다");
+      toast.error(tT("deleteFail"));
     }
     setDeleteConfirm(null);
   };

@@ -6,40 +6,34 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **[infra] Phase 0 — next-intl 인프라 + 미들웨어 + 토글 UI**
+- [x] **[frontend] Phase 1-A — 공통 컴포넌트 + Toast + Zod validation i18n**
   > 요청사항: ## 목표
 
-next-intl 기반 i18n 인프라를 도입한다. 쿠키 기반 로케일 결정, Accept-Language fallback, 사용자 향 페이지에 언어 토글 UI 노출, `/admin/*` 경로는 한국어 강제.
+토스트 메시지, Zod 스키마 validation 메시지, 공통 컴포넌트의 모든 한국어를 next-intl 카탈로그 키로 치환한다.
 
 ## 변경 파일
 
-* `clickeye-web/package.json` — next-intl@^4 추가
-* `clickeye-web/src/middleware.ts` (신규) — locale 결정 로직 (쿠키 > Accept-Language > "en" fallback). `/admin/*`은 무조건 `ko` 강제
-* `clickeye-web/src/i18n/routing.ts` (신규) — locale 목록 `["ko", "en"]`
-* `clickeye-web/src/i18n/request.ts` (신규) — next-intl getRequestConfig
-* `clickeye-web/messages/ko.json`, `messages/en.json` (신규 빈 카탈로그 — 후속 이슈에서 채움)
-* `clickeye-web/src/app/layout.tsx` — `<NextIntlClientProvider>` 래핑
-* `clickeye-web/src/components/common/locale-toggle.tsx` (신규) — 헤더에 마운트. 사용자 향 layout에만 노출
+* `clickeye-web/src/lib/validations/*.ts` (\~10개) — zod.errorMap 글로벌 설정 + 메시지 키 치환
+* 모든 `toast.success/error` 호출처 (\~15개) — `useTranslations("toast")` 적용
+* 공통 컴포넌트(`common/*`, `ui/*` 사용처)의 라벨/버튼 텍스트
 
-## 정책
+## 변경 카탈로그
 
-* 쿠키 키: `clickeye-locale`, 만료: 1년
-* 사용자 향 페이지에서만 토글 노출. `/admin/*`에는 미노출
-* en 카탈로그 미입력 키는 ko로 fallback
+* `messages/ko.json`: `common.*`, `toast.*`, `validation.*` 키 채움 (기존 한국어 그대로)
+* `messages/en.json`: 동일 키 영문 번역
 
 ## 검증
 
-1. `npm install next-intl` 후 빌드 성공
-2. 쿠키 비우고 Accept-Language=en으로 접속 → 영어 자동 선택
-3. 토글 누름 → `clickeye-locale` 쿠키 저장 + 페이지 재렌더링
-4. `/admin/pm` 접속 시 토글 영향 없이 한국어 유지
+* Zod validation 메시지가 locale에 따라 정상 표시
+* 모든 토스트 한·영 분기 정상
+* 공통 컴포넌트(버튼, 모달 등) 라벨 양 언어
 
 ## 의존성
 
-* root 이슈 (선행 없음)
-* 후속 이슈 2, 7이 본 이슈에 의존
+* 선행: [CE-250](https://linear.app/flow-ops/issue/CE-250/infra-phase-0-next-intl-인프라-미들웨어-토글-ui) (Phase 0 인프라)
+* 후속 이슈 3, 4가 본 이슈에 의존
 
 ---
 
@@ -49,4 +43,4 @@ next-intl 기반 i18n 인프라를 도입한다. 쿠키 기반 로케일 결정,
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-05-27 | Phase 0 next-intl 인프라 | 완료 | next.config.ts 플러그인, src/i18n/routing.ts·request.ts, messages/{ko,en}.json, src/proxy.ts에 locale 통합(Next.js 16은 middleware.ts/proxy.ts 공존 불가 — proxy.ts 확장), layout.tsx에 NextIntlClientProvider, locale-toggle.tsx + header.tsx 마운트. `npm run typecheck` 통과. |
+| 2026-05-27 | Phase 1-A | 완료 | messages 카탈로그 93키 한/영 작성, ZodLocaleProvider 신규(z.config locale 자동 전환), `lib/validations/pm.ts` factory 패턴 전환. login/register/project-form zod schema useMemo factory 적용. 사용자 향 toast 8파일 + admin toast 12파일 i18n 처리(71개 호출). 공통 컴포넌트 base-modal/locale-toggle/role-guard/header/create-project-dialog/delete-project-dialog 라벨/aria i18n. typecheck/build 통과. |

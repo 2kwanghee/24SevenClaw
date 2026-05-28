@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Save } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { useAppSettings, useSetVariantCount, useSetRagTopK } from "@/hooks/use-app-settings";
@@ -14,6 +15,8 @@ export function AppSettingsPanel() {
   const setRagTopK = useSetRagTopK();
   const [variantCount, setVariantCountLocal] = useState<number | null>(null);
   const [ragTopK, setRagTopKLocal] = useState<number | null>(null);
+  const tT = useTranslations("toast.appSettings");
+  const tG = useTranslations("toast.generic");
 
   const getSettingValue = (key: string): number => {
     const s = settings?.find(s => s.key === key);
@@ -30,15 +33,15 @@ export function AppSettingsPanel() {
   const handleSaveVariantCount = async () => {
     try {
       await setVariantCount.mutateAsync(currentVariantCount);
-      toast.success("프로토타입 variant 개수가 저장되었습니다");
-    } catch { toast.error("저장에 실패했습니다"); }
+      toast.success(tT("prototypeVariantSaveSuccess"));
+    } catch { toast.error(tG("saveFail")); }
   };
 
   const handleSaveRagTopK = async () => {
     try {
       await setRagTopK.mutateAsync(currentRagTopK);
-      toast.success("RAG top-k가 저장되었습니다");
-    } catch { toast.error("저장에 실패했습니다"); }
+      toast.success(tT("ragTopKSaveSuccess"));
+    } catch { toast.error(tG("saveFail")); }
   };
 
   if (isLoading) return <div className="py-8 text-center text-xs text-[var(--text-muted)]">로딩 중...</div>;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AlertCircle, ArrowRight, RefreshCw, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { SolutionWizardLayout } from "@/components/solutions/wizard/solution-wizard-layout";
@@ -48,6 +49,9 @@ export default function NewSolutionPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const tG = useTranslations("toast.generic");
+  const tS = useTranslations("toast.solutions");
+  const tP = useTranslations("toast.projects");
 
   const {
     currentStep,
@@ -169,7 +173,7 @@ export default function NewSolutionPage() {
   /** Step 1 완료 시: 조직 upsert → 프로토타입 세션 생성 → Step 2로 이동 */
   const handleStep1Next = async () => {
     if (!token) {
-      toast.error("로그인이 필요합니다. 페이지를 새로고침해 주세요.");
+      toast.error(tG("loginRequiredRefresh"));
       return;
     }
     setError(null);
@@ -215,7 +219,7 @@ export default function NewSolutionPage() {
         toast.error(err.detail);
         setError(err.detail);
       } else {
-        const msg = "세션 생성에 실패했습니다.";
+        const msg = tS("sessionCreateFail");
         toast.error(msg);
         setError(msg);
       }
@@ -227,17 +231,17 @@ export default function NewSolutionPage() {
   /** 마지막 스텝: prototype-session finalize → 프로젝트 생성 */
   const handleSubmit = async () => {
     if (!token) {
-      toast.error("로그인이 필요합니다. 페이지를 새로고침해 주세요.");
+      toast.error(tG("loginRequiredRefresh"));
       return;
     }
     if (!data.sessionId) {
-      const msg = "세션 정보가 없습니다. 처음부터 다시 시작해 주세요.";
+      const msg = tS("sessionMissing");
       toast.error(msg);
       setError(msg);
       return;
     }
     if (!data.company.companyName?.trim()) {
-      const msg = "회사 이름이 없습니다. 1단계로 돌아가 회사 이름을 입력해 주세요.";
+      const msg = tS("companyNameMissing");
       toast.error(msg);
       setError(msg);
       return;
@@ -279,7 +283,7 @@ export default function NewSolutionPage() {
         toast.error(err.detail);
         setError(err.detail);
       } else {
-        const msg = "프로젝트 생성에 실패했습니다.";
+        const msg = tP("createFail");
         toast.error(msg);
         setError(msg);
       }
@@ -307,7 +311,7 @@ export default function NewSolutionPage() {
         setShowResumeDialog(false);
       }
     } catch {
-      toast.error("세션 삭제 중 오류가 발생했습니다.");
+      toast.error(tG("sessionDeleteError"));
     }
   };
 
