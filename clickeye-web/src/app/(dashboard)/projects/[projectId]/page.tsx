@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ResetProjectDialog } from "@/components/projects/reset-project-dialog";
@@ -58,10 +59,7 @@ import {
 const SOLUTION_TYPE_LABELS: Record<string, string> = {
   saas: "SaaS",
   "rest-api": "REST API",
-  fullstack: "풀스택",
-  "internal-tool": "내부 도구",
   mvp: "MVP",
-  custom: "커스텀",
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -76,6 +74,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const tD = useTranslations("projects.detail");
   const { data: project, isLoading, error } = useProject(projectId);
   const updateProject = useUpdateProject(projectId);
   const deleteProject = useDeleteProject();
@@ -131,7 +130,7 @@ export default function ProjectDetailPage() {
         setLinearValidation({ status: "invalid", message: check.message });
         return;
       }
-      setLinearValidation({ status: "loading", message: "검증 중..." });
+      setLinearValidation({ status: "loading", message: tD("validating") });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -145,7 +144,7 @@ export default function ProjectDetailPage() {
         }
       }, 800);
     },
-    [token],
+    [token, tD],
   );
 
   const triggerNotionValidation = useCallback(
@@ -160,7 +159,7 @@ export default function ProjectDetailPage() {
         setNotionValidation({ status: "invalid", message: check.message });
         return;
       }
-      setNotionValidation({ status: "loading", message: "검증 중..." });
+      setNotionValidation({ status: "loading", message: tD("validating") });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -174,7 +173,7 @@ export default function ProjectDetailPage() {
         }
       }, 800);
     },
-    [token],
+    [token, tD],
   );
 
   useEffect(() => {
@@ -218,12 +217,12 @@ export default function ProjectDetailPage() {
       if (err instanceof ApiClientError) {
         setDownloadError(err.detail);
       } else {
-        setDownloadError("재다운로드에 실패했습니다");
+        setDownloadError(tD("redownloadError"));
       }
     } finally {
       setDownloading(false);
     }
-  }, [token, projectId, project?.name, envVars]);
+  }, [token, projectId, project?.name, envVars, tD]);
 
   const handleDownloadEnv = useCallback(async () => {
     if (!token || !projectId) return;
@@ -263,7 +262,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-        <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
+        <p className="mt-4 text-sm text-[var(--text-muted)]">{tD("loading")}</p>
       </div>
     );
   }
@@ -272,7 +271,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
         <p className="text-sm text-red-700">
-          프로젝트를 불러오지 못했습니다: {error.message}
+          {tD("loadError", { message: error.message })}
         </p>
       </div>
     );
@@ -288,6 +287,13 @@ export default function ProjectDetailPage() {
   const isActive = project.status === "active";
   const isStale =
     project.anthropic_key_status === "stale" || project.linear_key_status === "stale";
+  const resolveSolutionTypeLabel = (solutionType?: string | null) => {
+    if (!solutionType) return tD("notSet");
+    if (solutionType === "fullstack") return tD("solutionTypeFullstack");
+    if (solutionType === "internal-tool") return tD("solutionTypeInternalTool");
+    if (solutionType === "custom") return tD("solutionTypeCustom");
+    return SOLUTION_TYPE_LABELS[solutionType] ?? solutionType;
+  };
 
   return (
     <div>
@@ -298,7 +304,7 @@ export default function ProjectDetailPage() {
           className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          프로젝트 목록
+          {tD("backToList")}
         </Link>
       </div>
 
@@ -308,12 +314,14 @@ export default function ProjectDetailPage() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
             <div>
-              <p className="text-sm font-medium text-amber-800">API 키가 변경되었습니다</p>
+              <p className="text-sm font-medium text-amber-800">{tD("staleKeyTitle")}</p>
               <p className="mt-0.5 text-xs text-amber-700">
-                로컬 .env 파일을 갱신해야 새 키가 적용됩니다.{" "}
-                {project.anthropic_key_status === "stale" && "Anthropic "}
-                {project.linear_key_status === "stale" && "Linear "}
-                키가 오래됐습니다.
+                {tD("staleKeyDesc", {
+                  keys: [
+                    project.anthropic_key_status === "stale" ? tD("staleKeyAnthropicLabel") : null,
+                    project.linear_key_status === "stale" ? tD("staleKeyLinearLabel") : null,
+                  ].filter(Boolean).join(", "),
+                })}
               </p>
             </div>
           </div>
@@ -328,7 +336,7 @@ export default function ProjectDetailPage() {
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
-              .env 다운로드
+              {tD("downloadEnv")}
             </button>
             <button
               onClick={handleRedownload}
@@ -340,7 +348,7 @@ export default function ProjectDetailPage() {
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
-              ZIP 재다운로드
+              {tD("downloadZip")}
             </button>
           </div>
         </div>
@@ -351,7 +359,7 @@ export default function ProjectDetailPage() {
         <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
 
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">프로젝트 수정</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{tD("editTitle")}</h2>
             <button
               onClick={() => setIsEditing(false)}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
@@ -373,7 +381,7 @@ export default function ProjectDetailPage() {
               description: project.description ?? "",
             }}
             isSubmitting={updateProject.isPending}
-            submitLabel="저장"
+            submitLabel={tD("submitLabel")}
             onSubmit={(data) => {
               setSubmitError(null);
               updateProject.mutate(
@@ -384,7 +392,7 @@ export default function ProjectDetailPage() {
                     if (err instanceof ApiClientError) {
                       setSubmitError(err.detail);
                     } else {
-                      setSubmitError("수정에 실패했습니다.");
+                      setSubmitError(tD("editFail"));
                     }
                   },
                 },
@@ -407,7 +415,7 @@ export default function ProjectDetailPage() {
                       : "bg-zinc-100 text-zinc-500"
                   }`}
                 >
-                  {isActive ? "활성" : "보관됨"}
+                  {isActive ? tD("statusActive") : tD("statusArchived")}
                 </span>
               </div>
               <p className="mt-1 text-sm text-[var(--text-muted)]">{project.slug}</p>
@@ -421,14 +429,14 @@ export default function ProjectDetailPage() {
                 className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Pencil className="h-3.5 w-3.5" />
-                수정
+                {tD("editBtn")}
               </button>
               <Link
                 href={`/projects/${projectId}/dashboard`}
                 className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <BarChart3 className="h-3.5 w-3.5" />
-                대시보드
+                {tD("dashboardBtn")}
               </Link>
               <Link
                 href={`/projects/${projectId}/ai-team`}
@@ -442,7 +450,7 @@ export default function ProjectDetailPage() {
                 className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Settings className="h-3.5 w-3.5" />
-                설정
+                {tD("settingsBtn")}
               </Link>
             </div>
           </div>
@@ -457,11 +465,11 @@ export default function ProjectDetailPage() {
           <div className="mt-8 flex gap-6 border-t border-[var(--border-subtle)] pt-6">
             <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
               <Calendar className="h-4 w-4" />
-              생성일: {formattedDate}
+              {tD("createdAt", { date: formattedDate })}
             </div>
             <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
               <Activity className="h-4 w-4" />
-              상태: {isActive ? "활성" : "보관됨"}
+              {tD("statusMeta", { status: isActive ? tD("statusActive") : tD("statusArchived") })}
             </div>
           </div>
         </div>
@@ -470,74 +478,68 @@ export default function ProjectDetailPage() {
         {(project.wizard_data || project.project_type === "wizard") && (
           <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
-              설정 요약
+              {tD("configSummary")}
             </h2>
 
             {project.wizard_data ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <ConfigBadge
                   icon={Building2}
-                  label="회사"
+                  label={tD("labelCompany")}
                   value={
                     (project.wizard_data.organization?.companyName as string) ||
-                    "미설정"
+                    tD("notSet")
                   }
                 />
                 <ConfigBadge
                   icon={Layers}
-                  label="솔루션"
+                  label={tD("labelSolution")}
                   value={
-                    project.wizard_data.solution?.solutionType
-                      ? SOLUTION_TYPE_LABELS[
-                          project.wizard_data.solution.solutionType as string
-                        ] ?? (project.wizard_data.solution.solutionType as string)
-                      : "미설정"
+                    resolveSolutionTypeLabel(project.wizard_data.solution?.solutionType as string | undefined)
                   }
                 />
                 <ConfigBadge
                   icon={Bot}
-                  label="에이전트"
+                  label={tD("labelAgents")}
                   value={
                     project.wizard_data.agents?.length > 0
-                      ? `${project.wizard_data.agents.length}개`
-                      : "미설정"
+                      ? tD("countItem", { count: project.wizard_data.agents.length })
+                      : tD("notSet")
                   }
                 />
                 <ConfigBadge
                   icon={Wrench}
-                  label="스킬"
+                  label={tD("labelSkills")}
                   value={
                     project.wizard_data.skills?.length > 0
-                      ? `${project.wizard_data.skills.length}개`
-                      : "미설정"
+                      ? tD("countItem", { count: project.wizard_data.skills.length })
+                      : tD("notSet")
                   }
                 />
                 <ConfigBadge
                   icon={GitBranch}
-                  label="파이프라인"
+                  label={tD("labelPipelines")}
                   value={
                     project.wizard_data.pipelines?.length > 0
-                      ? `${project.wizard_data.pipelines.length}개`
-                      : "미설정"
+                      ? tD("countItem", { count: project.wizard_data.pipelines.length })
+                      : tD("notSet")
                   }
                 />
                 <ConfigBadge
                   icon={Monitor}
-                  label="플랫폼"
+                  label={tD("labelPlatform")}
                   value={
                     project.wizard_data.platform?.platformId
                       ? PLATFORM_LABELS[
                           project.wizard_data.platform.platformId as string
                         ] ??
                         (project.wizard_data.platform.platformId as string)
-                      : "미설정"
+                      : tD("notSet")
                   }
                 />
               </div>
             ) : (
-              <p className="text-sm text-[var(--text-muted)]">
-                위저드 설정 정보가 없습니다. ZIP을 다시 생성하려면 솔루션 위저드를 다시 진행해 주세요.
-              </p>
+              <p className="text-sm text-[var(--text-muted)]">{tD("noWizardData")}</p>
             )}
 
             {/* ZIP 재다운로드 — API 키 입력 + 다운로드 */}
@@ -584,13 +586,9 @@ export default function ProjectDetailPage() {
               return (
                 <div className="mt-6 border-t border-[var(--border-subtle)] pt-6 space-y-4">
                   {isOAuth ? (
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {"OAuth 브라우저 인증 모드입니다. bash start.sh 실행 시 claude login이 자동으로 진행됩니다."}
-                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">{tD("oauthNote")}</p>
                   ) : (
-                    <p className="text-xs text-[var(--text-muted)]">
-                      API 키는 서버에 저장되지 않습니다. ZIP의 <code className="text-[var(--text-secondary)]">.env</code>에 직접 작성됩니다.
-                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">{tD("envNote")}</p>
                   )}
                   {hasLinear && (
                     <LinearPreflightCard
@@ -635,7 +633,7 @@ export default function ProjectDetailPage() {
                             />
                             {sanitizedKeys[key] && (
                               <p className="mt-1 text-[10px] text-amber-600">
-                                한글/이모지 등 비-ASCII 문자는 자동 제거됩니다. 영문·숫자만 입력하세요.
+                                {tD("sanitizedWarning")}
                               </p>
                             )}
                           </div>
@@ -650,9 +648,10 @@ export default function ProjectDetailPage() {
                     >
                       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                       <p className="text-xs text-amber-700">
-                        필수 환경변수 {missingEnvKeys.length}개(
-                        {missingEnvKeys.map((f) => f.label).join(", ")})를 입력해야
-                        ZIP을 다운로드할 수 있습니다.
+                        {tD("missingEnvAlert", {
+                          count: missingEnvKeys.length,
+                          labels: missingEnvKeys.map((f) => f.label).join(", "),
+                        })}
                       </p>
                     </div>
                   )}
@@ -683,19 +682,19 @@ export default function ProjectDetailPage() {
                       {downloading ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          다운로드 중...
+                          {tD("downloading")}
                         </>
                       ) : (
                         <>
                           <Download className="h-4 w-4" />
-                          ZIP 다운로드
+                          {tD("downloadBtn")}
                         </>
                       )}
                     </button>
                     <span className="text-xs text-[var(--text-muted)]">
                       {missingEnvKeys.length > 0
-                        ? "환경변수 입력 후 다운로드할 수 있습니다"
-                        : "저장된 설정 + 입력한 API 키로 ZIP을 생성합니다"}
+                        ? tD("downloadHintMissing")
+                        : tD("downloadHintReady")}
                     </span>
                   </div>
                   {downloadError && (
@@ -723,21 +722,19 @@ export default function ProjectDetailPage() {
 
         {/* 위험 구역 */}
         <div className="mt-6 rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <h2 className="mb-1 text-base font-semibold text-red-700">위험 구역</h2>
-          <p className="mb-5 text-xs text-[var(--text-muted)]">
-            아래 작업은 되돌릴 수 없습니다. 신중하게 진행하세요.
-          </p>
+          <h2 className="mb-1 text-base font-semibold text-red-700">{tD("dangerZoneTitle")}</h2>
+          <p className="mb-5 text-xs text-[var(--text-muted)]">{tD("dangerZoneDesc")}</p>
 
           {/* 초기화 완료 메시지 */}
           {resetResult && (
             <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              <p className="font-medium">프로젝트가 초기화되었습니다.</p>
+              <p className="font-medium">{tD("resetSuccess")}</p>
               {resetResult.new_license_key && (
                 <p className="mt-1 text-xs">
-                  새 라이선스 키:{" "}
+                  {tD("licenseKeyLabel")}{" "}
                   <code className="font-mono text-emerald-900">{resetResult.new_license_key}</code>
                   <br />
-                  로컬 .env 파일의 <code>LICENSE_KEY</code>를 위 값으로 업데이트하세요.
+                  {tD("resetKeyUpdateNote")}
                 </p>
               )}
             </div>
@@ -747,11 +744,8 @@ export default function ProjectDetailPage() {
             <div className="flex-1 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">프로젝트 초기화</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    위자드 설정, 티켓, 산출물, 세션 등 진행 데이터를 삭제합니다.
-                    프로젝트 ID와 이름은 유지됩니다.
-                  </p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{tD("resetTitle")}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{tD("resetDesc")}</p>
                 </div>
                 <button
                   type="button"
@@ -759,17 +753,15 @@ export default function ProjectDetailPage() {
                   className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 transition-colors"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  초기화
+                  {tD("resetBtn")}
                 </button>
               </div>
             </div>
             <div className="flex-1 rounded-xl border border-red-200 bg-red-50/50 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">프로젝트 삭제</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    프로젝트와 모든 연관 데이터를 완전히 삭제합니다.
-                  </p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{tD("deleteTitle")}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{tD("deleteDesc")}</p>
                 </div>
                 <button
                   type="button"
@@ -777,7 +769,7 @@ export default function ProjectDetailPage() {
                   className="shrink-0 flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  삭제
+                  {tD("deleteBtn")}
                 </button>
               </div>
             </div>
@@ -865,6 +857,7 @@ function CheckItem({ ok, label, description }: CheckItemProps) {
 }
 
 function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact = false }: LinearPreflightCardProps) {
+  const t = useTranslations("projects.linear");
   const credentialsReady = status?.credentials_saved === true;
 
   return (
@@ -879,7 +872,7 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
         <div className="flex items-center gap-2">
           <Zap className={compact ? "h-3.5 w-3.5 text-zinc-700" : "h-4 w-4 text-zinc-700"} />
           <h2 className={compact ? "text-sm font-semibold text-[var(--text-primary)]" : "text-lg font-semibold text-[var(--text-primary)]"}>
-            Linear 연동 상태 {compact && <span className="ml-1 text-[11px] font-normal text-[var(--text-muted)]">(서버 자동화용)</span>}
+            {t("cardTitle")} {compact && <span className="ml-1 text-[11px] font-normal text-[var(--text-muted)]">{t("compactNote")}</span>}
           </h2>
         </div>
         <button
@@ -888,26 +881,26 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
           className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-          새로고침
+          {t("refreshBtn")}
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CheckItem
           ok={status ? credentialsReady : null}
-          label="자격증명 저장됨"
+          label={t("credentialsSaved")}
           description={
             credentialsReady
               ? status?.team_id
-                ? `팀 ID: ${status.team_id}`
-                : "Linear API 키가 등록되어 있습니다"
-              : "프로젝트 생성 시 Linear API 키와 팀 ID를 입력하면 자동 저장됩니다"
+                ? t("teamIdDesc", { teamId: status.team_id })
+                : t("credentialsSavedDesc")
+              : t("credentialsNotSavedDesc")
           }
         />
         {credentialsReady && status?.api_key_masked && (
           <CheckItem
             ok={true}
-            label="API 키 확인됨"
+            label={t("apiKeyConfirmed")}
             description={status.api_key_masked}
           />
         )}
@@ -920,7 +913,7 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
             className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
           >
             <Zap className="h-4 w-4" />
-            AI Team 시작하기
+            {t("startAiTeamBtn")}
           </a>
         ) : (
           <a
@@ -928,13 +921,13 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
             className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            새 솔루션 만들기
+            {t("newSolutionBtn")}
           </a>
         )}
         <span className="text-xs text-[var(--text-muted)]">
           {credentialsReady
-            ? "Linear 자격증명이 이 프로젝트에 저장되어 있습니다."
-            : "프로젝트 생성 위저드에서 Linear API 키를 입력하면 프로젝트에 종속 저장됩니다."}
+            ? t("savedNote")
+            : t("notSavedNote")}
         </span>
       </div>
     </div>

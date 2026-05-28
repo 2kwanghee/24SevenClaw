@@ -52,6 +52,7 @@ export default function SolutionSessionPage() {
   const token = session?.accessToken ?? "";
   const tS = useTranslations("toast.solutions");
   const tP = useTranslations("toast.projects");
+  const t = useTranslations("solutions.new");
 
   const {
     currentStep,
@@ -333,7 +334,7 @@ export default function SolutionSessionPage() {
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
-      nextLabel={currentStep === 5 ? "이대로 진행" : undefined}
+      nextLabel={currentStep === 5 ? t("proceed") : undefined}
     >
       {error && (
         <div
@@ -351,7 +352,7 @@ export default function SolutionSessionPage() {
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-700 transition-colors hover:bg-red-100"
           >
             <RefreshCw className="h-3 w-3" aria-hidden="true" />
-            재시도
+            {t("retry")}
           </button>
         </div>
       )}

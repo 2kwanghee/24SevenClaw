@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { getAllGuides } from "@/lib/guide-loader";
 import { GuideToc } from "@/components/guide/guide-toc";
 
-export default function GuidePage() {
+export default async function GuidePage() {
+  const t = await getTranslations("guide");
   const guides = getAllGuides();
 
   return (
@@ -13,11 +15,9 @@ export default function GuidePage() {
       <div className="min-w-0 flex-1">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            사용 가이드
+            {t("title")}
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            ClickEye 플랫폼 사용법을 단계별로 안내합니다.
-          </p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

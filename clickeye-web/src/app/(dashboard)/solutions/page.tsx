@@ -12,31 +12,28 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
 import type { PrototypeSessionResponse } from "@/lib/api-client";
 
 const STATUS_CONFIG: Record<
   PrototypeSessionResponse["status"],
-  { label: string; icon: typeof CheckCircle2; className: string }
+  { icon: typeof CheckCircle2; className: string }
 > = {
   completed: {
-    label: "완료",
     icon: CheckCircle2,
     className: "text-emerald-700",
   },
   generating: {
-    label: "생성 중",
     icon: Loader2,
     className: "animate-spin text-yellow-600",
   },
   pending: {
-    label: "대기 중",
     icon: Clock,
     className: "text-[var(--text-muted)]",
   },
   failed: {
-    label: "실패",
     icon: XCircle,
     className: "text-red-700",
   },
@@ -45,6 +42,8 @@ const STATUS_CONFIG: Record<
 export default function SolutionsPage() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("solutions.page");
+  const tStatus = useTranslations("solutions.status");
 
   const [sessions, setSessions] = useState<PrototypeSessionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +62,7 @@ export default function SolutionsPage() {
         if (err instanceof ApiClientError) {
           setError(err.detail);
         } else {
-          setError("세션 목록을 불러오지 못했습니다.");
+          setError(t("loadError"));
         }
       } finally {
         setIsLoading(false);
@@ -71,25 +70,23 @@ export default function SolutionsPage() {
     };
 
     void fetchSessions();
-  }, [token]);
+  }, [token, t]);
 
   return (
     <div className="mx-auto max-w-3xl">
       {/* 헤더 */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">솔루션 위저드</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            AI가 회사에 맞는 솔루션을 자동 설계합니다
-          </p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
         <Link
           href="/solutions/new"
           className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-zinc-800"
-          aria-label="새 솔루션 위저드 시작"
+          aria-label={t("newBtnAria")}
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          새 솔루션
+          {t("newBtn")}
         </Link>
       </div>
 
@@ -101,17 +98,14 @@ export default function SolutionsPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              7단계 위저드로 AI 솔루션 설계
+              {t("heroTitle")}
             </h2>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              회사 정보를 입력하면 AI가 맞춤 프로토타입을 생성하고, PM 추천부터
-              에이전트 구성, 플랫폼 선택까지 자동으로 안내합니다.
-            </p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{t("heroDesc")}</p>
             <Link
               href="/solutions/new"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
-              지금 시작하기
+              {t("heroLink")}
               <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -124,17 +118,17 @@ export default function SolutionsPage() {
           id="recent-sessions-heading"
           className="mb-4 text-sm font-semibold text-[var(--text-secondary)]"
         >
-          최근 세션
+          {t("recentSessions")}
         </h2>
 
         {isLoading && (
           <div
             className="flex items-center justify-center py-12"
             role="status"
-            aria-label="세션 목록 로딩 중"
+            aria-label={t("loadingAria")}
           >
             <Loader2 className="h-6 w-6 animate-spin text-zinc-700" />
-            <span className="sr-only">세션 목록을 불러오고 있습니다...</span>
+            <span className="sr-only">{t("loadingAria")}</span>
           </div>
         )}
 
@@ -151,22 +145,20 @@ export default function SolutionsPage() {
         {!isLoading && !error && sessions.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-16 text-center">
             <Sparkles className="h-10 w-10 text-[var(--text-muted)]" aria-hidden="true" />
-            <p className="mt-4 text-sm text-[var(--text-muted)]">아직 세션이 없습니다</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              새 솔루션 위저드를 시작해 보세요
-            </p>
+            <p className="mt-4 text-sm text-[var(--text-muted)]">{t("emptyState")}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{t("emptyStateHint")}</p>
             <Link
               href="/solutions/new"
               className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
-              새 솔루션 시작
+              {t("startBtn")}
             </Link>
           </div>
         )}
 
         {!isLoading && !error && sessions.length > 0 && (
-          <ul className="space-y-2" role="list" aria-label="최근 솔루션 세션 목록">
+          <ul className="space-y-2" role="list" aria-label={t("recentSessionsListAria")}>
             {sessions.map((s) => {
               const cfg = STATUS_CONFIG[s.status];
               const Icon = cfg.icon;
@@ -184,7 +176,7 @@ export default function SolutionsPage() {
                   <Link
                     href={`/solutions/${s.id}`}
                     className="flex items-center gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 transition-colors hover:border-zinc-300 hover:bg-[var(--bg-hover)]"
-                    aria-label={`${companyName} 세션 열기`}
+                    aria-label={t("openSessionAria", { name: companyName })}
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-hover)]">
                       <Sparkles className="h-4 w-4 text-[var(--text-secondary)]" aria-hidden="true" />
@@ -209,7 +201,7 @@ export default function SolutionsPage() {
                           aria-hidden="true"
                         />
                         <span className="text-xs text-[var(--text-muted)]">
-                          {cfg.label}
+                          {tStatus(s.status)}
                         </span>
                       </div>
                     </div>

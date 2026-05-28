@@ -19,6 +19,7 @@ export default function PresetSelectionPage() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
   const tT = useTranslations("toast.generic");
+  const t = useTranslations("onboarding.preset");
   const { data, isLoading } = usePresets();
   const [selectedPreset, setSelectedPreset] = useState<PresetResponse | null>(null);
   const [nlResult, setNlResult] = useState<NaturalLanguageConfigResponse | null>(null);
@@ -79,11 +80,9 @@ export default function PresetSelectionPage() {
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <Zap className="h-5 w-5 text-zinc-700" />
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">빠른 시작</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
         </div>
-        <p className="text-sm text-[var(--text-muted)]">
-          프리셋을 선택하면 에이전트, 스킬, 파이프라인이 자동으로 설정됩니다
-        </p>
+        <p className="text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
       </div>
 
       {/* 자연어 입력 */}
@@ -100,24 +99,20 @@ export default function PresetSelectionPage() {
       <div className="mb-8">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-zinc-700" />
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">프리셋 선택</h2>
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">{t("presetsTitle")}</h2>
           <span className="text-xs text-[var(--text-muted)]">
-            ({presetList.length}개)
+            {t("presetsCount", { count: presetList.length })}
           </span>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-700" />
-            <span className="ml-2 text-sm text-[var(--text-muted)]">
-              프리셋 불러오는 중...
-            </span>
+            <span className="ml-2 text-sm text-[var(--text-muted)]">{t("presetsLoading")}</span>
           </div>
         ) : presetList.length === 0 ? (
           <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-12 text-center">
-            <p className="text-sm text-[var(--text-muted)]">
-              등록된 프리셋이 없습니다. 위저드에서 직접 설정하세요.
-            </p>
+            <p className="text-sm text-[var(--text-muted)]">{t("presetsEmpty")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -140,7 +135,7 @@ export default function PresetSelectionPage() {
           onClick={handleSkip}
           className="text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
         >
-          건너뛰고 직접 설정하기
+          {t("skipBtn")}
         </button>
 
         <button
@@ -154,7 +149,7 @@ export default function PresetSelectionPage() {
               : "bg-zinc-900 text-white hover:bg-zinc-800",
           )}
         >
-          프리셋 적용 후 시작
+          {t("applyBtn")}
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>

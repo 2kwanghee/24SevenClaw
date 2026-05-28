@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Trophy, ArrowRight, Settings2, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import { MaturityBadge } from "@/components/presets/maturity-badge";
@@ -40,6 +41,7 @@ interface MaturityResultProps {
 
 export function MaturityResult({ result }: MaturityResultProps) {
   const router = useRouter();
+  const t = useTranslations("onboarding.maturityResult");
   const animatedScore = useAnimatedScore(result.score);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -120,7 +122,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
             className="group flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800"
           >
             <Sparkles className="h-4 w-4" />
-            추천 프리셋 보기
+            {t("viewPresets")}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
 
@@ -130,7 +132,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] px-5 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <Settings2 className="h-4 w-4" />
-            설정 직접 선택하기
+            {t("configureManually")}
           </button>
         </div>
       </div>

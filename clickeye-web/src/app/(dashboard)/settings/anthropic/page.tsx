@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { apiClient, type ProjectResponse } from "@/lib/api-client";
 import { PostKeyChangeGuide } from "@/components/credentials/post-key-change-guide";
@@ -11,6 +12,7 @@ import { CredentialCard } from "@/components/credentials/credential-card";
 export default function AnthropicSettingsPage() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("settings.anthropic");
 
   const [guideOpen, setGuideOpen] = useState(false);
   const [staleProjects, setStaleProjects] = useState<ProjectResponse[]>([]);
@@ -39,32 +41,30 @@ export default function AnthropicSettingsPage() {
 
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Anthropic 자격증명</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Claude 인증 방식에 따라 필요한 자격증명을 등록하세요. 위저드에서 선택한 모드에 맞는 자격증명이 ZIP 생성 시 자동으로 주입됩니다.
-          </p>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
 
         {/* 섹션 1: API 키 */}
         <section aria-labelledby="api-key-heading">
           <h2 id="api-key-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            API 키 모드
+            {t("apiKeySection")}
           </h2>
           <CredentialCard
             credentialType="api_key"
-            title="API 키"
-            description="위저드에서 'API 키' 모드를 선택한 경우 사용됩니다. ZIP의 .env에 ANTHROPIC_API_KEY로 자동 주입됩니다."
+            title={t("apiKeyCardTitle")}
+            description={t("apiKeyCardDescription")}
             placeholder="sk-ant-api03-..."
             validate={(v) =>
               v.startsWith("sk-ant-") && v.length >= 20
                 ? null
-                : "올바른 형식이 아닙니다 (sk-ant-... 로 시작, 20자 이상)"
+                : t("apiKeyInvalid")
             }
             externalLink={{
               href: "https://console.anthropic.com/settings/keys",
-              label: "console.anthropic.com → API Keys에서 발급 (sk-ant-... 형식)",
+              label: t("apiKeyExternalLink"),
             }}
-            helperText="키는 서버에 Fernet 암호화로 저장됩니다. 위저드에서 솔루션 청사진 분석 시 이 키가 우선 사용되며, 서버 키보다 본인 계정의 크레딧이 우선 소진됩니다."
+            helperText={t("apiKeyHelper")}
             onChanged={handleCredentialChanged}
           />
         </section>
@@ -72,33 +72,26 @@ export default function AnthropicSettingsPage() {
         {/* 섹션 2: OAuth 브라우저 (정보 전용) */}
         <section aria-labelledby="oauth-browser-heading">
           <h2 id="oauth-browser-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            OAuth 브라우저 모드
+            {t("oauthSection")}
           </h2>
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-zinc-500" />
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">별도 등록 불필요</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("oauthNoRegistrationTitle")}</h3>
             </div>
-            <p className="text-xs text-[var(--text-muted)]">
-              위저드에서 &apos;OAuth 브라우저&apos; 모드를 선택한 경우, ClickEye 클라우드에는 어떤 자격증명도 저장되지 않습니다.
-            </p>
+            <p className="text-xs text-[var(--text-muted)]">{t("oauthNoRegistrationDesc")}</p>
             <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-zinc-400">•</span>
-                <span>
-                  <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">bash start.sh</code>{" "}
-                  실행 시{" "}
-                  <code className="rounded bg-zinc-200 px-1 py-0.5 font-mono">claude login</code>이{" "}
-                  자동으로 진행됩니다.
-                </span>
+                <span>{t("oauthBullet1")}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-zinc-400">•</span>
-                <span>인증 토큰은 OS 키체인(~/.claude.json)에만 저장되며 ClickEye로 전송되지 않습니다.</span>
+                <span>{t("oauthBullet2")}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5 text-zinc-400">•</span>
-                <span>이 모드는 이 페이지에서 관리할 항목이 없습니다. 위저드에서 인증 방식을 선택하고 ZIP을 다운로드하세요.</span>
+                <span>{t("oauthBullet3")}</span>
               </li>
             </ul>
           </div>
