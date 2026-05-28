@@ -8,33 +8,35 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[frontend] Phase 1-D — 위저드 Step 4~7 i18n**
+- [x] **[frontend] Phase 1-E — 온보딩 + 솔루션/프로젝트/설정/가이드/공개 레지스트리 i18n**
   > 요청사항: ## 목표
 
-위저드 후반부 — PM 추천/선택/구성 확인, 에이전트/스킬, 플랫폼/OS, 환경변수, 확인/다운로드 단계의 한국어 텍스트를 카탈로그 키로 치환.
+위저드 외 사용자 향 페이지 전부 i18n. 페이지 수는 가장 많지만 페이지당 텍스트 풍부도는 낮음.
 
-## 변경 파일
+## 변경 파일 (페이지 기준)
 
-* PM 단계: `step-pm-recommendation.tsx`, `step-pm-select.tsx`, `step-pm-selection.tsx`, `step-pm-composition.tsx`
-* 구성 단계: `step-solution-agents.tsx`, `step-solution-platform.tsx`, `step-solution-os.tsx`
-* 환경/ROI: `step-solution-env.tsx`, `step-solution-roi.tsx`
-* 확인: `step-solution-confirm.tsx`, `step-confirmation.tsx` (`SetupGuideModal` 포함)
-* PM 표시: `pm-composition-view.tsx`, `pm-rating-stars.tsx`
+* `/onboarding/preset/*` — natural-language-input 포함 (자연어 분석 입력박스 라벨)
+* `/onboarding/assessment/*` — 성숙도 평가 질문지/응답
+* `/solutions/page.tsx`, `/solutions/[sessionId]/page.tsx`, `/solutions/new/page.tsx`
+* `/projects/*` — 프로젝트 목록/상세
+* `/settings/*` — 사용자 설정 (언어 선택 UI도 본 이슈에 포함)
+* `/guide/*` — 사용자 가이드 페이지
+* `/registry/*` — 공개 레지스트리 (사용자 열람용. `/admin/registry/*`는 제외)
 
 ## 변경 카탈로그
 
-* `messages/{ko,en}.json`: `wizard.step4` \~ `wizard.step7` + `setupGuide.*` 키 묶음
+* `messages/{ko,en}.json`: `onboarding.*`, `solutions.*`, `projects.*`, `settings.*`, `guide.*`, `registry.*` 키 묶음
 
 ## 검증
 
-* en locale로 위저드 Step 4\~7 완주 + ZIP 다운로드 안내 영문
-* SetupGuideModal의 압축 해제/런처 실행/환경변수 안내 영문 표시
-* PM 카드/구성 요소 라벨 영문 (composition 칩의 한국어 이름은 DB값이라 별도 — CE-257에서 처리)
+* en locale로 전체 사용자 향 페이지 순회 — 한국어 글자 0건 (Claude 응답 및 DB 시드 한국어 콘텐츠 제외)
+* ko locale에서 기존과 100% 동일
+* `/settings`에서 사용자 언어 변경 토글 (CE-256 백엔드 User.language 필드 연동 준비)
 
 ## 의존성
 
-* 선행: [CE-253](https://linear.app/flow-ops/issue/CE-253/frontend-phase-1-c-위저드-step-13-i18n) (Phase 1-C 위저드 Step 1\~3)
-* 후속 CE-255가 본 이슈에 의존
+* 선행: [CE-254](https://linear.app/flow-ops/issue/CE-254/frontend-phase-1-d-위저드-step-47-i18n) (Phase 1-D 위저드 Step 4\~7)
+* 후속 CE-256이 본 이슈에 의존
 
 ---
 
@@ -44,4 +46,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-05-28 | Phase 1-D 전체 (Step 4~7 i18n) 완료 | ✅ 완료 | 14개 컴포넌트 + messages/{en,ko}.json 업데이트, typecheck/build 통과 |
+| 2026-05-28 | Phase 1-E i18n 적용 | ✅ 완료 | 16개 파일, 946개 라인 추가, 타입체크 통과. /registry/* 는 공개 페이지 없어 skip. settings 언어 토글은 header LocaleToggle로 이미 제공됨(CE-256 연동 준비 완료). |
