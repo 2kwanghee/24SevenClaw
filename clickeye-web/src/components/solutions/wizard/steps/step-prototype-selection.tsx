@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { AlertCircle, Sparkles, LayoutGrid, Columns3 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions } from "@/lib/api-client";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
  * - 선택 시 PATCH /prototype-sessions/{id} (selected_prototype_id) 호출
  */
 export function StepPrototypeSelection() {
+  const t = useTranslations("wizard.step3");
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
 
@@ -50,10 +52,10 @@ export function StepPrototypeSelection() {
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <AlertCircle className="h-10 w-10 text-zinc-500" aria-hidden="true" />
         <p className="mt-4 text-sm font-medium text-zinc-500">
-          생성된 프로토타입이 없습니다
+          {t("empty.title")}
         </p>
         <p className="mt-1 text-xs text-zinc-500">
-          이전 단계로 돌아가 정보를 다시 확인해 주세요.
+          {t("empty.description")}
         </p>
       </div>
     );
@@ -69,7 +71,7 @@ export function StepPrototypeSelection() {
             className="mr-1 inline-block h-3.5 w-3.5 text-emerald-600"
             aria-hidden="true"
           />
-          AI가 분석한 솔루션 후보입니다. 가장 적합한 방향을 선택하세요.
+          {t("aiHint")}
         </p>
         <div className="inline-flex shrink-0 rounded-lg border border-zinc-200 bg-white p-0.5">
           <button
@@ -84,7 +86,7 @@ export function StepPrototypeSelection() {
             )}
           >
             <LayoutGrid className="h-3 w-3" />
-            카드
+            {t("viewCards")}
           </button>
           <button
             type="button"
@@ -98,13 +100,13 @@ export function StepPrototypeSelection() {
             )}
           >
             <Columns3 className="h-3 w-3" />
-            비교
+            {t("viewCompare")}
           </button>
         </div>
       </div>
 
       {viewMode === "cards" ? (
-        <div className="space-y-3" role="list" aria-label="솔루션 프로토타입 목록">
+        <div className="space-y-3" role="list" aria-label={t("listAriaLabel")}>
           {prototypes.generatedPrototypes.map((proto) => (
             <PrototypeCard
               key={proto.id}

@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, ChevronRight, Star, ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import type { PrototypeOption } from "@/types/solution-wizard";
@@ -14,13 +15,13 @@ import {
   hasAnyMetric,
 } from "@/components/prototypes/metric-badges";
 
-const SOLUTION_TYPE_LABELS: Record<string, string> = {
-  saas: "SaaS",
-  "rest-api": "REST API",
-  fullstack: "풀스택 웹",
-  "internal-tool": "내부 도구",
-  mvp: "MVP",
-  custom: "커스텀",
+const SOLUTION_TYPE_KEY_MAP: Record<string, string> = {
+  saas: "saas",
+  "rest-api": "restApi",
+  fullstack: "fullstack",
+  "internal-tool": "internalTool",
+  mvp: "mvp",
+  custom: "custom",
 };
 
 const SOLUTION_TYPE_COLORS: Record<
@@ -89,7 +90,10 @@ export function PrototypeCard({
   isExpanded = false,
   onSelect,
 }: PrototypeCardProps) {
+  const t = useTranslations("wizard.prototypeCard");
   const style = getTypeStyle(prototype.solutionType);
+  const typeKey = SOLUTION_TYPE_KEY_MAP[prototype.solutionType] ?? "custom";
+  const typeLabel = t(`solutionTypes.${typeKey}`);
 
   return (
     <button
@@ -114,7 +118,7 @@ export function PrototypeCard({
             {prototype.isRecommended && (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-300">
                 <Star className="h-2.5 w-2.5" aria-hidden="true" />
-                추천
+                {t("recommended")}
               </span>
             )}
             {/* 디자인 패턴 배지 */}
@@ -124,8 +128,7 @@ export function PrototypeCard({
                 style.badge,
               )}
             >
-              {SOLUTION_TYPE_LABELS[prototype.solutionType] ??
-                prototype.solutionType}
+              {typeLabel}
             </span>
           </div>
 
@@ -202,12 +205,12 @@ export function PrototypeCard({
                 prototype.scalabilityScore != null) && (
                 <div className="space-y-1 pt-1">
                   <ScoreBar
-                    label="복잡도"
+                    label={t("complexityLabel")}
                     score={prototype.complexityScore}
                     variant="complexity"
                   />
                   <ScoreBar
-                    label="확장성"
+                    label={t("scalabilityLabel")}
                     score={prototype.scalabilityScore}
                     variant="scalability"
                   />
@@ -216,7 +219,7 @@ export function PrototypeCard({
               {prototype.skillRequirements &&
                 prototype.skillRequirements.length > 0 && (
                   <div className="pt-1">
-                    <p className="text-[10px] text-zinc-500 mb-1">필요 역량</p>
+                    <p className="text-[10px] text-zinc-500 mb-1">{t("skillRequirements")}</p>
                     <div className="flex flex-wrap gap-1">
                       {prototype.skillRequirements.map((s) => (
                         <span
@@ -239,7 +242,7 @@ export function PrototypeCard({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1 mb-1">
                     <ThumbsUp className="h-2.5 w-2.5 text-emerald-500" aria-hidden="true" />
-                    <span className="text-[10px] font-medium text-emerald-500">장점</span>
+                    <span className="text-[10px] font-medium text-emerald-500">{t("pros")}</span>
                   </div>
                   {prototype.pros.map((pro, i) => (
                     <p key={i} className="text-[11px] leading-relaxed text-zinc-500 pl-3.5">
@@ -252,7 +255,7 @@ export function PrototypeCard({
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1 mb-1">
                     <ThumbsDown className="h-2.5 w-2.5 text-amber-500" aria-hidden="true" />
-                    <span className="text-[10px] font-medium text-amber-500">단점</span>
+                    <span className="text-[10px] font-medium text-amber-500">{t("cons")}</span>
                   </div>
                   {prototype.cons.map((con, i) => (
                     <p key={i} className="text-[11px] leading-relaxed text-zinc-500 pl-3.5">

@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
@@ -59,12 +60,17 @@ function SkeletonCard({ index }: { index: number }) {
   );
 }
 
-function GeneratingCard({ index }: { index: number }) {
+interface GeneratingCardProps {
+  index: number;
+  ariaLabel: string;
+}
+
+function GeneratingCard({ index, ariaLabel }: GeneratingCardProps) {
   return (
     <div
       className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"
       style={{ animationDelay: `${index * 120}ms` }}
-      aria-label="프로토타입 생성 중"
+      aria-label={ariaLabel}
     >
       <div className="mb-3 flex items-center gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
@@ -83,9 +89,10 @@ function GeneratingCard({ index }: { index: number }) {
 interface ReadyCardProps {
   card: PrototypeCardItem;
   index: number;
+  ariaLabel: string;
 }
 
-function ReadyCard({ card, index }: ReadyCardProps) {
+function ReadyCard({ card, index, ariaLabel }: ReadyCardProps) {
   return (
     <div
       className={cn(
@@ -95,7 +102,7 @@ function ReadyCard({ card, index }: ReadyCardProps) {
       )}
       style={{ animationDelay: `${index * 80}ms`, animationDuration: "400ms" }}
       role="status"
-      aria-label={`프로토타입 "${card.name}" 생성 완료`}
+      aria-label={ariaLabel}
     >
       <div className="mb-2 flex items-center gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
@@ -118,6 +125,7 @@ function ReadyCard({ card, index }: ReadyCardProps) {
 /* -- 메인 컴포넌트 ----------------------------------------------------- */
 
 export function StepPrototypeGeneration() {
+  const t = useTranslations("wizard.step2");
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
 
@@ -336,13 +344,13 @@ export function StepPrototypeGeneration() {
           />
         </div>
         <h3 className="mb-1 text-sm font-semibold text-amber-700">
-          라이브 프리뷰를 사용할 수 없습니다
+          {t("disabled.title")}
         </h3>
         <p className="mb-2 text-xs text-zinc-500 max-w-xs">
-          현재 라이브 프리뷰 기능이 비활성화되어 있습니다.
+          {t("disabled.description")}
         </p>
         <p className="text-xs text-zinc-400">
-          관리자에게 문의하여 기능을 활성화해 주세요.
+          {t("disabled.contactAdmin")}
         </p>
       </div>
     );
@@ -359,10 +367,10 @@ export function StepPrototypeGeneration() {
           />
         </div>
         <h3 className="mb-1 text-sm font-semibold text-rose-300">
-          프로토타입 생성에 실패했습니다
+          {t("failed.title")}
         </h3>
         <p className="mb-6 text-xs text-zinc-500">
-          일시적인 오류가 발생했습니다. 다시 시도해 주세요.
+          {t("failed.description")}
         </p>
         <button
           type="button"
@@ -370,7 +378,7 @@ export function StepPrototypeGeneration() {
           className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          다시 시도
+          {t("failed.retry")}
         </button>
       </div>
     );
@@ -413,17 +421,17 @@ export function StepPrototypeGeneration() {
           )}
           <span className="text-sm font-medium text-zinc-700">
             {isStarting
-              ? "생성 준비 중..."
+              ? t("starting")
               : allReady
-                ? "프로토타입 생성 완료!"
-                : "AI가 솔루션 프로토타입을 설계하고 있습니다"}
+                ? t("completed")
+                : t("generating")}
           </span>
         </div>
 
         <span
           className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-500"
           aria-live="polite"
-          aria-label={`${totalCount}개 중 ${readyCount}개 완료`}
+          aria-label={t("counterAriaLabel", { total: totalCount, ready: readyCount })}
         >
           {readyCount} / {totalCount}
         </span>
@@ -436,7 +444,7 @@ export function StepPrototypeGeneration() {
         aria-valuenow={readyCount}
         aria-valuemin={0}
         aria-valuemax={totalCount}
-        aria-label="프로토타입 생성 진행률"
+        aria-label={t("progressAriaLabel")}
       >
         <div
           className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
@@ -447,14 +455,23 @@ export function StepPrototypeGeneration() {
       </div>
 
       {/* 프로토타입 카드 목록 */}
-      <div className="space-y-3" aria-label="프로토타입 생성 현황">
+      <div className="space-y-3" aria-label={t("listAriaLabel")}>
         {displayCards.map((card, idx) =>
           card.status === "skeleton" ? (
             <SkeletonCard key={card.id} index={idx} />
           ) : card.status === "generating" ? (
-            <GeneratingCard key={card.id} index={idx} />
+            <GeneratingCard
+              key={card.id}
+              index={idx}
+              ariaLabel={t("cardGeneratingAriaLabel")}
+            />
           ) : (
-            <ReadyCard key={card.id} card={card} index={idx} />
+            <ReadyCard
+              key={card.id}
+              card={card}
+              index={idx}
+              ariaLabel={t("cardReadyAriaLabel", { name: card.name })}
+            />
           ),
         )}
       </div>
@@ -462,14 +479,16 @@ export function StepPrototypeGeneration() {
       {/* 안내 메시지 */}
       {!isStarting && !allReady && (
         <p className="text-center text-xs text-zinc-500">
-          약 30초~1분 소요됩니다. 잠시만 기다려 주세요.
+          {t("waitingHint")}
         </p>
       )}
 
       {/* 완료 후 안내 메시지 */}
       {allReady && (
         <p className="text-center text-xs text-emerald-600">
-          아래 <strong>다음</strong> 버튼을 클릭해 프로토타입을 확인하세요.
+          {t.rich("doneHint", {
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </p>
       )}
     </div>

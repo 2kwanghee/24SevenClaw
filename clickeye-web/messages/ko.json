@@ -385,6 +385,196 @@
       "skills": "스킬",
       "mcpServers": "MCP 서버",
       "hooks": "Hook"
+    },
+    "metricBadges": {
+      "weeksUnit": "주",
+      "personsUnit": "명",
+      "maintenance": {
+        "low": "유지보수 낮음",
+        "medium": "유지보수 보통",
+        "high": "유지보수 높음"
+      }
+    },
+    "comparisonTable": {
+      "metric": "지표",
+      "recommended": "추천",
+      "rows": {
+        "architecture": "아키텍처",
+        "devDuration": "개발 기간",
+        "teamSize": "팀 규모",
+        "monthlyCost": "월 운영비",
+        "complexity": "복잡도 (낮을수록 단순)",
+        "scalability": "확장성 (높을수록 우수)",
+        "maintenance": "유지보수 난이도",
+        "techStack": "기술 스택",
+        "skillRequirements": "필요 역량",
+        "companyFit": "회사 적합성",
+        "pros": "장점",
+        "cons": "단점"
+      },
+      "maintenance": {
+        "low": "낮음",
+        "medium": "보통",
+        "high": "높음"
+      }
+    },
+    "prototypeCard": {
+      "recommended": "추천",
+      "pros": "장점",
+      "cons": "단점",
+      "skillRequirements": "필요 역량",
+      "aiMatchNote": "AI 분석 텍스트는 현재 한국어로 표시됩니다. 백엔드 i18n 진행 중.",
+      "solutionTypes": {
+        "saas": "SaaS",
+        "restApi": "REST API",
+        "fullstack": "풀스택 웹",
+        "internalTool": "내부 도구",
+        "mvp": "MVP",
+        "custom": "커스텀"
+      },
+      "complexityLabel": "복잡도",
+      "scalabilityLabel": "확장성"
+    },
+    "step1": {
+      "companyName": {
+        "label": "회사 이름",
+        "placeholder": "예: 우리 회사",
+        "required": "회사 이름을 입력하세요",
+        "max200": "200자 이내로 입력하세요"
+      },
+      "companySize": {
+        "label": "회사 규모",
+        "required": "회사 규모를 선택하세요",
+        "options": {
+          "startup": {
+            "label": "스타트업",
+            "sub": "1–10명"
+          },
+          "small": {
+            "label": "소기업",
+            "sub": "11–50명"
+          },
+          "medium": {
+            "label": "중소기업",
+            "sub": "51–200명"
+          },
+          "midLarge": {
+            "label": "중견기업",
+            "sub": "201–1,000명"
+          },
+          "enterprise": {
+            "label": "대기업",
+            "sub": "1,000명+"
+          }
+        }
+      },
+      "industry": {
+        "label": "업종",
+        "required": "업종을 선택하세요",
+        "options": {
+          "it": "IT/소프트웨어",
+          "fintech": "금융/핀테크",
+          "ecommerce": "이커머스/리테일",
+          "healthcare": "헬스케어/의료",
+          "education": "교육/에듀테크",
+          "manufacturing": "제조업",
+          "logistics": "물류/배송",
+          "marketing": "마케팅/광고",
+          "game": "게임/엔터테인먼트",
+          "other": "기타"
+        }
+      },
+      "techStack": {
+        "label": "기술 스택",
+        "optional": "(선택, 복수 가능)",
+        "selectedCount": "{count}개 선택됨",
+        "categories": {
+          "language": "언어",
+          "framework": "프레임워크 / 라이브러리",
+          "database": "데이터베이스",
+          "cloud": "클라우드 / 인프라"
+        }
+      },
+      "mainProduct": {
+        "label": "주력 제품/서비스",
+        "placeholder": "예: 기업용 HR 관리 플랫폼",
+        "required": "주력 제품/서비스를 입력하세요",
+        "max500": "500자 이내로 입력하세요"
+      },
+      "businessType": {
+        "label": "비즈니스 유형",
+        "required": "비즈니스 유형을 선택하세요",
+        "options": {
+          "b2b": {
+            "label": "B2B",
+            "description": "기업 대상"
+          },
+          "b2c": {
+            "label": "B2C",
+            "description": "소비자 대상"
+          },
+          "b2b2c": {
+            "label": "B2B2C",
+            "description": "복합 모델"
+          },
+          "internal": {
+            "label": "내부 도구",
+            "description": "사내 시스템"
+          }
+        }
+      },
+      "companyDescription": {
+        "label": "회사 설명",
+        "optional": "(선택)",
+        "placeholder": "회사 배경, 팀 구성, 현재 기술 수준 등을 자유롭게 설명해 주세요",
+        "max1000": "1000자 이내로 입력하세요"
+      },
+      "solutionRequest": {
+        "label": "필요한 솔루션 설명",
+        "hint": "자연어로 자유롭게 작성하세요. AI가 분석하여 최적의 솔루션을 설계합니다.",
+        "placeholder": "예: 현재 엑셀로 관리하는 고객 데이터를 자동화하고 싶습니다. 영업팀 10명이 사용할 CRM 시스템이 필요하고, Slack 알림과 연동되면 좋겠습니다...",
+        "required": "솔루션 요구사항을 50자 이상 입력하세요",
+        "max2000": "2000자 이내로 입력하세요",
+        "minHint": "(최소 {remaining}자 더)"
+      },
+      "autoDecompose": {
+        "title": "ClickEye 자동 분석/분해",
+        "ariaLabel": "ClickEye 자동 분석/분해",
+        "description": "ON 시 다운로드 후 <code>bash start.sh</code> 실행하면 솔루션 요구사항을 자동 분석·분해해 AI Team 검수 카드를 생성합니다. 직접 설계하려면 OFF로 두세요."
+      }
+    },
+    "step2": {
+      "starting": "생성 준비 중...",
+      "completed": "프로토타입 생성 완료!",
+      "generating": "AI가 솔루션 프로토타입을 설계하고 있습니다",
+      "counterAriaLabel": "{total}개 중 {ready}개 완료",
+      "progressAriaLabel": "프로토타입 생성 진행률",
+      "listAriaLabel": "프로토타입 생성 현황",
+      "cardGeneratingAriaLabel": "프로토타입 생성 중",
+      "cardReadyAriaLabel": "프로토타입 \"{name}\" 생성 완료",
+      "waitingHint": "약 30초~1분 소요됩니다. 잠시만 기다려 주세요.",
+      "doneHint": "아래 <strong>다음</strong> 버튼을 클릭해 프로토타입을 확인하세요.",
+      "disabled": {
+        "title": "라이브 프리뷰를 사용할 수 없습니다",
+        "description": "현재 라이브 프리뷰 기능이 비활성화되어 있습니다.",
+        "contactAdmin": "관리자에게 문의하여 기능을 활성화해 주세요."
+      },
+      "failed": {
+        "title": "프로토타입 생성에 실패했습니다",
+        "description": "일시적인 오류가 발생했습니다. 다시 시도해 주세요.",
+        "retry": "다시 시도"
+      }
+    },
+    "step3": {
+      "empty": {
+        "title": "생성된 프로토타입이 없습니다",
+        "description": "이전 단계로 돌아가 정보를 다시 확인해 주세요."
+      },
+      "noComparison": "비교할 프로토타입이 없습니다.",
+      "aiHint": "AI가 분석한 솔루션 후보입니다. 가장 적합한 방향을 선택하세요.",
+      "viewCards": "카드",
+      "viewCompare": "비교",
+      "listAriaLabel": "솔루션 프로토타입 목록"
     }
   },
   "setupGuide": {
