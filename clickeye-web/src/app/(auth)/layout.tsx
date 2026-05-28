@@ -2,25 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Bot, Sparkles, Shield, Zap } from "lucide-react";
-
-const features = [
-  {
-    icon: Bot,
-    title: "AI 에이전트 오케스트레이션",
-    desc: "Claude 기반 자율 개발 에이전트",
-  },
-  {
-    icon: Shield,
-    title: "엔터프라이즈 보안",
-    desc: "격리된 실행 환경과 라이센스 관리",
-  },
-  {
-    icon: Zap,
-    title: "자동화된 워크플로",
-    desc: "티켓에서 PR까지 완전 자동화",
-  },
-];
 
 export default function AuthLayout({
   children,
@@ -28,7 +11,29 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("auth.layout");
   const isLogin = pathname === "/login";
+
+  const features = [
+    {
+      key: "orchestration",
+      icon: Bot,
+      title: t("features.orchestration.title"),
+      desc: t("features.orchestration.desc"),
+    },
+    {
+      key: "security",
+      icon: Shield,
+      title: t("features.security.title"),
+      desc: t("features.security.desc"),
+    },
+    {
+      key: "automation",
+      icon: Zap,
+      title: t("features.automation.title"),
+      desc: t("features.automation.desc"),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen">
@@ -48,14 +53,14 @@ export default function AuthLayout({
           <div className="space-y-8">
             <div className="space-y-4">
               <h2 className="text-4xl font-bold leading-tight tracking-tight text-zinc-950">
-                AI가 코드를 작성하는
+                {t("heroTitleLine1")}
                 <br />
-                새로운 개발 경험
+                {t("heroTitleLine2")}
               </h2>
               <p className="max-w-md text-lg leading-relaxed text-zinc-500">
-                티켓 할당부터 코드 리뷰, PR 생성까지.
+                {t("heroDescLine1")}
                 <br />
-                24시간 쉬지 않는 AI 개발 에이전트를 만나보세요.
+                {t("heroDescLine2")}
               </p>
             </div>
 
@@ -63,7 +68,7 @@ export default function AuthLayout({
             <div className="space-y-3">
               {features.map((f) => (
                 <div
-                  key={f.title}
+                  key={f.key}
                   className="flex items-start gap-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100">
@@ -79,9 +84,7 @@ export default function AuthLayout({
           </div>
 
           {/* 하단 */}
-          <p className="text-sm text-zinc-400">
-            &copy; 2026 ClickEye. All rights reserved.
-          </p>
+          <p className="text-sm text-zinc-400">{t("copyright")}</p>
       </div>
 
       {/* 우측 폼 패널 */}
@@ -108,7 +111,7 @@ export default function AuthLayout({
                   : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
-              로그인
+              {t("tabLogin")}
             </Link>
             <Link
               href="/register"
@@ -118,7 +121,7 @@ export default function AuthLayout({
                   : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
-              회원가입
+              {t("tabRegister")}
             </Link>
           </div>
 

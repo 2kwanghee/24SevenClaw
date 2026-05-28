@@ -3,6 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Header } from "@/components/layout/header";
 import {
   Sparkles,
@@ -34,32 +35,39 @@ const TourWrapper = dynamic(
   { ssr: false },
 );
 
-const navItems = [
-  // activePrefix: 하이라이트 기준 경로 (href와 다른 경우에 지정)
-  { href: "/solutions/new", label: "새 솔루션", icon: Sparkles, activePrefix: "/solutions", dataTour: "new-solution-link" },
-  { href: "/projects", label: "프로젝트", icon: FolderKanban, dataTour: "projects-link" },
-  { href: "/guide", label: "가이드", icon: BookOpen },
+type NavItem = {
+  href: string;
+  labelKey: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activePrefix?: string;
+  dataTour?: string;
+};
+
+const navItems: NavItem[] = [
+  { href: "/solutions/new", labelKey: "items.newSolution", icon: Sparkles, activePrefix: "/solutions", dataTour: "new-solution-link" },
+  { href: "/projects", labelKey: "items.projects", icon: FolderKanban, dataTour: "projects-link" },
+  { href: "/guide", labelKey: "items.guide", icon: BookOpen },
 ];
 
-const adminItems = [
-  { href: "/admin/control-tower", label: "컨트롤 타워", icon: Building2 },
-  { href: "/admin/users", label: "사용자 관리", icon: Shield },
-  { href: "/admin/contracts", label: "계약 관리", icon: FileText },
-  { href: "/admin/pm", label: "PM 관리", icon: Users },
-  { href: "/admin/registry/agents", label: "Agent 레지스트리", icon: Bot },
-  { href: "/admin/registry/skills", label: "Skill 레지스트리", icon: Puzzle },
-  { href: "/admin/registry/mcps", label: "MCP 레지스트리", icon: Blocks },
-  { href: "/admin/registry/prototype-catalog", label: "프로토타입 카탈로그", icon: Sparkles },
-  { href: "/admin/registry/prototype-tags", label: "프로토타입 태그", icon: Puzzle },
-  { href: "/admin/roi-standards", label: "ROI 단가/공수", icon: Calculator },
-  { href: "/admin/settings", label: "전역 설정", icon: Blocks },
-  { href: "/admin/recommendations", label: "추천 로그", icon: BarChart3 },
-  { href: "/admin/audit", label: "감사 로그", icon: ScrollText },
+const adminItems: NavItem[] = [
+  { href: "/admin/control-tower", labelKey: "admin.controlTower", icon: Building2 },
+  { href: "/admin/users", labelKey: "admin.users", icon: Shield },
+  { href: "/admin/contracts", labelKey: "admin.contracts", icon: FileText },
+  { href: "/admin/pm", labelKey: "admin.pm", icon: Users },
+  { href: "/admin/registry/agents", labelKey: "admin.agentsRegistry", icon: Bot },
+  { href: "/admin/registry/skills", labelKey: "admin.skillsRegistry", icon: Puzzle },
+  { href: "/admin/registry/mcps", labelKey: "admin.mcpsRegistry", icon: Blocks },
+  { href: "/admin/registry/prototype-catalog", labelKey: "admin.prototypeCatalog", icon: Sparkles },
+  { href: "/admin/registry/prototype-tags", labelKey: "admin.prototypeTags", icon: Puzzle },
+  { href: "/admin/roi-standards", labelKey: "admin.roiStandards", icon: Calculator },
+  { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
+  { href: "/admin/recommendations", labelKey: "admin.recommendations", icon: BarChart3 },
+  { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
 ];
 
-const settingsItems = [
-  { href: "/settings/members", label: "조직 멤버", icon: Users2 },
-  { href: "/settings/anthropic", label: "Anthropic 자격증명", icon: Key },
+const settingsItems: NavItem[] = [
+  { href: "/settings/members", labelKey: "settings.members", icon: Users2 },
+  { href: "/settings/anthropic", labelKey: "settings.anthropic", icon: Key },
 ];
 
 function NavLink({
@@ -105,6 +113,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const [collapsed, setCollapsed] = useState(false);
 
   // 권한 데이터를 로드하여 스토어에 동기화
@@ -128,7 +137,7 @@ export default function DashboardLayout({
 
       {/* 사이드바 */}
       <aside
-        aria-label="메인 네비게이션"
+        aria-label={t("main")}
         className={`relative flex flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] backdrop-blur-sm transition-all duration-300 ${
           collapsed ? "w-[68px]" : "w-64"
         }`}
@@ -151,7 +160,10 @@ export default function DashboardLayout({
             {navItems.map((item) => (
               <NavLink
                 key={item.href}
-                {...item}
+                href={item.href}
+                label={t(item.labelKey)}
+                icon={item.icon}
+                dataTour={item.dataTour}
                 collapsed={collapsed}
                 isActive={pathname.startsWith(item.activePrefix ?? item.href)}
               />
@@ -163,14 +175,16 @@ export default function DashboardLayout({
             <div className="mt-6" data-tour="settings-section">
               {!collapsed && (
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                  설정
+                  {t("sections.settings")}
                 </p>
               )}
               <div className="space-y-1">
                 {settingsItems.map((item) => (
                   <NavLink
                     key={item.href}
-                    {...item}
+                    href={item.href}
+                    label={t(item.labelKey)}
+                    icon={item.icon}
                     collapsed={collapsed}
                     isActive={pathname.startsWith(item.href)}
                   />
@@ -184,14 +198,16 @@ export default function DashboardLayout({
             <div className="mt-6">
               {!collapsed && (
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                  관리
+                  {t("sections.admin")}
                 </p>
               )}
               <div className="space-y-1">
                 {adminItems.map((item) => (
                   <NavLink
                     key={item.href}
-                    {...item}
+                    href={item.href}
+                    label={t(item.labelKey)}
+                    icon={item.icon}
                     collapsed={collapsed}
                     isActive={pathname.startsWith(item.href)}
                   />
@@ -204,7 +220,7 @@ export default function DashboardLayout({
         {/* 접기 토글 */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
           aria-expanded={!collapsed}
           className="m-3 flex items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] py-2 text-[var(--text-muted)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >

@@ -464,11 +464,26 @@
       "checkResults": "Check Results",
       "nextBtn": "Next",
       "categories": {
-        "team": { "label": "Team Capability", "description": "Tell us about your team size and AI experience level" },
-        "process": { "label": "Development Process", "description": "We check your code review and branching strategy" },
-        "tooling": { "label": "Development Tools", "description": "We assess your IDE and test automation level" },
-        "ci": { "label": "CI/CD", "description": "We check your pipeline and deployment frequency" },
-        "ai": { "label": "AI Utilization", "description": "We evaluate your AI tool usage and quality management" }
+        "team": {
+          "label": "Team Capability",
+          "description": "Tell us about your team size and AI experience level"
+        },
+        "process": {
+          "label": "Development Process",
+          "description": "We check your code review and branching strategy"
+        },
+        "tooling": {
+          "label": "Development Tools",
+          "description": "We assess your IDE and test automation level"
+        },
+        "ci": {
+          "label": "CI/CD",
+          "description": "We check your pipeline and deployment frequency"
+        },
+        "ai": {
+          "label": "AI Utilization",
+          "description": "We evaluate your AI tool usage and quality management"
+        }
       }
     },
     "maturityResult": {
@@ -712,5 +727,247 @@
   "guide": {
     "title": "User Guide",
     "subtitle": "Step-by-step guide to using the ClickEye platform."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to manage your AI agents",
+      "registeredSuccess": "Sign-up complete. Please sign in.",
+      "credentialsError": "Incorrect email or password",
+      "orContinueWithEmail": "Or continue with email",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot password?",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "noAccountPrompt": "Don't have an account?",
+      "signupLink": "Sign up"
+    },
+    "register": {
+      "title": "Get started",
+      "subtitle": "Create a free account and experience the power of AI agents",
+      "genericError": "An error occurred during sign-up",
+      "orContinueWithEmail": "Or sign up with email",
+      "emailLabel": "Email",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your display name",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "requirements": {
+        "minLength": "8+ characters",
+        "hasUpper": "Uppercase letter",
+        "hasNumber": "Number"
+      },
+      "termsPrefix": "By signing up, you agree to our",
+      "termsLink": "Terms of Service",
+      "termsConjunction": "and",
+      "privacyLink": "Privacy Policy",
+      "termsSuffix": ".",
+      "submit": "Create account",
+      "submitting": "Signing up...",
+      "hasAccountPrompt": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "layout": {
+      "tabLogin": "Sign in",
+      "tabRegister": "Sign up",
+      "heroTitleLine1": "A new development experience",
+      "heroTitleLine2": "where AI writes the code",
+      "heroDescLine1": "From ticket assignment to code review and PR creation.",
+      "heroDescLine2": "Meet the AI development agent that never sleeps.",
+      "features": {
+        "orchestration": {
+          "title": "AI agent orchestration",
+          "desc": "Claude-powered autonomous development agents"
+        },
+        "security": {
+          "title": "Enterprise security",
+          "desc": "Isolated execution environments and license management"
+        },
+        "automation": {
+          "title": "Automated workflows",
+          "desc": "End-to-end automation from ticket to PR"
+        }
+      },
+      "copyright": "© 2026 ClickEye. All rights reserved."
+    }
+  },
+  "nav": {
+    "main": "Main navigation",
+    "sidebar": {
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
+    },
+    "items": {
+      "newSolution": "New solution",
+      "projects": "Projects",
+      "guide": "Guide"
+    },
+    "sections": {
+      "settings": "Settings",
+      "admin": "Admin"
+    },
+    "settings": {
+      "members": "Organization members",
+      "anthropic": "Anthropic credentials"
+    },
+    "admin": {
+      "controlTower": "Control tower",
+      "users": "User management",
+      "contracts": "Contracts",
+      "pm": "PM management",
+      "agentsRegistry": "Agent registry",
+      "skillsRegistry": "Skill registry",
+      "mcpsRegistry": "MCP registry",
+      "prototypeCatalog": "Prototype catalog",
+      "prototypeTags": "Prototype tags",
+      "roiStandards": "ROI standards",
+      "globalSettings": "Global settings",
+      "recommendations": "Recommendation log",
+      "audit": "Audit log"
+    }
+  },
+  "home": {
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How it works",
+      "platforms": "Platforms",
+      "login": "Sign in",
+      "ctaStart": "Start designing"
+    },
+    "hero": {
+      "badge": "Web-first AI solution builder",
+      "titleLine1": "Design it yourself,",
+      "titleLine2": "start with one ZIP,",
+      "titleLine3": "AI development",
+      "descLine1": "Pick agents, skills, and pipelines in the browser, and we",
+      "descLine2": "generate a project for Claude Code / Gemini CLI / Cursor / Codex automatically.",
+      "primaryCta": "Start designing",
+      "secondaryCta": "See how it works",
+      "wizardSteps": {
+        "company": "Company",
+        "solution": "Solution",
+        "agent": "Agents",
+        "skill": "Skills",
+        "pipeline": "Pipelines",
+        "platform": "Platform",
+        "preview": "Preview"
+      },
+      "agentSelectPrompt": "Pick the AI agents to deploy on your project",
+      "agentRequired": "Required",
+      "recommendationNote": "Recommendations based on your solution type have been applied",
+      "demoAgents": {
+        "harness": "Harness engineer",
+        "backend": "Senior backend",
+        "frontend": "Frontend specialist",
+        "uiux": "UI/UX designer",
+        "devops": "DevOps",
+        "fullstack": "Fullstack"
+      }
+    },
+    "features": {
+      "sectionTitle": "Why ClickEye?",
+      "sectionDescription": "An AI development automation platform — design on the web, ship as a ZIP",
+      "wizard": {
+        "title": "7-Step wizard",
+        "desc": "Design an AI solution in 7 steps in your browser, from company info to platform choice. Start without writing a line of code."
+      },
+      "catalog": {
+        "title": "Auto-recommended catalog",
+        "desc": "Pick a solution type and we recommend agents, skills, and pipelines automatically — including proven pipelines like Harness, TDD, and AI review."
+      },
+      "security": {
+        "title": "BYOK security model",
+        "desc": "API keys live only in the ZIP's .env file. A Zero-Trust design that never stores keys on the server."
+      },
+      "platform": {
+        "title": "Multi-platform support",
+        "desc": "Claude Code, Gemini CLI, Cursor, Codex. Whichever AI coding tool you use, the same wizard generates a project of the same quality."
+      }
+    },
+    "metrics": {
+      "badge": "Real customer metrics",
+      "sectionTitle": "Proven by the numbers",
+      "sectionDescription": "Actual development metrics from teams using ClickEye",
+      "automation": {
+        "label": "Average automation rate",
+        "desc": "87% of subtasks handled by AI"
+      },
+      "review": {
+        "label": "Review acceptance rate",
+        "desc": "Approved on first review without edits"
+      },
+      "speed": {
+        "label": "Faster development",
+        "desc": "3.5x faster than manual on average"
+      }
+    },
+    "howItWorks": {
+      "sectionTitle": "How does it work?",
+      "sectionDescription": "Complete your AI development environment in three steps",
+      "design": {
+        "title": "Design on the web",
+        "desc": "After signing in, use the 7-step wizard to pick company info, solution type, agents, skills, pipelines, and platforms. Recommendations are applied based on your solution type."
+      },
+      "download": {
+        "title": "Download the ZIP",
+        "desc": "Once configured, preview the files and download the project ZIP — including CLAUDE.md, agent guides, .env, and every setting."
+      },
+      "run": {
+        "title": "Run locally",
+        "desc": "Unzip and launch your AI coding tool. claude, gemini, cursor — every tool reads the project guide and starts developing right away."
+      },
+      "terminal": {
+        "loadingClaudeMd": "Reading CLAUDE.md...",
+        "harnessActivated": "Harness engineering 4-stage pipeline activated",
+        "starting": "Starting project development"
+      }
+    },
+    "platforms": {
+      "sectionTitle": "Supported platforms",
+      "sectionDescription": "Whichever AI coding tool you use, ClickEye generates the right setup for it",
+      "claudeCode": {
+        "name": "Claude Code",
+        "desc": "Anthropic terminal AI agent"
+      },
+      "geminiCli": {
+        "name": "Gemini CLI",
+        "desc": "Google terminal AI agent"
+      },
+      "cursor": {
+        "name": "Cursor",
+        "desc": "AI-native IDE"
+      },
+      "codex": {
+        "name": "Codex",
+        "desc": "OpenAI terminal AI agent"
+      }
+    },
+    "earlyAccess": {
+      "sectionTitle": "It's free right now",
+      "sectionDescLine1": "Use every feature for free during the early-access period.",
+      "sectionDescLine2": "All you need is your AI platform's API key.",
+      "planName": "Early Access",
+      "freeBadge": "Free",
+      "features": {
+        "unlimitedWizard": "Unlimited 7-step wizard",
+        "catalog": "All agent & skill catalogs",
+        "platforms": "4 AI platforms supported",
+        "downloads": "Unlimited ZIP downloads"
+      },
+      "cta": "Start free",
+      "byokNote": "BYOK — Bring Your Own Key. We never store API keys on our servers."
+    },
+    "finalCta": {
+      "title": "AI development in 7 steps",
+      "description": "Design in the browser, start with a ZIP. Your API keys stay on your machine.",
+      "button": "Start designing"
+    },
+    "footer": {
+      "copyright": "© 2026 ClickEye. All rights reserved."
+    }
   }
 }

@@ -28,6 +28,7 @@ type LoginFormData = {
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("auth.login");
   const tV = useTranslations("validation");
   const callbackUrl = searchParams.get("callbackUrl") ?? "/projects";
   const registered = searchParams.get("registered");
@@ -61,7 +62,7 @@ function LoginPageInner() {
     });
 
     if (result?.error) {
-      setError("이메일 또는 비밀번호가 올바르지 않습니다");
+      setError(t("credentialsError"));
       return;
     }
 
@@ -73,19 +74,15 @@ function LoginPageInner() {
     <div>
       {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-950">다시 오신 것을 환영해요</h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          계정에 로그인하여 AI 에이전트를 관리하세요
-        </p>
+        <h1 className="text-2xl font-bold text-zinc-950">{t("title")}</h1>
+        <p className="mt-2 text-sm text-zinc-500">{t("subtitle")}</p>
       </div>
 
       {/* 성공 알림 */}
       {registered && (
         <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-          <p className="text-sm text-emerald-700">
-            회원가입이 완료되었습니다. 로그인해주세요.
-          </p>
+          <p className="text-sm text-emerald-700">{t("registeredSuccess")}</p>
         </div>
       )}
 
@@ -120,7 +117,7 @@ function LoginPageInner() {
       {/* 구분선 */}
       <div className="mb-6 flex items-center gap-4">
         <div className="h-px flex-1 bg-zinc-200" />
-        <span className="text-xs text-zinc-400">또는 이메일로 계속</span>
+        <span className="text-xs text-zinc-400">{t("orContinueWithEmail")}</span>
         <div className="h-px flex-1 bg-zinc-200" />
       </div>
 
@@ -129,7 +126,7 @@ function LoginPageInner() {
         {/* 이메일 */}
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
-            이메일
+            {t("emailLabel")}
           </label>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -154,10 +151,10 @@ function LoginPageInner() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
-              비밀번호
+              {t("passwordLabel")}
             </label>
             <button type="button" className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors">
-              비밀번호 찾기
+              {t("forgotPassword")}
             </button>
           </div>
           <div className="relative">
@@ -167,7 +164,7 @@ function LoginPageInner() {
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-11 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
-              placeholder="비밀번호를 입력하세요"
+              placeholder={t("passwordPlaceholder")}
               {...register("password")}
             />
             <button
@@ -193,7 +190,7 @@ function LoginPageInner() {
           disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSubmitting ? "로그인 중..." : "로그인"}
+          {isSubmitting ? t("submitting") : t("submit")}
           {!isSubmitting && (
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           )}
@@ -202,9 +199,9 @@ function LoginPageInner() {
 
       {/* 하단 링크 (모바일) */}
       <p className="mt-8 text-center text-sm text-zinc-500 lg:hidden">
-        계정이 없으신가요?{" "}
+        {t("noAccountPrompt")}{" "}
         <Link href="/register" className="font-medium text-zinc-900 hover:underline transition-colors">
-          회원가입
+          {t("signupLink")}
         </Link>
       </p>
     </div>
