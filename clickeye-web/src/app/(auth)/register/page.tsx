@@ -29,18 +29,22 @@ type RegisterFormData = {
   confirmPassword: string;
 };
 
-const passwordRequirements = [
-  { test: (v: string) => v.length >= 8, label: "8자 이상" },
-  { test: (v: string) => /[A-Z]/.test(v), label: "대문자 포함" },
-  { test: (v: string) => /[0-9]/.test(v), label: "숫자 포함" },
-];
-
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("auth.register");
   const tV = useTranslations("validation");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordRequirements = useMemo(
+    () => [
+      { test: (v: string) => v.length >= 8, label: t("requirements.minLength") },
+      { test: (v: string) => /[A-Z]/.test(v), label: t("requirements.hasUpper") },
+      { test: (v: string) => /[0-9]/.test(v), label: t("requirements.hasNumber") },
+    ],
+    [t],
+  );
 
   const registerSchema = useMemo(
     () =>
@@ -84,7 +88,7 @@ export default function RegisterPage() {
       if (err instanceof ApiClientError) {
         setError(err.detail);
       } else {
-        setError("회원가입 중 오류가 발생했습니다");
+        setError(t("genericError"));
       }
     }
   }
@@ -93,10 +97,8 @@ export default function RegisterPage() {
     <div>
       {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-950">시작하기</h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          무료 계정을 만들고 AI 에이전트의 힘을 경험하세요
-        </p>
+        <h1 className="text-2xl font-bold text-zinc-950">{t("title")}</h1>
+        <p className="mt-2 text-sm text-zinc-500">{t("subtitle")}</p>
       </div>
 
       {/* 에러 알림 */}
@@ -130,7 +132,7 @@ export default function RegisterPage() {
       {/* 구분선 */}
       <div className="mb-6 flex items-center gap-4">
         <div className="h-px flex-1 bg-zinc-200" />
-        <span className="text-xs text-zinc-400">또는 이메일로 가입</span>
+        <span className="text-xs text-zinc-400">{t("orContinueWithEmail")}</span>
         <div className="h-px flex-1 bg-zinc-200" />
       </div>
 
@@ -139,7 +141,7 @@ export default function RegisterPage() {
         {/* 이메일 */}
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
-            이메일
+            {t("emailLabel")}
           </label>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -163,7 +165,7 @@ export default function RegisterPage() {
         {/* 이름 */}
         <div className="space-y-2">
           <label htmlFor="displayName" className="block text-sm font-medium text-zinc-700">
-            이름
+            {t("nameLabel")}
           </label>
           <div className="relative">
             <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -172,7 +174,7 @@ export default function RegisterPage() {
               type="text"
               autoComplete="name"
               className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-4 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
-              placeholder="표시할 이름"
+              placeholder={t("namePlaceholder")}
               {...register("displayName")}
             />
           </div>
@@ -187,7 +189,7 @@ export default function RegisterPage() {
         {/* 비밀번호 */}
         <div className="space-y-2">
           <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
-            비밀번호
+            {t("passwordLabel")}
           </label>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -196,7 +198,7 @@ export default function RegisterPage() {
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
               className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-11 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
-              placeholder="8자 이상의 비밀번호"
+              placeholder={t("passwordPlaceholder")}
               {...register("password")}
             />
             <button
@@ -236,7 +238,7 @@ export default function RegisterPage() {
         {/* 비밀번호 확인 */}
         <div className="space-y-2">
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-700">
-            비밀번호 확인
+            {t("confirmPasswordLabel")}
           </label>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -245,7 +247,7 @@ export default function RegisterPage() {
               type={showConfirmPassword ? "text" : "password"}
               autoComplete="new-password"
               className="w-full rounded-xl border border-zinc-300 bg-white py-3 pl-11 pr-11 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200"
-              placeholder="비밀번호를 다시 입력하세요"
+              placeholder={t("confirmPasswordPlaceholder")}
               {...register("confirmPassword")}
             />
             <button
@@ -267,15 +269,15 @@ export default function RegisterPage() {
 
         {/* 약관 동의 */}
         <p className="text-xs leading-relaxed text-zinc-500">
-          회원가입 시{" "}
+          {t("termsPrefix")}{" "}
           <button type="button" className="underline text-zinc-500 hover:text-zinc-900 transition-colors">
-            서비스 이용약관
+            {t("termsLink")}
           </button>
-          {" "}및{" "}
+          {" "}{t("termsConjunction")}{" "}
           <button type="button" className="underline text-zinc-500 hover:text-zinc-900 transition-colors">
-            개인정보 처리방침
+            {t("privacyLink")}
           </button>
-          에 동의하는 것으로 간주됩니다.
+          {t("termsSuffix")}
         </p>
 
         {/* 가입 버튼 */}
@@ -284,7 +286,7 @@ export default function RegisterPage() {
           disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSubmitting ? "가입 중..." : "계정 만들기"}
+          {isSubmitting ? t("submitting") : t("submit")}
           {!isSubmitting && (
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           )}
@@ -293,9 +295,9 @@ export default function RegisterPage() {
 
       {/* 하단 링크 (모바일) */}
       <p className="mt-8 text-center text-sm text-zinc-500 lg:hidden">
-        이미 계정이 있으신가요?{" "}
+        {t("hasAccountPrompt")}{" "}
         <Link href="/login" className="font-medium text-zinc-900 hover:underline transition-colors">
-          로그인
+          {t("loginLink")}
         </Link>
       </p>
     </div>
