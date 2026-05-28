@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Users, Activity, TrendingUp, DollarSign, Wrench } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -12,8 +13,10 @@ interface EstimatedWeeksBadgeProps {
 }
 
 export function EstimatedWeeksBadge({ min, max }: EstimatedWeeksBadgeProps) {
+  const t = useTranslations("wizard.metricBadges");
   if (min == null && max == null) return null;
-  const text = min === max ? `${min}주` : `${min ?? "?"}~${max ?? "?"}주`;
+  const unit = t("weeksUnit");
+  const text = min === max ? `${min}${unit}` : `${min ?? "?"}~${max ?? "?"}${unit}`;
   return (
     <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
       <Clock className="h-3 w-3" />
@@ -29,8 +32,10 @@ interface TeamSizeBadgeProps {
 }
 
 export function TeamSizeBadge({ min, max, roles }: TeamSizeBadgeProps) {
+  const t = useTranslations("wizard.metricBadges");
   if (min == null && max == null) return null;
-  const size = min === max ? `${min}명` : `${min ?? "?"}~${max ?? "?"}명`;
+  const unit = t("personsUnit");
+  const size = min === max ? `${min}${unit}` : `${min ?? "?"}~${max ?? "?"}${unit}`;
   const roleText = roles && roles.length > 0 ? ` (${roles.join("/")})` : "";
   return (
     <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700">
@@ -63,9 +68,14 @@ interface MaintenanceBadgeProps {
 }
 
 export function MaintenanceBadge({ level }: MaintenanceBadgeProps) {
+  const t = useTranslations("wizard.metricBadges");
   if (!level) return null;
   const label =
-    level === "low" ? "유지보수 낮음" : level === "high" ? "유지보수 높음" : "유지보수 보통";
+    level === "low"
+      ? t("maintenance.low")
+      : level === "high"
+        ? t("maintenance.high")
+        : t("maintenance.medium");
   const color =
     level === "low"
       ? "bg-green-50 text-green-700"

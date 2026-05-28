@@ -385,6 +385,196 @@
       "skills": "Skills",
       "mcpServers": "MCP Servers",
       "hooks": "Hooks"
+    },
+    "metricBadges": {
+      "weeksUnit": "w",
+      "personsUnit": "",
+      "maintenance": {
+        "low": "Low maintenance",
+        "medium": "Medium maintenance",
+        "high": "High maintenance"
+      }
+    },
+    "comparisonTable": {
+      "metric": "Metric",
+      "recommended": "Recommended",
+      "rows": {
+        "architecture": "Architecture",
+        "devDuration": "Dev duration",
+        "teamSize": "Team size",
+        "monthlyCost": "Monthly cost",
+        "complexity": "Complexity (lower is simpler)",
+        "scalability": "Scalability (higher is better)",
+        "maintenance": "Maintenance difficulty",
+        "techStack": "Tech stack",
+        "skillRequirements": "Required skills",
+        "companyFit": "Company fit",
+        "pros": "Pros",
+        "cons": "Cons"
+      },
+      "maintenance": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      }
+    },
+    "prototypeCard": {
+      "recommended": "Recommended",
+      "pros": "Pros",
+      "cons": "Cons",
+      "skillRequirements": "Required skills",
+      "aiMatchNote": "AI analysis text is currently shown in Korean. Backend i18n in progress.",
+      "solutionTypes": {
+        "saas": "SaaS",
+        "restApi": "REST API",
+        "fullstack": "Full-stack Web",
+        "internalTool": "Internal Tool",
+        "mvp": "MVP",
+        "custom": "Custom"
+      },
+      "complexityLabel": "Complexity",
+      "scalabilityLabel": "Scalability"
+    },
+    "step1": {
+      "companyName": {
+        "label": "Company name",
+        "placeholder": "e.g. Acme Corp",
+        "required": "Please enter a company name",
+        "max200": "Must be 200 characters or less"
+      },
+      "companySize": {
+        "label": "Company size",
+        "required": "Please select a company size",
+        "options": {
+          "startup": {
+            "label": "Startup",
+            "sub": "1–10"
+          },
+          "small": {
+            "label": "Small",
+            "sub": "11–50"
+          },
+          "medium": {
+            "label": "Medium",
+            "sub": "51–200"
+          },
+          "midLarge": {
+            "label": "Mid-large",
+            "sub": "201–1,000"
+          },
+          "enterprise": {
+            "label": "Enterprise",
+            "sub": "1,000+"
+          }
+        }
+      },
+      "industry": {
+        "label": "Industry",
+        "required": "Please select an industry",
+        "options": {
+          "it": "IT/Software",
+          "fintech": "Finance/Fintech",
+          "ecommerce": "Ecommerce/Retail",
+          "healthcare": "Healthcare/Medical",
+          "education": "Education/Edutech",
+          "manufacturing": "Manufacturing",
+          "logistics": "Logistics",
+          "marketing": "Marketing/Advertising",
+          "game": "Game/Entertainment",
+          "other": "Other"
+        }
+      },
+      "techStack": {
+        "label": "Tech stack",
+        "optional": "(optional, multiple)",
+        "selectedCount": "{count} selected",
+        "categories": {
+          "language": "Language",
+          "framework": "Framework / Library",
+          "database": "Database",
+          "cloud": "Cloud / Infrastructure"
+        }
+      },
+      "mainProduct": {
+        "label": "Main product/service",
+        "placeholder": "e.g. Enterprise HR platform",
+        "required": "Please describe your main product/service",
+        "max500": "Must be 500 characters or less"
+      },
+      "businessType": {
+        "label": "Business type",
+        "required": "Please select a business type",
+        "options": {
+          "b2b": {
+            "label": "B2B",
+            "description": "Business"
+          },
+          "b2c": {
+            "label": "B2C",
+            "description": "Consumer"
+          },
+          "b2b2c": {
+            "label": "B2B2C",
+            "description": "Hybrid model"
+          },
+          "internal": {
+            "label": "Internal tool",
+            "description": "In-house system"
+          }
+        }
+      },
+      "companyDescription": {
+        "label": "Company description",
+        "optional": "(optional)",
+        "placeholder": "Describe your company background, team structure, tech level, etc.",
+        "max1000": "Must be 1,000 characters or less"
+      },
+      "solutionRequest": {
+        "label": "Describe the solution you need",
+        "hint": "Write freely in natural language. AI will analyze and design the optimal solution.",
+        "placeholder": "e.g. We want to automate our customer data management currently handled in Excel. We need a CRM system for 10 sales team members, ideally integrated with Slack...",
+        "required": "Please enter at least 50 characters",
+        "max2000": "Must be 2,000 characters or less",
+        "minHint": "({remaining} more)"
+      },
+      "autoDecompose": {
+        "title": "ClickEye Auto Analysis",
+        "ariaLabel": "ClickEye Auto Analysis",
+        "description": "When ON, running <code>bash start.sh</code> after download will automatically analyze and decompose solution requirements to generate AI Team review cards. Turn OFF to design manually."
+      }
+    },
+    "step2": {
+      "starting": "Preparing...",
+      "completed": "Prototypes generated!",
+      "generating": "AI is designing solution prototypes",
+      "counterAriaLabel": "{ready} of {total} completed",
+      "progressAriaLabel": "Prototype generation progress",
+      "listAriaLabel": "Prototype generation status",
+      "cardGeneratingAriaLabel": "Generating prototype",
+      "cardReadyAriaLabel": "Prototype \"{name}\" ready",
+      "waitingHint": "This usually takes 30 seconds to 1 minute. Please wait.",
+      "doneHint": "Click the <strong>Next</strong> button below to review the prototypes.",
+      "disabled": {
+        "title": "Live preview unavailable",
+        "description": "The live preview feature is currently disabled.",
+        "contactAdmin": "Please contact an administrator to enable this feature."
+      },
+      "failed": {
+        "title": "Prototype generation failed",
+        "description": "A temporary error occurred. Please try again.",
+        "retry": "Try again"
+      }
+    },
+    "step3": {
+      "empty": {
+        "title": "No prototypes generated",
+        "description": "Please go back and review the information."
+      },
+      "noComparison": "No prototypes to compare.",
+      "aiHint": "AI-analyzed solution candidates. Select the most suitable direction.",
+      "viewCards": "Cards",
+      "viewCompare": "Compare",
+      "listAriaLabel": "Solution prototype list"
     }
   },
   "setupGuide": {
@@ -464,11 +654,26 @@
       "checkResults": "Check Results",
       "nextBtn": "Next",
       "categories": {
-        "team": { "label": "Team Capability", "description": "Tell us about your team size and AI experience level" },
-        "process": { "label": "Development Process", "description": "We check your code review and branching strategy" },
-        "tooling": { "label": "Development Tools", "description": "We assess your IDE and test automation level" },
-        "ci": { "label": "CI/CD", "description": "We check your pipeline and deployment frequency" },
-        "ai": { "label": "AI Utilization", "description": "We evaluate your AI tool usage and quality management" }
+        "team": {
+          "label": "Team Capability",
+          "description": "Tell us about your team size and AI experience level"
+        },
+        "process": {
+          "label": "Development Process",
+          "description": "We check your code review and branching strategy"
+        },
+        "tooling": {
+          "label": "Development Tools",
+          "description": "We assess your IDE and test automation level"
+        },
+        "ci": {
+          "label": "CI/CD",
+          "description": "We check your pipeline and deployment frequency"
+        },
+        "ai": {
+          "label": "AI Utilization",
+          "description": "We evaluate your AI tool usage and quality management"
+        }
       }
     },
     "maturityResult": {

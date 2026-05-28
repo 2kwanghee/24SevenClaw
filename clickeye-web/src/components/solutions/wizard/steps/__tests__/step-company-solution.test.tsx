@@ -11,9 +11,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
+import { NextIntlClientProvider } from "next-intl";
 
 import { StepCompanySolution } from "../step-company-solution";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
+import messages from "../../../../../../messages/ko.json";
 
 /* -- 모킹 -- */
 
@@ -25,7 +27,11 @@ vi.mock("next-auth/react", () => ({
 /* -- 헬퍼 -- */
 
 function renderStep() {
-  return render(<StepCompanySolution />);
+  return render(
+    <NextIntlClientProvider locale="ko" messages={messages}>
+      <StepCompanySolution />
+    </NextIntlClientProvider>,
+  );
 }
 
 /* -- 테스트 -- */
