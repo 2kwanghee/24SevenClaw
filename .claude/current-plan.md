@@ -1,38 +1,21 @@
 ## 목표
-
-온보딩 + 솔루션/프로젝트/설정/가이드 사용자 향 페이지 전부 i18n. Phase 1-E (CE-255).
-하드코딩 한국어 텍스트를 next-intl 키로 치환하여 영문 locale 전환을 지원한다.
+관리자가 카탈로그(agents/skills/mcp_servers/hooks)와 PM 프로필의 영문 필드를 직접 입력/수정할 수 있는 UI 추가.
+미입력 항목에 "번역 미입력" 노란색 배지로 시각적 경고. (CE-258)
 
 ## 변경 파일 목록
-
-- `clickeye-web/messages/en.json`: onboarding.*, solutions.*, projects.*, settings.*, guide.* 키 추가
-- `clickeye-web/messages/ko.json`: 동일 키 한국어 값 추가
-- `src/app/(dashboard)/onboarding/preset/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/onboarding/maturity/page.tsx`: useTranslations 적용
-- `src/components/presets/natural-language-input.tsx`: useTranslations 적용
-- `src/components/onboarding/maturity-questionnaire.tsx`: useTranslations 적용
-- `src/components/onboarding/maturity-result.tsx`: useTranslations 적용
-- `src/app/(dashboard)/solutions/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/solutions/new/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/solutions/[sessionId]/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/projects/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/projects/[projectId]/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/settings/members/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/settings/linear/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/settings/anthropic/page.tsx`: useTranslations 적용
-- `src/app/(dashboard)/guide/page.tsx`: useTranslations 적용
+- `clickeye-web/src/lib/api-client.ts`: RegistryItemResponse/CreateRequest/UpdateRequest, PMProfileResponse/CreateRequest에 `_en` 필드 추가
+- `clickeye-web/src/lib/validations/pm.ts`: PMProfileFormData + Zod schema에 `_en` 필드 추가
+- `clickeye-web/src/components/admin/registry/registry-editor-drawer.tsx`: 한국어/영어 탭 UI + `name_en`, `description_en`, `body_md_en` 입력
+- `clickeye-web/src/components/admin/pm/pm-edit-form.tsx`: 영문 번역 섹션 추가 (`name_en`, `title_en`, `description_en`, `bio_long_en`)
 
 ## 구현 단계
-
-1. messages/en.json + ko.json에 신규 키 묶음 추가
-2. 각 페이지/컴포넌트에 useTranslations 적용
-3. npm run lint && npm run typecheck 검증
+1. api-client.ts — _en 필드 타입 추가
+2. pm.ts — Zod 스키마 + PMProfileFormData _en 필드 추가
+3. registry-editor-drawer.tsx — 한국어/영어 탭 + 번역 미입력 배지
+4. pm-edit-form.tsx — 영문 번역 CollapsibleSection 추가
 
 ## 예상 영향 범위
-
-- 위저드 외 사용자 향 페이지 전부 i18n화
-- DB에서 오는 데이터(가이드 내용, 질문/응답 텍스트 등)는 번역 불가 → 그대로 유지
-- guide 페이지: 페이지 헤더/설명만 번역, 마크다운 콘텐츠는 그대로
-- settings/linear: 가이드 블록 내 한국어도 i18n화
+- 관리자 레지스트리/PM 편집 폼만 변경 (사용자 facing UI 무영향)
+- 기존 한국어 필드 동작 유지, _en 필드만 추가
 
 ## STATUS: APPROVED
