@@ -25,6 +25,7 @@ async def generate_zip(
     catalog_entry: dict[str, Any] | None = None,
     setup_token: str | None = None,
     clickeye_project_id: str | None = None,
+    locale: str = "ko",
 ) -> io.BytesIO:
     """위저드 설정 기반 프로젝트 파일을 ZIP으로 패키징하여 BytesIO로 반환.
 
@@ -50,6 +51,7 @@ async def generate_zip(
             skill_ids=workflow_ids,
             hook_ids=hook_ids,
             mcp_ids=mcp_ids,
+            locale=locale,
         )
 
     clickeye_vars: dict[str, str] | None = None
@@ -93,6 +95,7 @@ async def generate_zip(
         clickeye_vars=clickeye_vars,
         enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
         auth_method=auth_method,
+        locale=locale,
     )
 
     buffer = io.BytesIO()

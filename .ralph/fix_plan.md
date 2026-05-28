@@ -8,35 +8,48 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[frontend] Phase 1-E — 온보딩 + 솔루션/프로젝트/설정/가이드/공개 레지스트리 i18n**
+- [x] **[backend] Phase 3 — 카탈로그/PM 영문 컬럼 + ZIP 영문화**
   > 요청사항: ## 목표
 
-위저드 외 사용자 향 페이지 전부 i18n. 페이지 수는 가장 많지만 페이지당 텍스트 풍부도는 낮음.
+카탈로그(agents/skills/mcp_servers/hooks) + PM 프로필에 영문 컬럼 추가하고, ZIP 생성 시 사용자 locale에 따라 `body_md_ko`/`body_md_en` 선택하여 출력한다.
 
-## 변경 파일 (페이지 기준)
+## 변경 파일
 
-* `/onboarding/preset/*` — natural-language-input 포함 (자연어 분석 입력박스 라벨)
-* `/onboarding/assessment/*` — 성숙도 평가 질문지/응답
-* `/solutions/page.tsx`, `/solutions/[sessionId]/page.tsx`, `/solutions/new/page.tsx`
-* `/projects/*` — 프로젝트 목록/상세
-* `/settings/*` — 사용자 설정 (언어 선택 UI도 본 이슈에 포함)
-* `/guide/*` — 사용자 가이드 페이지
-* `/registry/*` — 공개 레지스트리 (사용자 열람용. `/admin/registry/*`는 제외)
+### 마이그레이션
 
-## 변경 카탈로그
+* `clickeye-api/alembic/versions/040_i18n_catalog_pm.py` (신규):
+  * `agents/skills/mcp_servers/hooks`: + `name_en`, `description_en`, `body_md_en`
+  * `pm_profiles`: + `name_en`, `title_en`, `description_en`, `bio_long_en`
+  * 기존 한국어 컬럼은 보존 (fallback)
 
-* `messages/{ko,en}.json`: `onboarding.*`, `solutions.*`, `projects.*`, `settings.*`, `guide.*`, `registry.*` 키 묶음
+### 모델/스키마
+
+* `clickeye-api/app/models/{pm_profile,registry}.py` (또는 분리 모델 파일들) — `_en` 필드 추가
+* `clickeye-api/app/schemas/{registry,pm_profile}.py` — 응답 직전 `localize(item, locale)` 헬퍼 또는 스키마 분기. `name_en or name` fallback 패턴
+
+### ZIP 생성
+
+* `clickeye-api/app/engine/generator.py` — `render_body(item, locale)` 함수에 locale 매개변수 추가. `body_md_en` 존재 시 사용, 없으면 `body_md` fallback
+* `clickeye-api/app/engine/catalog.py` — `prefetch_for_generator`에 locale 전달
+* `clickeye-api/app/engine/templates/docs/api-keys/*.{ko,en}.md` (분리) — Anthropic/Linear 키 발급 가이드 영문 작성
+
+### 시드 스크립트
+
+* `clickeye-api/scripts/seed_i18n_translations.py` (신규):
+  * 핵심 \~10개 항목 수동 영문 시드 (harness, backend, fullstack, ai-critique, tdd-smart-coding, github, linear, postgres, harness-gate, commit-session)
+  * 멱등 — 재실행 가능
 
 ## 검증
 
-* en locale로 전체 사용자 향 페이지 순회 — 한국어 글자 0건 (Claude 응답 및 DB 시드 한국어 콘텐츠 제외)
-* ko locale에서 기존과 100% 동일
-* `/settings`에서 사용자 언어 변경 토글 (CE-256 백엔드 User.language 필드 연동 준비)
+1. alembic up/down 양방향 무손실 동작
+2. en 사용자가 위저드에서 PM atlas 선택 시 카드 description이 영문 (en 누락 항목은 한국어 fallback)
+3. en 사용자 ZIP 다운로드 → `.claude/agents/backend.md` 본문 영문 (en 입력된 경우)
+4. 영문 미입력 카탈로그는 ko `body_md`가 그대로 사용됨 (부분 한국어 허용)
 
 ## 의존성
 
-* 선행: [CE-254](https://linear.app/flow-ops/issue/CE-254/frontend-phase-1-d-위저드-step-47-i18n) (Phase 1-D 위저드 Step 4\~7)
-* 후속 CE-256이 본 이슈에 의존
+* 선행: [CE-256](https://linear.app/flow-ops/issue/CE-256/backend-phase-2-userlanguage-apperror-claude-locale-분기) (Phase 2 백엔드 다국어 — user.language 필드 필요)
+* 후속 CE-258이 본 이슈에 의존
 
 ---
 
@@ -46,4 +59,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-05-28 | Phase 1-E i18n 적용 | ✅ 완료 | 16개 파일, 946개 라인 추가, 타입체크 통과. /registry/* 는 공개 페이지 없어 skip. settings 언어 토글은 header LocaleToggle로 이미 제공됨(CE-256 연동 준비 완료). |
+| 2026-05-28 | [backend] Phase 3 — 카탈로그/PM 영문 컬럼 + ZIP 영문화 | ✅ | 마이그레이션 040, _en 컬럼, locale 파라미터, EN 가이드, 시드스크립트 |

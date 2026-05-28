@@ -83,6 +83,7 @@ class CatalogPrefetch:
     skills: list[dict[str, Any]] = field(default_factory=list)
     hooks: list[dict[str, Any]] = field(default_factory=list)
     mcps: list[dict[str, Any]] = field(default_factory=list)
+    locale: str = "ko"
 
 
 async def prefetch_for_generator(
@@ -91,6 +92,7 @@ async def prefetch_for_generator(
     skill_ids: list[str],
     hook_ids: list[str] | None = None,
     mcp_ids: list[str] | None = None,
+    locale: str = "ko",
 ) -> CatalogPrefetch:
     """DB에서 카탈로그를 미리 로드하여 sync generate_all 에 주입할 수 있게 반환."""
     svc = get_catalog_service()
@@ -98,7 +100,7 @@ async def prefetch_for_generator(
     skills = await svc.get_skills_by_slugs(db, skill_ids)
     hooks = await svc.get_hooks_by_slugs(db, hook_ids or [])
     mcps = await svc.get_mcps_by_slugs(db, mcp_ids or [])
-    return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks, mcps=mcps)
+    return CatalogPrefetch(agents=agents, skills=skills, hooks=hooks, mcps=mcps, locale=locale)
 
 
 def get_selected_agents(

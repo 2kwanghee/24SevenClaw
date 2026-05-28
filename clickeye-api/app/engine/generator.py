@@ -29,6 +29,14 @@ _GUIDE_FILE_MAP: dict[str, str] = {
     "GEMINI_API_KEY": "gemini-api-key-guide.md",
 }
 
+# 영문 가이드 파일이 존재하는 var 목록 (없으면 기본 .md fallback)
+_GUIDE_FILE_MAP_EN: dict[str, str] = {
+    "ANTHROPIC_API_KEY": "anthropic-api-key-guide.en.md",
+    "LINEAR_API_KEY": "linear-api-key-guide.en.md",
+    "LINEAR_TEAM_ID": "linear-api-key-guide.en.md",
+    "GEMINI_API_KEY": "gemini-api-key-guide.md",
+}
+
 _PLATFORM_COMMANDS_PATH: dict[str, str | None] = {
     "claude-code": ".claude/commands/ClickEyeStart.md",
     "gemini-cli": ".gemini/commands/ClickEyeStart.md",
@@ -82,6 +90,7 @@ def generate_all(
     clickeye_vars: dict[str, str] | None = None,
     enable_auto_decompose: bool = False,
     auth_method: str = "api_key",
+    locale: str = "ko",
 ) -> dict[str, str | bytes]:
     """?ì????¤ì  ê¸°ë° ëª¨ë  ?ì¼???ì±?ì¬ {relativePath: content} ?ì?ë¦¬ë¡?ë°í."""
     stack = find_stack(stack_id)
@@ -101,12 +110,12 @@ def generate_all(
 
     # ?ì´?í¸ ?ì¼ ?ì±
     _generate_agent_files(
-        files, dirs, project_name, project_type, stack, agent_ids, catalog_prefetch
+        files, dirs, project_name, project_type, stack, agent_ids, catalog_prefetch, locale
     )
 
     # ?¤í¬ ?ì¼ ?ì±
     _generate_skill_files(
-        files, dirs, project_name, project_type, stack, workflow_ids, catalog_prefetch
+        files, dirs, project_name, project_type, stack, workflow_ids, catalog_prefetch, locale
     )
 
     # ë£¨í¸ ê°?´ë ?ì± (CLAUDE.md / GEMINI.md ??
@@ -145,8 +154,8 @@ def generate_all(
         _generate_pm_files(files, dirs, platform_id, pm_slug, pm_markdown, catalog_entry)
 
     # 온보딩 docs 및 /ClickEyeStart 커맨드 주입
-    _emit_docs(files)
-    _emit_start_command(files, platform_id, project_name, workflow_ids, catalog_prefetch)
+    _emit_docs(files, locale)
+    _emit_start_command(files, platform_id, project_name, workflow_ids, catalog_prefetch, locale)
     _emit_remove_command(files, platform_id, project_name)
     _emit_setup_guide_pptx(files, project_name, pm_slug or "", workflow_ids, platform_id)
     _emit_first_run_artifacts(
@@ -162,6 +171,15 @@ def generate_all(
     return files
 
 
+def _render_body(item: dict[str, Any], locale: str, ctx: dict[str, Any]) -> str | None:
+    """locale에 맞는 body_md를 선택해 렌더링. en이면 body_md_en → body_md 순서로 fallback."""
+    body = item.get("body_md_en") if locale == "en" else None
+    body = body or item.get("body_md")
+    if body:
+        return _env.from_string(body).render(**ctx)
+    return None
+
+
 def _generate_agent_files(
     files: dict[str, str | bytes],
     dirs: PlatformDirs,
@@ -170,6 +188,7 @@ def _generate_agent_files(
     stack: dict[str, Any] | None,
     agent_ids: list[str],
     catalog_prefetch: CatalogPrefetch | None = None,
+    locale: str = "ko",
 ) -> None:
     """에이전트 .md 파일 생성."""
     agents = get_selected_agents(agent_ids, catalog_prefetch)
@@ -177,15 +196,15 @@ def _generate_agent_files(
         if not agent.get("output_file"):
             continue
         ctx = dict(project_name=project_name, project_type=project_type, stack=stack, agent=agent)
-        if agent.get("body_md"):
-            rendered = _env.from_string(agent["body_md"]).render(**ctx)
-        elif agent.get("template"):
-            try:
-                rendered = _env.get_template(agent["template"]).render(**ctx)
-            except Exception:
+        rendered = _render_body(agent, locale, ctx)
+        if rendered is None:
+            if agent.get("template"):
+                try:
+                    rendered = _env.get_template(agent["template"]).render(**ctx)
+                except Exception:
+                    continue
+            else:
                 continue
-        else:
-            continue
         path = f"{dirs['agent_dir']}/{agent['output_file']}"
         files[path] = rendered
 
@@ -198,6 +217,7 @@ def _generate_skill_files(
     stack: dict[str, Any] | None,
     workflow_ids: list[str],
     catalog_prefetch: CatalogPrefetch | None = None,
+    locale: str = "ko",
 ) -> None:
     """스킬 .md 파일 생성."""
     if not workflow_ids:
@@ -208,15 +228,15 @@ def _generate_skill_files(
         if not skill.get("output_file"):
             continue
         ctx = dict(project_name=project_name, project_type=project_type, stack=stack)
-        if skill.get("body_md"):
-            rendered = _env.from_string(skill["body_md"]).render(**ctx)
-        elif skill.get("template"):
-            try:
-                rendered = _env.get_template(skill["template"]).render(**ctx)
-            except Exception:
+        rendered = _render_body(skill, locale, ctx)
+        if rendered is None:
+            if skill.get("template"):
+                try:
+                    rendered = _env.get_template(skill["template"]).render(**ctx)
+                except Exception:
+                    continue
+            else:
                 continue
-        else:
-            continue
         path = f"{skills_dir}/{skill['output_file']}"
         files[path] = rendered
 
@@ -635,11 +655,24 @@ def _emit_setup_guide_pptx(
         pass  # PPTX 생성 실패 시 ZIP은 정상 반환
 
 
-def _emit_docs(files: dict[str, str | bytes]) -> None:
-    """docs/api-keys/*.md 정적 가이드 문서를 ZIP에 포함."""
+def _emit_docs(files: dict[str, str | bytes], locale: str = "ko") -> None:
+    """docs/api-keys/*.md 정적 가이드 문서를 ZIP에 포함.
+
+    locale이 'en'이면 .en.md 변형이 있는 파일은 해당 버전으로 대체한다.
+    기본 .md 파일은 항상 포함하여 ko 사용자와의 하위 호환을 유지한다.
+    """
     docs_src = TEMPLATES_DIR / "docs" / "api-keys"
     for doc_file in sorted(docs_src.glob("*.md")):
-        files[f"docs/api-keys/{doc_file.name}"] = doc_file.read_text(encoding="utf-8")
+        # .en.md 파일은 별도로 처리되므로 기본 순회에서 건너뜀
+        if doc_file.name.endswith(".en.md"):
+            continue
+        content = doc_file.read_text(encoding="utf-8")
+        # locale=en이면 .en.md 변형이 있는지 확인 후 대체
+        if locale == "en":
+            en_variant = doc_file.with_suffix("").with_suffix(".en.md")
+            if en_variant.exists():
+                content = en_variant.read_text(encoding="utf-8")
+        files[f"docs/api-keys/{doc_file.name}"] = content
 
 
 def _emit_start_command(
@@ -648,18 +681,20 @@ def _emit_start_command(
     project_name: str,
     workflow_ids: list[str],
     catalog_prefetch: CatalogPrefetch | None = None,
+    locale: str = "ko",
 ) -> None:
     """/ClickEyeStart 온보딩 커맨드 파일을 플랫폼별 경로로 생성."""
     output_path = _PLATFORM_COMMANDS_PATH.get(platform_id)
     if output_path is None:
         return
 
+    guide_map = _GUIDE_FILE_MAP_EN if locale == "en" else _GUIDE_FILE_MAP
     env_var_definitions = get_env_var_definitions(workflow_ids, catalog_prefetch)
     required_vars = [
         {
             "name": v["name"],
             "description": v.get("description", ""),
-            "guide_file": _GUIDE_FILE_MAP.get(v["name"], "anthropic-api-key-guide.md"),
+            "guide_file": guide_map.get(v["name"], "anthropic-api-key-guide.md"),
         }
         for v in env_var_definitions
         if v.get("required") and v["name"] != "ANTHROPIC_API_KEY"

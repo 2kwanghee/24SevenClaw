@@ -22,15 +22,19 @@ INDUSTRY_TAG_SLUGS: frozenset[str] = frozenset([
 
 class PMProfileCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+    name_en: str | None = Field(None, max_length=100)
     slug: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
     avatar_url: str | None = Field(None, max_length=500)
     title: str | None = Field(None, max_length=200)
+    title_en: str | None = Field(None, max_length=200)
     description: str | None = None
+    description_en: str | None = None
     domain: str | None = Field(None, max_length=100)
     specialties: list[str] = Field(default_factory=list)
     personality: dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
     bio_long: str | None = None
+    bio_long_en: str | None = None
     years_experience: int | None = Field(None, ge=0, le=50)
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
@@ -41,9 +45,12 @@ class PMProfileCreate(BaseModel):
 
 class PMProfileUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
+    name_en: str | None = Field(None, max_length=100)
     avatar_url: str | None = Field(None, max_length=500)
     title: str | None = Field(None, max_length=200)
+    title_en: str | None = Field(None, max_length=200)
     description: str | None = None
+    description_en: str | None = None
     domain: str | None = Field(None, max_length=100)
     specialties: list[str] | None = None
     personality: dict[str, Any] | None = None
@@ -61,16 +68,20 @@ class PMProfileUpdate(BaseModel):
 class PMProfileResponse(BaseModel):
     id: UUID
     name: str
+    name_en: str | None = None
     slug: str
     avatar_url: str | None
     title: str | None
+    title_en: str | None = None
     description: str | None
+    description_en: str | None = None
     domain: str | None
     specialties: list[str]
     personality: dict[str, Any]
     is_active: bool
     created_at: datetime
     bio_long: str | None = None
+    bio_long_en: str | None = None
     years_experience: int | None = None
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
@@ -88,16 +99,20 @@ class PMProfileWithMetrics(BaseModel):
 
     id: UUID
     name: str
+    name_en: str | None = None
     slug: str
     avatar_url: str | None
     title: str | None
+    title_en: str | None = None
     description: str | None
+    description_en: str | None = None
     domain: str | None
     specialties: list[str]
     personality: dict[str, Any]
     is_active: bool
     created_at: datetime
     bio_long: str | None = None
+    bio_long_en: str | None = None
     years_experience: int | None = None
     preferred_solution_types: list[str] = Field(default_factory=list)
     tech_stack_tags: list[str] = Field(default_factory=list)
