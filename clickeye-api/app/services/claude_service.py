@@ -48,7 +48,7 @@ _ANALYZE_SOLUTION_SYSTEM = (
     "}"
 )
 
-_GENERATE_UI_STRUCTURE_SYSTEM = (
+_GENERATE_UI_STRUCTURE_SYSTEM_KO = (
     "You are a UI/UX architect and tech stack advisor specializing in designing "
     "application structures with diverse technology combinations.\n\n"
     "VARIANT ROLES — each variant MUST be meaningfully different:\n"
@@ -146,9 +146,111 @@ _GENERATE_UI_STRUCTURE_SYSTEM = (
     "}"
 )
 
+_GENERATE_UI_STRUCTURE_SYSTEM_EN = (
+    "Generate ALL text values (architecture_pattern, variant_rationale, pros, cons, "
+    "match_reasoning) in English.\n\n"
+    "You are a UI/UX architect and tech stack advisor specializing in designing "
+    "application structures with diverse technology combinations.\n\n"
+    "VARIANT ROLES — each variant MUST be meaningfully different:\n"
+    "- user_stack_recommended: Use the user's preferred tech stack (from user_tech_stack) as-is. "
+    "Pair with the most standard architecture for that domain. Mark is_recommended=true.\n"
+    "- alternative_stack: Propose a completely DIFFERENT primary tech stack from user_tech_stack. "
+    "MUST NOT reuse the same frontend or backend framework. "
+    "Example: if user chose Next.js+FastAPI, propose Vue.js+Django or Express+React. "
+    "Keep a similar overall architecture pattern. Mark is_recommended=false.\n"
+    "- different_architecture: Use a FUNDAMENTALLY different architectural pattern "
+    "(serverless, microservices, edge-first, BFF, modular monolith, BaaS). "
+    "Choose the best-fit stack for this architecture regardless of user preference. "
+    "Mark is_recommended=false.\n\n"
+    "If user_tech_stack is empty, freely propose three distinct stacks covering: "
+    "(0) a popular mainstream stack, "
+    "(1) a JS-ecosystem alternative, "
+    "(2) a serverless/BaaS approach.\n\n"
+    "COMPANY CONTEXT — adapt recommendations to the company profile:\n"
+    "- company_size 'startup'/'small' → prefer simple stacks, managed services, "
+    "avoid enterprise microservices in Variant 0. "
+    "Variant 0 deployable by a 1-3 person team in 4-8 weeks.\n"
+    "- company_size 'enterprise'/'mid-large' → emphasize auditability, "
+    "role-based access, scalability. Variant 2 may include enterprise MSA.\n"
+    "- industry 'fintech'/'healthcare' → prioritize compliance "
+    "(audit logging, encryption at rest), avoid bleeding-edge stacks.\n"
+    "- industry 'ecommerce' → include search/cart/payment patterns in pages.\n"
+    "- business_type 'internal' → Variant 2 admin-portal/low-cost focused "
+    "(e.g., Retool/Appsmith-like).\n"
+    "- business_type 'b2c' → emphasize mobile-first, performance, "
+    "public-facing patterns.\n\n"
+    "PROS AND CONS: For each variant, list 2-3 concise pros and 1-2 cons "
+    "specific to this stack+architecture combination in the context of the "
+    "given solution AND company profile.\n\n"
+    "QUANTITATIVE METRICS — realistic estimates calibrated to company_size:\n"
+    "- estimated_weeks: development time range (min, max) for MVP.\n"
+    "- team_size: min/max headcount with roles (e.g., ['BE','FE','DevOps']).\n"
+    "- complexity_score (1-10): architectural/operational complexity.\n"
+    "- scalability_score (1-10): user base capacity without redesign.\n"
+    "- monthly_cost_usd: infra cost range (min,max) at MVP scale (~1k DAU).\n"
+    "- maintenance_difficulty: 'low'/'medium'/'high'.\n"
+    "- skill_requirements: 2-5 specific skills the team must have.\n"
+    "- match_reasoning: one English sentence explaining why THIS company "
+    "profile (size+industry+business_type) fits this variant. "
+    "Reference at least one company attribute.\n\n"
+    "IMPORTANT: Always respond with valid JSON only "
+    "— no markdown, no code blocks, no extra text.\n\n"
+    "Return exactly this JSON structure:\n"
+    "{\n"
+    '  "tech_stack_tags": ["<tech 1>", "<tech 2>", "<tech 3>"],\n'
+    '  "architecture_pattern": "<e.g. Monolithic 3-tier>",\n'
+    '  "variant_rationale": "<1-2 sentences>",\n'
+    '  "is_recommended": <true|false>,\n'
+    '  "pros": ["<pro 1>", "<pro 2>", "<pro 3>"],\n'
+    '  "cons": ["<con 1>", "<con 2>"],\n'
+    '  "estimated_weeks": {"min": <int>, "max": <int>},\n'
+    '  "team_size": {"min": <int>, "max": <int>, "roles": ["<role1>", "<role2>"]},\n'
+    '  "complexity_score": <int 1-10>,\n'
+    '  "scalability_score": <int 1-10>,\n'
+    '  "monthly_cost_usd": {"min": <int>, "max": <int>},\n'
+    '  "maintenance_difficulty": "<low|medium|high>",\n'
+    '  "skill_requirements": ["<skill 1>", "<skill 2>"],\n'
+    '  "match_reasoning": "<one English sentence'
+    " — mention at least one of company size, industry, or business type"
+    '>",\n'
+    '  "menu_structure": {\n'
+    '    "nav_type": "<sidebar | topbar | hybrid>",\n'
+    '    "items": [\n'
+    "      {\n"
+    '        "label": "<menu label>",\n'
+    '        "path": "<route path>",\n'
+    '        "icon": "<icon name>",\n'
+    '        "children": []\n'
+    "      }\n"
+    "    ]\n"
+    "  },\n"
+    '  "pages": [\n'
+    "    {\n"
+    '      "name": "<page name>",\n'
+    '      "path": "<route>",\n'
+    '      "layout": "<layout type>",\n'
+    '      "components": ["<component 1>", "<component 2>"]\n'
+    "    }\n"
+    "  ],\n"
+    '  "color_palette": {\n'
+    '    "primary": "<hex color>",\n'
+    '    "secondary": "<hex color>",\n'
+    '    "accent": "<hex color>",\n'
+    '    "background": "<hex color>",\n'
+    '    "surface": "<hex color>",\n'
+    '    "text_primary": "<hex color>"\n'
+    "  },\n"
+    '  "typography": {\n'
+    '    "heading_font": "<font family>",\n'
+    '    "body_font": "<font family>"\n'
+    "  },\n"
+    '  "design_style": "<one of: minimal, corporate, playful, dark, light>"\n'
+    "}"
+)
+
 _DECOMPOSE_TASKS_SYSTEM = (
     "당신은 소프트웨어 프로젝트 오케스트레이터입니다. "
-    "Claude Plan 모드처럼 요구사항을 정밀하게 분석하여 AI 팀이 실행 가능한 서브태스크로 분해합니다.\n\n"
+    "Claude Plan 모드처럼 요구사항을 정밀하게 분석하여 AI 팀이 실행 가능한 서브태스크로 분해합니다.\n\n"  # noqa: E501
     "분석 절차:\n"
     "1. 핵심 도메인과 기술 스택을 식별하세요.\n"
     "2. 구현 단계(setup→core→polish)로 분해하세요.\n"
@@ -218,6 +320,19 @@ _RECOMMEND_PM_SYSTEM = (
 
 # ── 유틸리티 ──────────────────────────────────────────────────────────────────
 
+_SYSTEM_PROMPTS: dict[str, dict[str, str]] = {
+    "generate_ui_structure": {
+        "ko": _GENERATE_UI_STRUCTURE_SYSTEM_KO,
+        "en": _GENERATE_UI_STRUCTURE_SYSTEM_EN,
+    },
+}
+
+
+def _get_system_prompt(name: str, locale: str = "ko") -> str:
+    """프롬프트 이름과 locale로 시스템 프롬프트를 반환한다. 없으면 ko 버전을 사용한다."""
+    prompts = _SYSTEM_PROMPTS.get(name, {})
+    return prompts.get(locale) or prompts.get("ko") or ""
+
 
 def _extract_text(message: Message) -> str:
     """Message의 첫 번째 TextBlock에서 텍스트를 추출한다. 없으면 '{}'을 반환한다."""
@@ -265,7 +380,7 @@ class ClaudeService:
     def _get_client(self) -> anthropic.AsyncAnthropic:
         if not self._api_key:
             raise RuntimeError(
-                "ANTHROPIC_API_KEY가 설정되지 않았습니다. .env 파일에 ANTHROPIC_API_KEY=sk-ant-... 를 추가하세요."
+                "ANTHROPIC_API_KEY가 설정되지 않았습니다. .env 파일에 ANTHROPIC_API_KEY=sk-ant-... 를 추가하세요."  # noqa: E501
             )
         return anthropic.AsyncAnthropic(
             api_key=self._api_key,
@@ -315,6 +430,7 @@ class ClaudeService:
         self,
         prompt: str,
         org_context: dict[str, Any],
+        locale: str = "ko",
     ) -> dict[str, Any]:
         """자연어 솔루션 설명을 구조화된 요구사항 JSON으로 변환한다.
 
@@ -375,6 +491,7 @@ class ClaudeService:
         catalog_references: list[dict[str, Any]] | None = None,
         company_context: dict[str, Any] | None = None,
         avoid_tech_stacks: list[str] | None = None,
+        locale: str = "ko",
     ) -> dict[str, Any]:
         """요구사항 기반 UI 구조 JSON(메뉴, 페이지, 컬러, 스택/아키텍처)을 생성한다.
 
@@ -470,7 +587,7 @@ class ClaudeService:
         message = await client.messages.create(
             model=self._model,
             max_tokens=2048,
-            system=_GENERATE_UI_STRUCTURE_SYSTEM,
+            system=_get_system_prompt("generate_ui_structure", locale),
             messages=[{"role": "user", "content": user_content}],
         )
 
@@ -499,6 +616,7 @@ class ClaudeService:
         requirements: dict[str, Any],
         prototype_style: str,
         pm_catalog: list[dict[str, Any]],
+        locale: str = "ko",
     ) -> dict[str, Any]:
         """요구사항과 프로토타입 스타일에 맞는 PM을 카탈로그에서 추천한다.
 
@@ -506,7 +624,8 @@ class ClaudeService:
         같은 카탈로그 기준 2회 연속 요청 시 입력 토큰 비용 ~90% 절감.
 
         Returns:
-            {recommended_pm_id, match_score, reasoning, key_strengths, potential_gaps, alternatives[]}
+            {recommended_pm_id, match_score, reasoning,
+             key_strengths, potential_gaps, alternatives[]}
         """
         if not pm_catalog:
             return {
@@ -637,7 +756,7 @@ class ClaudeService:
             if depends_on:
                 md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
             if ac_list:
-                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))
+                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))  # noqa: E501
 
             result.append({
                 "assigned_role": str(item.get("assigned_role", item.get("role", "architect"))),

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -15,12 +16,18 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    display_name: str | None = Field(None, min_length=1, max_length=100)
+    language: Literal["ko", "en"] | None = None
+
+
 class UserResponse(BaseModel):
     id: UUID
     email: str
     display_name: str
     avatar_url: str | None
     plan: str
+    language: str = "en"
     created_at: datetime
 
     model_config = {"from_attributes": True}
