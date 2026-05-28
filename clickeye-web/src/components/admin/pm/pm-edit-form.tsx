@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm, Controller, type Resolver } from "react-hook-form";
+import { useForm, Controller, type Resolver, type UseFormRegister, type UseFormWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
@@ -17,6 +17,93 @@ import { CollapsibleSection } from "@/components/admin/markdown/collapsible-sect
 import { PMMarkdownPane } from "@/components/admin/pm/pm-markdown-pane";
 import { TagInput } from "@/components/admin/pm/tag-input";
 import { CompositionPanel } from "@/components/admin/pm/composition-panel";
+
+function TranslationMissingBadge() {
+  return (
+    <span className="ml-1 rounded px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium">
+      번역 미입력
+    </span>
+  );
+}
+
+interface PMEnTranslationSectionProps {
+  register: UseFormRegister<PMProfileFormData>;
+  watch: UseFormWatch<PMProfileFormData>;
+}
+
+function PMEnTranslationSection({ register, watch }: PMEnTranslationSectionProps) {
+  const nameEn = watch("name_en");
+  const titleEn = watch("title_en");
+  const descEn = watch("description_en");
+  const bioEn = watch("bio_long_en");
+  const missingCount = [nameEn, titleEn, descEn, bioEn].filter((v) => !v).length;
+
+  const sectionTitle = (
+    <span className="flex items-center gap-1.5">
+      영문 번역 (i18n)
+      {missingCount > 0 && (
+        <span className="rounded px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium">
+          {missingCount}개 미입력
+        </span>
+      )}
+    </span>
+  );
+
+  return (
+    <CollapsibleSection title={sectionTitle as unknown as string}>
+      <p className="mb-3 text-xs text-[var(--text-muted)]">
+        영문 사용자에게 표시되는 텍스트. 비워두면 한국어 원문 사용.
+      </p>
+      <div className="space-y-3">
+        <div>
+          <label className="flex items-center text-xs text-[var(--text-muted)] mb-1">
+            이름 (name_en)
+            {!nameEn && <TranslationMissingBadge />}
+          </label>
+          <input
+            {...register("name_en")}
+            placeholder="e.g. Full-Stack PM"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="flex items-center text-xs text-[var(--text-muted)] mb-1">
+            직함 (title_en)
+            {!titleEn && <TranslationMissingBadge />}
+          </label>
+          <input
+            {...register("title_en")}
+            placeholder="e.g. Senior Product Manager"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="flex items-center text-xs text-[var(--text-muted)] mb-1">
+            한 줄 설명 (description_en)
+            {!descEn && <TranslationMissingBadge />}
+          </label>
+          <input
+            {...register("description_en")}
+            placeholder="e.g. Specializes in SaaS product strategy"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="flex items-center text-xs text-[var(--text-muted)] mb-1">
+            상세 소개 (bio_long_en)
+            {!bioEn && <TranslationMissingBadge />}
+          </label>
+          <textarea data-gramm="false" data-gramm_editor="false"
+            {...register("bio_long_en")}
+            rows={5}
+            placeholder="e.g. Experienced PM with 8+ years in SaaS..."
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 interface PMEditFormInnerProps {
   profileId: string;
@@ -46,6 +133,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isDirty },
   } = useForm<PMProfileFormData>({
     resolver: zodResolver(pmProfileSchema) as Resolver<PMProfileFormData>,
@@ -65,6 +153,10 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       industry_tags: [],
       preferred_solution_types: [],
       supported_platforms: [],
+      name_en: "",
+      title_en: "",
+      description_en: "",
+      bio_long_en: "",
     },
   });
 
@@ -86,6 +178,10 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
         industry_tags: profile.industry_tags ?? [],
         preferred_solution_types: profile.preferred_solution_types ?? [],
         supported_platforms: profile.supported_platforms ?? [],
+        name_en: profile.name_en ?? "",
+        title_en: profile.title_en ?? "",
+        description_en: profile.description_en ?? "",
+        bio_long_en: profile.bio_long_en ?? "",
       });
     }
   }, [profile, reset]);
@@ -141,6 +237,10 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
       industry_tags: data.industry_tags,
       preferred_solution_types: data.preferred_solution_types,
       supported_platforms: data.supported_platforms,
+      name_en: data.name_en || null,
+      title_en: data.title_en || null,
+      description_en: data.description_en || null,
+      bio_long_en: data.bio_long_en || null,
     };
     updateMutation.mutate(payload);
   };
@@ -326,6 +426,9 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           </p>
         </div>
       </CollapsibleSection>
+
+      {/* 블록 3-b: 영문 번역 */}
+      <PMEnTranslationSection register={register} watch={watch} />
 
       {/* 블록 4: MD 전체 */}
       <PMMarkdownPane

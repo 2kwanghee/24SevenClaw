@@ -956,6 +956,10 @@ export interface PMProfileResponse {
   language: string;
   updated_at: string | null;
   supported_platforms: string[];
+  name_en: string | null;
+  title_en: string | null;
+  description_en: string | null;
+  bio_long_en: string | null;
 }
 
 export interface PMProfileCreateRequest {
@@ -975,6 +979,10 @@ export interface PMProfileCreateRequest {
   industry_tags?: string[];
   language?: string;
   supported_platforms?: string[];
+  name_en?: string | null;
+  title_en?: string | null;
+  description_en?: string | null;
+  bio_long_en?: string | null;
 }
 
 export type PMProfileUpdateRequest = Partial<PMProfileCreateRequest>;
@@ -1260,6 +1268,9 @@ export interface RegistryItemResponse {
   compatible_pm_specialties: string[];
   created_at: string;
   updated_at: string;
+  name_en: string | null;
+  description_en: string | null;
+  body_md_en: string | null;
 }
 
 export interface RegistryItemListResponse {
@@ -1280,6 +1291,9 @@ export interface RegistryItemCreateRequest {
   tags?: string[];
   domains?: string[];
   compatible_pm_specialties?: string[];
+  name_en?: string | null;
+  description_en?: string | null;
+  body_md_en?: string | null;
 }
 
 export interface RegistryItemUpdateRequest {
@@ -1294,6 +1308,9 @@ export interface RegistryItemUpdateRequest {
   tags?: string[];
   domains?: string[];
   compatible_pm_specialties?: string[];
+  name_en?: string | null;
+  description_en?: string | null;
+  body_md_en?: string | null;
 }
 
 export interface RegistryListParams {

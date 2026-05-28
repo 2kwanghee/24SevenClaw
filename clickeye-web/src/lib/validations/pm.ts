@@ -25,6 +25,10 @@ export function createPmProfileSchema(t: ValidationT) {
     industry_tags: z.array(z.string()),
     preferred_solution_types: z.array(z.string()),
     supported_platforms: z.array(z.string()),
+    name_en: z.string().optional(),
+    title_en: z.string().optional(),
+    description_en: z.string().optional(),
+    bio_long_en: z.string().optional(),
   });
 }
 
@@ -44,4 +48,8 @@ export type PMProfileFormData = {
   industry_tags: string[];
   preferred_solution_types: string[];
   supported_platforms: string[];
+  name_en?: string;
+  title_en?: string;
+  description_en?: string;
+  bio_long_en?: string;
 };
