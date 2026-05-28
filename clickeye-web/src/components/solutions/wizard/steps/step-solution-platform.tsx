@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Terminal, Zap, Code2, Cpu } from "lucide-react";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
@@ -9,38 +10,32 @@ const PLATFORM_OPTIONS = [
   {
     id: "claude-code",
     label: "Claude Code",
-    description: "Anthropic Claude 기반 AI 코딩 에이전트",
     icon: Terminal,
-    badge: "추천",
     available: true,
   },
   {
     id: "gemini-cli",
     label: "Gemini CLI",
-    description: "Google Gemini 기반 CLI 에이전트",
     icon: Zap,
-    badge: "Coming soon",
     available: false,
   },
   {
     id: "cursor",
     label: "Cursor",
-    description: "AI-first 코드 에디터",
     icon: Code2,
-    badge: "Coming soon",
     available: false,
   },
   {
     id: "codex",
     label: "Codex",
-    description: "OpenAI Codex 기반 에이전트",
     icon: Cpu,
-    badge: "Coming soon",
     available: false,
   },
 ] as const;
 
 export function StepSolutionPlatform() {
+  const t = useTranslations("wizard.step5.platform");
+
   const platformId = useSolutionWizardStore((s) => s.data.platform.platformId);
   const setPlatform = useSolutionWizardStore((s) => s.setPlatform);
   const pmSupportedPlatforms = useSolutionWizardStore(
@@ -48,6 +43,15 @@ export function StepSolutionPlatform() {
   );
 
   const hasPmFilter = pmSupportedPlatforms.length > 0;
+
+  const platformDescriptions: Record<string, string> = {
+    "claude-code": t("claudeCodeDesc"),
+    "gemini-cli": t("geminiCliDesc"),
+    "cursor": t("cursorDesc"),
+    "codex": t("codexDesc"),
+  };
+  const recommendedLabel = t("recommended");
+  const comingSoonLabel = t("comingSoon");
 
   useEffect(() => {
     if (hasPmFilter) {
@@ -71,9 +75,7 @@ export function StepSolutionPlatform() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-zinc-500">
-        생성된 솔루션을 실행할 Agent 플랫폼을 선택하세요.
-      </p>
+      <p className="text-xs text-zinc-500">{t("description")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {PLATFORM_OPTIONS.map((opt) => {
           const Icon = opt.icon;
@@ -83,10 +85,14 @@ export function StepSolutionPlatform() {
           const isAvailable = opt.available && isPmSupported;
           const showPmUnsupported = hasPmFilter && !isPmSupported;
 
-          const badgeText = showPmUnsupported ? "PM 미지원" : opt.badge;
+          const badgeText = showPmUnsupported
+            ? t("notSupportedByPm")
+            : opt.id === "claude-code"
+              ? recommendedLabel
+              : comingSoonLabel;
           const badgeClass = showPmUnsupported
             ? "bg-amber-100 text-amber-600"
-            : opt.badge === "추천"
+            : opt.id === "claude-code"
               ? "bg-emerald-100 text-emerald-600"
               : "bg-zinc-100 text-zinc-500";
 
@@ -120,16 +126,14 @@ export function StepSolutionPlatform() {
                   {opt.label}
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
-                  {opt.description}
+                  {platformDescriptions[opt.id] ?? ""}
                 </p>
               </div>
             </button>
           );
         })}
       </div>
-      <p className="text-[11px] text-zinc-500">
-        Gemini CLI · Cursor · Codex 지원은 추후 업데이트에서 제공될 예정입니다.
-      </p>
+      <p className="text-[11px] text-zinc-500">{t("comingSoonNote")}</p>
     </div>
   );
 }

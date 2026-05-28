@@ -26,6 +26,7 @@ import {
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
@@ -42,39 +43,6 @@ import { IntegrationValidationBadge } from "../integration-validation-badge";
 import { useCatalogSkills, useCatalogHooks } from "@/hooks/use-catalog";
 import { usePMComposition } from "@/hooks/use-pm-profiles";
 import { collectEnvVars } from "@/lib/catalog-helpers";
-
-// ---------------------------------------------------------------------------
-// 레이블 맵
-// ---------------------------------------------------------------------------
-
-const BUSINESS_TYPE_LABELS: Record<string, string> = {
-  b2b: "B2B",
-  b2c: "B2C",
-  b2b2c: "B2B2C",
-  internal: "내부 도구",
-};
-
-const INDUSTRY_LABELS: Record<string, string> = {
-  it: "IT/소프트웨어",
-  fintech: "핀테크/금융",
-  ecommerce: "이커머스",
-  healthcare: "헬스케어",
-  education: "교육",
-  manufacturing: "제조",
-  logistics: "물류",
-  marketing: "마케팅",
-  game: "게임",
-  other: "기타",
-};
-
-const SOLUTION_TYPE_LABELS: Record<string, string> = {
-  saas: "SaaS",
-  "rest-api": "REST API",
-  fullstack: "풀스택",
-  "internal-tool": "내부 도구",
-  mvp: "MVP",
-  custom: "커스텀",
-};
 
 // ---------------------------------------------------------------------------
 // 하위 컴포넌트
@@ -97,16 +65,17 @@ function SummaryRow({ label, value }: SummaryRowProps) {
 interface ReSelectorProps {
   stepIndex: number;
   label: string;
+  ariaLabel: string;
 }
 
-function ReSelector({ stepIndex, label }: ReSelectorProps) {
+function ReSelector({ stepIndex, label, ariaLabel }: ReSelectorProps) {
   const goToStep = useSolutionWizardStore((s) => s.goToStep);
   return (
     <button
       type="button"
       onClick={() => goToStep(stepIndex)}
       className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
-      aria-label={`${label} 단계로 이동`}
+      aria-label={ariaLabel}
     >
       <ArrowLeft className="h-3 w-3" aria-hidden="true" />
       {label}
@@ -161,6 +130,7 @@ interface StepItem {
 }
 
 function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
+  const t = useTranslations("setupGuide");
   const isWsl = osId === "wsl2" || osId === null;
   const data = useSolutionWizardStore((s) => s.data);
   const { selectedSkills, selectedHooks } = data.agents;
@@ -176,40 +146,32 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
   );
   const guideGroups = envGroups.filter((g) => g.vars.length > 0);
 
-  const COMMON_STEPS: StepItem[] = [
+  const commonSteps: StepItem[] = [
     {
       icon: Download,
-      label: "ZIP 다운로드",
-      desc: '프로젝트 페이지에서 "ZIP 다운로드" 버튼 클릭',
-      link: { href: `/projects/${projectId}`, label: "프로젝트 페이지 열기" },
+      label: t("step1Label"),
+      desc: t("step1Desc"),
+      link: { href: `/projects/${projectId}`, label: t("step1Link") },
     },
     {
       icon: FolderOpen,
-      label: "압축 해제",
-      desc: isWsl
-        ? "WSL2 Ubuntu 터미널에서 원하는 폴더에 압축 해제합니다"
-        : "원하는 폴더에 ZIP 파일을 압축 해제합니다",
-      command: isWsl
-        ? "unzip <project>.zip -d ~/projects/my-project && cd ~/projects/my-project"
-        : "unzip <project>.zip -d my-project && cd my-project",
-      ...(isWsl
-        ? { note: "Windows 탐색기에서 ZIP 더블클릭 대신 WSL 터미널에서 실행하세요" }
-        : {}),
+      label: t("step2Label"),
+      desc: isWsl ? t("step2DescWsl") : t("step2Desc"),
+      command: isWsl ? t("step2CommandWsl") : t("step2Command"),
+      ...(isWsl ? { note: t("step2NoteWsl") } : {}),
     },
     {
       icon: Terminal,
-      label: "런처 스크립트 실행",
-      desc: "환경 점검·서비스 기동 후 자동 종료됩니다. 터미널을 닫아도 파이프라인이 계속 실행됩니다.",
-      command: "bash start.sh",
+      label: t("step3Label"),
+      desc: t("step3Desc"),
+      command: t("step3Command"),
     },
     {
       icon: ShieldCheck,
-      label: isWsl ? "서비스 영구 등록 (권장)" : "셋업 완료 확인",
-      desc: isWsl
-        ? "WSL2 종료·재시작 후에도 서비스가 자동 복구됩니다. systemd 사용자 서비스로 등록합니다."
-        : "ClickEye 웹 AI Team에서 태스크를 등록하면 로컬 파이프라인이 자동으로 실행됩니다.",
-      ...(isWsl ? { command: "bash scripts/install-service.sh" } : {}),
-      ...(isWsl ? { note: "선택사항이지만 안정적인 운영을 위해 권장합니다" } : {}),
+      label: isWsl ? t("step4LabelWsl") : t("step4Label"),
+      desc: isWsl ? t("step4DescWsl") : t("step4Desc"),
+      ...(isWsl ? { command: t("step4CommandWsl") } : {}),
+      ...(isWsl ? { note: t("step4NoteWsl") } : {}),
     },
   ];
 
@@ -235,16 +197,16 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
               id="guide-modal-title"
               className="text-lg font-bold text-zinc-950"
             >
-              솔루션이 생성되었습니다!
+              {t("title")}
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              아래 절차로 로컬 개발 환경을 셋업하세요
+              {t("subtitle")}
             </p>
           </div>
 
           {/* 공통 단계별 가이드 */}
-          <ol className="mb-5 space-y-3" aria-label="셋업 절차">
-            {COMMON_STEPS.map((step, i) => {
+          <ol className="mb-5 space-y-3" aria-label={t("stepsAriaLabel")}>
+            {commonSteps.map((step, i) => {
               const Icon = step.icon;
               return (
                 <li key={step.label} className="flex items-start gap-3">
@@ -291,7 +253,7 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
           {guideGroups.length > 0 && (
             <div className="mb-5 space-y-3">
               <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                연동 설정 가이드
+                {t("integrationsTitle")}
               </p>
               {guideGroups.map((group) => (
                 <div
@@ -348,35 +310,24 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
           {/* 셋업 완료 후 워크플로 */}
           <div className="mb-5 space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-              셋업 완료 후 워크플로
+              {t("workflowTitle")}
             </p>
             <div className="space-y-1 text-[11px] text-zinc-500">
-              <p>
-                ①{" "}
-                <code className="text-emerald-600">bash start.sh</code> → 환경
-                점검·서비스 백그라운드 기동 후 자동 종료
-              </p>
+              <p>① {t("workflowDesc1")}</p>
               {isWsl && (
-                <p>
-                  ②{" "}
-                  <code className="text-emerald-600">
-                    bash scripts/install-service.sh
-                  </code>{" "}
-                  → systemd 서비스 등록 (WSL2 재시작 후 자동 복구)
-                </p>
+                <p>② {t("workflowDesc2Wsl")}</p>
               )}
               <p>
-                {isWsl ? "③" : "②"} ClickEye 웹 → AI Team → 태스크 승인
-                (Todo)
+                {isWsl ? "③" : "②"}{" "}
+                {isWsl ? t("workflowDesc3Wsl") : t("workflowDesc3")}
               </p>
               <p>
-                {isWsl ? "④" : "③"} 로컬 파이프라인이 자동으로 Claude를
-                호출해 코드를 작성합니다
+                {isWsl ? "④" : "③"}{" "}
+                {isWsl ? t("workflowDesc4Wsl") : t("workflowDesc4")}
               </p>
             </div>
             <p className="mt-2 border-t border-emerald-100 pt-2 text-[11px] text-zinc-500">
-              팀 공유용 슬라이드 가이드: ZIP 내{" "}
-              <code className="text-zinc-500">docs/setup-guide.pptx</code>
+              {t("workflowSlide")}
             </p>
           </div>
 
@@ -385,10 +336,10 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
             href={`/projects/${projectId}`}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/10 transition-colors hover:bg-zinc-800"
           >
-            프로젝트 페이지로 이동
+            {t("goToProjectBtn")}
           </Link>
           <p className="mt-2 text-center text-[11px] text-zinc-500">
-            프로젝트 페이지에서 ZIP 다운로드 및 연동 상태를 확인할 수 있습니다
+            {t("projectPageHint")}
           </p>
         </div>
       </div>
@@ -403,6 +354,40 @@ function SetupGuideModal({ projectId, osId }: SetupGuideModalProps) {
 export function StepConfirmation() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("wizard.step7.confirmation");
+
+  // ---------------------------------------------------------------------------
+  // 레이블 맵 (i18n)
+  // ---------------------------------------------------------------------------
+
+  const BUSINESS_TYPE_LABELS: Record<string, string> = {
+    b2b: "B2B",
+    b2c: "B2C",
+    b2b2c: "B2B2C",
+    internal: t("businessTypeInternal"),
+  };
+
+  const INDUSTRY_LABELS: Record<string, string> = {
+    it: t("industryIt"),
+    fintech: t("industryFintech"),
+    ecommerce: t("industryEcommerce"),
+    healthcare: t("industryHealthcare"),
+    education: t("industryEducation"),
+    manufacturing: t("industryManufacturing"),
+    logistics: t("industryLogistics"),
+    marketing: t("industryMarketing"),
+    game: t("industryGame"),
+    other: t("industryOther"),
+  };
+
+  const SOLUTION_TYPE_LABELS: Record<string, string> = {
+    saas: "SaaS",
+    "rest-api": "REST API",
+    fullstack: t("solutionTypeFullstack"),
+    "internal-tool": t("solutionTypeInternalTool"),
+    mvp: "MVP",
+    custom: t("solutionTypeCustom"),
+  };
 
   const createdProjectId = useSolutionWizardStore((s) => s.createdProjectId);
   const data = useSolutionWizardStore((s) => s.data);
@@ -411,7 +396,7 @@ export function StepConfirmation() {
   const setEnvValidation = useSolutionWizardStore((s) => s.setEnvValidation);
   const { company, prototypes, pm, roi, env } = data;
   const authMethodLabel =
-    env.authMethod === "oauth_browser" ? "OAuth 브라우저 로그인" : "API 키";
+    env.authMethod === "oauth_browser" ? t("authOAuth") : t("authApiKey");
 
   const deferredEnvVars = env.deferredEnvVars ?? [];
   const pendingDeferred = deferredEnvVars.filter((k) => !env.envVars[k]?.trim());
@@ -426,6 +411,7 @@ export function StepConfirmation() {
   const envVarsRef = env.envVars;
   const linearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const validatingMsg = t("validating");
 
   const triggerLinearValidation = useCallback(
     (apiKey: string, teamId: string) => {
@@ -439,7 +425,7 @@ export function StepConfirmation() {
         setEnvValidation({ linearStatus: "invalid", linearMessage: check.message });
         return;
       }
-      setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
+      setEnvValidation({ linearStatus: "loading", linearMessage: validatingMsg });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -459,7 +445,7 @@ export function StepConfirmation() {
         }
       }, DEBOUNCE_MS);
     },
-    [token, setEnvValidation],
+    [token, setEnvValidation, validatingMsg],
   );
 
   const triggerNotionValidation = useCallback(
@@ -474,7 +460,7 @@ export function StepConfirmation() {
         setEnvValidation({ notionStatus: "invalid", notionMessage: check.message });
         return;
       }
-      setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
+      setEnvValidation({ notionStatus: "loading", notionMessage: validatingMsg });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -494,7 +480,7 @@ export function StepConfirmation() {
         }
       }, DEBOUNCE_MS);
     },
-    [token, setEnvValidation],
+    [token, setEnvValidation, validatingMsg],
   );
 
   useEffect(() => {
@@ -549,32 +535,38 @@ export function StepConfirmation() {
     );
   }
 
+  const notSet = t("notSet");
+
   return (
-    <div className="space-y-4" role="region" aria-label="최종 확인">
+    <div className="space-y-4" role="region" aria-label={t("regionLabel")}>
       {/* -- 회사 정보 -- */}
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <Building2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            회사 정보
+            {t("sectionCompany")}
           </h3>
-          <ReSelector stepIndex={0} label="재설정" />
+          <ReSelector
+            stepIndex={0}
+            label={t("reconfigBtn")}
+            ariaLabel={t("stepNavAriaLabel", { label: t("reconfigBtn") })}
+          />
         </div>
         <div className="space-y-2">
-          <SummaryRow label="회사명" value={company.companyName || "미설정"} />
+          <SummaryRow label={t("companyName")} value={company.companyName || notSet} />
           <SummaryRow
-            label="업종"
-            value={INDUSTRY_LABELS[company.industry ?? ""] ?? "미설정"}
+            label={t("industry")}
+            value={INDUSTRY_LABELS[company.industry ?? ""] ?? notSet}
           />
           <SummaryRow
-            label="비즈니스 유형"
-            value={BUSINESS_TYPE_LABELS[company.businessType ?? ""] ?? "미설정"}
+            label={t("businessType")}
+            value={BUSINESS_TYPE_LABELS[company.businessType ?? ""] ?? notSet}
           />
           <SummaryRow
-            label="주력 제품"
-            value={company.mainProduct || "미설정"}
+            label={t("mainProduct")}
+            value={company.mainProduct || notSet}
           />
-          <SummaryRow label="Claude 인증 방식" value={authMethodLabel} />
+          <SummaryRow label={t("authMethod")} value={authMethodLabel} />
           {company.solutionRequest && (
             <div className="mt-2 rounded-lg bg-zinc-50 p-3">
               <p className="text-xs leading-relaxed text-zinc-500">
@@ -592,9 +584,13 @@ export function StepConfirmation() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <Cpu className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            솔루션 프로토타입
+            {t("sectionPrototype")}
           </h3>
-          <ReSelector stepIndex={1} label="재선택" />
+          <ReSelector
+            stepIndex={1}
+            label={t("reselectBtn")}
+            ariaLabel={t("stepNavAriaLabel", { label: t("reselectBtn") })}
+          />
         </div>
         {selectedProto ? (
           <div className="space-y-3">
@@ -621,7 +617,7 @@ export function StepConfirmation() {
             />
           </div>
         ) : (
-          <p className="text-xs text-zinc-500">선택된 프로토타입 없음</p>
+          <p className="text-xs text-zinc-500">{t("noPrototype")}</p>
         )}
       </div>
 
@@ -630,9 +626,13 @@ export function StepConfirmation() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <UserCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            프로젝트 매니저
+            {t("sectionPm")}
           </h3>
-          <ReSelector stepIndex={2} label="재선택" />
+          <ReSelector
+            stepIndex={2}
+            label={t("reselectBtn")}
+            ariaLabel={t("stepNavAriaLabel", { label: t("reselectBtn") })}
+          />
         </div>
 
         {pmProfile ? (
@@ -667,33 +667,33 @@ export function StepConfirmation() {
             {compositionCounts && (
               <div>
                 <p className="mb-2 text-[11px] font-medium text-zinc-500">
-                  PM 구성 요소
+                  {t("pmCompositionTitle")}
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   <CompositionCountBadge
                     icon={Bot}
-                    label="에이전트"
+                    label={t("compositionAgents")}
                     count={compositionCounts.agents}
                     color="text-emerald-600"
                     bg="bg-emerald-50"
                   />
                   <CompositionCountBadge
                     icon={Wrench}
-                    label="스킬"
+                    label={t("compositionSkills")}
                     count={compositionCounts.skills}
                     color="text-sky-400"
                     bg="bg-sky-500/10"
                   />
                   <CompositionCountBadge
                     icon={Server}
-                    label="MCP"
+                    label={t("compositionMcp")}
                     count={compositionCounts.mcp_servers}
                     color="text-amber-400"
                     bg="bg-amber-500/10"
                   />
                   <CompositionCountBadge
                     icon={Webhook}
-                    label="Hook"
+                    label={t("compositionHooks")}
                     count={compositionCounts.hooks}
                     color="text-violet-400"
                     bg="bg-violet-500/10"
@@ -703,9 +703,9 @@ export function StepConfirmation() {
             )}
           </div>
         ) : pm.selectedPmProfileId ? (
-          <p className="text-xs text-zinc-500">PM 정보 로딩 중...</p>
+          <p className="text-xs text-zinc-500">{t("pmLoading")}</p>
         ) : (
-          <p className="text-xs text-zinc-500">선택된 PM 없음</p>
+          <p className="text-xs text-zinc-500">{t("noPm")}</p>
         )}
       </div>
 
@@ -715,29 +715,33 @@ export function StepConfirmation() {
           <div className="mb-3 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-medium text-emerald-700">
               <TrendingDown className="h-4 w-4" aria-hidden="true" />
-              ROI 비교 요약
+              {t("sectionRoi")}
             </h3>
-            <ReSelector stepIndex={10} label="재계산" />
+            <ReSelector
+              stepIndex={10}
+              label={t("recalcBtn")}
+              ariaLabel={t("stepNavAriaLabel", { label: t("recalcBtn") })}
+            />
           </div>
           <div className="space-y-2">
             <SummaryRow
-              label="기존 인력 비용"
+              label={t("baselineCost")}
               value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.baselineCost)}
             />
             <SummaryRow
-              label="ClickEye 도입 비용"
+              label={t("clickeyeCost")}
               value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.clickeyeCost)}
             />
             <SummaryRow
-              label="예상 절감액"
+              label={t("savingsAmount")}
               value={new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(roi.result.savings)}
             />
             <SummaryRow
-              label="절감률"
+              label={t("savingsRate")}
               value={`${Math.round(roi.result.savingsRatio * 100)}%`}
             />
           </div>
-          <p className="mt-3 text-[10px] text-emerald-600/70">공식 버전: {roi.result.formulaVersion}</p>
+          <p className="mt-3 text-[10px] text-emerald-600/70">{t("formulaVersion")} {roi.result.formulaVersion}</p>
         </div>
       )}
 
@@ -746,11 +750,10 @@ export function StepConfirmation() {
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-amber-600">
             <Clock className="h-4 w-4" aria-hidden="true" />
-            미입력 API 키 ({pendingDeferred.length}개)
+            {t("deferredTitle", { count: pendingDeferred.length })}
           </h3>
           <p className="mb-3 text-xs text-zinc-500">
-            나중에 입력하기로 한 키입니다. 지금 입력하거나 프로젝트 생성 후{" "}
-            <code className="text-amber-400">.env</code> 파일을 직접 수정할 수 있습니다.
+            {t("deferredDesc")}
           </p>
           <div className="space-y-2">
             {pendingDeferred.map((key) => (
@@ -765,7 +768,7 @@ export function StepConfirmation() {
                     const sanitized = sanitizeIntegrationInput(e.target.value);
                     setDraftDeferred((prev) => ({ ...prev, [key]: sanitized }));
                   }}
-                  placeholder="값 입력 (영문·숫자)"
+                  placeholder={t("deferredPlaceholder")}
                   className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs placeholder-zinc-400 outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20"
                 />
                 <button
@@ -786,7 +789,7 @@ export function StepConfirmation() {
                   disabled={!draftDeferred[key]?.trim()}
                   className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  저장
+                  {t("deferredSaveBtn")}
                 </button>
               </div>
             ))}
@@ -821,10 +824,10 @@ export function StepConfirmation() {
           aria-hidden="true"
         />
         <p className="text-sm font-medium text-zinc-950">
-          모든 설정을 확인했습니다
+          {t("allConfirmed")}
         </p>
         <p className="mt-1 text-xs text-zinc-500">
-          &ldquo;이대로 진행&rdquo; 버튼을 클릭하면 프로젝트가 생성됩니다
+          {t("proceedHint")}
         </p>
       </div>
     </div>

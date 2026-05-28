@@ -3,6 +3,7 @@
 import { Loader2, UserCircle2, Info, CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import {
@@ -13,6 +14,8 @@ import {
 import { PMProfileCard } from "../pm-profile-card";
 import { PMCompositionView } from "../pm-composition-view";
 
+const LOADING_STEP_COUNT = 3;
+
 /** 추천 목록의 각 항목 (프로필 + 지표 + 추천 정보) */
 interface PMListItem {
   profile: PMProfileResponse;
@@ -21,15 +24,11 @@ interface PMListItem {
   reasoning?: string | null;
 }
 
-const LOADING_STEPS = [
-  "프로토타입 요구사항 분석 중...",
-  "PM 프로필 매칭 중...",
-  "최적 PM 선정 완료 중...",
-] as const;
-
 export function StepPMSelect() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("wizard.step4.pmSelect");
+  const loadingSteps = [t("loadingStep1"), t("loadingStep2"), t("loadingStep3")];
 
   const selectedPrototypeId = useSolutionWizardStore(
     (s) => s.data.prototypes.selectedPrototypeId,
@@ -50,7 +49,7 @@ export function StepPMSelect() {
     if (!isLoading) return;
     const timer = setInterval(() => {
       setLoadingStep((prev) =>
-        prev < LOADING_STEPS.length - 1 ? prev + 1 : prev,
+        prev < LOADING_STEP_COUNT - 1 ? prev + 1 : prev,
       );
     }, 900);
     return () => clearInterval(timer);
@@ -128,13 +127,13 @@ export function StepPMSelect() {
           </div>
         </div>
         <p className="mb-1 text-sm font-semibold text-zinc-950">
-          PM 추천 분석 중...
+          {t("loadingTitle")}
         </p>
         <p className="mb-8 text-xs text-zinc-500">
-          프로토타입에 최적화된 PM 프로필을 탐색하고 있습니다
+          {t("loadingDesc")}
         </p>
         <div className="w-full max-w-xs space-y-3">
-          {LOADING_STEPS.map((label, idx) => (
+          {loadingSteps.map((label, idx) => (
             <div
               key={label}
               className={`flex items-center gap-2.5 text-sm transition-all duration-300 ${
@@ -166,7 +165,7 @@ export function StepPMSelect() {
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <UserCircle2 className="h-10 w-10 text-zinc-500" />
         <p className="mt-4 text-sm text-zinc-500">
-          추천 가능한 PM 프로필이 없습니다
+          {t("emptyState")}
         </p>
       </div>
     );
@@ -180,8 +179,7 @@ export function StepPMSelect() {
         <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
           <p className="text-xs text-zinc-500">
-            선택한 프로토타입 기반으로 AI가 최적의 PM을 추천했습니다. 일치율이
-            높을수록 프로젝트 성공 가능성이 높습니다.
+            {t("recommendBanner")}
           </p>
         </div>
       )}
@@ -206,7 +204,7 @@ export function StepPMSelect() {
         <div className="animate-fade-in-up space-y-3">
           <div className="flex items-center gap-2 text-xs text-emerald-600">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>선택한 PM의 구성 요소</span>
+            <span>{t("compositionLabel")}</span>
           </div>
           <PMCompositionView profile={selectedItem.profile} />
         </div>

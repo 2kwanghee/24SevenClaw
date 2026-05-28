@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Clock, ExternalLink, KeyRound, Plus, Trash2, ShieldCheck, CheckCircle2, XCircle, Wifi } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -60,6 +61,7 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
   const [draft, setDraft] = useState(value);
   const [sanitizedDropped, setSanitizedDropped] = useState(false);
   const isSet = value.trim().length > 0;
+  const tEnv = useTranslations("wizard.step6.env");
 
   const handleSave = () => {
     onChange(config.key, draft);
@@ -117,7 +119,7 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
                       : "bg-red-500/15 text-red-600",
                 )}
               >
-                {isSet ? "설정됨" : isDeferred ? "나중에 입력" : "필수"}
+                {isSet ? tEnv("statusSet") : isDeferred ? tEnv("statusDeferred") : tEnv("statusRequired")}
               </span>
             </div>
             <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -133,10 +135,10 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-sky-400 transition-colors hover:bg-sky-500/10 hover:text-sky-300"
-              aria-label={`${config.label} 발급 가이드 열기`}
+              aria-label={`${config.label} ${tEnv("guideLink")}`}
             >
               <ExternalLink className="h-3 w-3" aria-hidden="true" />
-              발급 가이드
+              {tEnv("guideLink")}
             </a>
           )}
           <button
@@ -147,16 +149,16 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
             }}
             className="rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
           >
-            {isEditing ? "취소" : isSet ? "수정" : "입력"}
+            {isEditing ? tEnv("cancelBtn") : isSet ? tEnv("editBtn") : tEnv("enterBtn")}
           </button>
           {!isSet && !isEditing && !isDeferred && onDefer && (
             <button
               type="button"
               onClick={onDefer}
               className="rounded-md px-2 py-1 text-[11px] font-medium text-amber-500 transition-colors hover:bg-amber-500/10"
-              aria-label={`${config.label} 나중에 입력`}
+              aria-label={`${config.label} ${tEnv("laterBtn")}`}
             >
-              나중에
+              {tEnv("laterBtn")}
             </button>
           )}
         </div>
@@ -173,7 +175,7 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
                 if (e.key === "Enter") handleSave();
                 if (e.key === "Escape") setIsEditing(false);
               }}
-              placeholder={`${config.key} 값 입력`}
+              placeholder={`${config.key}`}
               autoFocus
               aria-invalid={sanitizedDropped}
               className={`flex-1 rounded-lg border bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:ring-1 ${
@@ -181,7 +183,7 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
                   ? "border-amber-400 focus:border-amber-500 focus:ring-amber-200"
                   : "border-zinc-200 focus:border-zinc-400 focus:ring-zinc-400/20"
               }`}
-              aria-label={`${config.label} 입력`}
+              aria-label={`${config.label} ${tEnv("enterBtn")}`}
             />
             <button
               type="button"
@@ -189,12 +191,12 @@ export function RequiredKeyRow({ config, value, onChange, isDeferred = false, on
               disabled={!draft.trim()}
               className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              저장
+              {tEnv("saveBtn")}
             </button>
           </div>
           {sanitizedDropped && (
             <p className="mt-1 text-[10px] text-amber-600">
-              한글/이모지 등 비-ASCII 문자는 자동 제거됩니다. 영문·숫자만 입력하세요.
+              {tEnv("nonAsciiWarning")}
             </p>
           )}
         </>
@@ -212,6 +214,7 @@ const DEBOUNCE_MS = 800;
 export function StepSolutionEnv() {
   const { data: session } = useSession();
   const token = (session as { accessToken?: string } | null)?.accessToken ?? null;
+  const t = useTranslations("wizard.step6.env");
 
   const envVars = useSolutionWizardStore((s) => s.data.env.envVars);
   const authMethod = useSolutionWizardStore((s) => s.data.env.authMethod ?? "api_key");
@@ -400,7 +403,7 @@ export function StepSolutionEnv() {
     <div className="space-y-6">
       {/* Claude 인증 방식 선택 */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-zinc-700">Claude 인증 방식</h3>
+        <h3 className="text-sm font-medium text-zinc-700">{t("authTitle")}</h3>
         <div className="space-y-2">
           {/* api_key 옵션 */}
           <label
@@ -420,8 +423,8 @@ export function StepSolutionEnv() {
               className="mt-0.5 accent-violet-500"
             />
             <div>
-              <p className="text-sm font-medium text-zinc-700">API 키</p>
-              <p className="text-[11px] text-zinc-500">Anthropic Console에서 발급한 sk-ant-... 키를 직접 입력합니다.</p>
+              <p className="text-sm font-medium text-zinc-700">{t("authApiKeyLabel")}</p>
+              <p className="text-[11px] text-zinc-500">{t("authApiKeyDesc")}</p>
             </div>
           </label>
 
@@ -443,12 +446,8 @@ export function StepSolutionEnv() {
               className="mt-0.5 accent-violet-500"
             />
             <div>
-              <p className="text-sm font-medium text-zinc-700">브라우저 OAuth (claude login)</p>
-              <p className="text-[11px] text-zinc-500">
-                Claude Pro/Max 구독자 전용.{" "}
-                <code className="text-violet-400">bash start.sh</code> 실행 시{" "}
-                <code className="text-violet-400">claude login</code>이 자동으로 진행됩니다.
-              </p>
+              <p className="text-sm font-medium text-zinc-700">{t("authOAuthLabel")}</p>
+              <p className="text-[11px] text-zinc-500">{t("authOAuthDesc")}</p>
             </div>
           </label>
         </div>
@@ -456,9 +455,7 @@ export function StepSolutionEnv() {
         {/* oauth_browser 안내 카드 */}
         {authMethod === "oauth_browser" && (
           <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs text-zinc-400">
-            <code className="text-sky-300">ANTHROPIC_API_KEY</code>는 .env에 포함되지 않습니다.
-            <br />
-            <code className="text-sky-300">bash start.sh</code>를 실행하면 브라우저 로그인이 자동으로 시작됩니다.
+            {t("oauthNote")}
           </div>
         )}
       </div>
@@ -467,9 +464,9 @@ export function StepSolutionEnv() {
       {authMethod === "api_key" && (
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-zinc-700">
-          필수 API 키
+          {t("requiredKeysTitle")}
           <span className="ml-1.5 text-[11px] font-normal text-zinc-500">
-            ({satisfiedCount}/{allRequiredKeys.length} 설정됨)
+            {t("requiredKeysSummary", { satisfied: satisfiedCount, total: allRequiredKeys.length })}
           </span>
         </h3>
         {alwaysRequired.map((config) => (
@@ -496,7 +493,7 @@ export function StepSolutionEnv() {
                 <KeyRound className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
                 <span className="text-sm font-medium text-zinc-700">{group.skillLabel}</span>
                 <span className="rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
-                  API 키 필요
+                  {t("apiKeyNeeded")}
                 </span>
               </div>
               {hasGuide && (
@@ -507,7 +504,7 @@ export function StepSolutionEnv() {
                   aria-expanded={isExpanded}
                 >
                   {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  설정 가이드
+                  {t("setupGuideBtn")}
                 </button>
               )}
             </div>
@@ -576,7 +573,7 @@ export function StepSolutionEnv() {
           role="alert"
           className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-400"
         >
-          필수 키 {missingKeys.length}개가 미설정 상태입니다. 값을 입력하거나 &ldquo;나중에&rdquo; 버튼으로 나중에 입력하도록 지정하세요.
+          {t("missingKeysAlert", { count: missingKeys.length })}
         </p>
       )}
       {deferredEnvVars.length > 0 && (
@@ -585,7 +582,7 @@ export function StepSolutionEnv() {
           className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs text-zinc-500"
         >
           <Clock className="mr-1.5 inline h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-          나중에 입력할 키 {deferredEnvVars.length}개 — 최종 확인 단계에서 추가 입력할 수 있습니다.
+          {t("deferredKeysNote", { count: deferredEnvVars.length })}
         </p>
       )}
 
@@ -595,20 +592,20 @@ export function StepSolutionEnv() {
           <div className="flex items-center gap-2">
             <Wifi className="h-4 w-4 text-violet-400" aria-hidden="true" />
             <h3 className="text-sm font-medium text-zinc-700">
-              실시간 트래킹 방식
-              <span className="ml-1.5 text-[11px] font-normal text-zinc-500">(선택)</span>
+              {t("trackingTitle")}
+              <span className="ml-1.5 text-[11px] font-normal text-zinc-500">{t("trackingOptional")}</span>
             </h3>
           </div>
           <p className="text-xs text-zinc-500">
-            Linear 이슈 상태 변경 시 로컬 Claude를 자동으로 실행하는 방식을 선택하세요.
+            {t("trackingDesc")}
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(["cloudflare", "ngrok", "polling"] as const).map((provider) => {
               const current = envVars["TUNNEL_PROVIDER"] ?? "cloudflare";
-              const labels: Record<string, { title: string; desc: string }> = {
-                cloudflare: { title: "Cloudflare Tunnel", desc: "무료 · 정적 URL (권장)" },
-                ngrok: { title: "ngrok", desc: "유료 고정 / 무료 임시 URL" },
-                polling: { title: "30초 폴링", desc: "webhook 불필요 · 지연 30초" },
+              const providerLabels: Record<string, { title: string; desc: string }> = {
+                cloudflare: { title: t("cfTitle"), desc: t("cfDesc") },
+                ngrok: { title: t("ngrokTitle"), desc: t("ngrokDesc") },
+                polling: { title: t("pollingTitle"), desc: t("pollingDesc") },
               };
               const isSelected = current === provider;
               return (
@@ -628,9 +625,9 @@ export function StepSolutionEnv() {
                   )}
                 >
                   <p className={cn("text-xs font-medium", isSelected ? "text-violet-300" : "text-zinc-700")}>
-                    {labels[provider].title}
+                    {providerLabels[provider].title}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">{labels[provider].desc}</p>
+                  <p className="mt-0.5 text-[11px] text-zinc-500">{providerLabels[provider].desc}</p>
                 </button>
               );
             })}
@@ -639,14 +636,14 @@ export function StepSolutionEnv() {
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "ngrok" && (
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5">
               <label className="block text-xs text-zinc-500 mb-1.5">
-                ngrok 인증 토큰{" "}
+                {t("ngrokToken")}{" "}
                 <a
                   href="https://dashboard.ngrok.com/get-started/your-authtoken"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sky-400 hover:text-sky-300"
                 >
-                  (ngrok.com에서 발급)
+                  {t("ngrokTokenLink")}
                 </a>
               </label>
               <input
@@ -660,7 +657,7 @@ export function StepSolutionEnv() {
                     },
                   })
                 }
-                placeholder="ngrok 인증 토큰"
+                placeholder={t("ngrokToken")}
                 className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-xs text-zinc-950 placeholder-zinc-400 outline-none focus:border-violet-500/50"
               />
             </div>
@@ -668,12 +665,12 @@ export function StepSolutionEnv() {
 
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "cloudflare" && (
             <p className="text-[11px] text-zinc-500">
-              ZIP 압축 해제 후 <code className="text-zinc-500">bash scripts/setup-tunnel.sh</code>을 실행하면 cloudflared가 자동 설치됩니다.
+              {t("cfNote")}
             </p>
           )}
           {(envVars["TUNNEL_PROVIDER"] ?? "cloudflare") === "polling" && (
             <p className="text-[11px] text-zinc-500">
-              <code className="text-zinc-500">python3 scripts/linear_watcher.py</code>를 실행하면 30초마다 Linear를 폴링합니다. webhook 서버 불필요.
+              {t("pollingNote")}
             </p>
           )}
         </div>
@@ -686,19 +683,7 @@ export function StepSolutionEnv() {
           aria-hidden="true"
         />
         <p className="text-xs text-zinc-500">
-          {authMethod === "api_key" ? (
-            <>
-              입력한 키는 ZIP 파일의{" "}
-              <code className="text-yellow-300">.env</code>에 저장됩니다.
-              ZIP 파일은 공유하지 마세요. 방법을 모르는 경우 ZIP의{" "}
-              <code className="text-yellow-300">docs/api-keys/</code> 폴더를 참고하세요.
-            </>
-          ) : (
-            <>
-              브라우저 OAuth 모드에서는 Anthropic 키가 .env에 포함되지 않습니다.
-              <code className="ml-1 text-yellow-300">bash start.sh</code> 실행 시 claude login이 자동으로 진행됩니다.
-            </>
-          )}
+          {authMethod === "api_key" ? t("securityNote") : t("securityNoteOAuth")}
         </p>
       </div>
 
@@ -706,7 +691,7 @@ export function StepSolutionEnv() {
       {extraEnvVars.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-zinc-700">
-            추가 환경변수
+            {t("extraVarsTitle")}
           </h3>
           {extraEnvVars.map(([key, value]) => (
             <div
@@ -721,12 +706,12 @@ export function StepSolutionEnv() {
                 {key}
               </span>
               <span className="min-w-0 flex-1 truncate font-mono text-xs text-zinc-500">
-                {value ? "••••••••" : "(비어있음)"}
+                {value ? "••••••••" : t("emptyValue")}
               </span>
               <button
                 type="button"
                 onClick={() => handleRemove(key)}
-                aria-label={`${key} 제거`}
+                aria-label={`${key}`}
                 className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-600"
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -739,8 +724,8 @@ export function StepSolutionEnv() {
       {/* 환경변수 추가 */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-zinc-700">
-          환경변수 추가{" "}
-          <span className="text-xs font-normal text-zinc-500">(선택)</span>
+          {t("addVarTitle")}{" "}
+          <span className="text-xs font-normal text-zinc-500">{t("addVarOptional")}</span>
         </label>
         <div className="flex gap-2">
           <input
@@ -756,7 +741,7 @@ export function StepSolutionEnv() {
             value={newValue}
             onChange={(e) => setNewValue(sanitizeIntegrationInput(e.target.value))}
             onKeyDown={handleKeyPress}
-            placeholder="값 (나중에 입력 가능 · 영문/숫자)"
+            placeholder={t("addVarValuePlaceholder")}
             className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-950 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/20"
           />
           <button
