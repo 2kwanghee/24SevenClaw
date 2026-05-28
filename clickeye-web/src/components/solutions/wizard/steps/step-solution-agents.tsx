@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bot, Info, KeyRound, Link, Lock, Server, Sparkles, Wrench } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import { pmProfiles, prototypeSessions } from "@/lib/api-client";
 import { useCatalogAgents, useCatalogHooks, useCatalogMCPs, useCatalogSkills } from "@/hooks/use-catalog";
@@ -54,13 +55,14 @@ function FetchError({ message }: { message: string }) {
 /* ---------- PM 잠금 배지 ---------- */
 
 function PmLockBadge({ pmName }: { pmName?: string }) {
+  const t = useTranslations("wizard.step5.agents");
   return (
     <span
-      title={pmName ? `${pmName} PM의 기본 팀 항목` : "PM 기본 팀 항목 — 해제 불가"}
+      title={t("pmTeamTitle", { pmName: pmName ?? "PM" })}
       className="flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600"
     >
       <Lock className="h-2.5 w-2.5" />
-      PM 팀
+      {t("pmTeamBadge")}
     </span>
   );
 }
@@ -75,6 +77,7 @@ interface PmLockedSlugs {
 }
 
 export function StepSolutionAgents() {
+  const t = useTranslations("wizard.step5.agents");
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
 
@@ -230,22 +233,21 @@ export function StepSolutionAgents() {
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <p className="text-xs text-zinc-600">
-            <span className="font-medium text-zinc-800">{selectedPMInfo?.name ?? "선택한 PM"}</span>의 기본 팀 항목이 자동으로 적용되었습니다.
-            잠금 항목은 해제할 수 없으며, 추가 항목은 자유롭게 선택하세요.
+            {t("pmLockBanner", { pmName: selectedPMInfo?.name ?? "선택한 PM" })}
           </p>
         </div>
       ) : hasCatalogRecs ? (
         <div className="flex items-start gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
           <p className="text-xs text-zinc-500">
-            선택한 프로토타입 카탈로그를 기반으로 에이전트와 스킬이 자동 추천되었습니다. 필요에 따라 조정하세요.
+            {t("catalogRecBanner")}
           </p>
         </div>
       ) : (
         <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
           <p className="text-xs text-zinc-500">
-            선택한 프로토타입의 에이전트 구성을 확인하고 필요에 따라 조정하세요.
+            {t("defaultBanner")}
           </p>
         </div>
       )}
@@ -254,10 +256,10 @@ export function StepSolutionAgents() {
       <div className="space-y-3">
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Bot className="h-4 w-4 text-emerald-600" />
-          AI 에이전트
+          {t("sectionAgents")}
         </label>
         {agentsLoading && <AgentsSkeleton />}
-        {agentsError && <FetchError message="에이전트 목록을 불러오지 못했습니다." />}
+        {agentsError && <FetchError message={t("agentsLoadError")} />}
         {agentsData && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {agentsData.items.map(({ id, label, description }) => {
@@ -287,7 +289,7 @@ export function StepSolutionAgents() {
                     {!isLocked && isRecommended && (
                       <span className="flex items-center gap-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
                         <Sparkles className="h-2.5 w-2.5" />
-                        추천
+                        {t("recommendedBadge")}
                       </span>
                     )}
                   </div>
@@ -303,19 +305,19 @@ export function StepSolutionAgents() {
       <div className="space-y-4">
         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Wrench className="h-4 w-4 text-emerald-600" />
-          연동 스킬
+          {t("sectionSkills")}
         </label>
 
         {/* 티켓 소스 (필수, 1개 선택) */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-zinc-700">티켓 소스</span>
-            <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">필수</span>
-            <span className="text-[11px] text-zinc-500">1개 선택</span>
+            <span className="text-xs font-medium text-zinc-700">{t("ticketSource")}</span>
+            <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">{t("ticketRequired")}</span>
+            <span className="text-[11px] text-zinc-500">{t("ticketSelectOne")}</span>
           </div>
-          <p className="text-[11px] text-zinc-500">이슈/티켓을 관리할 플랫폼을 선택하세요.</p>
+          <p className="text-[11px] text-zinc-500">{t("ticketDesc")}</p>
           {skillsLoading && <SkillsSkeleton />}
-          {skillsError && <FetchError message="스킬 목록을 불러오지 못했습니다." />}
+          {skillsError && <FetchError message={t("skillsLoadError")} />}
           {skillsData && (
             <>
               <div className="flex flex-wrap gap-2">
@@ -347,7 +349,10 @@ export function StepSolutionAgents() {
                         disabled={isDisabled}
                         title={
                           isBlockedByOtherLock
-                            ? `${selectedPMInfo?.name ?? "선택된 PM"} 이(가) ${lockedTicketSourceId} 를 이미 잠금했습니다`
+                            ? t("ticketLockedByPm", {
+                                pmName: selectedPMInfo?.name ?? "선택된 PM",
+                                label: lockedTicketSourceId ?? "",
+                              })
                             : undefined
                         }
                         className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all duration-200 ${
@@ -391,7 +396,10 @@ export function StepSolutionAgents() {
                   return (
                     <p className="text-[11px] text-zinc-500">
                       <Lock className="mr-1 inline h-3 w-3 text-amber-500" aria-hidden="true" />
-                      {selectedPMInfo?.name ?? "선택된 PM"} 이(가) <strong>{lockedLabel}</strong> 를 잠금했습니다. 다른 티켓 소스는 선택할 수 없습니다.
+                      {t("ticketLockedByPm", {
+                        pmName: selectedPMInfo?.name ?? "선택된 PM",
+                        label: lockedLabel,
+                      })}
                     </p>
                   );
                 }
@@ -401,7 +409,7 @@ export function StepSolutionAgents() {
                 if (!hasSelection && ticketSourceSkills.length > 0) {
                   return (
                     <p role="alert" className="text-xs text-rose-400">
-                      티켓 소스(Linear 또는 Notion)를 1개 선택해야 합니다
+                      {t("ticketRequiredAlert")}
                     </p>
                   );
                 }
@@ -415,8 +423,8 @@ export function StepSolutionAgents() {
         {(skillsLoading || (skillsData && otherSkills.length > 0)) && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-zinc-700">추가 스킬</span>
-              <span className="text-[11px] text-zinc-500">(선택)</span>
+              <span className="text-xs font-medium text-zinc-700">{t("additionalSkills")}</span>
+              <span className="text-[11px] text-zinc-500">{t("optional")}</span>
             </div>
             {skillsLoading && <SkillsSkeleton />}
             {skillsData && otherSkills.length > 0 && (
@@ -467,11 +475,11 @@ export function StepSolutionAgents() {
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <Server className="h-4 w-4 text-emerald-600" />
-            MCP 서버
-            <span className="text-[11px] text-zinc-500">(선택)</span>
+            {t("mcpSection")}
+            <span className="text-[11px] text-zinc-500">{t("optional")}</span>
           </label>
           {mcpsLoading && <SkillsSkeleton />}
-          {mcpsError && <FetchError message="MCP 목록을 불러오지 못했습니다." />}
+          {mcpsError && <FetchError message={t("mcpLoadError")} />}
           {mcpsData && mcpsData.items.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {mcpsData.items.map(({ id, label, description, category }) => {
@@ -517,11 +525,11 @@ export function StepSolutionAgents() {
         <div className="space-y-3">
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
             <Link className="h-4 w-4 text-emerald-600" />
-            훅 (Hooks)
-            <span className="text-[11px] text-zinc-500">(선택)</span>
+            {t("hooksSection")}
+            <span className="text-[11px] text-zinc-500">{t("optional")}</span>
           </label>
           {hooksLoading && <SkillsSkeleton />}
-          {hooksError && <FetchError message="훅 목록을 불러오지 못했습니다." />}
+          {hooksError && <FetchError message={t("hooksLoadError")} />}
           {hooksData && hooksData.items.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {hooksData.items.map(({ id, label, description, event, required }) => {
@@ -550,7 +558,7 @@ export function StepSolutionAgents() {
                       {isLocked && <PmLockBadge pmName={selectedPMInfo?.name} />}
                       {required && !isLocked && (
                         <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
-                          필수
+                          {t("ticketRequired")}
                         </span>
                       )}
                       {event && (

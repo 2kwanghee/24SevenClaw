@@ -8,32 +8,33 @@
 
 ## P2: 기능 요구사항
 
-- [x] **[frontend] Phase 1-A — 공통 컴포넌트 + Toast + Zod validation i18n**
+- [x] **[frontend] Phase 1-D — 위저드 Step 4~7 i18n**
   > 요청사항: ## 목표
 
-토스트 메시지, Zod 스키마 validation 메시지, 공통 컴포넌트의 모든 한국어를 next-intl 카탈로그 키로 치환한다.
+위저드 후반부 — PM 추천/선택/구성 확인, 에이전트/스킬, 플랫폼/OS, 환경변수, 확인/다운로드 단계의 한국어 텍스트를 카탈로그 키로 치환.
 
 ## 변경 파일
 
-* `clickeye-web/src/lib/validations/*.ts` (\~10개) — zod.errorMap 글로벌 설정 + 메시지 키 치환
-* 모든 `toast.success/error` 호출처 (\~15개) — `useTranslations("toast")` 적용
-* 공통 컴포넌트(`common/*`, `ui/*` 사용처)의 라벨/버튼 텍스트
+* PM 단계: `step-pm-recommendation.tsx`, `step-pm-select.tsx`, `step-pm-selection.tsx`, `step-pm-composition.tsx`
+* 구성 단계: `step-solution-agents.tsx`, `step-solution-platform.tsx`, `step-solution-os.tsx`
+* 환경/ROI: `step-solution-env.tsx`, `step-solution-roi.tsx`
+* 확인: `step-solution-confirm.tsx`, `step-confirmation.tsx` (`SetupGuideModal` 포함)
+* PM 표시: `pm-composition-view.tsx`, `pm-rating-stars.tsx`
 
 ## 변경 카탈로그
 
-* `messages/ko.json`: `common.*`, `toast.*`, `validation.*` 키 채움 (기존 한국어 그대로)
-* `messages/en.json`: 동일 키 영문 번역
+* `messages/{ko,en}.json`: `wizard.step4` \~ `wizard.step7` + `setupGuide.*` 키 묶음
 
 ## 검증
 
-* Zod validation 메시지가 locale에 따라 정상 표시
-* 모든 토스트 한·영 분기 정상
-* 공통 컴포넌트(버튼, 모달 등) 라벨 양 언어
+* en locale로 위저드 Step 4\~7 완주 + ZIP 다운로드 안내 영문
+* SetupGuideModal의 압축 해제/런처 실행/환경변수 안내 영문 표시
+* PM 카드/구성 요소 라벨 영문 (composition 칩의 한국어 이름은 DB값이라 별도 — CE-257에서 처리)
 
 ## 의존성
 
-* 선행: [CE-250](https://linear.app/flow-ops/issue/CE-250/infra-phase-0-next-intl-인프라-미들웨어-토글-ui) (Phase 0 인프라)
-* 후속 이슈 3, 4가 본 이슈에 의존
+* 선행: [CE-253](https://linear.app/flow-ops/issue/CE-253/frontend-phase-1-c-위저드-step-13-i18n) (Phase 1-C 위저드 Step 1\~3)
+* 후속 CE-255가 본 이슈에 의존
 
 ---
 
@@ -43,4 +44,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-05-27 | Phase 1-A | 완료 | messages 카탈로그 93키 한/영 작성, ZodLocaleProvider 신규(z.config locale 자동 전환), `lib/validations/pm.ts` factory 패턴 전환. login/register/project-form zod schema useMemo factory 적용. 사용자 향 toast 8파일 + admin toast 12파일 i18n 처리(71개 호출). 공통 컴포넌트 base-modal/locale-toggle/role-guard/header/create-project-dialog/delete-project-dialog 라벨/aria i18n. typecheck/build 통과. |
+| 2026-05-28 | Phase 1-D 전체 (Step 4~7 i18n) 완료 | ✅ 완료 | 14개 컴포넌트 + messages/{en,ko}.json 업데이트, typecheck/build 통과 |

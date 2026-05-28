@@ -9,6 +9,7 @@ import {
   RefreshCw,
   UserCircle2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { prototypeSessions, ApiClientError } from "@/lib/api-client";
@@ -70,12 +71,13 @@ interface PMReadyCardProps {
 function PMReadyCard({ item, index }: PMReadyCardProps) {
   const visibleReasons = item.matchReasons.slice(0, 3);
 
+  const t = useTranslations("wizard.step4.pmRecommend");
   return (
     <div
       className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 animate-in fade-in slide-in-from-bottom-2"
       style={{ animationDelay: `${index * 100}ms`, animationDuration: "400ms" }}
       role="status"
-      aria-label={`PM "${item.name}" 분석 완료`}
+      aria-label={t("analysisComplete", { name: item.name })}
     >
       <div className="mb-2 flex items-center gap-3 pr-12">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50">
@@ -95,7 +97,7 @@ function PMReadyCard({ item, index }: PMReadyCardProps) {
       </div>
       <p className="mb-2 line-clamp-1 text-xs text-zinc-500 italic">&ldquo;{item.reasoning}&rdquo;</p>
       {visibleReasons.length > 0 && (
-        <div className="flex flex-wrap gap-1" aria-label="매칭 사유">
+        <div className="flex flex-wrap gap-1" aria-label={t("matchReasons")}>
           {visibleReasons.map((reason, i) => (
             <span
               key={`${i}-${reason}`}
@@ -122,6 +124,7 @@ function PMReadyCard({ item, index }: PMReadyCardProps) {
 export function StepPMRecommendation() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("wizard.step4.pmRecommend");
 
   const sessionId = useSolutionWizardStore((s) => s.data.sessionId);
   const existingItems = useSolutionWizardStore(
@@ -230,10 +233,10 @@ export function StepPMRecommendation() {
           <AlertCircle className="h-7 w-7 text-rose-400" aria-hidden="true" />
         </div>
         <h3 className="mb-1 text-sm font-semibold text-rose-300">
-          PM 추천 분석에 실패했습니다
+          {t("failTitle")}
         </h3>
         <p className="mb-6 text-xs text-zinc-500">
-          일시적인 오류가 발생했습니다. 다시 시도해 주세요.
+          {t("failDesc")}
         </p>
         <button
           type="button"
@@ -241,7 +244,7 @@ export function StepPMRecommendation() {
           className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          다시 시도
+          {t("retry")}
         </button>
       </div>
     );
@@ -260,9 +263,7 @@ export function StepPMRecommendation() {
           <Loader2 className="h-5 w-5 animate-spin text-emerald-600" aria-hidden="true" />
         )}
         <span className="text-sm font-medium text-zinc-700">
-          {isDone
-            ? "PM 추천 분석 완료!"
-            : "프로토타입에 최적화된 PM을 분석하고 있습니다"}
+          {isDone ? t("complete") : t("analyzing")}
         </span>
       </div>
 
@@ -273,7 +274,7 @@ export function StepPMRecommendation() {
         aria-valuenow={isDone ? displayCount : 0}
         aria-valuemin={0}
         aria-valuemax={displayCount}
-        aria-label="PM 추천 분석 진행률"
+        aria-label={t("progressLabel")}
       >
         <div
           className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
@@ -282,7 +283,7 @@ export function StepPMRecommendation() {
       </div>
 
       {/* PM 카드 목록 */}
-      <div className="space-y-3" aria-label="PM 추천 분석 현황">
+      <div className="space-y-3" aria-label={t("cardsLabel")}>
         {isLoading
           ? Array.from({ length: displayCount }, (_, i) => (
               <PMSkeletonCard key={i} index={i} />
@@ -295,7 +296,7 @@ export function StepPMRecommendation() {
       {/* 완료 후 안내 메시지 */}
       {isDone && (
         <p className="text-center text-xs text-emerald-600" aria-live="polite">
-          아래 <strong>다음</strong> 버튼을 클릭해 PM을 선택하세요.
+          {t("nextHint")}
         </p>
       )}
     </div>

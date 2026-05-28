@@ -3,18 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, RefreshCw, TrendingDown, Zap, Users, Clock } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { roi, type RoiCalculateResponse } from "@/lib/api-client";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { type RoiOverrides } from "@/types/solution-wizard";
-
-const ROLE_LABELS: Record<string, string> = {
-  pm: "프로젝트 매니저",
-  be: "백엔드 개발자",
-  fe: "프론트엔드 개발자",
-  qa: "QA 엔지니어",
-  designer: "UI/UX 디자이너",
-};
 
 function formatKRW(value: number): string {
   return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
@@ -27,6 +20,15 @@ function formatDays(days: number): string {
 export function StepSolutionRoi() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("wizard.step6.roi");
+
+  const roleLabels: Record<string, string> = {
+    pm: t("rolePm"),
+    be: t("roleBe"),
+    fe: t("roleFe"),
+    qa: t("roleQa"),
+    designer: t("roleDesigner"),
+  };
 
   const { data: wizardData, setRoi } = useSolutionWizardStore();
   const { agents, platform, roi: roiState } = wizardData;
@@ -112,7 +114,7 @@ export function StepSolutionRoi() {
           },
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "ROI 계산에 실패했습니다");
+        setError(err instanceof Error ? err.message : t("calcFailed"));
       } finally {
         setLoading(false);
       }
@@ -145,9 +147,9 @@ export function StepSolutionRoi() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">ROI 비교</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t("title")}</h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          동일 솔루션을 기존 인력으로 구축할 때와 ClickEye로 구축할 때의 비용을 비교합니다.
+          {t("desc")}
         </p>
       </div>
 
@@ -174,14 +176,14 @@ export function StepSolutionRoi() {
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-sm">
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-500">
                 <Users className="h-4 w-4" />
-                기존 인력 구축
+                {t("baselineCard")}
               </div>
               <p className="text-2xl font-bold text-[var(--text-primary)]">
                 {loading ? <Loader2 className="inline h-5 w-5 animate-spin" /> : formatKRW(result.baseline_cost)}
               </p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 <Clock className="mr-1 inline h-3.5 w-3.5" />
-                {formatDays(result.baseline_days)} 소요
+                {formatDays(result.baseline_days)} {t("timeSuffix")}
               </p>
             </div>
 
@@ -189,14 +191,14 @@ export function StepSolutionRoi() {
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-emerald-700">
                 <Zap className="h-4 w-4" />
-                ClickEye 도입
+                {t("clickeyeCard")}
               </div>
               <p className="text-2xl font-bold text-emerald-700">
                 {loading ? <Loader2 className="inline h-5 w-5 animate-spin" /> : formatKRW(result.clickeye_cost)}
               </p>
               <p className="mt-1 text-xs text-emerald-600">
                 <Clock className="mr-1 inline h-3.5 w-3.5" />
-                {formatDays(result.clickeye_days)} 소요
+                {formatDays(result.clickeye_days)} {t("timeSuffix")}
               </p>
             </div>
           </div>
@@ -206,13 +208,13 @@ export function StepSolutionRoi() {
             <div className="flex items-center gap-3">
               <TrendingDown className="h-5 w-5 text-emerald-600" />
               <div>
-                <p className="text-xs text-emerald-600">예상 절감액</p>
+                <p className="text-xs text-emerald-600">{t("savingsLabel")}</p>
                 <p className="text-xl font-bold text-emerald-700">
                   {loading ? "..." : formatKRW(result.savings)}
                 </p>
               </div>
               <div className="ml-auto text-right">
-                <p className="text-xs text-emerald-600">절감률</p>
+                <p className="text-xs text-emerald-600">{t("savingsRateLabel")}</p>
                 <p className="text-3xl font-bold text-emerald-700">{savingsPercent}%</p>
               </div>
             </div>
@@ -221,7 +223,7 @@ export function StepSolutionRoi() {
             <div className="mt-4 space-y-2">
               <div>
                 <div className="mb-1 flex justify-between text-xs text-[var(--text-muted)]">
-                  <span>기존 인력</span>
+                  <span>{t("traditionalLabel")}</span>
                   <span>100%</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-zinc-200">
@@ -246,13 +248,13 @@ export function StepSolutionRoi() {
           {/* 직군별 공수 명세 + 단가 오버라이드 */}
           <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">직군별 공수 명세</h3>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("breakdownTitle")}</h3>
               {Object.keys(overrideRates).length > 0 && (
                 <button
                   onClick={handleReset}
                   className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline"
                 >
-                  표준값으로 리셋
+                  {t("resetBtn")}
                 </button>
               )}
             </div>
@@ -268,7 +270,7 @@ export function StepSolutionRoi() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-[var(--text-primary)]">
-                          {ROLE_LABELS[item.role_key] ?? item.label}
+                          {roleLabels[item.role_key] ?? item.label}
                         </span>
                         <span className="text-sm font-medium text-[var(--text-primary)]">
                           {loading ? "..." : formatKRW(item.subtotal)}
@@ -288,9 +290,9 @@ export function StepSolutionRoi() {
                                 : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-muted)]"
                             }`}
                           />
-                          <span>원/일</span>
+                          <span>{t("perDay")}</span>
                           {isOverridden && (
-                            <span className="rounded bg-amber-100 px-1 py-0.5 text-[10px] text-amber-600">조정됨</span>
+                            <span className="rounded bg-amber-100 px-1 py-0.5 text-[10px] text-amber-600">{t("adjustedBadge")}</span>
                           )}
                         </div>
                       </div>
@@ -301,8 +303,7 @@ export function StepSolutionRoi() {
             </div>
 
             <p className="mt-4 text-[10px] text-[var(--text-muted)]">
-              * 단가를 조정해도 관리자 표준값은 변경되지 않습니다. 이 세션에서만 적용됩니다.
-              공식 버전: {result.formula_version}
+              {t("rateNote", { version: result.formula_version })}
             </p>
           </div>
         </>

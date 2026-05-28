@@ -1,31 +1,9 @@
 "use client";
 
 import { ClipboardCheck, Building2, Bot, Terminal, KeyRound, UserCircle2, Cpu } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
-
-const BUSINESS_TYPE_LABELS: Record<string, string> = {
-  b2b: "B2B",
-  b2c: "B2C",
-  b2b2c: "B2B2C",
-  internal: "내부 도구",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  "claude-code": "Claude Code",
-  "gemini-cli": "Gemini CLI",
-  cursor: "Cursor",
-  codex: "Codex",
-};
-
-const SOLUTION_TYPE_LABELS: Record<string, string> = {
-  saas: "SaaS",
-  "rest-api": "REST API",
-  fullstack: "풀스택",
-  "internal-tool": "내부 도구",
-  mvp: "MVP",
-  custom: "커스텀",
-};
 
 interface SummaryRowProps {
   label: string;
@@ -42,7 +20,29 @@ function SummaryRow({ label, value }: SummaryRowProps) {
 }
 
 export function StepSolutionConfirm() {
+  const t = useTranslations("wizard.step7.simpleConfirm");
   const data = useSolutionWizardStore((s) => s.data);
+
+  const businessTypeLabels: Record<string, string> = {
+    b2b: "B2B",
+    b2c: "B2C",
+    b2b2c: "B2B2C",
+    internal: t("businessTypeInternal"),
+  };
+  const platformLabels: Record<string, string> = {
+    "claude-code": "Claude Code",
+    "gemini-cli": "Gemini CLI",
+    cursor: "Cursor",
+    codex: "Codex",
+  };
+  const solutionTypeLabels: Record<string, string> = {
+    saas: "SaaS",
+    "rest-api": "REST API",
+    fullstack: t("solutionTypeFullstack"),
+    "internal-tool": t("solutionTypeInternalTool"),
+    mvp: "MVP",
+    custom: t("solutionTypeCustom"),
+  };
 
   const { company, prototypes, pm, agents, platform, env } = data;
 
@@ -58,19 +58,17 @@ export function StepSolutionConfirm() {
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Building2 className="h-4 w-4 text-emerald-600" />
-          회사 정보
+          {t("sectionCompany")}
         </h3>
         <div className="space-y-2">
-          <SummaryRow label="회사명" value={company.companyName || "미설정"} />
+          <SummaryRow label={t("companyName")} value={company.companyName || t("noAgents")} />
           <SummaryRow
-            label="비즈니스 유형"
-            value={
-              BUSINESS_TYPE_LABELS[company.businessType ?? ""] ?? "미설정"
-            }
+            label={t("businessType")}
+            value={businessTypeLabels[company.businessType ?? ""] ?? t("noAgents")}
           />
           <SummaryRow
-            label="주력 제품"
-            value={company.mainProduct || "미설정"}
+            label={t("mainProduct")}
+            value={company.mainProduct || t("noAgents")}
           />
           {company.solutionRequest && (
             <div className="mt-2 rounded-lg bg-zinc-50 p-3">
@@ -88,21 +86,18 @@ export function StepSolutionConfirm() {
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Cpu className="h-4 w-4 text-emerald-600" />
-          솔루션 프로토타입
+          {t("sectionPrototype")}
         </h3>
         {selectedProto ? (
           <div className="space-y-2">
-            <SummaryRow label="이름" value={selectedProto.name} />
+            <SummaryRow label={t("protoName")} value={selectedProto.name} />
             <SummaryRow
-              label="유형"
-              value={
-                SOLUTION_TYPE_LABELS[selectedProto.solutionType] ??
-                selectedProto.solutionType
-              }
+              label={t("protoType")}
+              value={solutionTypeLabels[selectedProto.solutionType] ?? selectedProto.solutionType}
             />
           </div>
         ) : (
-          <p className="text-xs text-zinc-500">선택된 프로토타입 없음</p>
+          <p className="text-xs text-zinc-500">{t("noPrototype")}</p>
         )}
       </div>
 
@@ -110,10 +105,12 @@ export function StepSolutionConfirm() {
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
           <UserCircle2 className="h-4 w-4 text-emerald-600" />
-          PM
+          {t("sectionPm")}
         </h3>
         <p className="text-xs text-zinc-500">
-          {pm.selectedPmProfileId ? `PM 선택됨 (ID: ${pm.selectedPmProfileId.slice(0, 8)}...)` : "선택된 PM 없음"}
+          {pm.selectedPmProfileId
+            ? t("pmSelected", { id: pm.selectedPmProfileId.slice(0, 8) })
+            : t("noPm")}
         </p>
       </div>
 
@@ -121,23 +118,23 @@ export function StepSolutionConfirm() {
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Bot className="h-4 w-4 text-emerald-600" />
-          에이전트 & 스킬
+          {t("sectionAgents")}
         </h3>
         <div className="space-y-2">
           <SummaryRow
-            label="에이전트"
+            label={t("agentsLabel")}
             value={
               agents.selectedAgents.length > 0
                 ? `${agents.selectedAgents.join(", ")}`
-                : "미설정"
+                : t("noAgents")
             }
           />
           <SummaryRow
-            label="스킬"
+            label={t("skillsLabel")}
             value={
               agents.selectedSkills.length > 0
                 ? agents.selectedSkills.join(", ")
-                : "없음"
+                : t("noSkills")
             }
           />
         </div>
@@ -147,12 +144,12 @@ export function StepSolutionConfirm() {
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
           <Terminal className="h-4 w-4 text-emerald-600" />
-          플랫폼
+          {t("sectionPlatform")}
         </h3>
         <p className="text-xs text-zinc-500">
           {platform.platformId
-            ? PLATFORM_LABELS[platform.platformId] ?? platform.platformId
-            : "미설정"}
+            ? platformLabels[platform.platformId] ?? platform.platformId
+            : t("noPlatform")}
         </p>
       </div>
 
@@ -161,9 +158,9 @@ export function StepSolutionConfirm() {
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-zinc-700">
             <KeyRound className="h-4 w-4 text-emerald-600" />
-            환경변수
+            {t("sectionEnv")}
           </h3>
-          <p className="text-xs text-zinc-500">{envKeyCount}개 설정됨</p>
+          <p className="text-xs text-zinc-500">{t("envCount", { count: envKeyCount })}</p>
         </div>
       )}
 
@@ -171,10 +168,10 @@ export function StepSolutionConfirm() {
       <div className="flex flex-col items-center justify-center pt-4 text-center">
         <ClipboardCheck className="mb-3 h-8 w-8 text-emerald-600" />
         <p className="text-sm font-medium text-zinc-950">
-          모든 설정을 확인했습니다
+          {t("allConfirmed")}
         </p>
         <p className="mt-1 text-xs text-zinc-500">
-          프로젝트를 생성하면 솔루션 설정이 저장됩니다
+          {t("submitHint")}
         </p>
       </div>
     </div>

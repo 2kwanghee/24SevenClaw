@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, Wrench, Webhook, Server, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import type {
@@ -16,41 +17,16 @@ import { usePMComposition } from "@/hooks/use-pm-profiles";
 
 type SectionKey = "agents" | "skills" | "mcp_servers" | "hooks";
 
-const SECTIONS: {
+const SECTION_STYLES: {
   key: SectionKey;
-  label: string;
   icon: typeof Bot;
   color: string;
   bg: string;
 }[] = [
-  {
-    key: "agents",
-    label: "AI 에이전트",
-    icon: Bot,
-    color: "text-emerald-700",
-    bg: "bg-emerald-50",
-  },
-  {
-    key: "skills",
-    label: "스킬",
-    icon: Wrench,
-    color: "text-sky-700",
-    bg: "bg-sky-50",
-  },
-  {
-    key: "mcp_servers",
-    label: "MCP 서버",
-    icon: Server,
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-  },
-  {
-    key: "hooks",
-    label: "Hook",
-    icon: Webhook,
-    color: "text-violet-700",
-    bg: "bg-violet-50",
-  },
+  { key: "agents", icon: Bot, color: "text-emerald-700", bg: "bg-emerald-50" },
+  { key: "skills", icon: Wrench, color: "text-sky-700", bg: "bg-sky-50" },
+  { key: "mcp_servers", icon: Server, color: "text-amber-700", bg: "bg-amber-50" },
+  { key: "hooks", icon: Webhook, color: "text-violet-700", bg: "bg-violet-50" },
 ];
 
 interface PMCompositionViewProps {
@@ -74,6 +50,14 @@ function totalItems(data: PMCompositionGroupedResponse | undefined): number {
 
 export function PMCompositionView({ profile, className }: PMCompositionViewProps) {
   const { data, isLoading, isError } = usePMComposition(profile.id);
+  const t = useTranslations("wizard.pmCompositionView");
+
+  const sectionLabels: Record<SectionKey, string> = {
+    agents: t("agents"),
+    skills: t("skills"),
+    mcp_servers: t("mcpServers"),
+    hooks: t("hooks"),
+  };
 
   return (
     <div
@@ -83,25 +67,25 @@ export function PMCompositionView({ profile, className }: PMCompositionViewProps
       )}
     >
       <p className="mb-3 text-xs font-medium text-[var(--text-muted)]">
-        {profile.name} 구성 요소
+        {t("title", { name: profile.name })}
       </p>
 
       {isLoading && (
         <div className="flex items-center gap-2 py-3 text-xs text-[var(--text-muted)]">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          구성 정보 불러오는 중...
+          {t("loading")}
         </div>
       )}
 
       {!isLoading && (isError || !data || totalItems(data) === 0) && (
         <p className="py-3 text-xs text-[var(--text-muted)]">
-          구성된 항목이 없습니다.
+          {t("empty")}
         </p>
       )}
 
       {!isLoading && data && totalItems(data) > 0 && (
         <div className="space-y-3">
-          {SECTIONS.map(({ key, label, icon: Icon, color, bg }) => {
+          {SECTION_STYLES.map(({ key, icon: Icon, color, bg }) => {
             const items = data[key];
             if (!items || items.length === 0) return null;
             return (
@@ -116,7 +100,7 @@ export function PMCompositionView({ profile, className }: PMCompositionViewProps
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="mb-1 text-[11px] font-medium text-[var(--text-muted)]">
-                    {label}
+                    {sectionLabels[key]}
                     <span className="ml-1 text-[var(--text-muted)] opacity-70">
                       ({items.length})
                     </span>

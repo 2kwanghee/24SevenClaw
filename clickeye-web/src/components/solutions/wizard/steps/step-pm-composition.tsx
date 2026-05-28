@@ -17,6 +17,7 @@ import {
   Webhook,
   Wrench,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { pmProfiles, type PMCompositionResponse } from "@/lib/api-client";
@@ -27,10 +28,9 @@ import { cn } from "@/lib/utils";
 /** SOLUTION_WIZARD_STEPS 기준 PM 선택 스텝 인덱스 */
 const PM_SELECTION_STEP = 4;
 
-const CATEGORY_CONFIG = [
+const CATEGORY_STYLE_CONFIG = [
   {
     key: "agents" as const,
-    label: "AI 에이전트",
     icon: Bot,
     color: "text-emerald-600",
     bg: "bg-emerald-50",
@@ -38,7 +38,6 @@ const CATEGORY_CONFIG = [
   },
   {
     key: "skills" as const,
-    label: "스킬",
     icon: Wrench,
     color: "text-sky-400",
     bg: "bg-sky-500/10",
@@ -46,7 +45,6 @@ const CATEGORY_CONFIG = [
   },
   {
     key: "hooks" as const,
-    label: "훅",
     icon: Webhook,
     color: "text-violet-400",
     bg: "bg-violet-500/10",
@@ -54,7 +52,6 @@ const CATEGORY_CONFIG = [
   },
   {
     key: "mcp_servers" as const,
-    label: "MCP 서버",
     icon: Server,
     color: "text-amber-400",
     bg: "bg-amber-500/10",
@@ -62,7 +59,6 @@ const CATEGORY_CONFIG = [
   },
   {
     key: "plugins" as const,
-    label: "플러그인",
     icon: Puzzle,
     color: "text-rose-400",
     bg: "bg-rose-500/10",
@@ -70,7 +66,7 @@ const CATEGORY_CONFIG = [
   },
 ] as const;
 
-type CategoryKey = (typeof CATEGORY_CONFIG)[number]["key"];
+type CategoryKey = (typeof CATEGORY_STYLE_CONFIG)[number]["key"];
 
 /* -- 카테고리 섹션 컴포넌트 --------------------------------------------- */
 
@@ -92,6 +88,7 @@ function CompositionSection({
   items,
 }: CompositionSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const t = useTranslations("wizard.step4.pmComposition");
 
   if (items.length === 0) return null;
 
@@ -164,7 +161,7 @@ function CompositionSection({
                             : "bg-zinc-100 text-zinc-500",
                         )}
                       >
-                        {item.is_required ? "필수" : "선택"}
+                        {item.is_required ? t("itemRequired") : t("itemOptional")}
                       </span>
                     </div>
                     {desc && (
@@ -196,6 +193,7 @@ type GroupedComposition = Record<CategoryKey, PMCompositionResponse[]>;
 export function StepPMComposition() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("wizard.step4.pmComposition");
 
   const selectedPmProfileId = useSolutionWizardStore(
     (s) => s.data.pm.selectedPmProfileId,
@@ -239,7 +237,7 @@ export function StepPMComposition() {
         // 다음 스텝(플랫폼 선택)에서 PM 지원 플랫폼 필터링에 사용
         setPM({ pmSupportedPlatforms: profileData.supported_platforms ?? [] });
       } catch {
-        setFetchError("PM 구성 정보를 불러오지 못했습니다.");
+        setFetchError("error");
       } finally {
         setIsLoading(false);
       }
@@ -247,6 +245,14 @@ export function StepPMComposition() {
 
     void loadComposition();
   }, [token, selectedPmProfileId, retryCount]);
+
+  const categoryConfig = [
+    { key: "agents" as const, label: t("agents") },
+    { key: "skills" as const, label: t("skills") },
+    { key: "hooks" as const, label: t("hooks") },
+    { key: "mcp_servers" as const, label: t("mcpServers") },
+    { key: "plugins" as const, label: t("plugins") },
+  ];
 
   /* -- PM 미선택 ------------------------------------------------------- */
   if (!selectedPmProfileId) {
@@ -256,14 +262,14 @@ export function StepPMComposition() {
           className="h-10 w-10 text-zinc-500"
           aria-hidden={true}
         />
-        <p className="mt-4 text-sm text-zinc-500">선택된 PM이 없습니다.</p>
+        <p className="mt-4 text-sm text-zinc-500">{t("noSelection")}</p>
         <button
           type="button"
           onClick={() => goToStep(PM_SELECTION_STEP)}
           className="mt-4 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden={true} />
-          PM 선택으로 돌아가기
+          {t("backToSelection")}
         </button>
       </div>
     );
@@ -286,7 +292,7 @@ export function StepPMComposition() {
             className="h-5 w-5 animate-spin text-emerald-600"
             aria-hidden={true}
           />
-          <span className="text-sm text-zinc-500">구성 요소 불러오는 중...</span>
+          <span className="text-sm text-zinc-500">{t("loadingItems")}</span>
         </div>
       </div>
     );
@@ -303,16 +309,15 @@ export function StepPMComposition() {
           />
         </div>
         <p className="mb-1 text-sm font-semibold text-rose-300">
-          구성 정보 조회 실패
+          {t("errorTitle")}
         </p>
-        <p className="mb-6 text-xs text-zinc-500">{fetchError}</p>
         <button
           type="button"
           onClick={() => setRetryCount((c) => c + 1)}
           className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-5 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-950"
         >
           <RefreshCw className="h-4 w-4" aria-hidden={true} />
-          다시 시도
+          {t("retry")}
         </button>
       </div>
     );
@@ -340,7 +345,7 @@ export function StepPMComposition() {
           </div>
           {selectedPMInfo.matchScore > 0 && (
             <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600">
-              일치율 {Math.round(selectedPMInfo.matchScore)}%
+              {t("matchRate", { score: Math.round(selectedPMInfo.matchScore) })}
             </span>
           )}
         </div>
@@ -351,19 +356,22 @@ export function StepPMComposition() {
         <div
           className="space-y-3"
           role="region"
-          aria-label="PM 구성 요소 목록"
+          aria-label={t("listAriaLabel")}
         >
-          {CATEGORY_CONFIG.map(({ key, label, icon, color, bg, border }) => (
-            <CompositionSection
-              key={key}
-              label={label}
-              icon={icon}
-              color={color}
-              bg={bg}
-              border={border}
-              items={composition[key]}
-            />
-          ))}
+          {CATEGORY_STYLE_CONFIG.map(({ key, icon, color, bg, border }) => {
+            const catLabel = categoryConfig.find((c) => c.key === key)?.label ?? key;
+            return (
+              <CompositionSection
+                key={key}
+                label={catLabel}
+                icon={icon}
+                color={color}
+                bg={bg}
+                border={border}
+                items={composition[key]}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -371,8 +379,7 @@ export function StepPMComposition() {
       <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden={true} />
         <p className="text-xs text-zinc-600">
-          이 PM의 기본 팀(에이전트·스킬·MCP·훅)이 다음 에이전트 구성 단계에서
-          자동으로 선택됩니다. PM 팀 항목은 잠금 처리되며, 추가 항목은 자유롭게 선택할 수 있습니다.
+          {t("nextHint")}
         </p>
       </div>
 
@@ -382,10 +389,10 @@ export function StepPMComposition() {
           type="button"
           onClick={() => goToStep(PM_SELECTION_STEP)}
           className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-700"
-          aria-label="PM 선택 단계로 돌아가기"
+          aria-label={t("backToSelection")}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden={true} />
-          PM 재선택
+          {t("reselectBtn")}
         </button>
       </div>
     </div>
