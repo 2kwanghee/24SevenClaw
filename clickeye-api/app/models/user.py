@@ -19,6 +19,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     oauth_provider = Column(String(20), nullable=True)  # "github" | "google" | null
     oauth_id = Column(String(255), nullable=True)  # 외부 서비스 사용자 ID
+    language = Column(String(8), default="en", server_default="en", nullable=False)
     organization_id = Column(
         Uuid, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True
     )

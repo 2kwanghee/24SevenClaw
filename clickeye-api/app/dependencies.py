@@ -1,7 +1,8 @@
 from collections.abc import Callable
+from typing import Literal
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import ExpiredSignatureError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,6 +65,31 @@ def require_permission(permission: str) -> Callable[..., User]:
         return user
 
     return _check
+
+
+def get_locale(
+    request: Request,
+    user: User | None = None,
+) -> Literal["ko", "en"]:
+    """사용자 locale을 결정한다.
+
+    우선순위:
+    1. 인증 사용자의 user.language
+    2. Accept-Language 헤더 ("ko" 포함 시 "ko")
+    3. fallback "en"
+
+    admin 엔드포인트에서는 이 함수를 사용하지 않고 "ko"를 직접 전달한다.
+    """
+    if user is not None:
+        lang: str = getattr(user, "language", "") or ""
+        if lang == "ko":
+            return "ko"
+        if lang == "en":
+            return "en"
+    accept_lang = request.headers.get("Accept-Language", "")
+    if "ko" in accept_lang.lower():
+        return "ko"
+    return "en"
 
 
 def require_modernize_feature() -> None:

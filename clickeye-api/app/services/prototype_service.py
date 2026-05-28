@@ -17,6 +17,7 @@ from app.models.pm_profile import PMProfile
 from app.models.pm_recommendation_log import PMRecommendationLog
 from app.models.project import Project
 from app.models.prototype_session import Prototype, PrototypeSession
+from app.models.user import User as _UserModel
 from app.schemas.prototype import (
     FinalizeRequest,
     PrototypeSelectRequest,
@@ -171,6 +172,10 @@ class PrototypeService:
 
         prompt = str(session.solution_prompt or "")
 
+        # 사용자 locale 조회 — Claude 응답 언어 분기에 사용
+        user = await self.db.get(_UserModel, user_id)
+        locale: str = getattr(user, "language", "ko") or "ko" if user else "ko"
+
         # 재진입(race condition) 방어: 기존 프로토타입을 모두 제거하고 새로 생성
         await self.db.execute(delete(Prototype).where(Prototype.session_id == session_id))
         await self.db.commit()
@@ -190,7 +195,9 @@ class PrototypeService:
 
             # 1. 요구사항 분석 — Claude API, 실패 시 규칙 기반 폴백
             try:
-                requirements = await self._claude.analyze_solution(prompt, org_context)
+                requirements = await self._claude.analyze_solution(
+                    prompt, org_context, locale=locale
+                )
             except Exception:
                 logger.warning(
                     "analyze_solution API 실패, 규칙 기반 폴백 사용 (session_id=%s)", session_id
@@ -257,6 +264,7 @@ class PrototypeService:
                         catalog_entry=catalog_entry_dict,
                         catalog_references=catalog_refs if catalog_refs else None,
                         company_context=company_context,
+                        locale=locale,
                     )
                     design_style = str(ui_data.get("design_style", "minimal"))
                     arch_pattern = str(ui_data.get("architecture_pattern", design_style))
@@ -332,6 +340,7 @@ class PrototypeService:
                                 catalog_references=catalog_refs if catalog_refs else None,
                                 company_context=company_context,
                                 avoid_tech_stacks=avoid_stacks,
+                                locale=locale,
                             )
                             arch_pattern = str(
                                 ui_data.get("architecture_pattern")

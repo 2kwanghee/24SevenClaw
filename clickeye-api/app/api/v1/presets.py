@@ -2,11 +2,11 @@ import logging
 from uuid import UUID
 
 import anthropic
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import require_permission
+from app.dependencies import get_locale, require_permission
 from app.models.user import User
 from app.schemas.preset import (
     MaturityAssessmentRequest,
@@ -220,6 +220,7 @@ def _build_fallback_response(
 @router.post("/analyze-text", response_model=NaturalLanguageConfigResponse)
 async def analyze_natural_language_text(
     data: NaturalLanguageConfigRequest,
+    request: Request,
     user: User = Depends(require_permission("project:read")),
     db: AsyncSession = Depends(get_db),
 ) -> NaturalLanguageConfigResponse:
@@ -228,11 +229,13 @@ async def analyze_natural_language_text(
     위저드 Step 1 자동 채움(prefill) 용도로 tags/tech_stack/features 등을 함께 응답한다.
     Claude API 실패 시 에러 타입별로 분류된 안내 메시지와 키워드 기반 폴백을 반환한다.
     """
+    locale = get_locale(user=user, request=request)
     claude = ClaudeService()
     try:
         analysis = await claude.analyze_solution(
             prompt=data.text,
             org_context={},
+            locale=locale,
         )
         agents, skills, pipelines = _map_analysis_to_suggestions(analysis)
         return NaturalLanguageConfigResponse(
