@@ -52,6 +52,7 @@ export default function NewSolutionPage() {
   const tG = useTranslations("toast.generic");
   const tS = useTranslations("toast.solutions");
   const tP = useTranslations("toast.projects");
+  const t = useTranslations("solutions.new");
 
   const {
     currentStep,
@@ -320,14 +321,12 @@ export default function NewSolutionPage() {
     <BaseModal
       open={showResumeDialog}
       onClose={() => setShowResumeDialog(false)}
-      title="진행 중인 세션이 있습니다"
+      title={t("resumeTitle")}
       titleId="resume-dialog-title"
       size="md"
     >
       <div className="space-y-4 p-6">
-        <p className="text-sm text-zinc-500">
-          이전에 시작한 위저드 세션을 계속 진행하거나 새로 시작할 수 있습니다.
-        </p>
+        <p className="text-sm text-zinc-500">{t("resumeDesc")}</p>
         <div className="space-y-2">
           {pendingSessions.slice(0, 5).map((s) => (
             <div
@@ -343,7 +342,7 @@ export default function NewSolutionPage() {
                   <p className="truncate text-sm font-medium text-zinc-900">
                     {s.solution_prompt
                       ? s.solution_prompt.slice(0, 60) + (s.solution_prompt.length > 60 ? "…" : "")
-                      : "(요청 내용 없음)"}
+                      : t("noRequest")}
                   </p>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-[11px] text-zinc-500">
@@ -363,10 +362,10 @@ export default function NewSolutionPage() {
                       )}
                     >
                       {s.status === "completed"
-                        ? "프로토타입 생성됨"
+                        ? t("sessionCompleted")
                         : s.status === "generating"
-                          ? "생성 중"
-                          : "대기 중"}
+                          ? t("sessionGenerating")
+                          : t("sessionPending")}
                     </span>
                   </div>
                 </div>
@@ -376,7 +375,7 @@ export default function NewSolutionPage() {
                 type="button"
                 onClick={() => void handleDeleteSession(s.id)}
                 className="flex items-center px-3 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
-                aria-label="세션 삭제"
+                aria-label={t("sessionDeleteAria")}
               >
                 <Trash2 className="h-3.5 w-3.5 text-zinc-400 hover:text-red-500" aria-hidden="true" />
               </button>
@@ -388,7 +387,7 @@ export default function NewSolutionPage() {
           onClick={() => setShowResumeDialog(false)}
           className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
         >
-          새로 시작
+          {t("startNew")}
         </button>
       </div>
     </BaseModal>
@@ -398,7 +397,7 @@ export default function NewSolutionPage() {
       onNextStep={currentStep === 0 ? handleStep1Next : undefined}
       isSubmitting={isSubmitting}
       canProceed={canProceed}
-      nextLabel={currentStep === 5 ? "이대로 진행" : undefined}
+      nextLabel={currentStep === 5 ? t("proceed") : undefined}
     >
       {error && (
         <div
@@ -416,7 +415,7 @@ export default function NewSolutionPage() {
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 transition-colors hover:bg-red-100"
           >
             <RefreshCw className="h-3 w-3" />
-            재시도
+            {t("retry")}
           </button>
         </div>
       )}

@@ -17,12 +17,6 @@ import type { OrgMemberResponse, OrgRole } from "@/lib/api-client";
 // TODO: 실제 조직 ID는 세션 또는 URL에서 가져와야 함
 const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
-const ORG_ROLE_LABELS: Record<OrgRole, string> = {
-  org_admin: "관리자",
-  org_member: "멤버",
-  org_viewer: "뷰어",
-};
-
 const ORG_ROLE_COLORS: Record<OrgRole, string> = {
   org_admin: "bg-violet-50 text-violet-700 border-violet-200",
   org_member: "bg-blue-50 text-blue-700 border-blue-200",
@@ -39,12 +33,19 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false);
   const addMember = useAddOrgMember(orgId);
   const tT = useTranslations("toast.members");
+  const t = useTranslations("settings.members");
   const { register, handleSubmit, reset, setValue, watch } =
     useForm<InviteFormData>({
       defaultValues: { email: "", userId: "", role: "org_member" },
     });
 
   const selectedRole = watch("role");
+
+  const roleLabels: Record<OrgRole, string> = {
+    org_admin: t("roles.org_admin"),
+    org_member: t("roles.org_member"),
+    org_viewer: t("roles.org_viewer"),
+  };
 
   const onSubmit = (data: InviteFormData) => {
     if (!data.userId.trim()) {
@@ -75,7 +76,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
         className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
       >
         <UserPlus className="h-4 w-4" />
-        멤버 초대
+        {t("inviteBtn")}
       </button>
     );
   }
@@ -90,12 +91,12 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           htmlFor="userId"
           className="mb-1 block text-xs font-medium text-[var(--text-muted)]"
         >
-          사용자 ID
+          {t("userIdLabel")}
         </label>
         <input
           id="userId"
           type="text"
-          placeholder="UUID 입력..."
+          placeholder={t("userIdPlaceholder")}
           {...register("userId")}
           className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400"
         />
@@ -106,7 +107,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           htmlFor="role"
           className="mb-1 block text-xs font-medium text-[var(--text-muted)]"
         >
-          역할
+          {t("roleLabel")}
         </label>
         <select
           id="role"
@@ -114,7 +115,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           onChange={(e) => setValue("role", e.target.value as OrgRole)}
           className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-zinc-400"
         >
-          {(Object.entries(ORG_ROLE_LABELS) as [OrgRole, string][]).map(
+          {(Object.entries(roleLabels) as [OrgRole, string][]).map(
             ([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -130,7 +131,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           disabled={addMember.isPending}
           className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
         >
-          {addMember.isPending ? "추가 중..." : "추가"}
+          {addMember.isPending ? t("addingBtn") : t("addBtn")}
         </button>
         <button
           type="button"
@@ -140,7 +141,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           }}
           className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]"
         >
-          취소
+          {t("cancelBtn")}
         </button>
       </div>
     </form>
@@ -157,6 +158,12 @@ function MemberRow({
   const removeMember = useRemoveOrgMember(orgId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const tT = useTranslations("toast.members");
+  const t = useTranslations("settings.members");
+  const roleLabels: Record<OrgRole, string> = {
+    org_admin: t("roles.org_admin"),
+    org_member: t("roles.org_member"),
+    org_viewer: t("roles.org_viewer"),
+  };
 
   const handleRemove = () => {
     removeMember.mutate(member.user_id, {
@@ -184,7 +191,7 @@ function MemberRow({
         <span
           className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium ${ORG_ROLE_COLORS[role]}`}
         >
-          {ORG_ROLE_LABELS[role]}
+          {roleLabels[role]}
         </span>
       </td>
       <td className="px-4 py-3">
@@ -195,7 +202,7 @@ function MemberRow({
               : "bg-zinc-100 text-[var(--text-muted)]"
           }`}
         >
-          {member.is_active ? "활성" : "비활성"}
+          {member.is_active ? t("statusActive") : t("statusInactive")}
         </span>
       </td>
       <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
@@ -204,21 +211,21 @@ function MemberRow({
       <td className="px-4 py-3 text-right">
         {confirmDelete ? (
           <div className="inline-flex items-center gap-2">
-            <span className="text-xs text-red-700">삭제하시겠습니까?</span>
+            <span className="text-xs text-red-700">{t("deleteConfirm")}</span>
             <button
               type="button"
               onClick={handleRemove}
               disabled={removeMember.isPending}
               className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-500 disabled:opacity-50"
             >
-              확인
+              {t("confirmBtn")}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="rounded-lg border border-[var(--border-subtle)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)]"
             >
-              취소
+              {t("cancelBtn")}
             </button>
           </div>
         ) : (
@@ -226,7 +233,7 @@ function MemberRow({
             type="button"
             onClick={() => setConfirmDelete(true)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-red-50 hover:text-red-700"
-            title="멤버 제거"
+            title={t("removeTitle")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -239,6 +246,7 @@ function MemberRow({
 function MembersContent() {
   const orgId = DEFAULT_ORG_ID;
   const { data: members, isLoading, error } = useOrgMembers(orgId);
+  const t = useTranslations("settings.members");
 
   return (
     <div>
@@ -249,10 +257,8 @@ function MembersContent() {
             <Users2 className="h-5 w-5 text-[var(--text-secondary)]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">조직 멤버</h1>
-            <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-              조직 멤버를 초대하고 관리합니다
-            </p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
           </div>
         </div>
         <InviteMemberForm orgId={orgId} />
@@ -273,7 +279,7 @@ function MembersContent() {
       {/* 에러 */}
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          멤버 목록을 불러오지 못했습니다.
+          {t("loadError")}
         </div>
       )}
 
@@ -284,19 +290,19 @@ function MembersContent() {
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                  사용자
+                  {t("colUser")}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                  역할
+                  {t("colRole")}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                  상태
+                  {t("colStatus")}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                  가입일
+                  {t("colJoinedAt")}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                  관리
+                  {t("colActions")}
                 </th>
               </tr>
             </thead>
@@ -314,10 +320,8 @@ function MembersContent() {
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
           <Users2 className="h-12 w-12 text-[var(--text-muted)]" />
           <div>
-            <p className="text-sm text-[var(--text-muted)]">조직 멤버가 없습니다</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
-              위의 &quot;멤버 초대&quot; 버튼으로 멤버를 추가하세요
-            </p>
+            <p className="text-sm text-[var(--text-muted)]">{t("emptyState")}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{t("emptyStateHint")}</p>
           </div>
         </div>
       )}
@@ -325,7 +329,7 @@ function MembersContent() {
       {/* 멤버 수 */}
       {members && members.length > 0 && (
         <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          총 {members.length}명
+          {t("totalCount", { count: members.length })}
         </p>
       )}
     </div>

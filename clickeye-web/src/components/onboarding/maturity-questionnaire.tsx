@@ -11,43 +11,17 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import type { MaturityQuestion } from "@/lib/api-client";
 
-const CATEGORY_META: Record<
-  string,
-  {
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    description: string;
-  }
-> = {
-  team: {
-    label: "팀 역량",
-    icon: Users,
-    description: "팀 규모와 AI 경험 수준을 알려주세요",
-  },
-  process: {
-    label: "개발 프로세스",
-    icon: GitBranch,
-    description: "코드 리뷰와 브랜치 전략을 확인합니다",
-  },
-  tooling: {
-    label: "개발 도구",
-    icon: Wrench,
-    description: "IDE와 테스트 자동화 수준을 파악합니다",
-  },
-  ci: {
-    label: "CI/CD",
-    icon: Rocket,
-    description: "파이프라인과 배포 주기를 확인합니다",
-  },
-  ai: {
-    label: "AI 활용",
-    icon: Bot,
-    description: "AI 도구 활용과 품질 관리 체계를 평가합니다",
-  },
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  team: Users,
+  process: GitBranch,
+  tooling: Wrench,
+  ci: Rocket,
+  ai: Bot,
 };
 
 const CATEGORY_ORDER = ["team", "process", "tooling", "ci", "ai"];
@@ -63,6 +37,7 @@ export function MaturityQuestionnaire({
   onComplete,
   isSubmitting,
 }: MaturityQuestionnaireProps) {
+  const t = useTranslations("onboarding.questionnaire");
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
@@ -75,8 +50,7 @@ export function MaturityQuestionnaire({
 
   const currentCategory = CATEGORY_ORDER[categoryIndex];
   const currentQuestions = questionsByCategory[currentCategory] ?? [];
-  const meta = CATEGORY_META[currentCategory];
-  const Icon = meta?.icon ?? Bot;
+  const Icon = CATEGORY_ICONS[currentCategory] ?? Bot;
   const isLastCategory = categoryIndex === CATEGORY_ORDER.length - 1;
 
   const allCurrentAnswered = currentQuestions.every(
@@ -109,7 +83,7 @@ export function MaturityQuestionnaire({
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between text-xs text-[var(--text-muted)]">
           <span>
-            {answeredCount}/{totalQuestions} 답변 완료
+            {t("progressLabel", { answered: answeredCount, total: totalQuestions })}
           </span>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -124,7 +98,7 @@ export function MaturityQuestionnaire({
       {/* 카테고리 인디케이터 */}
       <div className="mb-6 flex items-center gap-3">
         {CATEGORY_ORDER.map((cat, idx) => {
-          const CatIcon = CATEGORY_META[cat]?.icon ?? Bot;
+          const CatIcon = CATEGORY_ICONS[cat] ?? Bot;
           const isActive = idx === categoryIndex;
           const isDone = idx < categoryIndex;
           return (
@@ -142,8 +116,8 @@ export function MaturityQuestionnaire({
                   !isDone &&
                   "bg-[var(--bg-hover)] text-[var(--text-muted)]",
               )}
-              title={CATEGORY_META[cat]?.label}
-              aria-label={CATEGORY_META[cat]?.label}
+              title={t(`categories.${cat}.label`)}
+              aria-label={t(`categories.${cat}.label`)}
             >
               {isDone ? (
                 <CheckCircle2 className="h-4 w-4" />
@@ -159,12 +133,12 @@ export function MaturityQuestionnaire({
       <div className="mb-6">
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 text-violet-600" />
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{meta?.label}</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t(`categories.${currentCategory}.label`)}</h2>
           <span className="text-xs text-[var(--text-muted)]">
             {categoryIndex + 1}/{CATEGORY_ORDER.length}
           </span>
         </div>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">{meta?.description}</p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{t(`categories.${currentCategory}.description`)}</p>
       </div>
 
       {/* 질문 목록 */}
@@ -226,7 +200,7 @@ export function MaturityQuestionnaire({
           )}
         >
           <ArrowLeft className="h-4 w-4" />
-          이전
+          {t("prevBtn")}
         </button>
 
         <button
@@ -241,10 +215,10 @@ export function MaturityQuestionnaire({
           )}
         >
           {isSubmitting
-            ? "분석 중..."
+            ? t("analyzing")
             : isLastCategory
-              ? "결과 확인"
-              : "다음"}
+              ? t("checkResults")
+              : t("nextBtn")}
           {!isSubmitting && (
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           )}

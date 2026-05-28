@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import {
   CheckCircle2,
   Key,
@@ -77,44 +78,38 @@ function CodeLine({ children }: { children: string }) {
 /* ── 터널 URL 설정 가이드 ── */
 
 function TunnelGuide() {
+  const t = useTranslations("settings.linear.guide");
   return (
-    <GuideBlock title="터널 URL은 어떻게 얻나요?">
-      <p className="leading-relaxed">
-        터널 URL은 로컬 webhook 서버를 인터넷에서 접근 가능하게 해주는 외부 주소입니다.
-        <strong> bash start.sh</strong>를 실행하면 자동으로 설정됩니다.
-      </p>
+    <GuideBlock title={t("tunnelTitle")}>
+      <p className="leading-relaxed">{t("tunnelDesc")}</p>
       <ol className="space-y-2.5 list-none">
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">1</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">ZIP 압축 해제 후 런처 실행 (터널·Webhook 자동 설정)</p>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep1Title")}</p>
             <CodeLine>bash start.sh</CodeLine>
           </div>
         </li>
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">2</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">발급된 터널 URL 확인</p>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep2Title")}</p>
             <CodeLine>{"cat .run/tunnel.url"}</CodeLine>
-            <p className="mt-1 text-[var(--text-muted)]">출력된 URL을 아래 입력란에 붙여넣으세요.</p>
+            <p className="mt-1 text-[var(--text-muted)]">{t("tunnelStep2Paste")}</p>
           </div>
         </li>
         <li className="flex gap-2.5">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">3</span>
           <div>
-            <p className="font-medium text-[var(--text-secondary)] mb-1">URL 갱신이 필요할 때 (WSL2 재시작 후)</p>
+            <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep3Title")}</p>
             <CodeLine>bash start.sh</CodeLine>
-            <p className="mt-1 text-[var(--text-muted)]">재실행하면 새 URL로 Webhook이 자동 재등록됩니다.</p>
+            <p className="mt-1 text-[var(--text-muted)]">{t("tunnelStep3Note")}</p>
           </div>
         </li>
       </ol>
       <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mt-1">
         <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-700" />
-        <p className="text-amber-700">
-          Cloudflare 무료 터널은 WSL2 재시작 시 URL이 변경됩니다.
-          재시작 후 <strong>bash start.sh</strong>를 다시 실행해 주세요.
-          systemd 서비스(<strong>install-service.sh</strong>)로 등록하면 Webhook 서버와 Watcher는 자동 유지됩니다.
-        </p>
+        <p className="text-amber-700">{t("tunnelWarning")}</p>
       </div>
       <a
         href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/"
@@ -123,7 +118,7 @@ function TunnelGuide() {
         className="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 transition-colors"
       >
         <ExternalLink className="h-3 w-3" />
-        Cloudflare Tunnel 공식 문서
+        {t("tunnelDocsLink")}
       </a>
     </GuideBlock>
   );
@@ -132,22 +127,18 @@ function TunnelGuide() {
 /* ── Webhook 시크릿 가이드 ── */
 
 function WebhookSecretGuide() {
+  const t = useTranslations("settings.linear.guide");
   return (
-    <GuideBlock title="Webhook 시크릿은 무엇인가요?">
-      <p className="leading-relaxed">
-        Linear가 로컬 서버로 이벤트를 보낼 때 서명 검증에 사용하는 임의의 문자열입니다.
-        설정하지 않아도 동작하지만, 보안을 위해 설정을 권장합니다.
-      </p>
+    <GuideBlock title={t("webhookTitle")}>
+      <p className="leading-relaxed">{t("webhookDesc")}</p>
       <div className="space-y-2">
-        <p className="font-medium text-[var(--text-secondary)]">터미널에서 랜덤 시크릿 생성:</p>
+        <p className="font-medium text-[var(--text-secondary)]">{t("webhookGenerateTitle")}</p>
         <CodeLine>{"openssl rand -hex 32"}</CodeLine>
-        <p className="text-[var(--text-muted)]">출력된 값을 복사해서 아래 입력란과 ZIP의 <code className="text-[var(--text-secondary)]">.env</code> 파일의 <code className="text-[var(--text-secondary)]">WEBHOOK_SECRET</code>에 동일하게 입력하세요.</p>
+        <p className="text-[var(--text-muted)]">{t("webhookPasteDesc")}</p>
       </div>
       <div className="flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
         <Shield className="h-3.5 w-3.5 shrink-0 mt-0.5 text-violet-700" />
-        <p className="text-violet-700">
-          터널 URL 등록 시 ClickEye가 Linear Webhook을 자동으로 등록합니다. 여기서 입력한 시크릿이 그 webhook에 적용됩니다.
-        </p>
+        <p className="text-violet-700">{t("webhookNote")}</p>
       </div>
     </GuideBlock>
   );
@@ -158,6 +149,7 @@ function WebhookSecretGuide() {
 export default function LinearSettingsPage() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? "";
+  const t = useTranslations("settings.linear");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -216,8 +208,8 @@ export default function LinearSettingsPage() {
       setApiKey("");
       setSuccess(
         data.linear_webhook_id
-          ? "저장 완료. Linear Webhook이 자동으로 등록되었습니다."
-          : "Linear 자격증명이 저장되었습니다.",
+          ? t("saveSuccess_webhook")
+          : t("saveSuccess"),
       );
       // 키 변경 후 stale 프로젝트 조회 → 가이드 모달 표시 (API 키가 포함된 경우만)
       if (payload.api_key) {
@@ -231,7 +223,7 @@ export default function LinearSettingsPage() {
         }
       }
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.detail : "저장에 실패했습니다.");
+      setError(err instanceof ApiClientError ? err.detail : t("saveFail"));
     } finally {
       setSaving(false);
     }
@@ -248,9 +240,9 @@ export default function LinearSettingsPage() {
       setTeamId("");
       setWebhookSecret("");
       setTunnelUrl("");
-      setSuccess("Linear 자격증명이 삭제되었습니다.");
+      setSuccess(t("deleteSuccess"));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.detail : "삭제에 실패했습니다.");
+      setError(err instanceof ApiClientError ? err.detail : t("deleteFail"));
     } finally {
       setDeleting(false);
     }
@@ -275,10 +267,8 @@ export default function LinearSettingsPage() {
     />
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">Linear 연동</h1>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">
-          AI Team의 작업이 Linear에 자동으로 이슈로 등록되고, 상태 변경 시 로컬 Claude가 자동으로 실행됩니다.
-        </p>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
       </div>
 
       {/* 저장된 자격증명 요약 */}
@@ -286,30 +276,30 @@ export default function LinearSettingsPage() {
         <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle2 className="h-4 w-4 text-violet-600" />
-            <h2 className="text-sm font-semibold text-violet-700">저장된 자격증명</h2>
+            <h2 className="text-sm font-semibold text-violet-700">{t("savedTitle")}</h2>
           </div>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="text-[var(--text-muted)]">API 키</p>
+              <p className="text-[var(--text-muted)]">{t("apiKeyLabel_header")}</p>
               <p className="font-mono text-[var(--text-secondary)] mt-0.5">{saved.api_key_masked}</p>
             </div>
             <div>
-              <p className="text-[var(--text-muted)]">팀 ID</p>
+              <p className="text-[var(--text-muted)]">{t("teamIdLabel_header")}</p>
               <p className="font-mono text-[var(--text-secondary)] mt-0.5 truncate">{saved.team_id}</p>
             </div>
             <div>
-              <p className="text-[var(--text-muted)]">Webhook 시크릿</p>
-              <p className="text-[var(--text-secondary)] mt-0.5">{saved.webhook_secret_set ? "설정됨 ✓" : "미설정"}</p>
+              <p className="text-[var(--text-muted)]">{t("webhookSecretLabel_header")}</p>
+              <p className="text-[var(--text-secondary)] mt-0.5">{saved.webhook_secret_set ? `${t("webhookSet")} ✓` : t("webhookNotSet")}</p>
             </div>
             <div>
-              <p className="text-[var(--text-muted)]">터널 URL</p>
-              <p className="truncate text-[var(--text-secondary)] mt-0.5">{saved.tunnel_url ?? "미설정"}</p>
+              <p className="text-[var(--text-muted)]">{t("tunnelUrlLabel_header")}</p>
+              <p className="truncate text-[var(--text-secondary)] mt-0.5">{saved.tunnel_url ?? t("tunnelNotSet")}</p>
             </div>
           </div>
           {saved.linear_webhook_id && (
             <div className="mt-3 flex items-center gap-1.5">
               <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-              <p className="text-[11px] text-emerald-700">Linear Webhook 등록됨</p>
+              <p className="text-[11px] text-emerald-700">{t("webhookRegistered")}</p>
             </div>
           )}
         </div>
@@ -319,16 +309,16 @@ export default function LinearSettingsPage() {
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-6">
         <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
           <Key className="h-4 w-4 text-[var(--text-muted)]" />
-          {saved ? "자격증명 업데이트" : "자격증명 등록"}
+          {saved ? t("formTitle_update") : t("formTitle_new")}
         </h2>
 
         {/* API 키 + 팀 ID */}
         <div className="space-y-4">
           <div>
             <label className="block text-xs text-[var(--text-muted)] mb-1.5">
-              Linear API 키{" "}
+              {t("apiKeyLabel")}{" "}
               {saved ? (
-                <span className="text-[var(--text-muted)]">(변경하지 않으면 비워두세요)</span>
+                <span className="text-[var(--text-muted)]">{t("apiKeyKeepEmpty")}</span>
               ) : (
                 <span className="text-red-600">*</span>
               )}
@@ -339,7 +329,7 @@ export default function LinearSettingsPage() {
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={
                 saved
-                  ? `현재: ${saved.api_key_masked} — 변경하려면 새 키 입력`
+                  ? `Current: ${saved.api_key_masked}`
                   : "lin_api_xxxxxxxx..."
               }
               className={cn(
@@ -350,13 +340,13 @@ export default function LinearSettingsPage() {
               )}
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-              Linear → Settings → API → Personal API keys에서 발급
+              {t("apiKeyHelp")}
             </p>
           </div>
 
           <div>
             <label className="block text-xs text-[var(--text-muted)] mb-1.5">
-              팀 ID <span className="text-red-600">*</span>
+              {t("teamIdLabel")} <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -366,7 +356,7 @@ export default function LinearSettingsPage() {
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-              Linear → Settings → Workspace → Teams → 팀 이름 클릭 → ID 복사
+              {t("teamIdHelp")}
             </p>
           </div>
         </div>
@@ -375,12 +365,12 @@ export default function LinearSettingsPage() {
         <div className="border-t border-[var(--border-subtle)] pt-5 space-y-4">
           <h3 className="text-xs font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
             <Link2 className="h-3.5 w-3.5 text-zinc-700" />
-            Webhook 설정
-            <span className="text-[var(--text-muted)] font-normal">(실시간 Claude 트리거용)</span>
+            {t("webhookSectionTitle")}
+            <span className="text-[var(--text-muted)] font-normal">{t("webhookSectionNote")}</span>
           </h3>
 
           <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1.5">터널 URL</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1.5">{t("tunnelUrlLabel")}</label>
             <input
               type="url"
               value={tunnelUrl}
@@ -389,19 +379,19 @@ export default function LinearSettingsPage() {
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-              ZIP의 <code className="text-[var(--text-secondary)]">setup-tunnel.sh</code> 실행 후 출력된 URL
+              {t("tunnelUrlHelp")}
             </p>
           </div>
 
           <TunnelGuide />
 
           <div>
-            <label className="block text-xs text-[var(--text-muted)] mb-1.5">Webhook 시크릿 (선택)</label>
+            <label className="block text-xs text-[var(--text-muted)] mb-1.5">{t("webhookSecretLabel")}</label>
             <input
               type="password"
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
-              placeholder={saved?.webhook_secret_set ? "설정됨 — 변경하려면 새 값 입력" : "openssl rand -hex 32 로 생성"}
+              placeholder={saved?.webhook_secret_set ? t("webhookPlaceholderSet") : t("webhookPlaceholderUnset")}
               className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
             />
           </div>
@@ -430,7 +420,7 @@ export default function LinearSettingsPage() {
             className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            {saved ? "업데이트" : "저장"}
+            {saved ? t("updateBtn") : t("saveBtn")}
           </button>
 
           {saved && (
@@ -440,7 +430,7 @@ export default function LinearSettingsPage() {
               className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-100 disabled:opacity-50"
             >
               {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              삭제
+              {t("deleteBtn")}
             </button>
           )}
         </div>

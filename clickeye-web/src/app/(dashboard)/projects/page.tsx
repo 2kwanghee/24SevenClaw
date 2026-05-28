@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ function ProjectsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const tT = useTranslations("toast.projects");
+  const t = useTranslations("projects.page");
 
   // URL searchParams에서 상태 추출
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -91,18 +92,16 @@ function ProjectsContent() {
             <Sparkles className="h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">새 솔루션 위저드</p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              직접 AI 솔루션을 설계하고 ZIP으로 바로 시작하세요
-            </p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("wizardBannerTitle")}</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("wizardBannerDesc")}</p>
           </div>
         </div>
         <Link
           href="/solutions/new"
           className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800"
-          aria-label="새 솔루션 위저드 시작"
+          aria-label={t("wizardBannerBtnAria")}
         >
-          솔루션 설계 시작
+          {t("wizardBannerBtn")}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
@@ -116,19 +115,17 @@ function ProjectsContent() {
             </div>
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">
-                기존 코드 현대화 <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">BETA</span>
+                {t("modernizeBannerTitle")} <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">BETA</span>
               </p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                GitHub 저장소를 연결하면 AI가 코드를 진단하고 현대화 작업을 Linear에 자동 등록합니다
-              </p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("modernizeBannerDesc")}</p>
             </div>
           </div>
           <Link
             href="/solutions/modernize/new"
             className="flex shrink-0 items-center gap-2 rounded-xl border border-zinc-900 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50"
-            aria-label="기존 코드 현대화 위저드 시작"
+            aria-label={t("modernizeBannerBtnAria")}
           >
-            저장소 연결하기
+            {t("modernizeBannerBtn")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -137,10 +134,8 @@ function ProjectsContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">프로젝트</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            AI 에이전트가 작업할 프로젝트를 관리하세요
-          </p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -151,10 +146,10 @@ function ProjectsContent() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
-            placeholder="프로젝트 검색..."
+            placeholder={t("searchPlaceholder")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            aria-label="프로젝트 검색"
+            aria-label={t("searchAria")}
             className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-300"
           />
         </div>
@@ -162,9 +157,9 @@ function ProjectsContent() {
         {/* 상태 필터 */}
         <div className="flex gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1">
           {([
-            { value: "", label: "전체" },
-            { value: "active", label: "활성" },
-            { value: "archived", label: "보관됨" },
+            { value: "", label: t("filterAll") },
+            { value: "active", label: t("filterActive") },
+            { value: "archived", label: t("filterArchived") },
           ] as const).map((option) => (
             <button
               key={option.value}
@@ -191,7 +186,7 @@ function ProjectsContent() {
       {/* 에러 */}
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          프로젝트 목록을 불러오지 못했습니다.
+          {t("loadError")}
         </div>
       )}
 
@@ -207,7 +202,7 @@ function ProjectsContent() {
             onClick={() =>
               updateParams({ page: String(currentPage - 1) })
             }
-            aria-label="이전 페이지"
+            aria-label={t("prevPageAria")}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -219,7 +214,7 @@ function ProjectsContent() {
                 key={page}
                 type="button"
                 onClick={() => updateParams({ page: String(page) })}
-                aria-label={`${page}페이지`}
+                aria-label={t("pageAria", { page })}
                 aria-current={page === currentPage ? "page" : undefined}
                 className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors ${
                   page === currentPage
@@ -238,7 +233,7 @@ function ProjectsContent() {
             onClick={() =>
               updateParams({ page: String(currentPage + 1) })
             }
-            aria-label="다음 페이지"
+            aria-label={t("nextPageAria")}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
@@ -249,7 +244,7 @@ function ProjectsContent() {
       {/* 결과 카운트 */}
       {data && (
         <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          총 {data.total}개 프로젝트
+          {t("totalCount", { count: data.total })}
         </p>
       )}
     </div>
