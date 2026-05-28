@@ -6,14 +6,39 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+
+def localize_registry_item(item: dict[str, Any], locale: str) -> dict[str, Any]:
+    """locale이 'en'이고 _en 값이 있으면 해당 값으로 덮어쓴 dict 반환 (원본 불변).
+
+    catalog_service dict은 'label'/'label_en' 키를 사용하므로 두 패턴 모두 처리한다.
+    """
+    if locale != "en":
+        return item
+    overrides: dict[str, Any] = {}
+    for field_name in ("name", "description"):
+        en_val = item.get(f"{field_name}_en")
+        if en_val:
+            overrides[field_name] = en_val
+    # catalog_service dict: label/label_en, description/description_en
+    label_en = item.get("label_en")
+    if label_en:
+        overrides["label"] = label_en
+    desc_en = item.get("description_en")
+    if desc_en and "description" not in overrides:
+        overrides["description"] = desc_en
+    return {**item, **overrides} if overrides else item
+
 # --- 공통 베이스 ---
 
 
 class RegistryItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
+    name_en: str | None = Field(None, max_length=200)
     slug: str = Field(..., min_length=1, max_length=200, pattern=r"^[a-z0-9-]+$")
     description: str | None = None
+    description_en: str | None = None
     body_md: str | None = None
+    body_md_en: str | None = None
     version: str = Field(default="0.1.0", max_length=50)
     image_url: str | None = Field(None, max_length=500)
     category: str | None = Field(None, max_length=50)
@@ -26,8 +51,11 @@ class RegistryItemBase(BaseModel):
 
 class RegistryItemUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=200)
+    name_en: str | None = Field(None, max_length=200)
     description: str | None = None
+    description_en: str | None = None
     body_md: str | None = None
+    body_md_en: str | None = None
     version: str | None = Field(None, max_length=50)
     image_url: str | None = Field(None, max_length=500)
     category: str | None = Field(None, max_length=50)
@@ -41,9 +69,12 @@ class RegistryItemUpdate(BaseModel):
 class RegistryItemResponse(BaseModel):
     id: UUID
     name: str
+    name_en: str | None = None
     slug: str
     description: str | None
+    description_en: str | None = None
     body_md: str | None
+    body_md_en: str | None = None
     version: str
     image_url: str | None
     category: str | None

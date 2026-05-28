@@ -20,10 +20,13 @@ class PMProfile(Base):
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
+    name_en = Column(String(100), nullable=True)
     slug = Column(String(100), nullable=False, unique=True, index=True)
     avatar_url = Column(String(500), nullable=True)
     title = Column(String(200), nullable=True)
+    title_en = Column(String(200), nullable=True)
     description = Column(Text, nullable=True)
+    description_en = Column(Text, nullable=True)
     domain = Column(String(100), nullable=True)
     specialties = Column(JSON, nullable=False, default=list)
     personality = Column(JSON, nullable=False, default=dict)
@@ -31,6 +34,7 @@ class PMProfile(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     # Phase 3: PM 관리 확장 필드
     bio_long = Column(Text, nullable=True)
+    bio_long_en = Column(Text, nullable=True)
     years_experience = Column(Integer, nullable=True)
     preferred_solution_types = Column(JSON, nullable=False, default=list)
     tech_stack_tags = Column(JSON, nullable=False, default=list)

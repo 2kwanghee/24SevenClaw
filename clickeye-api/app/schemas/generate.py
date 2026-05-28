@@ -39,6 +39,11 @@ class GenerateRequest(PreviewRequest):
         default="api_key",
         description="Claude 인증 방식 — api_key(기본), oauth_browser(claude login)",
     )
+    locale: str = Field(
+        default="ko",
+        max_length=8,
+        description="ZIP 생성 locale — 'ko'(기본) 또는 'en'. body_md_en 우선 사용",
+    )
 
 
 class RedownloadRequest(BaseModel):

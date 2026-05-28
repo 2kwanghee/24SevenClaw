@@ -30,7 +30,9 @@ def _agent_to_dict(a: Agent) -> dict[str, Any]:
     return {
         "id": a.slug,
         "label": a.name,
+        "label_en": a.name_en,
         "description": a.description,
+        "description_en": a.description_en,
         "category": a.category,
         "required": a.required,
         "output_file": a.output_file,
@@ -42,7 +44,9 @@ def _skill_to_dict(s: Skill) -> dict[str, Any]:
     return {
         "id": s.slug,
         "label": s.name,
+        "label_en": s.name_en,
         "description": s.description,
+        "description_en": s.description_en,
         "category": s.category,
         "required": s.required,
         "output_file": s.output_file,
@@ -56,7 +60,9 @@ def _hook_to_dict(h: Hook) -> dict[str, Any]:
     return {
         "id": h.slug,
         "label": h.name,
+        "label_en": h.name_en,
         "description": h.description,
+        "description_en": h.description_en,
         "category": h.category,
         "required": h.required,
         "event": h.event,
@@ -68,9 +74,12 @@ def _mcp_to_dict(m: MCPServer) -> dict[str, Any]:
     return {
         "id": m.slug,
         "label": m.name,
+        "label_en": m.name_en,
         "description": m.description,
+        "description_en": m.description_en,
         "category": m.category,
         "body_md": m.body_md,
+        "body_md_en": m.body_md_en,
     }
 
 
@@ -111,6 +120,7 @@ class CatalogService:
             {
                 **_agent_to_dict(a),
                 "body_md": a.body_md,
+                "body_md_en": a.body_md_en,
                 "template": f"agents/{a.output_file}.j2" if a.output_file else None,
             }
             for a in agents
@@ -125,6 +135,7 @@ class CatalogService:
             {
                 **_skill_to_dict(s),
                 "body_md": s.body_md,
+                "body_md_en": s.body_md_en,
                 "template": f"skills/{s.output_file}.j2" if s.output_file else None,
             }
             for s in skills
@@ -139,6 +150,7 @@ class CatalogService:
             {
                 **_hook_to_dict(h),
                 "body_md": h.body_md,
+                "body_md_en": h.body_md_en,
                 "template": f"hooks/{h.output_file}.j2" if h.output_file else None,
             }
             for h in hooks
