@@ -147,6 +147,76 @@ def test_generate_zip_linear_not_broken_after_notion_added() -> None:
         assert ".claude/skills/notion-sync.md" not in names
 
 
+# ── 메타프롬프팅 (관측형 사전 정제) emit 테스트 ──
+# generate_zip 은 async, catalog_prefetch=None 이면 DB 불필요 → no_db 단위 테스트.
+
+
+@pytest.mark.no_db
+@pytest.mark.asyncio
+async def test_generate_zip_linear_skill_includes_metaprompt() -> None:
+    """linear 스킬 선택 시 .claude/skills/metaprompt.md(관측형 사전 정제) 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "metaprompt-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["linear"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = await generate_zip(request, "metaprompt-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".claude/skills/metaprompt.md" in names
+        content = zf.read(".claude/skills/metaprompt.md").decode()
+        # 구조 리팩터(C)에도 안정적인 방법론 마커만 단언 (함수명 등 이동 가능 식별자 제외)
+        assert "관측형 사전 정제" in content
+        assert "가정 (Assumptions)" in content
+        assert "Acceptance Criteria 재확장 금지" in content
+        assert "자기 점검" in content
+
+
+@pytest.mark.no_db
+@pytest.mark.asyncio
+async def test_generate_zip_run_pipeline_includes_refine_step() -> None:
+    """linear 스킬 선택 시 run-pipeline.sh에 관측형 사전 정제 배선 포함 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "refine-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["linear"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = await generate_zip(request, "refine-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert "scripts/run-pipeline.sh" in names
+        script = zf.read("scripts/run-pipeline.sh").decode()
+        # 안정 마커만 단언: 정제 스킬 참조 / 멱등성 저장 경로 / 구현 콜 prepend·코멘트 헤더
+        assert "METAPROMPT_FILE" in script
+        assert ".ralph/refined" in script
+        assert "정제된 구현 스펙" in script
+
+
+@pytest.mark.no_db
+@pytest.mark.asyncio
+async def test_generate_zip_no_linear_skips_metaprompt() -> None:
+    """linear 미선택 시 metaprompt.md / run-pipeline.sh 미포함(게이팅) 확인."""
+    request = GenerateRequest(
+        solution={"projectName": "no-linear-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["tdd"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = await generate_zip(request, "no-linear-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert ".claude/skills/metaprompt.md" not in names
+        assert "scripts/run-pipeline.sh" not in names
+
+
 def test_generate_zip_with_env_vars() -> None:
     """envVars 전달 시 .env + .env.example 포함."""
     request = GenerateRequest(
