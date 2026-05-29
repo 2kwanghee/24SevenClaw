@@ -34,8 +34,9 @@ interface RequiredKeyConfig {
 
 const ANTHROPIC_KEY_CONFIG: RequiredKeyConfig = {
   key: "ANTHROPIC_API_KEY",
-  label: "Anthropic API 키",
-  description: "Claude AI 모델 호출에 필요한 인증 키",
+  // label/description 은 렌더 시 i18n(anthropicKeyLabel/anthropicKeyDesc)으로 덮어쓴다.
+  label: "Anthropic API key",
+  description: "Authentication key required to call Claude AI models",
   guideUrl: "https://console.anthropic.com",
   guideLabel: "console.anthropic.com",
 };
@@ -245,7 +246,12 @@ export function StepSolutionEnv() {
   const envGroups = collectEnvVars(skillsData?.items, hooksData?.items, selectedSkills, selectedHooks);
 
   // 전체 필수 키 = authMethod별 Anthropic 키 + 동적 수집된 required vars
-  const alwaysRequired = getAlwaysRequired(authMethod);
+  // Anthropic 고정 키의 label/description 은 i18n 으로 덮어쓴다 (DB 동적 키는 그대로).
+  const alwaysRequired = getAlwaysRequired(authMethod).map((c) =>
+    c.key === "ANTHROPIC_API_KEY"
+      ? { ...c, label: t("anthropicKeyLabel"), description: t("anthropicKeyDesc") }
+      : c,
+  );
   const allRequiredKeys = [
     ...alwaysRequired,
     ...envGroups.flatMap((g) =>
@@ -293,7 +299,7 @@ export function StepSolutionEnv() {
         setEnvValidation({ linearStatus: "invalid", linearMessage: check.message });
         return;
       }
-      setEnvValidation({ linearStatus: "loading", linearMessage: "검증 중..." });
+      setEnvValidation({ linearStatus: "loading", linearMessage: t("validating") });
       linearTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -313,7 +319,7 @@ export function StepSolutionEnv() {
         }
       }, DEBOUNCE_MS);
     },
-    [token, setEnvValidation],
+    [token, setEnvValidation, t],
   );
 
   const triggerNotionValidation = useCallback(
@@ -328,7 +334,7 @@ export function StepSolutionEnv() {
         setEnvValidation({ notionStatus: "invalid", notionMessage: check.message });
         return;
       }
-      setEnvValidation({ notionStatus: "loading", notionMessage: "검증 중..." });
+      setEnvValidation({ notionStatus: "loading", notionMessage: t("validating") });
       notionTimerRef.current = setTimeout(async () => {
         if (!token) return;
         try {
@@ -348,7 +354,7 @@ export function StepSolutionEnv() {
         }
       }, DEBOUNCE_MS);
     },
-    [token, setEnvValidation],
+    [token, setEnvValidation, t],
   );
 
   // envVars 변경 시 linear/notion 쌍 재검증 트리거

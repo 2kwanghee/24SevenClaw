@@ -1,15 +1,10 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Zap, Users, Layers, Code2, CheckCircle2, KeyRound } from "lucide-react";
 
 interface CompanyBlueprintViewProps {
   result: Record<string, unknown>;
 }
-
-const COMPLEXITY_LABEL: Record<string, string> = {
-  low: "낮음",
-  medium: "중간",
-  high: "높음",
-};
 
 const COMPLEXITY_COLOR: Record<string, string> = {
   low: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -18,10 +13,12 @@ const COMPLEXITY_COLOR: Record<string, string> = {
 };
 
 export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
+  const t = useTranslations("wizard.preview.blueprint");
+
   if (result.status === "too_short") {
     return (
       <p className="text-xs text-zinc-400">
-        솔루션 요구사항을 조금 더 입력하면 청사진이 나타납니다.
+        {t("tooShort")}
       </p>
     );
   }
@@ -30,8 +27,8 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
     return (
       <div className="space-y-2">
         <p className="text-xs text-amber-600">
-          Anthropic API 크레딧이 부족합니다.
-          {result.key_source === "server" ? " 서버 공용 키의 크레딧이 소진되었습니다." : " Plans & Billing에서 충전 후 다시 시도하세요."}
+          {t("creditError")}
+          {result.key_source === "server" ? t("creditServerSuffix") : t("creditUserSuffix")}
         </p>
         {result.key_source === "server" && (
           <Link
@@ -39,7 +36,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
             className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
           >
             <KeyRound className="h-3 w-3" aria-hidden="true" />
-            내 API 키 등록하기 →
+            {t("registerKey")}
           </Link>
         )}
       </div>
@@ -50,8 +47,8 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
     return (
       <div className="space-y-2">
         <p className="text-xs text-red-600">
-          API 키 인증에 실패했습니다.
-          {result.key_source === "user" ? " 설정 페이지에서 키를 확인하세요." : " ANTHROPIC_API_KEY 설정을 확인하세요."}
+          {t("authError")}
+          {result.key_source === "user" ? t("authUserSuffix") : t("authServerSuffix")}
         </p>
         {result.key_source === "user" && (
           <Link
@@ -59,7 +56,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
             className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
           >
             <KeyRound className="h-3 w-3" aria-hidden="true" />
-            API 키 재설정 →
+            {t("resetKey")}
           </Link>
         )}
       </div>
@@ -69,7 +66,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
   if (result.status === "api_error" || result.status === "error") {
     return (
       <p className="text-xs text-zinc-400">
-        일시적인 오류가 발생했습니다. 잠시 후 다시 입력해 보세요.
+        {t("genericError")}
       </p>
     );
   }
@@ -104,7 +101,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
             className={`ml-auto inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${COMPLEXITY_COLOR[complexity] ?? COMPLEXITY_COLOR.medium}`}
           >
             <Zap className="mr-1 h-3 w-3" aria-hidden="true" />
-            복잡도 {COMPLEXITY_LABEL[complexity] ?? complexity}
+            {t("complexityPrefix")} {["low", "medium", "high"].includes(complexity) ? t(`complexity.${complexity}`) : complexity}
           </span>
         )}
       </div>
@@ -122,7 +119,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
         <div>
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             <Layers className="h-3 w-3" aria-hidden="true" />
-            핵심 기능
+            {t("features")}
           </p>
           <ul className="space-y-1">
             {features.slice(0, 5).map((f) => (
@@ -140,7 +137,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
         <div>
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             <Code2 className="h-3 w-3" aria-hidden="true" />
-            추천 기술 스택
+            {t("techStack")}
           </p>
           <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 space-y-1">
             {Object.entries(techStack)
@@ -159,7 +156,7 @@ export function CompanyBlueprintView({ result }: CompanyBlueprintViewProps) {
       {keyRequirements.length > 0 && (
         <div>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            핵심 요구사항
+            {t("keyRequirements")}
           </p>
           <ul className="space-y-1">
             {keyRequirements.slice(0, 4).map((r) => (

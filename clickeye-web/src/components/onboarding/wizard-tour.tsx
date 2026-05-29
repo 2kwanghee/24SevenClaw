@@ -2,10 +2,12 @@
 
 import { useEffect } from "react";
 import { Joyride, STATUS, type EventData } from "react-joyride";
+import { useTranslations } from "next-intl";
 import { useOnboardingStore } from "@/stores/onboarding-store";
-import { WIZARD_TOUR_STEPS } from "./wizard-tour-steps";
+import { buildWizardTourSteps } from "./wizard-tour-steps";
 
 export function WizardTourWrapper() {
+  const t = useTranslations("wizard.tour");
   const {
     wizardTourCompleted,
     wizardTourRunning,
@@ -30,17 +32,17 @@ export function WizardTourWrapper() {
 
   return (
     <Joyride
-      steps={WIZARD_TOUR_STEPS}
+      steps={buildWizardTourSteps(t)}
       run={wizardTourRunning}
       continuous
       scrollToFirstStep
       onEvent={handleEvent}
       locale={{
-        back: "이전",
-        close: "닫기",
-        last: "완료",
-        next: "다음",
-        skip: "건너뛰기",
+        back: t("locale.back"),
+        close: t("locale.close"),
+        last: t("locale.last"),
+        next: t("locale.next"),
+        skip: t("locale.skip"),
       }}
       options={{
         primaryColor: "#18181b",

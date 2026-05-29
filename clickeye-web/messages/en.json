@@ -198,7 +198,8 @@
         "mcpLoadError": "Failed to load MCP servers.",
         "hooksSection": "Hooks",
         "hooksLoadError": "Failed to load hooks.",
-        "recommendedBadge": "Recommended"
+        "recommendedBadge": "Recommended",
+        "defaultPmName": "the selected PM"
       },
       "platform": {
         "description": "Select the Agent platform to run your generated solution.",
@@ -270,7 +271,10 @@
         "emptyValue": "(empty)",
         "addVarTitle": "Add Environment Variable",
         "addVarOptional": "(Optional)",
-        "addVarValuePlaceholder": "Value (can enter later · letters/numbers)"
+        "addVarValuePlaceholder": "Value (can enter later · letters/numbers)",
+        "anthropicKeyLabel": "Anthropic API key",
+        "anthropicKeyDesc": "Authentication key required to call Claude AI models",
+        "validating": "Validating..."
       },
       "roi": {
         "title": "ROI Comparison",
@@ -291,7 +295,8 @@
         "roleBe": "Backend Developer",
         "roleFe": "Frontend Developer",
         "roleQa": "QA Engineer",
-        "roleDesigner": "UI/UX Designer"
+        "roleDesigner": "UI/UX Designer",
+        "daysUnit": " days"
       }
     },
     "step7": {
@@ -541,7 +546,9 @@
         "title": "ClickEye Auto Analysis",
         "ariaLabel": "ClickEye Auto Analysis",
         "description": "When ON, running <code>bash start.sh</code> after download will automatically analyze and decompose solution requirements to generate AI Team review cards. Turn OFF to design manually."
-      }
+      },
+      "prefillTargetUsers": "Target users",
+      "prefillFeatures": "Key features"
     },
     "step2": {
       "starting": "Preparing...",
@@ -575,6 +582,236 @@
       "viewCards": "Cards",
       "viewCompare": "Compare",
       "listAriaLabel": "Solution prototype list"
+    },
+    "shell": {
+      "header": {
+        "newTitle": "New solution",
+        "newSubtitle": "AI designs a solution tailored to your company",
+        "modernizeTitle": "Modernize existing code",
+        "modernizeSubtitle": "Connect a GitHub repo and AI will diagnose your code and auto-register modernization tasks"
+      },
+      "nav": {
+        "prev": "Back",
+        "next": "Next",
+        "proceed": "Proceed",
+        "creating": "Creating...",
+        "analyzing": "Analyzing...",
+        "prevAria": "Go to previous step",
+        "nextAria": "Go to next step ({label})",
+        "submitAria": "Create project",
+        "groupAria": "Wizard navigation",
+        "previewToggleAria": "Open live preview",
+        "previewToggleTitle": "Live preview",
+        "restartTourAria": "Replay wizard guide",
+        "solutionsLink": "Solutions",
+        "solutionsLinkAria": "Go to solutions list"
+      },
+      "stepper": {
+        "navAria": "Solution wizard progress",
+        "stepAria": "{label} ({current}/{total}) - {status}",
+        "statusCompleted": "completed",
+        "statusCurrent": "current step",
+        "statusUpcoming": "upcoming"
+      },
+      "steps": {
+        "company": {
+          "label": "Company info",
+          "description": "Enter company info and solution requirements"
+        },
+        "generation": {
+          "label": "Generation",
+          "description": "AI generates solution prototypes"
+        },
+        "prototypes": {
+          "label": "Prototypes",
+          "description": "Choose from AI-generated solution candidates"
+        },
+        "pm-recommendation": {
+          "label": "PM recommendation",
+          "description": "AI analyzes the optimal PM"
+        },
+        "pm-selection": {
+          "label": "PM selection",
+          "description": "Choose a project manager AI"
+        },
+        "pm-composition": {
+          "label": "PM composition",
+          "description": "Review the selected PM's components"
+        },
+        "agents": {
+          "label": "Agents",
+          "description": "Review the AI agent setup"
+        },
+        "platform": {
+          "label": "Platform",
+          "description": "Choose an agent platform"
+        },
+        "os": {
+          "label": "Runtime",
+          "description": "Choose the OS environment to run the solution"
+        },
+        "env": {
+          "label": "Env variables",
+          "description": "Enter API keys and environment variables"
+        },
+        "roi": {
+          "label": "ROI comparison",
+          "description": "Estimate the efficiency value of adopting ClickEye"
+        },
+        "confirm": {
+          "label": "Final review",
+          "description": "Review settings and create the project"
+        },
+        "repo-connect": {
+          "label": "Connect GitHub",
+          "description": "Connect the GitHub repo to import your existing codebase"
+        },
+        "repo-select": {
+          "label": "Select repository",
+          "description": "Select the repo and branch to analyze"
+        },
+        "diagnose": {
+          "label": "Code diagnosis",
+          "description": "AI analyzes the code"
+        },
+        "diagnosis-review": {
+          "label": "Diagnosis review",
+          "description": "Choose modernization scenarios and recommendations"
+        }
+      }
+    },
+    "preview": {
+      "title": "Live preview",
+      "closeAria": "Close preview",
+      "panelAria": "Solution setup progress summary",
+      "skeletonAria": "Loading preview",
+      "emptyStepSummary": "Complete this step to see a summary.",
+      "emptyBlueprint": "Enter solution requirements to see the AI blueprint.",
+      "emptyPanel": "As you progress through the wizard, your settings will appear here.",
+      "blueprint": {
+        "tooShort": "Enter a bit more detail to see the blueprint.",
+        "creditError": "Anthropic API credits are insufficient.",
+        "creditServerSuffix": " The shared server key has run out of credits.",
+        "creditUserSuffix": " Top up in Plans & Billing and try again.",
+        "registerKey": "Register my API key →",
+        "authError": "API key authentication failed.",
+        "authUserSuffix": " Check your key on the settings page.",
+        "authServerSuffix": " Check the ANTHROPIC_API_KEY setting.",
+        "resetKey": "Reset API key →",
+        "genericError": "A temporary error occurred. Please try again shortly.",
+        "complexityPrefix": "Complexity",
+        "features": "Key features",
+        "techStack": "Recommended tech stack",
+        "keyRequirements": "Key requirements",
+        "complexity": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "summary": {
+        "companyName": "Company",
+        "industry": "Industry",
+        "businessType": "Business type",
+        "companySize": "Size",
+        "agents": "Agents",
+        "skills": "Skills",
+        "hooks": "Hooks",
+        "platform": "Platform",
+        "os": "Runtime",
+        "authMethod": "Auth method",
+        "envVars": "Env variables",
+        "noPrototype": "No prototype selected.",
+        "noPm": "No PM selected.",
+        "noAgents": "No agents selected.",
+        "noPlatform": "No platform selected.",
+        "noOs": "No runtime selected.",
+        "noRoi": "ROI analysis not completed.",
+        "pmComposition": "PM components confirmed.",
+        "confirm": "All settings are complete.",
+        "matching": "{score}% match",
+        "countValue": "{count}",
+        "envCountValue": "{count} set",
+        "savings": "Savings",
+        "savingsRatio": "Savings rate",
+        "industryMap": {
+          "it": "IT / Software",
+          "fintech": "Finance / Fintech",
+          "ecommerce": "E-commerce / Retail",
+          "healthcare": "Healthcare / Medical",
+          "education": "Education / Edtech",
+          "manufacturing": "Manufacturing",
+          "logistics": "Logistics / Delivery",
+          "marketing": "Marketing / Advertising",
+          "game": "Games / Entertainment",
+          "other": "Other"
+        },
+        "businessTypeMap": {
+          "b2b": "B2B",
+          "b2c": "B2C",
+          "b2b2c": "B2B2C",
+          "internal": "Internal tool"
+        },
+        "companySizeMap": {
+          "startup": "Startup",
+          "small": "Small",
+          "medium": "Small-medium",
+          "mid-large": "Mid-large",
+          "enterprise": "Enterprise"
+        },
+        "authMethodMap": {
+          "api_key": "API key",
+          "oauth_browser": "OAuth browser"
+        },
+        "platformMap": {
+          "claude-code": "Claude Code",
+          "gemini-cli": "Gemini CLI",
+          "cursor": "Cursor",
+          "codex": "Codex"
+        },
+        "osMap": {
+          "wsl2": "WSL2"
+        }
+      }
+    },
+    "tour": {
+      "steps": {
+        "progress": {
+          "title": "Progress steps",
+          "content": "This wizard guides you through each step. Click a completed step to go back and edit anytime."
+        },
+        "input": {
+          "title": "Step-by-step input",
+          "content": "From company info to agent setup and environment variables, each step collects what AI needs to design your solution."
+        },
+        "navigation": {
+          "title": "Step navigation",
+          "content": "Go back to a previous step or move forward. Once all required fields are filled, the Next button is enabled."
+        }
+      },
+      "locale": {
+        "back": "Back",
+        "close": "Close",
+        "last": "Done",
+        "next": "Next",
+        "skip": "Skip"
+      }
+    },
+    "prototypePreview": {
+      "menuCount": "{count} menus",
+      "pageCount": "{count} pages",
+      "colorPalette": "Color palette",
+      "menuStructure": "Menu structure",
+      "pageLayout": "Page layout",
+      "moreCount": "+{count}"
+    },
+    "pmProfileCard": {
+      "match": "{score}% match",
+      "completedCount": "Completed",
+      "usageCount": "Usage",
+      "successRate": "Success rate",
+      "avgCompletionDays": "Avg. days",
+      "daysValue": "{days}d"
     }
   },
   "setupGuide": {

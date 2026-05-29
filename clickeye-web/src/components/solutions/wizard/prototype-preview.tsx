@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Database, Globe, Lock, Package, Server } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -162,6 +163,7 @@ interface UIStructurePreviewProps {
 }
 
 function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePreviewProps) {
+  const t = useTranslations("wizard.prototypePreview");
   const hasMenus = Array.isArray(menus) && menus.length > 0;
   const hasPages = Array.isArray(pages) && pages.length > 0;
   const hasColors = colors && Object.values(colors).some(Boolean);
@@ -190,13 +192,13 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
         {/* 메뉴 수 */}
         {hasMenus && (
           <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-            메뉴 {menus!.length}개
+            {t("menuCount", { count: menus!.length })}
           </span>
         )}
         {/* 페이지 수 */}
         {hasPages && (
           <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-            페이지 {pages!.length}개
+            {t("pageCount", { count: pages!.length })}
           </span>
         )}
       </div>
@@ -210,7 +212,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {hasColors && (
         <div>
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-            컬러 팔레트
+            {t("colorPalette")}
           </p>
           <div className="flex flex-wrap gap-2">
             {(
@@ -241,7 +243,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {hasMenus && (
         <div>
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-            메뉴 구조
+            {t("menuStructure")}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {menus!.slice(0, 8).map((menu, i) => (
@@ -265,7 +267,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
       {hasPages && (
         <div>
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-            페이지 레이아웃
+            {t("pageLayout")}
           </p>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {pages!.slice(0, 6).map((page, i) => (
@@ -286,7 +288,7 @@ function UIStructurePreview({ menus, pages, colors, isExpanded }: UIStructurePre
             {pages!.length > 6 && (
               <div className="flex items-center justify-center rounded-lg border border-zinc-100 px-2.5 py-1.5">
                 <span className="text-[10px] text-zinc-500">
-                  +{pages!.length - 6}개
+                  {t("moreCount", { count: pages!.length - 6 })}
                 </span>
               </div>
             )}

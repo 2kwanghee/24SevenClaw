@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Sparkles, X, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
 import { useSolutionWizardStore, SOLUTION_WIZARD_STEPS } from "@/stores/solution-wizard-store";
@@ -32,11 +33,12 @@ const STEP_INDEX: Record<string, number> = Object.fromEntries(
 function CurrentStepContent({ stepId }: { stepId: SolutionWizardStepId }) {
   const { previewByStep, previewLoadingStep, previewErrorByStep } =
     useSolutionWizardStore();
+  const t = useTranslations("wizard.preview");
 
   if (stepId !== "company") {
     return (
       <p className="text-xs text-zinc-400">
-        이 단계를 완료하면 요약이 나타납니다.
+        {t("emptyStepSummary")}
       </p>
     );
   }
@@ -57,7 +59,7 @@ function CurrentStepContent({ stepId }: { stepId: SolutionWizardStepId }) {
   if (result) return <CompanyBlueprintView result={result} />;
   return (
     <p className="text-xs text-zinc-400">
-      솔루션 요구사항을 입력하면 AI 청사진이 나타납니다.
+      {t("emptyBlueprint")}
     </p>
   );
 }
@@ -69,6 +71,8 @@ interface WizardArtifactPanelProps {
 export function WizardArtifactPanel({ sheetMode = false }: WizardArtifactPanelProps) {
   const { currentStep, data, previewByStep, previewPanelOpen, togglePreviewPanel } =
     useSolutionWizardStore();
+  const t = useTranslations("wizard.preview");
+  const tShell = useTranslations("wizard.shell");
 
   const currentStepId = SOLUTION_WIZARD_STEPS[currentStep]?.id as SolutionWizardStepId;
   const currentAccordionId = (ACCORDION_STEP_IDS as string[]).includes(currentStepId)
@@ -114,7 +118,7 @@ export function WizardArtifactPanel({ sheetMode = false }: WizardArtifactPanelPr
       )}
 
       <aside
-        aria-label="솔루션 설정 진행 요약"
+        aria-label={t("panelAria")}
         className={
           sheetMode
             ? "fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl border-t border-zinc-200 bg-white shadow-2xl xl:hidden"
@@ -132,13 +136,13 @@ export function WizardArtifactPanel({ sheetMode = false }: WizardArtifactPanelPr
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-500" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-zinc-900">라이브 프리뷰</h3>
+              <h3 className="text-sm font-semibold text-zinc-900">{t("title")}</h3>
             </div>
             {sheetMode && (
               <button
                 type="button"
                 onClick={togglePreviewPanel}
-                aria-label="프리뷰 닫기"
+                aria-label={t("closeAria")}
                 className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -149,7 +153,7 @@ export function WizardArtifactPanel({ sheetMode = false }: WizardArtifactPanelPr
           {/* 아코디언 섹션 목록 */}
           {visibleSteps.length === 0 ? (
             <p className="p-4 text-xs text-zinc-400">
-              위저드를 진행하면 여기에 설정 내용이 나타납니다.
+              {t("emptyPanel")}
             </p>
           ) : (
             <div className="divide-y divide-zinc-100">
@@ -196,7 +200,7 @@ export function WizardArtifactPanel({ sheetMode = false }: WizardArtifactPanelPr
                             isCurrent ? "text-zinc-900" : "text-zinc-600"
                           }`}
                         >
-                          {stepDef?.label}
+                          {stepDef ? tShell(`steps.${stepDef.id}.label`) : ""}
                         </span>
                       </div>
                       {!isCurrent && (

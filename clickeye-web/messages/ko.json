@@ -198,7 +198,8 @@
         "mcpLoadError": "MCP 목록을 불러오지 못했습니다.",
         "hooksSection": "훅 (Hooks)",
         "hooksLoadError": "훅 목록을 불러오지 못했습니다.",
-        "recommendedBadge": "추천"
+        "recommendedBadge": "추천",
+        "defaultPmName": "선택한 PM"
       },
       "platform": {
         "description": "생성된 솔루션을 실행할 Agent 플랫폼을 선택하세요.",
@@ -270,7 +271,10 @@
         "emptyValue": "(비어있음)",
         "addVarTitle": "환경변수 추가",
         "addVarOptional": "(선택)",
-        "addVarValuePlaceholder": "값 (나중에 입력 가능 · 영문/숫자)"
+        "addVarValuePlaceholder": "값 (나중에 입력 가능 · 영문/숫자)",
+        "anthropicKeyLabel": "Anthropic API 키",
+        "anthropicKeyDesc": "Claude AI 모델 호출에 필요한 인증 키",
+        "validating": "검증 중..."
       },
       "roi": {
         "title": "ROI 비교",
@@ -291,7 +295,8 @@
         "roleBe": "백엔드 개발자",
         "roleFe": "프론트엔드 개발자",
         "roleQa": "QA 엔지니어",
-        "roleDesigner": "UI/UX 디자이너"
+        "roleDesigner": "UI/UX 디자이너",
+        "daysUnit": "일"
       }
     },
     "step7": {
@@ -541,7 +546,9 @@
         "title": "ClickEye 자동 분석/분해",
         "ariaLabel": "ClickEye 자동 분석/분해",
         "description": "ON 시 다운로드 후 <code>bash start.sh</code> 실행하면 솔루션 요구사항을 자동 분석·분해해 AI Team 검수 카드를 생성합니다. 직접 설계하려면 OFF로 두세요."
-      }
+      },
+      "prefillTargetUsers": "대상 사용자",
+      "prefillFeatures": "주요 기능"
     },
     "step2": {
       "starting": "생성 준비 중...",
@@ -575,6 +582,236 @@
       "viewCards": "카드",
       "viewCompare": "비교",
       "listAriaLabel": "솔루션 프로토타입 목록"
+    },
+    "shell": {
+      "header": {
+        "newTitle": "새 솔루션",
+        "newSubtitle": "AI가 회사에 맞는 솔루션을 자동 설계합니다",
+        "modernizeTitle": "기존 코드 현대화",
+        "modernizeSubtitle": "GitHub repo 를 연결하면 AI 가 코드를 진단하고 현대화 작업을 자동 등록합니다"
+      },
+      "nav": {
+        "prev": "이전",
+        "next": "다음",
+        "proceed": "이대로 진행",
+        "creating": "생성 중...",
+        "analyzing": "분석 중...",
+        "prevAria": "이전 단계로 이동",
+        "nextAria": "다음 단계로 이동 ({label})",
+        "submitAria": "프로젝트 생성하기",
+        "groupAria": "위저드 네비게이션",
+        "previewToggleAria": "라이브 프리뷰 열기",
+        "previewToggleTitle": "라이브 프리뷰",
+        "restartTourAria": "위저드 가이드 다시 보기",
+        "solutionsLink": "솔루션 목록",
+        "solutionsLinkAria": "솔루션 목록으로 이동"
+      },
+      "stepper": {
+        "navAria": "솔루션 위저드 진행 단계",
+        "stepAria": "{label} ({current}/{total}단계) - {status}",
+        "statusCompleted": "완료됨",
+        "statusCurrent": "현재 단계",
+        "statusUpcoming": "미완료"
+      },
+      "steps": {
+        "company": {
+          "label": "회사 정보",
+          "description": "회사 정보와 솔루션 요구사항 입력"
+        },
+        "generation": {
+          "label": "솔루션 생성",
+          "description": "AI가 솔루션 프로토타입을 생성합니다"
+        },
+        "prototypes": {
+          "label": "프로토타입",
+          "description": "AI가 생성한 솔루션 후보 선택"
+        },
+        "pm-recommendation": {
+          "label": "PM 추천",
+          "description": "AI가 최적의 PM을 분석합니다"
+        },
+        "pm-selection": {
+          "label": "PM 선택",
+          "description": "프로젝트 매니저 AI 선택"
+        },
+        "pm-composition": {
+          "label": "PM 구성",
+          "description": "선택한 PM의 구성 요소 확인"
+        },
+        "agents": {
+          "label": "에이전트",
+          "description": "AI 에이전트 구성 확인"
+        },
+        "platform": {
+          "label": "플랫폼",
+          "description": "Agent 플랫폼 선택"
+        },
+        "os": {
+          "label": "실행 환경",
+          "description": "솔루션을 실행할 OS 환경 선택"
+        },
+        "env": {
+          "label": "환경변수",
+          "description": "API 키 및 환경변수 입력"
+        },
+        "roi": {
+          "label": "ROI 비교",
+          "description": "ClickEye 도입 효율 가치 산출"
+        },
+        "confirm": {
+          "label": "최종 확인",
+          "description": "설정 확인 및 프로젝트 생성"
+        },
+        "repo-connect": {
+          "label": "GitHub 연결",
+          "description": "기존 코드베이스를 가져올 GitHub repo 를 연결합니다"
+        },
+        "repo-select": {
+          "label": "저장소 선택",
+          "description": "분석할 repo 와 브랜치를 선택합니다"
+        },
+        "diagnose": {
+          "label": "코드 진단",
+          "description": "AI 가 코드를 분석합니다"
+        },
+        "diagnosis-review": {
+          "label": "진단 검토",
+          "description": "현대화 시나리오와 권장사항을 선택합니다"
+        }
+      }
+    },
+    "preview": {
+      "title": "라이브 프리뷰",
+      "closeAria": "프리뷰 닫기",
+      "panelAria": "솔루션 설정 진행 요약",
+      "skeletonAria": "프리뷰 로딩 중",
+      "emptyStepSummary": "이 단계를 완료하면 요약이 나타납니다.",
+      "emptyBlueprint": "솔루션 요구사항을 입력하면 AI 청사진이 나타납니다.",
+      "emptyPanel": "위저드를 진행하면 여기에 설정 내용이 나타납니다.",
+      "blueprint": {
+        "tooShort": "솔루션 요구사항을 조금 더 입력하면 청사진이 나타납니다.",
+        "creditError": "Anthropic API 크레딧이 부족합니다.",
+        "creditServerSuffix": " 서버 공용 키의 크레딧이 소진되었습니다.",
+        "creditUserSuffix": " Plans & Billing에서 충전 후 다시 시도하세요.",
+        "registerKey": "내 API 키 등록하기 →",
+        "authError": "API 키 인증에 실패했습니다.",
+        "authUserSuffix": " 설정 페이지에서 키를 확인하세요.",
+        "authServerSuffix": " ANTHROPIC_API_KEY 설정을 확인하세요.",
+        "resetKey": "API 키 재설정 →",
+        "genericError": "일시적인 오류가 발생했습니다. 잠시 후 다시 입력해 보세요.",
+        "complexityPrefix": "복잡도",
+        "features": "핵심 기능",
+        "techStack": "추천 기술 스택",
+        "keyRequirements": "핵심 요구사항",
+        "complexity": {
+          "low": "낮음",
+          "medium": "중간",
+          "high": "높음"
+        }
+      },
+      "summary": {
+        "companyName": "회사명",
+        "industry": "업종",
+        "businessType": "비즈니스 유형",
+        "companySize": "규모",
+        "agents": "에이전트",
+        "skills": "스킬",
+        "hooks": "훅",
+        "platform": "선택 플랫폼",
+        "os": "실행 환경",
+        "authMethod": "인증 방식",
+        "envVars": "환경변수",
+        "noPrototype": "프로토타입이 선택되지 않았습니다.",
+        "noPm": "PM이 선택되지 않았습니다.",
+        "noAgents": "에이전트가 선택되지 않았습니다.",
+        "noPlatform": "플랫폼이 선택되지 않았습니다.",
+        "noOs": "실행 환경이 선택되지 않았습니다.",
+        "noRoi": "ROI 분석이 완료되지 않았습니다.",
+        "pmComposition": "PM 구성 요소가 확인되었습니다.",
+        "confirm": "모든 설정이 완료되었습니다.",
+        "matching": "{score}% 매칭",
+        "countValue": "{count}개",
+        "envCountValue": "{count}개 설정됨",
+        "savings": "절감 비용",
+        "savingsRatio": "절감율",
+        "industryMap": {
+          "it": "IT/소프트웨어",
+          "fintech": "금융/핀테크",
+          "ecommerce": "이커머스/리테일",
+          "healthcare": "헬스케어/의료",
+          "education": "교육/에듀테크",
+          "manufacturing": "제조업",
+          "logistics": "물류/배송",
+          "marketing": "마케팅/광고",
+          "game": "게임/엔터테인먼트",
+          "other": "기타"
+        },
+        "businessTypeMap": {
+          "b2b": "B2B",
+          "b2c": "B2C",
+          "b2b2c": "B2B2C",
+          "internal": "내부 도구"
+        },
+        "companySizeMap": {
+          "startup": "스타트업",
+          "small": "소기업",
+          "medium": "중소기업",
+          "mid-large": "중견기업",
+          "enterprise": "대기업"
+        },
+        "authMethodMap": {
+          "api_key": "API 키",
+          "oauth_browser": "OAuth 브라우저"
+        },
+        "platformMap": {
+          "claude-code": "Claude Code",
+          "gemini-cli": "Gemini CLI",
+          "cursor": "Cursor",
+          "codex": "Codex"
+        },
+        "osMap": {
+          "wsl2": "WSL2"
+        }
+      }
+    },
+    "tour": {
+      "steps": {
+        "progress": {
+          "title": "진행 단계 표시",
+          "content": "총 10단계로 구성된 위저드입니다. 완료된 단계를 클릭해 언제든지 돌아가 수정할 수 있습니다."
+        },
+        "input": {
+          "title": "단계별 입력",
+          "content": "회사 정보부터 에이전트 구성, 환경변수 설정까지 각 단계에서 AI 솔루션 설계에 필요한 정보를 입력합니다."
+        },
+        "navigation": {
+          "title": "단계 이동",
+          "content": "이전 단계로 돌아가거나 다음으로 진행할 수 있습니다. 필수 항목을 모두 채우면 다음 버튼이 활성화됩니다."
+        }
+      },
+      "locale": {
+        "back": "이전",
+        "close": "닫기",
+        "last": "완료",
+        "next": "다음",
+        "skip": "건너뛰기"
+      }
+    },
+    "prototypePreview": {
+      "menuCount": "메뉴 {count}개",
+      "pageCount": "페이지 {count}개",
+      "colorPalette": "컬러 팔레트",
+      "menuStructure": "메뉴 구조",
+      "pageLayout": "페이지 레이아웃",
+      "moreCount": "+{count}개"
+    },
+    "pmProfileCard": {
+      "match": "{score}% 일치",
+      "completedCount": "완료건수",
+      "usageCount": "사용빈도",
+      "successRate": "성공률",
+      "avgCompletionDays": "평균완료일",
+      "daysValue": "{days}일"
     }
   },
   "setupGuide": {

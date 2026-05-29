@@ -14,7 +14,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
+import { NextIntlClientProvider } from "next-intl";
 
+import messages from "../../../../../messages/ko.json";
 import { SolutionWizardLayout } from "../solution-wizard-layout";
 import { useSolutionWizardStore } from "@/stores/solution-wizard-store";
 import { SOLUTION_WIZARD_STEPS } from "@/types/solution-wizard";
@@ -50,15 +52,17 @@ function renderLayout({
   nextLabel,
 }: RenderOptions = {}) {
   return render(
-    <SolutionWizardLayout
-      onSubmit={onSubmit}
-      onNextStep={onNextStep}
-      isSubmitting={isSubmitting}
-      canProceed={canProceed}
-      nextLabel={nextLabel}
-    >
-      <div>스텝 콘텐츠</div>
-    </SolutionWizardLayout>
+    <NextIntlClientProvider locale="ko" messages={messages}>
+      <SolutionWizardLayout
+        onSubmit={onSubmit}
+        onNextStep={onNextStep}
+        isSubmitting={isSubmitting}
+        canProceed={canProceed}
+        nextLabel={nextLabel}
+      >
+        <div>스텝 콘텐츠</div>
+      </SolutionWizardLayout>
+    </NextIntlClientProvider>
   );
 }
 

@@ -187,7 +187,7 @@ type FormData = {
 /* -- 컴포넌트 -- */
 
 /** sessionStorage에서 자연어 분석 결과를 읽어 form 기본값에 병합한다 (일회성). */
-function consumeNlAnalysisPrefill(): {
+function consumeNlAnalysisPrefill(t: (key: string) => string): {
   industry?: IndustryType;
   techStack?: string[];
   solutionRequest?: string;
@@ -204,9 +204,9 @@ function consumeNlAnalysisPrefill(): {
     const reasoning = parsed.reasoning ?? "";
     const features = (parsed.features ?? []).join(", ");
     const description = parsed.target_users
-      ? `대상 사용자: ${parsed.target_users}${features ? `. 주요 기능: ${features}` : ""}`
+      ? `${t("prefillTargetUsers")}: ${parsed.target_users}${features ? `. ${t("prefillFeatures")}: ${features}` : ""}`
       : features
-        ? `주요 기능: ${features}`
+        ? `${t("prefillFeatures")}: ${features}`
         : reasoning;
     return {
       industry,
@@ -228,7 +228,7 @@ export function StepCompanySolution() {
   const setStep0Valid = useSolutionWizardStore((s) => s.setStep0Valid);
 
   // 빠른 시작에서 넘어온 자연어 분석 결과가 있으면 초기값에 병합 (mount 시 1회만)
-  const nlPrefill = consumeNlAnalysisPrefill();
+  const nlPrefill = consumeNlAnalysisPrefill(t);
 
   const schema = useMemo(() => createStep1Schema(t), [t]);
 

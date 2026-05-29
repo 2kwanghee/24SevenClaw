@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, UserCircle2, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import type { PMProfileResponse, PMMetricResponse } from "@/lib/api-client";
@@ -24,6 +25,7 @@ export function PMProfileCard({
   isSelected,
   onSelect,
 }: PMProfileCardProps) {
+  const t = useTranslations("wizard.pmProfileCard");
   const avgRating = metrics?.avg_rating ?? 0;
   const totalProjects = metrics?.completed_projects ?? 0;
   const successRate = metrics?.success_rate ?? 0;
@@ -48,7 +50,7 @@ export function PMProfileCard({
           <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5">
             <Sparkles className="h-2.5 w-2.5 text-emerald-600" />
             <span className="text-[10px] font-medium text-emerald-600">
-              {Math.round(matchScore)}% 일치
+              {t("match", { score: Math.round(matchScore) })}
             </span>
           </div>
         ) : null}
@@ -105,25 +107,25 @@ export function PMProfileCard({
         <div className="mb-3 grid grid-cols-4 divide-x divide-zinc-200 rounded-lg bg-zinc-50 px-2 py-2">
           <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-zinc-950">{totalProjects}</p>
-            <p className="text-[10px] text-zinc-500">완료건수</p>
+            <p className="text-[10px] text-zinc-500">{t("completedCount")}</p>
           </div>
           <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-zinc-950">
               {metrics.usage_count}
             </p>
-            <p className="text-[10px] text-zinc-500">사용빈도</p>
+            <p className="text-[10px] text-zinc-500">{t("usageCount")}</p>
           </div>
           <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-zinc-950">
               {successRate.toFixed(0)}%
             </p>
-            <p className="text-[10px] text-zinc-500">성공률</p>
+            <p className="text-[10px] text-zinc-500">{t("successRate")}</p>
           </div>
           <div className="px-1.5 text-center">
             <p className="text-sm font-semibold text-zinc-950">
-              {metrics.avg_completion_days.toFixed(0)}일
+              {t("daysValue", { days: metrics.avg_completion_days.toFixed(0) })}
             </p>
-            <p className="text-[10px] text-zinc-500">평균완료일</p>
+            <p className="text-[10px] text-zinc-500">{t("avgCompletionDays")}</p>
           </div>
         </div>
       )}

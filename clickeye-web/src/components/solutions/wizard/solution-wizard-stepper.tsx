@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +23,7 @@ export function SolutionWizardStepper({
 }: SolutionWizardStepperProps = {}) {
   const { currentStep: storeCurrentStep, goToStep } = useSolutionWizardStore();
   const currentStep = currentStepProp ?? storeCurrentStep;
+  const t = useTranslations("wizard.shell");
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === "ArrowRight") {
@@ -36,7 +38,7 @@ export function SolutionWizardStepper({
   };
 
   return (
-    <nav aria-label="솔루션 위저드 진행 단계" className="w-full">
+    <nav aria-label={t("stepper.navAria")} className="w-full">
       {/* 데스크톱: 가로 스텝 */}
       <ol className="hidden items-center gap-0 md:flex">
         {steps.map((step, index) => {
@@ -56,7 +58,18 @@ export function SolutionWizardStepper({
                   isClickable ? "cursor-pointer" : "cursor-default",
                 )}
                 aria-current={isCurrent ? "step" : undefined}
-                aria-label={`${step.label} (${index + 1}/${steps.length}단계)${isCompleted ? " - 완료됨" : isCurrent ? " - 현재 단계" : " - 미완료"}`}
+                aria-label={t("stepper.stepAria", {
+                  label: t(`steps.${step.id}.label`),
+                  current: index + 1,
+                  total: steps.length,
+                  status: t(
+                    isCompleted
+                      ? "stepper.statusCompleted"
+                      : isCurrent
+                        ? "stepper.statusCurrent"
+                        : "stepper.statusUpcoming",
+                  ),
+                })}
               >
                 <div className="flex w-full items-center">
                   {index > 0 ? (
@@ -109,7 +122,7 @@ export function SolutionWizardStepper({
                         : "text-zinc-500",
                   )}
                 >
-                  {step.label}
+                  {t(`steps.${step.id}.label`)}
                 </p>
               </button>
             </li>
@@ -134,7 +147,9 @@ export function SolutionWizardStepper({
               {currentStep + 1}
             </span>
             <span className="text-sm font-medium text-zinc-950">
-              {steps[currentStep]?.label ?? ""}
+              {steps[currentStep]
+                ? t(`steps.${steps[currentStep].id}.label`)
+                : ""}
             </span>
           </div>
           <span className="text-xs text-zinc-500">
@@ -142,7 +157,9 @@ export function SolutionWizardStepper({
           </span>
         </div>
         <p className="mt-1 text-xs text-zinc-500">
-          {steps[currentStep]?.description ?? ""}
+          {steps[currentStep]
+            ? t(`steps.${steps[currentStep].id}.description`)
+            : ""}
         </p>
       </div>
     </nav>

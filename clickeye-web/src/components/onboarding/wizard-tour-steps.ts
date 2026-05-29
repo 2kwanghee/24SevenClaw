@@ -1,26 +1,32 @@
 import type { Step } from "react-joyride";
 
-export const WIZARD_TOUR_STEPS: Step[] = [
-  {
-    target: '[data-tour="wizard-stepper"]',
-    title: "진행 단계 표시",
-    content:
-      "총 10단계로 구성된 위저드입니다. 완료된 단계를 클릭해 언제든지 돌아가 수정할 수 있습니다.",
-    skipBeacon: true,
-    placement: "bottom",
-  },
-  {
-    target: '[data-tour="wizard-content"]',
-    title: "단계별 입력",
-    content:
-      "회사 정보부터 에이전트 구성, 환경변수 설정까지 각 단계에서 AI 솔루션 설계에 필요한 정보를 입력합니다.",
-    placement: "top",
-  },
-  {
-    target: '[data-tour="wizard-nav"]',
-    title: "단계 이동",
-    content:
-      "이전 단계로 돌아가거나 다음으로 진행할 수 있습니다. 필수 항목을 모두 채우면 다음 버튼이 활성화됩니다.",
-    placement: "top",
-  },
-];
+/** next-intl 의 useTranslations("wizard.tour") 반환 함수 타입 */
+type TourTranslator = (key: string) => string;
+
+/**
+ * 위저드 투어 스텝 정의 — title/content 는 i18n 메시지에서 가져온다.
+ * target/placement 등 구조 정보는 언어와 무관하게 고정.
+ */
+export function buildWizardTourSteps(t: TourTranslator): Step[] {
+  return [
+    {
+      target: '[data-tour="wizard-stepper"]',
+      title: t("steps.progress.title"),
+      content: t("steps.progress.content"),
+      skipBeacon: true,
+      placement: "bottom",
+    },
+    {
+      target: '[data-tour="wizard-content"]',
+      title: t("steps.input.title"),
+      content: t("steps.input.content"),
+      placement: "top",
+    },
+    {
+      target: '[data-tour="wizard-nav"]',
+      title: t("steps.navigation.title"),
+      content: t("steps.navigation.content"),
+      placement: "top",
+    },
+  ];
+}

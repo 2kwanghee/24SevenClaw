@@ -233,7 +233,7 @@ export function StepSolutionAgents() {
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <p className="text-xs text-zinc-600">
-            {t("pmLockBanner", { pmName: selectedPMInfo?.name ?? "선택한 PM" })}
+            {t("pmLockBanner", { pmName: selectedPMInfo?.name ?? t("defaultPmName") })}
           </p>
         </div>
       ) : hasCatalogRecs ? (
@@ -350,7 +350,7 @@ export function StepSolutionAgents() {
                         title={
                           isBlockedByOtherLock
                             ? t("ticketLockedByPm", {
-                                pmName: selectedPMInfo?.name ?? "선택된 PM",
+                                pmName: selectedPMInfo?.name ?? t("defaultPmName"),
                                 label: lockedTicketSourceId ?? "",
                               })
                             : undefined
@@ -397,7 +397,7 @@ export function StepSolutionAgents() {
                     <p className="text-[11px] text-zinc-500">
                       <Lock className="mr-1 inline h-3 w-3 text-amber-500" aria-hidden="true" />
                       {t("ticketLockedByPm", {
-                        pmName: selectedPMInfo?.name ?? "선택된 PM",
+                        pmName: selectedPMInfo?.name ?? t("defaultPmName"),
                         label: lockedLabel,
                       })}
                     </p>

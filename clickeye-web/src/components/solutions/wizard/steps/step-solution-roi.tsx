@@ -13,8 +13,8 @@ function formatKRW(value: number): string {
   return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
 }
 
-function formatDays(days: number): string {
-  return `${days.toFixed(1)}일`;
+function formatDays(days: number, unit: string): string {
+  return `${days.toFixed(1)}${unit}`;
 }
 
 export function StepSolutionRoi() {
@@ -183,7 +183,7 @@ export function StepSolutionRoi() {
               </p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 <Clock className="mr-1 inline h-3.5 w-3.5" />
-                {formatDays(result.baseline_days)} {t("timeSuffix")}
+                {formatDays(result.baseline_days, t("daysUnit"))} {t("timeSuffix")}
               </p>
             </div>
 
@@ -198,7 +198,7 @@ export function StepSolutionRoi() {
               </p>
               <p className="mt-1 text-xs text-emerald-600">
                 <Clock className="mr-1 inline h-3.5 w-3.5" />
-                {formatDays(result.clickeye_days)} {t("timeSuffix")}
+                {formatDays(result.clickeye_days, t("daysUnit"))} {t("timeSuffix")}
               </p>
             </div>
           </div>
@@ -277,7 +277,7 @@ export function StepSolutionRoi() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                        <span>{formatDays(item.days)}</span>
+                        <span>{formatDays(item.days, t("daysUnit"))}</span>
                         <span>×</span>
                         <div className="flex items-center gap-1">
                           <input

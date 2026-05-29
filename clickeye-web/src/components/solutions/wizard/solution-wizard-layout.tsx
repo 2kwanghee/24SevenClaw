@@ -3,6 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, HelpCircle, PanelRightOpen } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ export function SolutionWizardLayout({
     togglePreviewPanel,
   } = useSolutionWizardStore();
   const { restartWizardTour } = useOnboardingStore();
+  const t = useTranslations("wizard.shell");
 
   const currentStep = currentStepProp ?? storeCurrentStep;
 
@@ -85,7 +87,10 @@ export function SolutionWizardLayout({
     }
   };
 
-  const defaultNextLabel = isLast ? "이대로 진행" : "다음";
+  const defaultNextLabel = isLast ? t("nav.proceed") : t("nav.next");
+
+  const stepLabel = (index: number) =>
+    steps[index] ? t(`steps.${steps[index].id}.label`) : "";
 
   return (
     <div className="mx-auto max-w-[1280px]">
@@ -98,12 +103,12 @@ export function SolutionWizardLayout({
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-950">
-            {mode === "modernize" ? "기존 코드 현대화" : "새 솔루션"}
+            {mode === "modernize" ? t("header.modernizeTitle") : t("header.newTitle")}
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             {mode === "modernize"
-              ? "GitHub repo 를 연결하면 AI 가 코드를 진단하고 현대화 작업을 자동 등록합니다"
-              : "AI가 회사에 맞는 솔루션을 자동 설계합니다"}
+              ? t("header.modernizeSubtitle")
+              : t("header.newSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -111,8 +116,8 @@ export function SolutionWizardLayout({
           <button
             type="button"
             onClick={togglePreviewPanel}
-            aria-label="라이브 프리뷰 열기"
-            title="라이브 프리뷰"
+            aria-label={t("nav.previewToggleAria")}
+            title={t("nav.previewToggleTitle")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 xl:hidden"
           >
             <PanelRightOpen className="h-4 w-4" aria-hidden="true" />
@@ -120,8 +125,8 @@ export function SolutionWizardLayout({
           <button
             type="button"
             onClick={restartWizardTour}
-            aria-label="위저드 가이드 다시 보기"
-            title="위저드 가이드 다시 보기"
+            aria-label={t("nav.restartTourAria")}
+            title={t("nav.restartTourAria")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
           >
             <HelpCircle className="h-4 w-4" aria-hidden="true" />
@@ -129,10 +134,10 @@ export function SolutionWizardLayout({
           <Link
             href="/solutions"
             className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
-            aria-label="솔루션 목록으로 이동"
+            aria-label={t("nav.solutionsLinkAria")}
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            솔루션 목록
+            {t("nav.solutionsLink")}
           </Link>
         </div>
       </div>
@@ -158,10 +163,14 @@ export function SolutionWizardLayout({
               tabIndex={-1}
               className="mb-1 text-lg font-semibold text-zinc-950 outline-none"
             >
-              {steps[currentStep]?.label ?? ""}
+              {steps[currentStep]
+                ? t(`steps.${steps[currentStep].id}.label`)
+                : ""}
             </h2>
             <p className="mb-6 text-sm text-zinc-500">
-              {steps[currentStep]?.description ?? ""}
+              {steps[currentStep]
+                ? t(`steps.${steps[currentStep].id}.description`)
+                : ""}
             </p>
 
             <div key={currentStep} className="animate-fade-in-up">
@@ -173,14 +182,14 @@ export function SolutionWizardLayout({
           <div
             className="mt-6 flex items-center justify-between"
             role="group"
-            aria-label="위저드 네비게이션"
+            aria-label={t("nav.groupAria")}
             data-tour="wizard-nav"
           >
             <button
               type="button"
               onClick={prevStep}
               disabled={isFirst || isBlocked}
-              aria-label="이전 단계로 이동"
+              aria-label={t("nav.prevAria")}
               className={cn(
                 "flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
                 isFirst || isBlocked
@@ -189,7 +198,7 @@ export function SolutionWizardLayout({
               )}
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              이전
+              {t("nav.prev")}
             </button>
 
             <button
@@ -198,8 +207,8 @@ export function SolutionWizardLayout({
               disabled={!canProceed || isBlocked}
               aria-label={
                 isLast
-                  ? "프로젝트 생성하기"
-                  : `다음 단계로 이동 (${steps[currentStep + 1]?.label ?? ""})`
+                  ? t("nav.submitAria")
+                  : t("nav.nextAria", { label: stepLabel(currentStep + 1) })
               }
               aria-busy={isSubmitting || isGenerating}
               className={cn(
@@ -212,12 +221,12 @@ export function SolutionWizardLayout({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  생성 중...
+                  {t("nav.creating")}
                 </>
               ) : isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  분석 중...
+                  {t("nav.analyzing")}
                 </>
               ) : isLast ? (
                 nextLabel ?? defaultNextLabel
