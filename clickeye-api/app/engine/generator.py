@@ -463,6 +463,11 @@ def _generate_webhook_files(
         tpl = _env.get_template("docs/webhook/WEBHOOK_SETUP.md.j2")
         files["docs/WEBHOOK_SETUP.md"] = tpl.render(**ctx)
 
+    # 메타프롬프팅 스킬 (관측형 사전 정제) — run-pipeline.sh 가 구현 직전 참조한다.
+    # Linear 로컬 파이프라인과 함께 출하되며, 모든 정제는 고객 로컬 claude(고객 토큰)에서 실행된다.
+    metaprompt_tpl = _env.get_template("skills/metaprompt.md.j2")
+    files[f"{config_dir}/skills/metaprompt.md"] = metaprompt_tpl.render(**ctx)
+
 
 def _generate_mcp_files(
     files: dict[str, str | bytes],
