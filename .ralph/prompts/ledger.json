@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "champion": "PROMPT.champion.md",
+  "champion_version": 0,
+  "fitness": "lexicographic: (1) pass = 모든 벤치마크 케이스 게이트 통과, (2) avg_iterations = 평균 반복 횟수(낮을수록 우수). MVP는 pass + iterations만.",
+  "note": "prompt-evolve-loop.sh 가 세대별 평가 결과를 history 에 append 한다. 승격 시 champion_version 증가 + PROMPT.champion.md/PROMPT.md 스왑.",
+  "history": [
+    {
+      "generation": 0,
+      "candidate": "champion",
+      "source": "seed (= .ralph/PROMPT.md @ gen0 복사)",
+      "score": { "pass": null, "avg_iterations": null, "note": "seed — 미평가" },
+      "promoted": true,
+      "ts": null
+    }
+  ]
+}

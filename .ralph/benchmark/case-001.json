@@ -1,0 +1,13 @@
+{
+  "id": "case-001",
+  "_placeholder": true,
+  "_note": "PLACEHOLDER — 배관 검증용 더미. 실제 진화 런 전에 과거 merged Linear 이슈로 교체할 것. README.md 참조.",
+  "source_issue": "CE-PLACEHOLDER",
+  "title": "[placeholder] health 엔드포인트에 버전 필드 추가",
+  "description": "GET /api/v1/health 응답에 현재 앱 버전(version) 필드를 추가한다. 거친 요구사항 수준이며, 실제 케이스로 교체 전까지 평가에 사용하지 말 것.",
+  "modules": ["clickeye-api"],
+  "fix_plan": "## P1: health 버전 필드\n- [ ] GET /api/v1/health 응답 스키마에 version 필드 추가\n- [ ] config 의 앱 버전 값을 응답에 반영\n- [ ] health 테스트에 version 필드 단언 추가\n\n## P2: (없음)\n\n## P3: (없음)\n",
+  "acceptance": "clickeye-api/tests/test_health.py 가 version 필드 존재를 단언하고 통과. ruff/mypy 통과.",
+  "reference_pr": "#PLACEHOLDER",
+  "estimated_iterations": 3
+}
