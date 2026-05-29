@@ -145,6 +145,8 @@ def generate_all(
     # Linear webhook ?¤í¬ë¦½í¸ ?ì± (linear ?¤í¬ ? í ??
     if "linear" in workflow_ids:
         _generate_webhook_files(files, project_name, dirs["config_dir"])
+        # 메타프롬프팅 스킬(관측형 사전 정제) emit — harness-gate emit 선례 패턴
+        _generate_metaprompt_skill(files, dirs["config_dir"])
 
     # .env / .env.example ?ì±
     _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch, clickeye_vars)
@@ -463,10 +465,18 @@ def _generate_webhook_files(
         tpl = _env.get_template("docs/webhook/WEBHOOK_SETUP.md.j2")
         files["docs/WEBHOOK_SETUP.md"] = tpl.render(**ctx)
 
-    # 메타프롬프팅 스킬 (관측형 사전 정제) — run-pipeline.sh 가 구현 직전 참조한다.
-    # Linear 로컬 파이프라인과 함께 출하되며, 모든 정제는 고객 로컬 claude(고객 토큰)에서 실행된다.
-    metaprompt_tpl = _env.get_template("skills/metaprompt.md.j2")
-    files[f"{config_dir}/skills/metaprompt.md"] = metaprompt_tpl.render(**ctx)
+
+def _generate_metaprompt_skill(
+    files: dict[str, str | bytes],
+    config_dir: str = ".claude",
+) -> None:
+    """메타프롬프팅 스킬(관측형 사전 정제) emit — linear 로컬 파이프라인 전용.
+
+    run-pipeline.sh 가 구현 콜 직전 이 스킬을 참조해 거친 태스크를 구현 스펙으로 정제한다.
+    모든 정제는 고객 로컬 claude(고객 토큰)에서 실행된다. harness-gate emit 선례 패턴을 따른다.
+    """
+    tpl = _env.get_template("skills/metaprompt.md.j2")
+    files[f"{config_dir}/skills/metaprompt.md"] = tpl.render(config_dir=config_dir)
 
 
 def _generate_mcp_files(
