@@ -1,13 +1,13 @@
 {
   "id": "case-001",
-  "_placeholder": true,
-  "_note": "PLACEHOLDER — 배관 검증용 더미. 실제 진화 런 전에 과거 merged Linear 이슈로 교체할 것. README.md 참조.",
-  "source_issue": "CE-PLACEHOLDER",
-  "title": "[placeholder] health 엔드포인트에 버전 필드 추가",
-  "description": "GET /api/v1/health 응답에 현재 앱 버전(version) 필드를 추가한다. 거친 요구사항 수준이며, 실제 케이스로 교체 전까지 평가에 사용하지 말 것.",
+  "_seed": true,
+  "_note": "Seed real-case (단일 모듈·소형). 과적합 방지 위해 실 진화 전 과거 merged 이슈로 케이스를 확장할 것(README 참조). 선행조건: ralph-stop-hook 가 전체 pytest 를 돌리므로 DB 테스트 스위트가 실행 가능해야 함(예: ::json server_default Postgres 캐스트의 SQLite 호환 이슈 해소).",
+  "source_issue": "(seed — 실 이슈 미연동)",
+  "title": "health 라우터에 /health/ping 라이브니스 엔드포인트 추가",
+  "description": "GET /api/v1/health/ping 를 추가한다. DB/Redis 체크 없이 즉시 {\"pong\": true} 를 반환하는 경량 라이브니스 프로브로, 기존 /health(레디니스 체크)와 역할을 분리한다.",
   "modules": ["clickeye-api"],
-  "fix_plan": "## P1: health 버전 필드\n- [ ] GET /api/v1/health 응답 스키마에 version 필드 추가\n- [ ] config 의 앱 버전 값을 응답에 반영\n- [ ] health 테스트에 version 필드 단언 추가\n\n## P2: (없음)\n\n## P3: (없음)\n",
-  "acceptance": "clickeye-api/tests/test_health.py 가 version 필드 존재를 단언하고 통과. ruff/mypy 통과.",
-  "reference_pr": "#PLACEHOLDER",
-  "estimated_iterations": 3
+  "fix_plan": "## P1: /health/ping 라이브니스 엔드포인트\n- [ ] app/api/v1/health.py 에 GET /health/ping 라우트 추가 → {\"pong\": true} 즉시 반환(DB/Redis 미접근)\n- [ ] tests/test_health.py 에 /health/ping 200 + {\"pong\": true} 단언 테스트 추가\n\n## P2: (없음)\n\n## P3: (없음)\n",
+  "acceptance": "GET /api/v1/health/ping → 200, 본문 {\"pong\": true}. 추가한 테스트 통과 + ruff/mypy 통과.",
+  "reference_pr": "(seed — known-good diff 미연동)",
+  "estimated_iterations": 2
 }

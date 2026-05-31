@@ -17,8 +17,13 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=/dev/null
 source "$PROJECT_DIR/scripts/pipeline_config.sh" 2>/dev/null || true
 
-DRY_RUN=false
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
+MODE_FLAG=""
+case "${1:-}" in
+  --dry-run) MODE_FLAG="--dry-run" ;;
+  --no-agent) MODE_FLAG="--no-agent" ;;
+esac
+# dry-run/no-agent 모두 검증 모드(토큰 0) → ledger 미저장·프롬프트 스왑·승격 커밋 생략
+DRY_RUN=false; [[ -n "$MODE_FLAG" ]] && DRY_RUN=true
 
 PROMPTS_DIR="$PROJECT_DIR/.ralph/prompts"
 BENCH_DIR="$PROJECT_DIR/.ralph/benchmark"
@@ -34,9 +39,9 @@ B="${B:-3}"           # 사용할 벤치마크 케이스 수 상한
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
-# 안전 게이트: live 는 명시 활성 필요
+# 안전 게이트: live(플래그 없음)만 명시 활성 필요. --dry-run/--no-agent 은 토큰 미소비라 허용.
 if ! $DRY_RUN; then
-  is_enabled "FLOWOPS_PROMPT_EVOLVE" || { echo "[SKIP] prompt-evolve 비활성(FLOWOPS_PROMPT_EVOLVE=false). 배관 검증은 --dry-run 사용."; exit 0; }
+  is_enabled "FLOWOPS_PROMPT_EVOLVE" || { echo "[SKIP] prompt-evolve 비활성(FLOWOPS_PROMPT_EVOLVE=false). 배관 검증은 --no-agent/--dry-run 사용."; exit 0; }
 fi
 
 [[ -f "$CHAMPION" ]] || { echo "ERROR: 챔피언 없음: $CHAMPION" >&2; exit 2; }
@@ -46,16 +51,14 @@ fi
 # 벤치마크 케이스 수집 (최대 B개)
 mapfile -t CASES < <(ls "$BENCH_DIR"/case-*.json 2>/dev/null | head -n "$B")
 [[ ${#CASES[@]} -gt 0 ]] || { echo "ERROR: 벤치마크 케이스 없음($BENCH_DIR)" >&2; exit 2; }
-$DRY_RUN && log "MODE=dry-run (worktree/agent/커밋 없음)" || log "MODE=live (FLOWOPS_PROMPT_EVOLVE=true)"
+log "MODE=${MODE_FLAG:-live}"
 log "벤치마크 ${#CASES[@]}개 (cap B=$B) · 하드캡 MAX_GEN=$MAX_GEN N=$N"
-
-DRY_FLAG=""; $DRY_RUN && DRY_FLAG="--dry-run"
 
 # 후보 1개를 모든 케이스로 평가 → "all_pass(0/1) avg_iter" 출력
 eval_candidate() {  # <prompt_file>
   local pf="$1" total=0 cnt=0 all_pass=1 out p i
   for c in "${CASES[@]}"; do
-    out="$(bash "$EVAL" "$pf" "$c" $DRY_FLAG)" || { all_pass=0; continue; }
+    out="$(bash "$EVAL" "$pf" "$c" $MODE_FLAG)" || { all_pass=0; continue; }
     p="$(printf '%s' "$out" | python3 -c "import json,sys;print('1' if json.load(sys.stdin)['pass'] else '0')")"
     i="$(printf '%s' "$out" | python3 -c "import json,sys;print(json.load(sys.stdin)['iterations'])")"
     [[ "$p" == "1" ]] || all_pass=0
@@ -118,7 +121,7 @@ if promoted == "1" and dry != "true":
     d["champion_version"] = d.get("champion_version", 0) + 1
 d.setdefault("history", []).append(entry)
 if dry == "true":
-    print("[dry-run] ledger entry (미저장):", json.dumps(entry, ensure_ascii=False))
+    print("[검증모드] ledger entry (미저장):", json.dumps(entry, ensure_ascii=False))
 else:
     json.dump(d, open(ledger, "w"), ensure_ascii=False, indent=2)
     open(ledger, "a").write("\n")
@@ -127,7 +130,7 @@ PYEOF
 
 if [[ "$PROMOTED" == "1" ]]; then
   if $DRY_RUN; then
-    log "[dry-run] 승격 시뮬레이션 — PROMPT.champion.md/PROMPT.md 스왑 및 git 커밋 생략."
+    log "[검증모드:${MODE_FLAG}] 승격 시뮬레이션 — PROMPT.champion.md/PROMPT.md 스왑 및 git 커밋 생략."
   else
     NEW_VER="$(python3 -c "import json;print(json.load(open('$LEDGER')).get('champion_version',0))")"
     cp "$BEST_PF" "$CHAMPION"
