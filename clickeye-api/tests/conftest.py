@@ -5,13 +5,23 @@ from datetime import UTC, datetime
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
 
 import app.api.v1.prototype_sessions as _proto_router
 from app.database import Base, get_db
 from app.main import app
 from app.models import User  # noqa: F401 — 테이블 등록용
 from app.models.pm_profile import PMProfile
+
+
+# SQLite 테스트 DB 는 PostgreSQL JSONB 를 컴파일하지 못한다(visit_JSONB 부재).
+# 테스트 한정으로 JSON 으로 렌더 → 프로덕션 모델(JSONB)은 그대로 두고 테이블 생성만 통과시킨다.
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_as_json_on_sqlite(element, compiler, **kw):  # type: ignore[no-untyped-def]  # noqa: ARG001
+    return "JSON"
+
 
 # 테스트용 SQLite in-memory async 엔진
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
