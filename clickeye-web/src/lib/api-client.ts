@@ -535,20 +535,6 @@ export interface ProjectReportResponse {
   generated_at: string;
 }
 
-// --- Recommend ---
-
-export interface RecommendRequest {
-  solution_type: string;
-}
-
-export interface RecommendResponse {
-  solution_type: string;
-  agents: Array<{ id: string; reasoning?: string; [key: string]: unknown }>;
-  skills: Array<{ id: string; reasoning?: string; [key: string]: unknown }>;
-  pipelines: Array<{ id: string; reasoning?: string; [key: string]: unknown }>;
-  summary: string;
-}
-
 export const presets = {
   list: (token: string, params?: PresetListParams) => {
     const query = new URLSearchParams();
@@ -579,14 +565,6 @@ export const presets = {
     authRequest<NaturalLanguageConfigResponse>("/api/v1/presets/analyze-text", token, {
       method: "POST",
       body: JSON.stringify({ text }),
-    }),
-};
-
-export const recommend = {
-  get: (data: RecommendRequest) =>
-    request<RecommendResponse>("/api/v1/recommend", {
-      method: "POST",
-      body: JSON.stringify(data),
     }),
 };
 
