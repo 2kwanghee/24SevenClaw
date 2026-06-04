@@ -26,7 +26,6 @@ from app.api.v1.prototype_catalog_admin import router as prototype_catalog_admin
 from app.api.v1.prototype_sessions import router as prototype_sessions_router
 from app.api.v1.quality_gate import router as quality_gate_router
 from app.api.v1.rbac import router as rbac_router
-from app.api.v1.recommend import router as recommend_router
 from app.api.v1.registry_admin import router as registry_admin_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
@@ -53,7 +52,6 @@ api_v1_router.include_router(maturity_router)
 api_v1_router.include_router(presets_router)
 api_v1_router.include_router(rbac_router)
 api_v1_router.include_router(quality_gate_router)
-api_v1_router.include_router(recommend_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(review_pipeline_router)
 api_v1_router.include_router(prototype_sessions_router)

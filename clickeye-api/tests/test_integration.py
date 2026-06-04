@@ -179,36 +179,6 @@ async def test_catalog_ids_used_in_preview(
     assert any("agents/" in f for f in files)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("solution_type", ["saas", "rest-api", "fullstack", "backend"])
-async def test_recommend_ids_match_catalog(
-    client: AsyncClient, solution_type: str
-) -> None:
-    """추천 에이전트는 platforms 카탈로그에, 파이프라인은 pipelines 카탈로그에 존재."""
-    # 플랫폼 에이전트 + 파이프라인 ID 수집 (recommend 서비스는 platforms 사용)
-    platforms_resp = await client.get("/api/v1/catalog/platforms")
-    platform_ids = {item["id"] for item in platforms_resp.json()["items"]}
-
-    pipelines_resp = await client.get("/api/v1/catalog/pipelines")
-    pipeline_ids = {item["id"] for item in pipelines_resp.json()["items"]}
-
-    # 추천 결과 검증
-    rec_resp = await client.post(
-        "/api/v1/recommend", json={"solution_type": solution_type}
-    )
-    assert rec_resp.status_code == 200
-    rec = rec_resp.json()
-
-    for agent in rec["agents"]:
-        assert agent["id"] in platform_ids, (
-            f"{solution_type} 추천 에이전트 '{agent['id']}'가 platforms 카탈로그에 없음"
-        )
-    for pipeline in rec["pipelines"]:
-        assert pipeline["id"] in pipeline_ids, (
-            f"{solution_type} 추천 파이프라인 '{pipeline['id']}'가 카탈로그에 없음"
-        )
-
-
 # ═══════════════════════════════════════════════════════════════
 #  3. Organization + ProjectConfig 연계
 # ═══════════════════════════════════════════════════════════════
@@ -454,50 +424,6 @@ async def test_zip_settings_json_structure(
 # ═══════════════════════════════════════════════════════════════
 #  6. 추천 → ZIP 생성 연계
 # ═══════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("solution_type", ["saas", "rest-api", "fullstack"])
-async def test_recommend_then_preview(
-    client: AsyncClient, auth_headers: dict[str, str], solution_type: str
-) -> None:
-    """추천 결과를 프리뷰에 전달하면 파일이 생성됨."""
-    rec_resp = await client.post(
-        "/api/v1/recommend", json={"solution_type": solution_type}
-    )
-    rec = rec_resp.json()
-
-    # 엔진 호환 에이전트만 (recommend는 platform agent 반환, 엔진은 role agent 사용)
-    engine_agents = [
-        a["id"] for a in rec["agents"]
-        if a["id"] in ("backend", "frontend", "uiux", "devops", "fullstack")
-    ]
-
-    # 엔진 호환 스킬만 (recommend workflow 스킬은 engine catalog ID와 다름)
-    _ENGINE_SKILL_IDS = frozenset({"tdd", "ai-critique", "linear", "ralph-loop", "harness-gate"})
-    engine_skills = [
-        s["id"] for s in rec["skills"] if s["id"] in _ENGINE_SKILL_IDS
-    ]
-
-    project_id = await _create_project(
-        client, auth_headers, f"추천 연계 {solution_type}"
-    )
-    resp = await client.post(
-        f"/api/v1/projects/{project_id}/preview",
-        json={
-            "solution": {
-                "projectName": f"{solution_type}-app",
-                "solutionType": solution_type,
-                "stackPreset": "fastapi-nextjs",
-            },
-            "agents": engine_agents if engine_agents else ["backend"],
-            "skills": engine_skills,
-            "platform": {"platformId": "claude-code"},
-        },
-        headers=auth_headers,
-    )
-    assert resp.status_code == 200
-    assert len(resp.json()["files"]) > 0
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -757,99 +683,9 @@ async def test_config_multiple_overwrites(client: AsyncClient) -> None:
 # ═══════════════════════════════════════════════════════════════
 
 
-@pytest.mark.asyncio
-async def test_recommend_to_generate_to_redownload(client: AsyncClient) -> None:
-    """추천 → ZIP 생성(설정 자동 저장) → 재다운로드 전체 흐름."""
-    headers, project_id = await _auth_and_project(client, "추천→생성→재다운로드")
-
-    # 추천
-    rec = await client.post(
-        "/api/v1/recommend", json={"solution_type": "saas"}
-    )
-    assert rec.status_code == 200
-
-    # 추천 기반 ZIP 생성 (설정 자동 저장)
-    gen_resp = await client.post(
-        f"/api/v1/projects/{project_id}/generate",
-        json={
-            "solution": {
-                "projectName": "rec-flow",
-                "solutionType": "saas",
-                "stackPreset": "fastapi-nextjs",
-            },
-            "agents": ["backend"],
-            "skills": ["tdd"],
-            "pipelines": ["harness"],
-            "platform": {"platformId": "claude-code"},
-            "env_vars": {"ANTHROPIC_API_KEY": "sk-ant-v1"},
-        },
-        headers=headers,
-    )
-    assert gen_resp.status_code == 200
-
-    # 설정 자동 저장 확인
-    config = await client.get(
-        f"/api/v1/projects/{project_id}/config", headers=headers
-    )
-    assert config.status_code == 200
-    saved = config.json()["wizard_data"]
-    saved_agent_ids = {a["id"] for a in saved["agents"]}
-    assert "backend" in saved_agent_ids
-
-    # 재다운로드 → 에이전트/스킬 구조 보존 + 새 env_vars
-    redown = await client.post(
-        f"/api/v1/projects/{project_id}/redownload",
-        json={"env_vars": {"ANTHROPIC_API_KEY": "sk-ant-v2"}},
-        headers=headers,
-    )
-    assert redown.status_code == 200
-
-    with _open_zip(redown.content) as zf:
-        names = zf.namelist()
-        assert ".claude/agents/api-agent.md" in names
-        assert ".claude/skills/tdd-smart-coding.md" in names
-
-        env = zf.read(".env").decode()
-        assert "sk-ant-v2" in env
-        assert "sk-ant-v1" not in env
-
-
 # ═══════════════════════════════════════════════════════════════
 #  13. 모든 솔루션 유형 추천 → 카탈로그 참조 무결성
 # ═══════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "solution_type",
-    ["saas", "rest-api", "fullstack", "backend", "frontend", "automation"],
-)
-async def test_all_solution_types_recommend_in_catalog(
-    client: AsyncClient, solution_type: str
-) -> None:
-    """모든 솔루션 유형의 추천 에이전트는 platforms, 파이프라인은 pipelines에 존재."""
-    platforms_catalog = {
-        a["id"] for a in (await client.get("/api/v1/catalog/platforms")).json()["items"]
-    }
-    pipelines_catalog = {
-        p["id"] for p in (await client.get("/api/v1/catalog/pipelines")).json()["items"]
-    }
-
-    rec = await client.post(
-        "/api/v1/recommend", json={"solution_type": solution_type}
-    )
-    assert rec.status_code == 200
-    data = rec.json()
-
-    rec_agents = {a["id"] for a in data["agents"]}
-    rec_pipelines = {p["id"] for p in data["pipelines"]}
-
-    assert rec_agents.issubset(platforms_catalog), (
-        f"{solution_type}: platforms 카탈로그에 없는 에이전트 {rec_agents - platforms_catalog}"
-    )
-    assert rec_pipelines.issubset(pipelines_catalog), (
-        f"{solution_type}: 카탈로그에 없는 파이프라인 {rec_pipelines - pipelines_catalog}"
-    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1055,69 +891,3 @@ async def test_zip_agent_file_contains_project_name(
 # ═══════════════════════════════════════════════════════════════
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "solution_type,expected_agents,expected_skills",
-    [
-        ("saas", ["claude-code", "cursor"], ["fullstack", "tdd-smart-coding"]),
-        ("rest-api", ["claude-code", "codex"], ["tdd-smart-coding", "code-review"]),
-        ("cli-tool", ["claude-code", "gemini-cli"], ["tdd-smart-coding"]),
-        ("mobile-app", ["cursor", "gemini-cli"], ["fullstack", "code-review"]),
-        ("automation", ["claude-code", "gemini-cli"], ["tdd-smart-coding", "code-review"]),
-    ],
-    ids=["saas", "rest-api", "cli-tool", "mobile-app", "automation"],
-)
-async def test_recommend_specific_expected_items(
-    client: AsyncClient,
-    solution_type: str,
-    expected_agents: list[str],
-    expected_skills: list[str],
-) -> None:
-    """각 솔루션 유형의 추천에 정확한 에이전트/스킬이 포함되는지 검증."""
-    resp = await client.post(
-        "/api/v1/recommend", json={"solution_type": solution_type}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-
-    assert data["solution_type"] == solution_type
-
-    rec_agent_ids = {a["id"] for a in data["agents"]}
-    for expected in expected_agents:
-        assert expected in rec_agent_ids, (
-            f"{solution_type}: 에이전트 {expected} 누락. 실제: {rec_agent_ids}"
-        )
-
-    rec_skill_ids = {s["id"] for s in data["skills"]}
-    for expected in expected_skills:
-        assert expected in rec_skill_ids, (
-            f"{solution_type}: 스킬 {expected} 누락. 실제: {rec_skill_ids}"
-        )
-
-    # 비어있지 않은 파이프라인
-    assert len(data["pipelines"]) > 0
-
-
-@pytest.mark.asyncio
-async def test_recommend_unknown_type_defaults(client: AsyncClient) -> None:
-    """미등록 솔루션 유형은 기본 추천(claude-code, tdd-smart-coding)을 반환."""
-    resp = await client.post(
-        "/api/v1/recommend", json={"solution_type": "unknown-xyz"}
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-
-    assert data["solution_type"] == "unknown-xyz"
-    agent_ids = {a["id"] for a in data["agents"]}
-    assert "claude-code" in agent_ids
-
-    skill_ids = {s["id"] for s in data["skills"]}
-    assert "tdd-smart-coding" in skill_ids
-    assert "code-review" in skill_ids
-
-
-@pytest.mark.asyncio
-async def test_recommend_empty_type_rejected(client: AsyncClient) -> None:
-    """빈 솔루션 유형은 422 에러."""
-    resp = await client.post("/api/v1/recommend", json={"solution_type": ""})
-    assert resp.status_code == 422
