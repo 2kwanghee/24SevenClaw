@@ -17,3 +17,4 @@ logs/
 .env
 .mcp.json
 __pycache__/
+.claude/current-plan.md
