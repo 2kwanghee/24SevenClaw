@@ -1,12 +1,12 @@
 """ZIP 엔진 PM 통합 테스트 — 4개 플랫폼별 파일 주입 및 내용 검증."""
 
 import zipfile
-from typing import Any
 
 import pytest
 
 from app.schemas.generate import GenerateRequest
 from app.services.generate_service import generate_zip
+from tests.catalog_test_data import build_test_prefetch, emit_files
 
 PM_SLUG = "test-pm"
 PM_MARKDOWN = "# Test PM\n\n이것은 테스트 PM 프로필입니다.\n전략 및 실행 역량을 갖춘 PM.\n"
@@ -130,98 +130,72 @@ async def test_no_pm_file_when_slug_not_provided() -> None:
 # ── Composition 우선 병합 검증 ──
 
 
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
-async def test_pm_compositions_agents_merged_into_zip() -> None:
-    """PM composition 에이전트가 wizard 선택 없이도 ZIP에 포함되는지 확인."""
-    request = GenerateRequest(
-        solution={"projectName": "comp-test", "stackPreset": "custom"},
-        agents=[],  # 위저드에서 에이전트 미선택
-        skills=[],
-        platform={"platformId": "claude-code"},
-    )
-
-    compositions: list[dict[str, Any]] = [
-        {"component_type": "agent", "component_slug": "backend", "is_required": True},
-    ]
-
-    buffer = await generate_zip(
-        request,
-        "comp-test",
-        pm_slug=PM_SLUG,
-        pm_markdown=PM_MARKDOWN,
-        pm_compositions=compositions,
-    )
-
-    with zipfile.ZipFile(buffer) as zf:
-        names = zf.namelist()
-        # composition에 backend 에이전트가 있으므로 api-agent.md가 포함되어야 함
-        assert ".claude/agents/api-agent.md" in names, (
-            f"composition backend 에이전트가 ZIP에 없음. 실제: {names}"
-        )
-
-
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
-async def test_pm_compositions_skills_merged_into_zip() -> None:
-    """PM composition 스킬이 wizard 선택 없이도 ZIP에 포함되는지 확인."""
-    request = GenerateRequest(
-        solution={"projectName": "skill-comp-test", "stackPreset": "custom"},
+@pytest.mark.no_db
+def test_pm_compositions_agents_merged_into_zip() -> None:
+    """composition agent(backend)가 wizard 미선택이어도 api-agent.md 로 emit 되는지 확인."""
+    files = emit_files(
         agents=[],
-        skills=[],  # 위저드에서 스킬 미선택
-        platform={"platformId": "claude-code"},
-    )
-
-    compositions: list[dict[str, Any]] = [
-        {"component_type": "skill", "component_slug": "tdd", "is_required": True},
-    ]
-
-    buffer = await generate_zip(
-        request,
-        "skill-comp-test",
+        skills=[],
         pm_slug=PM_SLUG,
         pm_markdown=PM_MARKDOWN,
-        pm_compositions=compositions,
+        pm_compositions=[
+            {"component_type": "agent", "component_slug": "backend", "is_required": True},
+        ],
+        prefetch=build_test_prefetch(agent_slugs=["backend"]),
+        project_name="comp-test",
+        stack_id="custom",
     )
 
-    with zipfile.ZipFile(buffer) as zf:
-        names = zf.namelist()
-        # composition에 tdd 스킬이 있으므로 tdd-smart-coding.md 포함되어야 함
-        assert ".claude/skills/tdd-smart-coding.md" in names, (
-            f"composition tdd 스킬이 ZIP에 없음. 실제: {names}"
-        )
+    assert ".claude/agents/api-agent.md" in files, (
+        f"composition backend 에이전트 미emit. 실제: {list(files)}"
+    )
 
 
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
-async def test_pm_compositions_merged_with_wizard_no_duplicate() -> None:
-    """wizard 선택 + composition이 중복 없이 병합되는지 확인."""
-    request = GenerateRequest(
-        solution={"projectName": "dedup-test", "stackPreset": "custom"},
+@pytest.mark.no_db
+def test_pm_compositions_skills_merged_into_zip() -> None:
+    """composition skill(tdd)가 wizard 미선택이어도 tdd-smart-coding.md 로 emit 되는지 확인."""
+    files = emit_files(
+        agents=[],
+        skills=[],
+        pm_slug=PM_SLUG,
+        pm_markdown=PM_MARKDOWN,
+        pm_compositions=[
+            {"component_type": "skill", "component_slug": "tdd", "is_required": True},
+        ],
+        prefetch=build_test_prefetch(skill_slugs=["tdd-smart-coding"]),
+        project_name="skill-comp-test",
+        stack_id="custom",
+    )
+
+    assert ".claude/skills/tdd-smart-coding.md" in files, (
+        f"composition tdd 스킬 미emit. 실제: {list(files)}"
+    )
+
+
+@pytest.mark.no_db
+def test_pm_compositions_merged_with_wizard_no_duplicate() -> None:
+    """wizard 선택 + composition 병합 시 중복 없이 emit 되는지 확인 (prefetch 기반)."""
+    files = emit_files(
         agents=["backend"],  # 위저드에서도 선택
         skills=["tdd"],
-        platform={"platformId": "claude-code"},
-    )
-
-    compositions: list[dict[str, Any]] = [
-        {"component_type": "agent", "component_slug": "backend", "is_required": True},
-        {"component_type": "agent", "component_slug": "frontend", "is_required": False},
-        {"component_type": "skill", "component_slug": "tdd", "is_required": True},
-    ]
-
-    buffer = await generate_zip(
-        request,
-        "dedup-test",
         pm_slug=PM_SLUG,
         pm_markdown=PM_MARKDOWN,
-        pm_compositions=compositions,
+        pm_compositions=[
+            {"component_type": "agent", "component_slug": "backend", "is_required": True},
+            {"component_type": "agent", "component_slug": "frontend", "is_required": False},
+            {"component_type": "skill", "component_slug": "tdd", "is_required": True},
+        ],
+        prefetch=build_test_prefetch(
+            skill_slugs=["tdd-smart-coding"], agent_slugs=["backend", "frontend"]
+        ),
+        project_name="dedup-test",
+        stack_id="custom",
     )
 
-    with zipfile.ZipFile(buffer) as zf:
-        names = zf.namelist()
-        # backend + frontend 에이전트 모두 포함
-        assert ".claude/agents/api-agent.md" in names
-        assert ".claude/agents/web-agent.md" in names
-        # tdd 스킬 포함
-        assert ".claude/skills/tdd-smart-coding.md" in names
-        # 중복 없음 (파일 수 검증)
-        agent_files = [n for n in names if n.startswith(".claude/agents/")]
-        # backend + frontend + harness(required) = 3개
-        assert len(set(agent_files)) == len(agent_files), "에이전트 파일 중복 존재"
+    # backend + frontend 에이전트 + tdd 스킬 모두 포함
+    assert ".claude/agents/api-agent.md" in files
+    assert ".claude/agents/web-agent.md" in files
+    assert ".claude/skills/tdd-smart-coding.md" in files
+    # 중복 없음 (files dict 키는 본질적으로 유일하나 emit 경로 회귀 방어)
+    agent_files = [n for n in files if n.startswith(".claude/agents/")]
+    assert len(set(agent_files)) == len(agent_files), "에이전트 파일 중복 존재"

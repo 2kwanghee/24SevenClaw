@@ -8,6 +8,7 @@ from httpx import AsyncClient
 
 from app.schemas.generate import GenerateRequest
 from app.services.generate_service import generate_zip
+from tests.catalog_test_data import build_test_prefetch, emit_files
 
 # ── 서비스 단위 테스트 ──
 
@@ -94,52 +95,40 @@ async def test_generate_zip_start_command_gemini() -> None:
         assert ".gemini/commands/ClickEyeStart.md" in names
 
 
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
-async def test_generate_zip_linear_skill_includes_team_id() -> None:
-    """linear 스킬 선택 시 .env.example에 LINEAR_TEAM_ID 포함 확인."""
-    request = GenerateRequest(
-        solution={"projectName": "linear-test", "stackPreset": "fastapi-nextjs"},
-        agents=[],
-        skills=["linear"],
-        platform={"platformId": "claude-code"},
-    )
+@pytest.mark.no_db
+def test_generate_zip_linear_skill_includes_team_id() -> None:
+    """linear 스킬 prefetch → .env.example 에 LINEAR_API_KEY/LINEAR_TEAM_ID emit 확인."""
+    files = emit_files(skills=["linear"], prefetch=build_test_prefetch(skill_slugs=["linear"]))
 
-    buffer = await generate_zip(request, "linear-test")
-
-    with zipfile.ZipFile(buffer) as zf:
-        names = zf.namelist()
-        assert ".env.example" in names
-        example = zf.read(".env.example").decode()
-        assert "LINEAR_API_KEY=" in example
-        assert "LINEAR_TEAM_ID=" in example
+    assert ".env.example" in files
+    example = files[".env.example"]
+    assert isinstance(example, str)
+    assert "LINEAR_API_KEY=" in example
+    assert "LINEAR_TEAM_ID=" in example
 
 
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
-async def test_generate_zip_notion_skill_includes_files() -> None:
-    """notion 스킬 선택 시 notion-sync.md + .env.example에 NOTION 키 포함 확인."""
-    request = GenerateRequest(
-        solution={"projectName": "notion-test", "stackPreset": "fastapi-nextjs"},
-        agents=[],
-        skills=["notion"],
-        platform={"platformId": "claude-code"},
-    )
+@pytest.mark.no_db
+def test_generate_zip_notion_skill_includes_files() -> None:
+    """notion 스킬 prefetch → notion-sync.md + .env.example NOTION 키 emit 확인."""
+    files = emit_files(skills=["notion"], prefetch=build_test_prefetch(skill_slugs=["notion"]))
 
-    buffer = await generate_zip(request, "notion-test")
-
-    with zipfile.ZipFile(buffer) as zf:
-        names = zf.namelist()
-        assert ".claude/skills/notion-sync.md" in names
-        assert ".env.example" in names
-        example = zf.read(".env.example").decode()
-        assert "NOTION_API_KEY=" in example
-        assert "NOTION_DATABASE_ID=" in example
-        content = zf.read(".claude/skills/notion-sync.md").decode()
-        assert "Notion" in content
+    assert ".claude/skills/notion-sync.md" in files
+    assert ".env.example" in files
+    example = files[".env.example"]
+    assert isinstance(example, str)
+    assert "NOTION_API_KEY=" in example
+    assert "NOTION_DATABASE_ID=" in example
+    content = files[".claude/skills/notion-sync.md"]
+    assert isinstance(content, str)
+    assert "Notion" in content
 
 
-@pytest.mark.skip(reason="catalog_prefetch fixture 필요 — 메타프롬프팅 무관, 별도 작업")
+@pytest.mark.skip(
+    reason="selection 격리(linear 시 notion 미포함)는 prefetch_for_generator(DB) 책임. "
+    "handcrafted prefetch 로는 near-tautological → DB 통합테스트 필요(follow-up)."
+)
 async def test_generate_zip_linear_not_broken_after_notion_added() -> None:
-    """notion 추가 후 linear 경로 회귀 없음 확인."""
+    """notion 추가 후 linear 경로 회귀 없음 확인 (selection-isolation, DB 통합테스트 영역)."""
     request = GenerateRequest(
         solution={"projectName": "linear-reg", "stackPreset": "fastapi-nextjs"},
         agents=[],
