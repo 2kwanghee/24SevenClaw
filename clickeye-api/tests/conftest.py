@@ -38,6 +38,15 @@ def _register_sqlite_functions(dbapi_connection, connection_record):  # type: ig
     )
 
 
+# PostgreSQL '::json'/'::jsonb' 캐스트는 SQLite 가 파싱 못함(unrecognized token).
+# 테스트 DDL 에서만 캐스트 제거(테이블 생성 통과용, 프로덕션 모델/마이그레이션 불변).
+@event.listens_for(test_engine.sync_engine, "before_cursor_execute", retval=True)
+def _strip_pg_json_casts(conn, cursor, statement, parameters, context, executemany):  # type: ignore[no-untyped-def]  # noqa: ARG001
+    if "::json" in statement:  # '::jsonb' 도 '::json' 부분문자열로 매칭됨
+        statement = statement.replace("::jsonb", "").replace("::json", "")
+    return statement, parameters
+
+
 @pytest.fixture(autouse=True)
 async def _setup_db(request: pytest.FixtureRequest) -> AsyncIterator[None]:
     """각 테스트 전에 테이블 생성, 후에 삭제.
