@@ -6,19 +6,20 @@ from httpx import AsyncClient
 from app.engine.generator import generate_all
 from app.schemas.preview import PreviewRequest
 from app.services.preview_service import generate_preview
+from tests.catalog_test_data import build_test_prefetch, emit_files
 
 # ── 생성 엔진 단위 테스트 ──
 
 
 def test_generate_all_basic() -> None:
-    """기본 설정으로 파일 생성 확인."""
-    files = generate_all(
+    """기본 설정으로 파일 생성 확인 (prefetch 주입)."""
+    files = emit_files(
         project_name="test-project",
-        project_type="fullstack",
-        stack_id="fastapi-nextjs",
-        agent_ids=["backend", "frontend"],
-        workflow_ids=["tdd"],
-        platform_id="claude-code",
+        agents=["backend", "frontend"],
+        skills=["tdd"],
+        prefetch=build_test_prefetch(
+            agent_slugs=["backend", "frontend", "harness"], skill_slugs=["tdd-smart-coding"]
+        ),
     )
 
     assert isinstance(files, dict)
@@ -51,13 +52,11 @@ def test_generate_all_with_ralph_loop() -> None:
 
 
 def test_generate_all_with_harness_gate() -> None:
-    """harness-gate 선택 시 Hook 스크립트 + run-tests.sh 생성."""
-    files = generate_all(
+    """harness-gate 선택 시 Hook 스크립트 + run-tests.sh 생성 (prefetch 주입)."""
+    files = emit_files(
         project_name="my-project",
-        project_type="fullstack",
-        stack_id="fastapi-nextjs",
-        agent_ids=[],
-        workflow_ids=["harness-gate"],
+        skills=["harness-gate"],
+        prefetch=build_test_prefetch(skill_slugs=["harness-gate"]),
     )
 
     assert "scripts/harness-gate.sh" in files
@@ -66,13 +65,13 @@ def test_generate_all_with_harness_gate() -> None:
 
 
 def test_generate_all_custom_stack() -> None:
-    """custom 스택에서는 run-tests.sh 미생성."""
-    files = generate_all(
+    """custom 스택에서는 run-tests.sh 미생성 (prefetch 주입)."""
+    files = emit_files(
         project_name="my-project",
         project_type="custom",
         stack_id="custom",
-        agent_ids=[],
-        workflow_ids=["tdd"],
+        skills=["tdd"],
+        prefetch=build_test_prefetch(skill_slugs=["tdd-smart-coding"]),
     )
 
     assert "scripts/run-tests.sh" not in files
@@ -80,14 +79,12 @@ def test_generate_all_custom_stack() -> None:
 
 
 def test_generate_all_cursor_platform() -> None:
-    """cursor 플랫폼에서 .cursor/ 디렉토리 사용."""
-    files = generate_all(
+    """cursor 플랫폼에서 .cursor/ 디렉토리 사용 (prefetch 주입)."""
+    files = emit_files(
         project_name="cursor-project",
-        project_type="fullstack",
-        stack_id="fastapi-nextjs",
-        agent_ids=["backend"],
-        workflow_ids=[],
-        platform_id="cursor",
+        platform="cursor",
+        agents=["backend"],
+        prefetch=build_test_prefetch(agent_slugs=["backend", "harness"]),
     )
 
     assert ".cursorrules" in files
@@ -97,13 +94,13 @@ def test_generate_all_cursor_platform() -> None:
 
 
 def test_generate_all_template_content() -> None:
-    """생성된 파일 내용에 프로젝트명이 반영되는지 확인."""
-    files = generate_all(
+    """생성된 파일 내용에 프로젝트명/스택이 반영되는지 확인 (prefetch 주입)."""
+    files = emit_files(
         project_name="MyApp",
         project_type="webapp",
         stack_id="django-react",
-        agent_ids=["backend"],
-        workflow_ids=[],
+        agents=["backend"],
+        prefetch=build_test_prefetch(agent_slugs=["backend"]),
     )
 
     claude_md = files["CLAUDE.md"]
@@ -117,13 +114,10 @@ def test_generate_all_template_content() -> None:
 
 
 def test_generate_all_empty_workflows() -> None:
-    """워크플로우 없이도 기본 파일 생성."""
-    files = generate_all(
+    """워크플로우 없이도 기본 파일 생성 (prefetch: harness 만)."""
+    files = emit_files(
         project_name="test",
-        project_type="fullstack",
-        stack_id="fastapi-nextjs",
-        agent_ids=[],
-        workflow_ids=[],
+        prefetch=build_test_prefetch(agent_slugs=["harness"]),
     )
 
     # 기본 파일만 존재

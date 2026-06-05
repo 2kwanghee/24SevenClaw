@@ -860,7 +860,7 @@ async def test_zip_no_env_when_empty_env_vars(
 
 @pytest.mark.asyncio
 async def test_zip_agent_file_contains_project_name(
-    client: AsyncClient, auth_headers: dict[str, str]
+    client: AsyncClient, auth_headers: dict[str, str], seeded_catalog: None
 ) -> None:
     """에이전트 파일(.claude/agents/api-agent.md)에 프로젝트명 반영."""
     project_id = await _create_project(client, auth_headers, "에이전트 내용 검증")

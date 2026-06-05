@@ -96,6 +96,18 @@ async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture
+async def seeded_catalog(db_session: AsyncSession) -> None:
+    """테스트용 카탈로그(agents/skills)를 DB에 시드한다.
+
+    엔드포인트 생성 흐름(prefetch_for_generator(db))이 동일 카탈로그를 slug 로 조회한다.
+    실 전체 카탈로그가 아닌 테스트용 최소 집합(catalog_test_data.TEST_CATALOG).
+    """
+    from tests.catalog_test_data import seed_catalog_db
+
+    await seed_catalog_db(db_session)
+
+
+@pytest.fixture
 async def seeded_pm_profiles(db_session: AsyncSession) -> list[str]:
     """테스트용 PM 프로필 3개를 시딩하고 ID 목록을 반환한다.
 
