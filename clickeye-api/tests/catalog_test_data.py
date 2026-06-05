@@ -17,11 +17,13 @@ from app.engine.generator import generate_all
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-# 실 계약값에 맞춘 최소 스킬 (id=slug, output_file, env_vars 이름)
+# 실 계약값에 맞춘 공개 스킬 6종 (id=slug, label, description, output_file, env_vars 이름).
+# 엔드포인트 구조 테스트는 total==6 + 각 항목 id/label/description(str) 을 검증한다.
 _SKILLS: dict[str, dict[str, Any]] = {
     "linear": {
         "id": "linear",
         "label": "Linear",
+        "description": "Linear 이슈 트래킹 연동 스킬(테스트 카탈로그).",
         "output_file": "linear-sync.md",
         "body_md": "# Linear Sync\n\nLinear 이슈 트래킹 연동 스킬(테스트 카탈로그).",
         "env_vars": [
@@ -32,6 +34,7 @@ _SKILLS: dict[str, dict[str, Any]] = {
     "notion": {
         "id": "notion",
         "label": "Notion",
+        "description": "Notion 워크스페이스 연동 스킬(테스트 카탈로그).",
         "output_file": "notion-sync.md",
         "body_md": "# Notion Sync\n\nNotion 워크스페이스 연동 스킬(테스트 카탈로그).",
         "env_vars": [
@@ -42,6 +45,7 @@ _SKILLS: dict[str, dict[str, Any]] = {
     "tdd-smart-coding": {
         "id": "tdd-smart-coding",
         "label": "TDD Smart Coding",
+        "description": "테스트 우선 개발 스킬(테스트 카탈로그).",
         "output_file": "tdd-smart-coding.md",
         "body_md": "# TDD Smart Coding\n\n테스트 우선 개발 스킬(테스트 카탈로그).",
         "env_vars": [],
@@ -49,32 +53,82 @@ _SKILLS: dict[str, dict[str, Any]] = {
     "harness-gate": {
         "id": "harness-gate",
         "label": "Harness Gate",
+        "description": "품질 게이트 스킬(테스트 카탈로그).",
         "output_file": "harness-gate.md",
         "body_md": "# Harness Gate\n\n품질 게이트 스킬(테스트 카탈로그).",
         "env_vars": [],
     },
+    "ai-critique": {
+        "id": "ai-critique",
+        "label": "AI 코드 리뷰",
+        "description": "외부 AI(GPT, Gemini)에 코드 리뷰를 요청하는 스킬(테스트 카탈로그).",
+        "output_file": "ai-critique.md",
+        "body_md": "# AI Critique\n\n외부 AI 코드 리뷰 스킬(테스트 카탈로그).",
+        "env_vars": [],
+    },
+    "ralph-loop": {
+        "id": "ralph-loop",
+        "label": "Ralph 자율 개발 루프",
+        "description": "fix_plan.md 기반 자율 반복 개발 루프 스킬(테스트 카탈로그).",
+        "output_file": "ralph-loop.md",
+        "body_md": "# Ralph Loop\n\n자율 반복 개발 루프 스킬(테스트 카탈로그).",
+        "env_vars": [],
+    },
 }
 
-# 실 계약값에 맞춘 최소 에이전트. backend body 는 project_name/stack 렌더 검증용 템플릿 변수 포함.
+# 실 계약값에 맞춘 공개 에이전트 7종 (agents.json 기준). backend body 는
+# project_name/stack 렌더 검증용 템플릿 변수 포함. output_file 은 023 마이그레이션 매핑.
+# 엔드포인트 구조 테스트는 total==7 + 각 항목 id/label/description(str) 을 검증한다.
 _AGENTS: dict[str, dict[str, Any]] = {
     "backend": {
         "id": "backend",
         "label": "Backend",
+        "description": "API/서버 로직 전담(테스트 카탈로그).",
         "output_file": "api-agent.md",
         "body_md": "# {{ project_name }} Backend Agent\n스택: {{ stack.backend }}",
     },
     "frontend": {
         "id": "frontend",
         "label": "Frontend",
+        "description": "UI/UX 구현 전담(테스트 카탈로그).",
         "output_file": "web-agent.md",
         "body_md": "# {{ project_name }} Frontend Agent\n프론트엔드 가이드(테스트).",
     },
     "harness": {
         "id": "harness",
         "label": "Harness",
+        "description": "코드 품질 게이트(테스트 카탈로그).",
         "output_file": "harness-guide.md",
         "body_md": "# Harness Guide\n\n하네스 엔지니어링 가이드(테스트 카탈로그).",
         "required": True,
+    },
+    "architect": {
+        "id": "architect",
+        "label": "Architect",
+        "description": "시스템 설계 전담(테스트 카탈로그).",
+        "output_file": "architect.md",
+        "body_md": "# Architect Agent\n\n시스템 아키텍처 설계 가이드(테스트 카탈로그).",
+    },
+    "qa": {
+        "id": "qa",
+        "label": "QA",
+        "description": "테스트 자동화 전담(테스트 카탈로그).",
+        "output_file": "qa.md",
+        "body_md": "# QA Agent\n\n테스트 자동화 가이드(테스트 카탈로그).",
+    },
+    "devops": {
+        "id": "devops",
+        "label": "DevOps",
+        "description": "인프라/배포 전담(테스트 카탈로그).",
+        "output_file": "infra-agent.md",
+        "body_md": "# DevOps Agent\n\n인프라/배포 가이드(테스트 카탈로그).",
+    },
+    "security": {
+        "id": "security",
+        "label": "Security",
+        "description": "보안 감사 전담(테스트 카탈로그).",
+        "output_file": "security.md",
+        "body_md": "# Security Agent\n\n보안 감사 가이드(테스트 카탈로그).",
     },
 }
 
@@ -132,6 +186,7 @@ async def seed_catalog_db(db_session: "AsyncSession") -> None:
             Agent(
                 slug=a["id"],
                 name=a.get("label", a["id"]),
+                description=a.get("description"),
                 output_file=a.get("output_file"),
                 body_md=a.get("body_md"),
                 required=a.get("required", False),
@@ -143,6 +198,7 @@ async def seed_catalog_db(db_session: "AsyncSession") -> None:
             Skill(
                 slug=s["id"],
                 name=s.get("label", s["id"]),
+                description=s.get("description"),
                 output_file=s.get("output_file"),
                 body_md=s.get("body_md"),
                 env_vars=s.get("env_vars", []),

@@ -63,7 +63,9 @@ def _open_zip(content: bytes) -> zipfile.ZipFile:
 
 
 @pytest.mark.asyncio
-async def test_catalog_agents_response_structure(client: AsyncClient) -> None:
+async def test_catalog_agents_response_structure(
+    client: AsyncClient, seeded_catalog: None
+) -> None:
     """에이전트 카탈로그: 각 항목에 id, label, description 포함 + 7개 항목."""
     resp = await client.get("/api/v1/catalog/agents")
     assert resp.status_code == 200
@@ -77,7 +79,9 @@ async def test_catalog_agents_response_structure(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_catalog_skills_have_type_field(client: AsyncClient) -> None:
+async def test_catalog_skills_have_type_field(
+    client: AsyncClient, seeded_catalog: None
+) -> None:
     """스킬 카탈로그: 각 항목에 id, label, description 포함 + 6개 항목."""
     resp = await client.get("/api/v1/catalog/skills")
     data = resp.json()
@@ -119,7 +123,9 @@ async def test_catalog_pipelines_have_steps(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_catalog_ids_unique_within_type(client: AsyncClient) -> None:
+async def test_catalog_ids_unique_within_type(
+    client: AsyncClient, seeded_catalog: None
+) -> None:
     """각 카탈로그 타입 내에서 id가 고유한지 검증."""
     for endpoint in ("agents", "skills", "platforms", "pipelines"):
         resp = await client.get(f"/api/v1/catalog/{endpoint}")
@@ -135,7 +141,7 @@ async def test_catalog_ids_unique_within_type(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_catalog_ids_used_in_preview(
-    client: AsyncClient, auth_headers: dict[str, str]
+    client: AsyncClient, auth_headers: dict[str, str], seeded_catalog: None
 ) -> None:
     """카탈로그 에이전트/스킬 ID로 프리뷰 요청 시 해당 파일 생성."""
     # 카탈로그에서 에이전트/스킬 ID 조회
