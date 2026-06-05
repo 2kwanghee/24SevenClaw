@@ -132,8 +132,9 @@ def test_generate_all_empty_workflows() -> None:
 # ── 프리뷰 서비스 테스트 ──
 
 
-def test_preview_service_response_structure() -> None:
-    """프리뷰 서비스 응답 구조 검증."""
+@pytest.mark.no_db
+async def test_preview_service_response_structure() -> None:
+    """프리뷰 서비스 응답 구조 검증 (db=None → 카탈로그 무관; 바이너리 제외됨)."""
     request = PreviewRequest(
         solution={
             "projectName": "test-app",
@@ -145,7 +146,7 @@ def test_preview_service_response_structure() -> None:
         platform={"platformId": "claude-code"},
     )
 
-    response = generate_preview(request)
+    response = await generate_preview(request)
 
     assert len(response.files) > 0
     assert len(response.file_tree) > 0
@@ -157,8 +158,9 @@ def test_preview_service_response_structure() -> None:
     )
 
 
-def test_preview_service_file_tree_structure() -> None:
-    """파일 트리가 올바른 계층 구조인지 검증."""
+@pytest.mark.no_db
+async def test_preview_service_file_tree_structure() -> None:
+    """파일 트리가 올바른 계층 구조인지 검증 (db=None → 카탈로그 무관)."""
     request = PreviewRequest(
         solution={"projectName": "my-app", "stackPreset": "fastapi-nextjs"},
         agents=["backend"],
@@ -166,7 +168,7 @@ def test_preview_service_file_tree_structure() -> None:
         platform={"platformId": "claude-code"},
     )
 
-    response = generate_preview(request)
+    response = await generate_preview(request)
 
     # .claude 디렉토리가 트리에 있는지
     claude_nodes = [n for n in response.file_tree if n.path == ".claude"]

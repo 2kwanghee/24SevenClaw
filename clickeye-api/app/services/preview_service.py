@@ -76,7 +76,11 @@ async def generate_preview(
         enable_auto_decompose=bool(request.solution.get("enableAutoDecompose", False)),
     )
 
-    # 파일 트리 구축
+    # 파일 트리 구축 (바이너리 포함 전체 파일명)
     file_tree = _build_file_tree(list(files.keys()))
 
-    return PreviewResponse(file_tree=file_tree, files=files)
+    # 내용맵은 텍스트 파일만 — 바이너리(예: docs/setup-guide.pptx, bytes)는 제외.
+    # preview 는 파일 내용/트리 검토용이라 바이너리는 트리에만 노출하고 내용은 생략한다.
+    text_files = {k: v for k, v in files.items() if isinstance(v, str)}
+
+    return PreviewResponse(file_tree=file_tree, files=text_files)
