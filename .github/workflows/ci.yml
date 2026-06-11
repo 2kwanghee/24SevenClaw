@@ -173,3 +173,33 @@ jobs:
           test -f CLAUDE.md && echo "✅ CLAUDE.md"
           test -f PjPlan.md && echo "✅ PjPlan.md"
           test -d docs && echo "✅ docs/"
+
+      - name: Governance gate unit tests
+        run: |
+          pip install pytest
+          python3 -m pytest scripts/tests/test_pre_merge_gate.py -q
+
+  # ── 거버넌스 게이트 (PR 미러 — 권위 게이트는 auto_dev_pipeline.sh 의 머지 직전 호출) ──
+  # 동일 SSOT(scripts/pre_merge_gate.py)를 PR에서 재확인. contract-drift + ticket-ref 검증,
+  # plan-trace 는 .ralph 산출물 부재로 자동 skip. 필수 체크로 지정 시에만 PR 차단(현재 비차단).
+  governance:
+    name: Governance Gate (mirror)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pre-merge governance gate
+        run: |
+          git fetch origin main --depth=1 2>/dev/null || true
+          FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1...HEAD 2>/dev/null || echo "")
+          python3 scripts/pre_merge_gate.py \
+            --head "${{ github.head_ref }}" \
+            --diff-files "$FILES" \
+            --ci --json

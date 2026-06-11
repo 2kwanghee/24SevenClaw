@@ -23,9 +23,10 @@ jobs:
       - name: Extract Linear issue ID
         id: linear
         run: |
-          # PR body에서 Linear 이슈 식별자 추출 (OPS-123 패턴)
+          # PR body에서 Linear 이슈 식별자 추출 (CE-123 / 24S-7 / OPS-123 패턴)
+          # [A-Z0-9]+ : 앞에 숫자가 붙는 24S- 같은 키도 정확히 추출(과거 [A-Z]+ 는 24S-→S- 오추출)
           BODY="${{ github.event.pull_request.body }}"
-          ISSUE_ID=$(echo "$BODY" | grep -oP '[A-Z]+-\d+' | head -1 || echo "")
+          ISSUE_ID=$(echo "$BODY" | grep -oP '[A-Z0-9]+-\d+' | head -1 || echo "")
           echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
           echo "Extracted Linear issue: $ISSUE_ID"
 

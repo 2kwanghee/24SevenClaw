@@ -271,15 +271,41 @@ bash scripts/run_codex_review.sh
 - fix_plan.md 완료 상태 파싱
 - Linear 이슈에 결과 코멘트 추가 (구현 내역 + 커밋 + 테스트)
 
+### Step 5.5: 거버넌스 게이트 — `pre_merge_gate.py` (머지 직전, 권위)
+
+머지 결정 직전에 **검증 + 위험분류를 단일 SSOT 모듈**(`scripts/pre_merge_gate.py`)로 수행한다.
+`direct-merge + push origin main`이 유일한 비보호 경로이므로 **이 인파이프라인 호출이 권위 게이트**이고,
+CI(`ci.yml`의 `governance` 잡)는 동일 모듈을 PR에서 재확인하는 **미러**다(중복 로직 없음).
+
+| 검사 | 내용 | 실패 시 |
+|------|------|---------|
+| contract-drift | API 계약면(`app/api\|schemas\|models\|ws`, `clickeye-contracts/**`) 변경에 `openapi/openapi.json`·generated 클라이언트 동반 여부 | **차단** |
+| ticket-ref | 브랜치 `ralph/<KEY>`에서 이슈 키 추출, 형태 `^[A-Z0-9]+-\d+$` 검증 (키 없으면 skip) | **차단** |
+| plan-trace | `.ralph/refined/<KEY>.md`·`PLAN.md` 연관성 점검 (산출물 없으면 자동 skip) | 권고(비차단) |
+
+**위험분류 → 머지경로 강등** (새 승인장치 없음):
+- **HIGH** (`clickeye-contracts/**`·`clickeye-infra/**`·`*auth*`·보안): `AUTO_MERGE=on`이어도 직접머지 금지 →
+  기존 `auto_pr_creator` PR 경로로 강등(기존 CI·사람 머지 게이트 적용).
+- **LOW**: 현행 유지.
+
+검증 실패(exit 2) 시 기존 실패 패턴 재사용: Linear → Backlog + Telegram 알림 + 다음 이슈로 continue.
+
+토글: `FLOWOPS_GOVERNANCE`(마스터) + `_CONTRACT`/`_TICKET`/`_TRACE`/`_RISK_DEMOTE`. **마스터 off면 게이트 전체 우회 → 기존 동작과 동일(회귀 0).**
+
 ### Step 6: 머지 — 2가지 경로
 
-#### A. AUTO_MERGE ON (직접 머지)
+> 거버넌스 게이트(Step 5.5)가 먼저 판정한다. HIGH-tier면 아래 경로와 무관하게 PR로 강등된다.
+
+#### A. AUTO_MERGE ON (직접 머지 — LOW-tier 한정)
 `FLOWOPS_AUTO_MERGE=true` 설정 시:
 1. `git merge --no-ff` → main에 직접 머지
 2. `git push origin main`
 3. 머지 로그 생성 (`logs/merge_*.log`)
 4. 머지된 브랜치 자동 삭제
 5. 머지 실패 시 → PR 생성으로 폴백
+6. **추적성 승격**(`FLOWOPS_GOVERNANCE_PROMOTE`): 고복잡도(변경파일 ≥`FLOWOPS_PROMOTE_MIN_FILES`
+   또는 diff 라인 ≥`FLOWOPS_PROMOTE_MIN_LINES`) 직접머지는 cleanup 전 `REVIEW.md`·`refined`·머지로그 경로를
+   `logs/governance/<KEY>/`로 아카이브(재생성 없이 승격만 — refined 원본은 Linear 코멘트, diff는 머지로그에 이미 존재).
 
 #### B. AUTO_MERGE OFF (PR 생성)
 기본 동작:
@@ -294,9 +320,12 @@ PR 생성 시 자동 실행:
 
 | Workflow | 트리거 | 역할 |
 |----------|--------|------|
-| `ci.yml` | PR 생성/업데이트 | Backend pytest+ruff, Frontend pnpm lint+build |
+| `ci.yml` | PR 생성/업데이트 | Backend pytest+ruff, Frontend pnpm lint+build, **거버넌스 게이트 미러**(`governance` 잡) |
 | `ai-review.yml` | ralph/* PR 생성 | ChatGPT FC로 코드 리뷰 → PR 코멘트 |
-| `post-merge.yml` | PR 머지 | Linear Done + Telegram 알림 |
+| `post-merge.yml` | PR 머지 | Linear Done + Telegram 알림 (키 추출 `[A-Z0-9]+-\d+`) |
+
+> `governance` 잡은 권위 게이트의 PR 미러다(동일 `pre_merge_gate.py` 호출). 현재 비차단이며,
+> GitHub 브랜치 보호의 필수 체크로 지정하면 PR 차단으로 승격된다.
 
 ### Step 8: 수동 확인 머지 — `linear_confirmer.py`
 

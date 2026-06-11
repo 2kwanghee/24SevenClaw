@@ -366,8 +366,45 @@ $(cat .ralph/PROMPT.md)"
     log "WARN: Linear 결과 보고 실패"
   }
 
-  # PR 생성 또는 직접 머지
-  if is_enabled "FLOWOPS_AUTO_MERGE" 2>/dev/null; then
+  # ── [거버넌스 게이트] 머지 직전 권위 검증+위험분류 (SSOT: scripts/pre_merge_gate.py) ──
+  # direct-merge + push origin main 이 유일한 비보호 경로 → 여기가 권위 게이트. CI(ci.yml)는 미러.
+  GATE_DECISION="direct"
+  GATE_TIER="LOW"
+  MERGED_DIRECT=false
+  if is_enabled "FLOWOPS_GOVERNANCE" 2>/dev/null; then
+    GATE_RC=0
+    GATE_JSON=$(python3 scripts/pre_merge_gate.py --base main --head "$BRANCH" --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+    GATE_DECISION=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('merge_decision','block'))" 2>/dev/null || echo "block")
+    GATE_TIER=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('tier','LOW'))" 2>/dev/null || echo "LOW")
+    GATE_FAILS=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(' / '.join(json.load(sys.stdin).get('failures',[])) or '검증 실패')" 2>/dev/null || echo "게이트 파싱 실패")
+    log "거버넌스 게이트: rc=$GATE_RC tier=$GATE_TIER decision=$GATE_DECISION"
+
+    if [ "$GATE_RC" -eq 2 ] || [ "$GATE_DECISION" = "block" ]; then
+      log "ERROR: 거버넌스 검증 실패 → 머지 차단 ($GATE_FAILS)"
+      safe_git checkout main 2>/dev/null || true
+      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+      if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
+        python3 scripts/telegram_notify.py --message "🚫 거버넌스 차단 ${ISSUE_KEY}: ${GATE_FAILS}" 2>/dev/null || true
+      fi
+      FAILED=$((FAILED + 1))
+      rm -rf ".ralph/tasks"
+      rm -f "$TASK_MAPPING" .ralph/PLAN.md .ralph/TASK.md .ralph/REVIEW.md ".ralph/refined/${ISSUE_KEY}.md"
+      if [ "$ONCE_MODE" = true ]; then
+        log "--once 모드: 게이트 차단 후 종료."
+        break
+      fi
+      continue
+    fi
+  fi
+
+  # PR 생성 또는 직접 머지 (거버넌스 위험강등 우선)
+  if [ "$GATE_DECISION" = "pr" ]; then
+    log "위험분류 ${GATE_TIER} → 직접머지 금지, 기존 PR 경로로 강등(사람 머지 게이트)"
+    python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
+      log "WARN: PR 생성 실패"
+    }
+    safe_git checkout main 2>/dev/null || true
+  elif is_enabled "FLOWOPS_AUTO_MERGE" 2>/dev/null; then
     log "AUTO_MERGE 활성화: 직접 머지 수행"
 
     # 머지 전 diff 정보 수집
@@ -380,6 +417,7 @@ $(cat .ralph/PROMPT.md)"
     safe_git checkout main 2>/dev/null || true
     if safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
       log "머지 성공: ${BRANCH} → main"
+      MERGED_DIRECT=true
 
       # 머지 로그 생성
       MERGE_LOG_FILE="$PROJECT_DIR/logs/merge_$(date '+%Y%m%d_%H%M%S').log"
@@ -433,6 +471,31 @@ $(cat .ralph/PROMPT.md)"
       log "WARN: PR 생성 실패"
     }
     safe_git checkout main 2>/dev/null || true
+  fi
+
+  # ── [추적성 승격] cleanup(rm) 직전, 이미 생성된 산출물을 per-ticket 영속 위치로 아카이브 ──
+  # direct-merge(LOW) 경로에서만 의미 — HIGH는 PR로 강등되어 REVIEW.md가 PR 본문에 보존됨.
+  # 재생성 없음(promote only). refined 원본은 Linear 코멘트, diff는 logs/merge_*.log 에 이미 존재.
+  # 고복잡도 대용 프록시(변경파일 수/diff 라인)로 한정. FLOWOPS_GOVERNANCE_PROMOTE 토글.
+  if is_enabled "FLOWOPS_GOVERNANCE_PROMOTE" 2>/dev/null && [ "${MERGED_DIRECT:-false}" = true ]; then
+    PROMOTE_FILES=$(printf '%s\n' "$MERGE_DIFF_FILES" | grep -c . 2>/dev/null || echo 0)
+    PROMOTE_LINES=$(printf '%s\n' "$MERGE_DIFF_DETAIL" | wc -l | tr -d ' ')
+    if [ "$PROMOTE_FILES" -ge "${FLOWOPS_PROMOTE_MIN_FILES:-10}" ] || [ "$PROMOTE_LINES" -ge "${FLOWOPS_PROMOTE_MIN_LINES:-400}" ]; then
+      ARCH_DIR="logs/governance/${ISSUE_KEY}"
+      mkdir -p "$ARCH_DIR"
+      [ -f .ralph/REVIEW.md ] && cp .ralph/REVIEW.md "$ARCH_DIR/REVIEW.md"
+      [ -f ".ralph/refined/${ISSUE_KEY}.md" ] && cp ".ralph/refined/${ISSUE_KEY}.md" "$ARCH_DIR/refined.md"
+      {
+        echo "issue=${ISSUE_KEY}"
+        echo "title=${TITLE}"
+        echo "tier=${GATE_TIER}"
+        echo "merge_log=${MERGE_LOG_FILE:-}"
+        echo "changed_files=${PROMOTE_FILES}"
+        echo "diff_lines=${PROMOTE_LINES}"
+        echo "archived_at=$(date '+%Y-%m-%d %H:%M:%S')"
+      } > "$ARCH_DIR/manifest.txt"
+      log "추적성 승격: $ARCH_DIR (files=$PROMOTE_FILES lines=$PROMOTE_LINES)"
+    fi
   fi
 
   # 임시 파일 정리

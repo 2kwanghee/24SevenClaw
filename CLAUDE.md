@@ -147,6 +147,14 @@ AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는
 에이전트/스킬별 최적 모델(opus/sonnet/haiku)을 지정하여 토큰 비용을 최적화한다.
 - `.claude/MODEL-ROUTING.md` — 모델 라우팅 가이드 (티어 정의, 배정표, 격상/격하 규칙)
 
+## Governance Gate (자동 워크플로우 머지 게이트)
+자율 파이프라인이 main에 직접 머지(유일한 비보호 경로)하기 직전, 검증+위험분류를 단일 SSOT 모듈로 통과시킨다.
+- `scripts/pre_merge_gate.py` — SSOT. `auto_dev_pipeline.sh`가 머지 직전 권위 호출 + `ci.yml` `governance` 잡이 PR 미러(동일 모듈, 중복 없음).
+- **검증**: contract-drift(계약면↔openapi.json/generated 동반, 차단) · ticket-ref(브랜치 `ralph/<KEY>` 형태, 차단) · plan-trace(refined/PLAN 연관성, 권고).
+- **위험강등**: HIGH(`clickeye-contracts/**`·`clickeye-infra/**`·`*auth*`·보안)는 `AUTO_MERGE=on`이어도 직접머지 금지 → 기존 PR 경로로 강등(새 승인장치 없음).
+- **추적성**: 고복잡도 direct-merge 산출물을 cleanup 전 `logs/governance/<KEY>/`로 승격(재생성 없이).
+- **토글**: `FLOWOPS_GOVERNANCE`(마스터, off면 회귀 0) + `_CONTRACT`/`_TICKET`/`_TRACE`/`_RISK_DEMOTE`/`_PROMOTE`. 상세: `docs/pipeline-guide.md` Step 5.5.
+
 ## Skills
 - `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 + 4개 하네스 스킬 + metaprompt
 - `.claude/skills/metaprompt/SKILL.md` — 관측형 사전 정제. 구현 전 거친 태스크를 구현 스펙으로 정제.
