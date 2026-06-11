@@ -147,6 +147,8 @@ def generate_all(
         _generate_webhook_files(files, project_name, dirs["config_dir"])
         # 메타프롬프팅 스킬(관측형 사전 정제) emit — harness-gate emit 선례 패턴
         _generate_metaprompt_skill(files, dirs["config_dir"])
+        # Linear 게이트 — 이슈 없는 직접 개발 차단 + 담당자 잠금/해제 스크립트
+        _generate_linear_gate_files(files, stack)
 
     # .env / .env.example ?ì±
     _generate_env_files(files, workflow_ids, env_vars or {}, catalog_prefetch, clickeye_vars)
@@ -314,7 +316,7 @@ def _build_claude_settings(
     catalog_prefetch: CatalogPrefetch | None = None,
 ) -> dict[str, Any]:
     """Claude Code용 settings.json 빌드."""
-    hooks: dict[str, list[dict[str, str]]] = {
+    hooks: dict[str, list[dict[str, Any]]] = {
         "UserPromptSubmit": [],
         "PreToolUse": [],
         "PostToolUse": [],
@@ -324,6 +326,21 @@ def _build_claude_settings(
     if "harness-gate" in workflow_ids:
         hooks["UserPromptSubmit"].append(
             {"type": "command", "command": "bash scripts/harness-gate.sh"}
+        )
+
+    # Linear 게이트 — 이슈 없는 직접 개발 차단 (Edit/Write/MultiEdit PreToolUse)
+    if "linear" in workflow_ids:
+        hooks["PreToolUse"].append(
+            {
+                "matcher": "Edit|Write|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash scripts/clickeye-linear-gate.sh",
+                        "timeout": 10,
+                    }
+                ],
+            }
         )
 
     skills = get_selected_skills(workflow_ids, catalog_prefetch)
@@ -477,6 +494,26 @@ def _generate_metaprompt_skill(
     """
     tpl = _env.get_template("skills/metaprompt.md.j2")
     files[f"{config_dir}/skills/metaprompt.md"] = tpl.render(config_dir=config_dir)
+
+
+def _generate_linear_gate_files(
+    files: dict[str, str | bytes],
+    stack: dict[str, Any] | None = None,
+) -> None:
+    """Linear 게이트 파일 생성 — linear 스킬 선택 시 emit.
+
+    - scripts/clickeye-linear-gate.sh: Edit/Write/MultiEdit PreToolUse hook 본체.
+      활성 Linear 이슈(.ralph/fix_plan.md) 또는 담당자 잠금 해제 없이는 직접 개발을 차단한다.
+    - scripts/clickeye-gate.sh: 담당자 전용 잠금/해제 토글 (shell 직접 실행).
+    settings.json 의 PreToolUse hook 등록은 _build_claude_settings 에서 처리한다.
+    """
+    for tmpl_path, out_path in [
+        ("hooks/clickeye-linear-gate.sh.j2", "scripts/clickeye-linear-gate.sh"),
+        ("scripts/clickeye-gate.sh.j2", "scripts/clickeye-gate.sh"),
+        ("docs/clickeye-gate.md.j2", "docs/CLICKEYE_GATE.md"),
+    ]:
+        tpl = _env.get_template(tmpl_path)
+        files[out_path] = tpl.render(stack=stack)
 
 
 def _generate_mcp_files(

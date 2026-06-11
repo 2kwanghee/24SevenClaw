@@ -214,6 +214,81 @@ async def test_generate_zip_no_linear_skips_metaprompt() -> None:
         assert "scripts/run-pipeline.sh" not in names
 
 
+# ── Linear 게이트 (이슈 없는 직접 개발 차단) emit 테스트 ──
+
+
+@pytest.mark.no_db
+@pytest.mark.asyncio
+async def test_generate_zip_linear_skill_includes_gate() -> None:
+    """linear 스킬 선택 시 게이트 hook 스크립트 + 토글 스크립트 + settings PreToolUse 등록 확인."""
+    import json
+
+    request = GenerateRequest(
+        solution={"projectName": "gate-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["linear"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = await generate_zip(request, "gate-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        # 게이트 스크립트 파일 emit 확인
+        assert "scripts/clickeye-linear-gate.sh" in names
+        assert "scripts/clickeye-gate.sh" in names
+        assert "docs/CLICKEYE_GATE.md" in names
+
+        # 게이트 hook 본체에 핵심 로직 마커 확인
+        gate = zf.read("scripts/clickeye-linear-gate.sh").decode()
+        assert "gate-disabled" in gate
+        assert "fix_plan.md" in gate
+
+        # 토글 스크립트 on/off 분기 확인
+        toggle = zf.read("scripts/clickeye-gate.sh").decode()
+        assert "off)" in toggle
+        assert "on)" in toggle
+
+        # settings.json 의 PreToolUse 에 게이트 hook 등록 확인
+        settings = json.loads(zf.read(".claude/settings.json").decode())
+        pre = settings["hooks"]["PreToolUse"]
+        gate_entries = [
+            e
+            for e in pre
+            if e.get("matcher") == "Edit|Write|MultiEdit"
+            and any("clickeye-linear-gate.sh" in h.get("command", "") for h in e.get("hooks", []))
+        ]
+        assert gate_entries, "PreToolUse 에 clickeye-linear-gate hook 이 등록되어야 함"
+
+
+@pytest.mark.no_db
+@pytest.mark.asyncio
+async def test_generate_zip_no_linear_skips_gate() -> None:
+    """linear 미선택 시 게이트 파일/hook 미포함(회귀 방지) 확인."""
+    import json
+
+    request = GenerateRequest(
+        solution={"projectName": "no-gate-test", "stackPreset": "fastapi-nextjs"},
+        agents=[],
+        skills=["tdd"],
+        platform={"platformId": "claude-code"},
+    )
+
+    buffer = await generate_zip(request, "no-gate-test")
+
+    with zipfile.ZipFile(buffer) as zf:
+        names = zf.namelist()
+        assert "scripts/clickeye-linear-gate.sh" not in names
+        assert "scripts/clickeye-gate.sh" not in names
+
+        settings = json.loads(zf.read(".claude/settings.json").decode())
+        pre = settings["hooks"].get("PreToolUse", [])
+        assert not any(
+            any("clickeye-linear-gate.sh" in h.get("command", "") for h in e.get("hooks", []))
+            for e in pre
+        ), "linear 미선택 시 게이트 hook 이 없어야 함"
+
+
 @pytest.mark.no_db
 async def test_generate_zip_with_env_vars() -> None:
     """envVars 전달 시 .env + .env.example 포함."""

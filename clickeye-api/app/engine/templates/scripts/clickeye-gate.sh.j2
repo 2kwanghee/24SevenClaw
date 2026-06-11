@@ -1,0 +1,42 @@
+{% raw %}#!/usr/bin/env bash
+# clickeye-gate.sh — Linear 게이트 잠금/해제 (담당자 전용, shell 직접 실행)
+#
+# 사용법:
+#   bash scripts/clickeye-gate.sh off      # 게이트 해제 → 직접 개발 허용
+#   bash scripts/clickeye-gate.sh on       # 게이트 재잠금 → Linear 이슈 기반만 허용 (기본 배포 상태)
+#   bash scripts/clickeye-gate.sh status   # 현재 상태 확인
+#
+# 슬래시 커맨드가 아닌 터미널 shell 로만 조작한다 (Claude 가 스스로 풀 수 없게).
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+CLICKEYE_DIR="$PROJECT_DIR/.clickeye"
+FLAG="$CLICKEYE_DIR/gate-disabled"
+
+cmd="${1:-status}"
+
+case "$cmd" in
+  off)
+    mkdir -p "$CLICKEYE_DIR"
+    date "+%Y-%m-%d %H:%M:%S" > "$FLAG"
+    echo "🔓 ClickEye 게이트 해제됨 — 직접 개발이 허용됩니다."
+    echo "   작업 완료 후 반드시 'bash scripts/clickeye-gate.sh on' 으로 재잠금하세요."
+    ;;
+  on)
+    rm -f "$FLAG"
+    echo "🔒 ClickEye 게이트 잠금됨 — Linear 이슈 기반 개발만 허용됩니다."
+    ;;
+  status)
+    if [ -f "$FLAG" ]; then
+      echo "🔓 해제됨 (직접 개발 허용) — since $(cat "$FLAG" 2>/dev/null || echo unknown)"
+    else
+      echo "🔒 잠금됨 (Linear 이슈 기반 개발만 허용)"
+    fi
+    ;;
+  *)
+    echo "사용법: bash scripts/clickeye-gate.sh [on|off|status]" >&2
+    exit 1
+    ;;
+esac
+{% endraw %}

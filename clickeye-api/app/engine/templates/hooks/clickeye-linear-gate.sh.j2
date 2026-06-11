@@ -1,0 +1,63 @@
+{% raw %}#!/usr/bin/env bash
+# clickeye-linear-gate.sh — Linear 이슈 없는 직접 개발 차단 게이트
+# PreToolUse hook(Edit|Write|MultiEdit)으로 등록되어 코드 수정 전 자동 실행된다.
+#
+# 통과 조건(아래 중 하나라도 만족):
+#   1) 부트키핑/플랜/로그 파일 수정
+#   2) 담당자 잠금 해제(.clickeye/gate-disabled 존재)
+#   3) 활성 Linear 이슈 세션(.ralph/fix_plan.md 에 Linear 식별자 존재)
+# 그 외에는 차단한다.
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+GATE_DISABLED="$PROJECT_DIR/.clickeye/gate-disabled"
+FIX_PLAN="$PROJECT_DIR/.ralph/fix_plan.md"
+
+INPUT=$(cat)
+
+# 툴 입력에서 대상 파일 경로 추출
+FILE_PATH=$(echo "$INPUT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    inp = d.get('tool_input', {})
+    print(inp.get('file_path', '') or inp.get('path', ''))
+except Exception:
+    print('')
+" 2>/dev/null || echo "")
+
+# 1) 부트키핑/플랜/로그 파일은 항상 허용
+case "$FILE_PATH" in
+  *.clickeye/*|*/.ralph/*|*fix_plan.md|*current-plan.md|*TODO.md|*CHANGELOG*)
+    exit 0
+    ;;
+esac
+
+# 2) 담당자 잠금 해제 시 허용
+if [ -f "$GATE_DISABLED" ]; then
+    exit 0
+fi
+
+# 3) 활성 Linear 이슈 세션이면 허용 (fix_plan.md 에 Linear 식별자 존재)
+#    fix_plan.md 는 linear_watcher.py 가 실제 Queued 이슈를 가져와 생성한다.
+if [ -f "$FIX_PLAN" ] && grep -qE '[A-Z][A-Z0-9]*-[0-9]+' "$FIX_PLAN"; then
+    exit 0
+fi
+
+# 4) 그 외 — 차단
+cat >&2 << 'MSG'
+🚫 [ClickEye 게이트] 직접 개발이 차단되었습니다.
+
+이 개발 환경은 Linear 이슈 기반 개발만 허용합니다.
+ClickEye 웹에서 AI Team 으로 Linear 이슈를 등록하면 로컬에서 자동으로 구현이 진행됩니다.
+
+이슈 등록 없이 진행한 작업은 기록이 남지 않아 사후 지원이 불가능하므로 차단됩니다.
+
+────────────────────────────────────────
+담당자(서비스 운영자) 전용 — 직접 개발 임시 허용:
+  bash scripts/clickeye-gate.sh off     # 게이트 해제
+  bash scripts/clickeye-gate.sh on      # 게이트 재잠금 (작업 후 필수)
+  bash scripts/clickeye-gate.sh status  # 현재 상태 확인
+────────────────────────────────────────
+MSG
+exit 1
+{% endraw %}
