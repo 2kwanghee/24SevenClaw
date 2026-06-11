@@ -148,7 +148,10 @@ AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는
 - `.claude/MODEL-ROUTING.md` — 모델 라우팅 가이드 (티어 정의, 배정표, 격상/격하 규칙)
 
 ## Skills
-- `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 + 4개 하네스 스킬
+- `.claude/skills/dev-skills.md` — 10개 개발 워크플로 스킬 + 4개 하네스 스킬 + metaprompt
+- `.claude/skills/metaprompt/SKILL.md` — 관측형 사전 정제. 구현 전 거친 태스크를 구현 스펙으로 정제.
+  자동 파이프라인(`auto_dev_pipeline.sh` STEP A, Gemini 기획 대체, 토글 `FLOWOPS_METAPROMPT`)과
+  대화형 하네스(구현 스펙 생성)에서 공통 사용
 - `.claude/skills/` — 자동화 스킬 (run-pipeline, ralph-loop 등)
 
 ## Conventions

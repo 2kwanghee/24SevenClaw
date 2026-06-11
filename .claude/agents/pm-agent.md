@@ -81,6 +81,10 @@ Agent(
 
 ### Phase C: 구현 스펙 출력
 
+> **방법론**: 구현 스펙 작성은 `metaprompt` 스킬(관측형 사전 정제, `.claude/skills/metaprompt/SKILL.md`)의
+> 절차를 따른다 — Context(가림막: CLAUDE.md·module-agent.md 컨벤션 인용) → 가정(Assumptions) 명시 →
+> 대상 파일/구현 단계/테스트/컨벤션. 자동 파이프라인과 동일한 단일 방법론을 사용한다.
+
 Sonnet Worker가 소비할 수 있는 구조화된 스펙:
 
 ```markdown

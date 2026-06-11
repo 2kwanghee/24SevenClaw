@@ -3,8 +3,9 @@
 #
 # 워크플로우:
 #   1. Linear Queued 이슈 1개 감지 → fix_plan 생성
-#   2. [Gemini] 기획 → PLAN.md 생성
-#   3. 브랜치 생성 → [Claude] 구현 → TASK.md 생성
+#   2. [Claude] 메타프롬프트 정제(관측형 사전 정제, 기획+정제 일체) → PLAN.md 생성
+#      (FLOWOPS_METAPROMPT=false 시 레거시 Gemini 기획으로 폴백)
+#   3. 브랜치 생성 → [Claude] 구현(정제 스펙 prepend) → TASK.md 생성
 #   4. [Codex] QA 리뷰 → REVIEW.md 생성
 #   5. Linear 결과 보고 + PR 생성
 #   6. 다음 Queued 이슈로 반복
@@ -208,10 +209,11 @@ for title, meta in m.items():
   python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "In Progress" 2>/dev/null || true
   log "Linear 상태: In Progress"
 
-  # ── [STEP A] Gemini 기획 → PLAN.md ──
-  if is_enabled "FLOWOPS_GEMINI_PLAN" 2>/dev/null; then
-    log "── Gemini 기획 시작 ──"
-    TASK_DESC=$(python3 -c "
+  # ── [STEP A] 메타프롬프트 정제 (관측형 사전 정제 — 기획+정제 일체) → PLAN.md ──
+  # 거친 태스크 → 고품질 구현 스펙으로 정제 → .ralph/refined/{ISSUE}.md + PLAN.md + Linear 코멘트.
+  # Claude 구독 세션(ANTHROPIC_API_KEY unset)으로 실행. FLOWOPS_METAPROMPT=false면 Gemini 레거시 폴백.
+  mkdir -p "$PROJECT_DIR/logs"
+  TASK_DESC=$(python3 -c "
 import json
 with open('$TASK_MAPPING') as f:
     m = json.load(f)
@@ -220,6 +222,66 @@ for title, meta in m.items():
     break
 " 2>/dev/null || echo "")
 
+  METAPROMPT_SKILL=".claude/skills/metaprompt/SKILL.md"
+  REFINED_DIR=".ralph/refined"
+  REFINED_FILE="$REFINED_DIR/${ISSUE_KEY}.md"
+  mkdir -p "$REFINED_DIR"
+
+  if is_enabled "FLOWOPS_METAPROMPT" 2>/dev/null && [ -f "$METAPROMPT_SKILL" ]; then
+    log "── 메타프롬프트 정제 시작 ──"
+    # 멱등성: 이미 정제된 스펙이 있으면 정제 콜 생략 (중복 토큰 방지)
+    if [ ! -s "$REFINED_FILE" ]; then
+      REFINE_PROMPT="$(cat "$METAPROMPT_SKILL")
+
+---
+
+# 정제 대상 태스크
+- 이슈: $ISSUE_KEY
+- 제목: $TITLE
+- 설명:
+$TASK_DESC
+
+# fix_plan (참고)
+$(cat .ralph/fix_plan.md 2>/dev/null || echo '(없음)')
+
+위 metaprompt 지침에 따라 이 태스크를 '구현 스펙'으로 정제하라.
+정제된 구현 스펙(마크다운)만 출력하라. 코드는 작성하지 마라."
+      REFINE_LOG="$PROJECT_DIR/logs/refine_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
+      # Claude 구독 세션 사용 (API 크레딧 차감 방지)
+      ( unset ANTHROPIC_API_KEY
+        timeout "${REFINE_TIMEOUT:-600}" claude -p "$REFINE_PROMPT" \
+          --model sonnet \
+          --dangerously-skip-permissions \
+          </dev/null ) > "$REFINED_FILE" 2>>"$REFINE_LOG" || true
+    else
+      log "기존 정제 스펙 재사용: $REFINED_FILE"
+    fi
+
+    if [ -s "$REFINED_FILE" ]; then
+      cp "$REFINED_FILE" .ralph/PLAN.md
+      log "메타프롬프트 정제 완료 → $REFINED_FILE (PLAN.md 동기화)"
+      # 정제 스펙을 Linear 코멘트로 기록 (실패 무시)
+      python3 - "$ISSUE_ID" "$REFINED_FILE" <<'PY' 2>/dev/null || true
+import sys
+sys.path.insert(0, "scripts")
+from linear_client import get_env, linear_request
+issue_id, refined_file = sys.argv[1], sys.argv[2]
+api_key, _ = get_env()
+body = "🤖 **ClickEye 메타프롬프팅 — 정제된 구현 스펙**\n\n" + open(refined_file, encoding="utf-8").read()
+linear_request(
+    api_key,
+    "mutation($issueId:String!,$body:String!){commentCreate(input:{issueId:$issueId,body:$body}){comment{id}}}",
+    {"issueId": issue_id, "body": body},
+)
+PY
+      log "Linear 코멘트 게시(정제 스펙)"
+    else
+      log "WARN: 메타프롬프트 정제 실패/빈 출력 — fix_plan→PLAN 폴백"
+      rm -f "$REFINED_FILE"
+      cp .ralph/fix_plan.md .ralph/PLAN.md 2>/dev/null || true
+    fi
+  elif is_enabled "FLOWOPS_GEMINI_PLAN" 2>/dev/null; then
+    log "── Gemini 기획 시작 (레거시 폴백) ──"
     bash scripts/generate_plan_with_gemini.sh "$TITLE" "$TASK_DESC" \
       --fix-plan ".ralph/fix_plan.md" 2>&1 || {
       log "WARN: Gemini PLAN 생성 실패. fix_plan.md로 대체"
@@ -227,8 +289,7 @@ for title, meta in m.items():
     }
     log "Gemini PLAN 생성 완료"
   else
-    log "SKIP: Gemini PLAN 비활성화 (FLOWOPS_GEMINI_PLAN=false)"
-    # PLAN.md가 없으면 fix_plan을 복사
+    log "SKIP: 기획 단계 비활성화 — fix_plan을 PLAN.md로 복사"
     cp .ralph/fix_plan.md .ralph/PLAN.md 2>/dev/null || true
   fi
 
@@ -245,7 +306,19 @@ for title, meta in m.items():
   # ANTHROPIC_API_KEY를 unset — claude.ai 구독 세션 사용 (API 크레딧 차감 방지)
   unset ANTHROPIC_API_KEY
 
-  claude -p "$(cat .ralph/PROMPT.md)" \
+  # 정제 스펙이 있으면 구현 프롬프트 맨 앞에 prepend (메타프롬프팅 결과 우선 참고)
+  if [ -s "$REFINED_FILE" ]; then
+    IMPL_PROMPT="## 정제된 구현 스펙 (메타프롬프팅 결과 — 우선 참고)
+$(cat "$REFINED_FILE")
+
+---
+
+$(cat .ralph/PROMPT.md)"
+  else
+    IMPL_PROMPT="$(cat .ralph/PROMPT.md)"
+  fi
+
+  claude -p "$IMPL_PROMPT" \
     --model sonnet \
     --dangerously-skip-permissions \
     --verbose \
@@ -366,6 +439,7 @@ for title, meta in m.items():
   rm -rf ".ralph/tasks"
   rm -f "$TASK_MAPPING"
   rm -f .ralph/PLAN.md .ralph/TASK.md .ralph/REVIEW.md
+  rm -f ".ralph/refined/${ISSUE_KEY}.md"
 
   log "태스크 완료: $TITLE"
 

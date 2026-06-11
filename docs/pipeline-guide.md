@@ -38,10 +38,11 @@
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
-              │ [Gemini] 기획         │  PLAN.md 생성
-              │ generate_plan_with_   │  (범위/수용기준/리스크)
-              │ gemini.sh             │
-              └───────────┬───────────┘
+              │ [Claude] 메타프롬프트  │  PLAN.md + .ralph/refined/
+              │ 관측형 사전 정제       │  {ISSUE}.md 생성 (멱등)
+              │ (기획+정제 일체)       │  → Linear 코멘트 기록
+              └───────────┬───────────┘  ※ FLOWOPS_METAPROMPT=false
+                          ↓                  시 Gemini 기획 폴백
                           ↓
               ┌───────────────────────┐
               │ 브랜치 생성            │  ralph/{24S-XX}
@@ -225,17 +226,17 @@ python3 scripts/linear_watcher.py --per-task --use-gpt-plan
 ChatGPT Function Calling으로 코드베이스 맥락을 포함한 구조화된 fix_plan을 생성합니다.
 (수정 대상 파일, 구현 단계, 테스트 케이스 포함)
 
-### Step 2: Gemini 기획 — `generate_plan_with_gemini.sh`
+### Step 2: 메타프롬프트 정제 (관측형 사전 정제 — 기획+정제 일체)
 
-`FLOWOPS_GEMINI_PLAN=true` 시 실행:
-- 이슈 제목 + 설명 + fix_plan을 Gemini에 전달
-- `.ralph/PLAN.md` 생성 (요구사항 요약, 범위, 작업 단계, 수용 기준, 리스크, 변경 파일 후보, 테스트 전략)
-- Gemini 실패 시 fix_plan.md를 PLAN.md로 폴백
+`FLOWOPS_METAPROMPT=true`(기본) + `.claude/skills/metaprompt/SKILL.md` 존재 시 실행:
+- 거친 태스크(제목/설명 + fix_plan)를 **Claude 구독 세션**(`ANTHROPIC_API_KEY` unset, `claude -p --model sonnet`)으로 정제
+- 출력: 구현 스펙(목표/가정/대상 파일/구현 단계/테스트/컨벤션) → `.ralph/refined/{ISSUE_KEY}.md`
+- `.ralph/PLAN.md`로 동기화(다운스트림 Codex QA가 PLAN.md 소비) + Linear 이슈 코멘트로 기록
+- **멱등성**: 이미 정제된 `.ralph/refined/{ISSUE_KEY}.md`가 있으면 재호출하지 않고 재사용 (중복 토큰 방지). 태스크 완료 시 정리됨
+- **failsafe**: 정제 실패/빈 출력 시 `fix_plan.md → PLAN.md` 폴백 후 정제 없이 구현 진행
+- **레거시 폴백**: `FLOWOPS_METAPROMPT=false`면 `FLOWOPS_GEMINI_PLAN` 활성 시 기존 Gemini 기획(`generate_plan_with_gemini.sh`)으로 동작
 
-```bash
-# 수동 실행
-bash scripts/generate_plan_with_gemini.sh "이슈 제목" "이슈 설명" --fix-plan .ralph/fix_plan.md
-```
+> 방법론 정의는 `.claude/skills/metaprompt/SKILL.md`. 대화형 하네스의 구현 스펙 생성도 동일 스킬을 참조한다.
 
 ### Step 3: Claude 구현 — 브랜치 + 동기 실행
 
@@ -244,7 +245,7 @@ bash scripts/generate_plan_with_gemini.sh "이슈 제목" "이슈 설명" --fix-
 2. `.ralph/tasks/{ISSUE_KEY}.md` → `.ralph/fix_plan.md`로 복사
 3. Linear 상태 → **In Progress**
 4. UI/UX 작업 감지 시 `RALPH_UIUX_MODE=true` 자동 활성화
-5. Claude가 `.ralph/PLAN.md`를 참조하여 구현 (범위/수용 기준 준수)
+5. 정제 스펙(`.ralph/refined/{ISSUE_KEY}.md`)이 있으면 구현 프롬프트 맨 앞에 prepend → Claude가 정제 스펙 우선 참고하여 구현
 6. 완료 후 `.ralph/TASK.md` 생성 (변경 파일, 구현 내용, 테스트 결과, 남은 이슈)
 
 ```bash

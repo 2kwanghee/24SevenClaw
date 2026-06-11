@@ -213,3 +213,16 @@ full-setup: "cd clickeye-infra && ./scripts/setup-dev.sh"
 **용도**: 코드 작성자 / 리뷰어 / 보안 검토자 역할 분리
 **위치**: `.claude/skills/harness-worker/SKILL.md`
 **역할**: WRITE_CODE (fullstack), TEST_WRITER (tdd), CODE_REVIEW (ai-critique), SECURITY_REVIEW
+
+---
+
+## 메타프롬프팅 스킬 (관측형 사전 정제)
+
+### Skill: metaprompt
+**용도**: 거친 태스크를 구현 직전에 고품질 "구현 스펙"으로 다듬는 관측형 사전 정제
+**위치**: `.claude/skills/metaprompt/SKILL.md`
+**트리거**: 구현(harness-loop) 전 단계 / 자동 파이프라인의 기획 단계
+**동작**: Context(가림막: CLAUDE.md·module-agent.md 컨벤션 인용) → Router(가정 명시) → 구현 스펙 마크다운만 출력(코드 금지) → 자기 점검
+**연동**:
+- **자동 파이프라인**: `scripts/auto_dev_pipeline.sh` STEP A가 Gemini 기획을 대체해 비대화형(`claude -p`)으로 호출 → `.ralph/refined/{ISSUE}.md` + `.ralph/PLAN.md` + Linear 코멘트. 토글 `FLOWOPS_METAPROMPT`(기본 true).
+- **대화형 하네스**: harness-loop 구현 전 구현 스펙 생성 단계로 사용 ([[pm-agent]] 참조)
