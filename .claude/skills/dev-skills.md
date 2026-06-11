@@ -226,3 +226,13 @@ full-setup: "cd clickeye-infra && ./scripts/setup-dev.sh"
 **연동**:
 - **자동 파이프라인**: `scripts/auto_dev_pipeline.sh` STEP A가 Gemini 기획을 대체해 비대화형(`claude -p`)으로 호출 → `.ralph/refined/{ISSUE}.md` + `.ralph/PLAN.md` + Linear 코멘트. 토글 `FLOWOPS_METAPROMPT`(기본 true).
 - **대화형 하네스**: harness-loop 구현 전 구현 스펙 생성 단계로 사용 ([[pm-agent]] 참조)
+
+---
+
+## 보고 스킬
+
+### Skill: weekly-report
+**용도**: 금주(이번 주 월요일~오늘) git 커밋을 모아 주간보고 마크다운 생성
+**위치**: `.claude/skills/weekly-report/SKILL.md`
+**트리거**: "주간보고", "금주 작업 내역", "이번 주 작업 정리", "weekly report"
+**동작**: `scripts/collect_week.sh`로 주차·제목·출력경로·커밋 결정론적 수집 → 모델이 불릿 큐레이션 → `docs/WeeklyWorkReport/<주월요일>/weekly-report.md` 작성. 지난 주는 `--week-offset N`.
