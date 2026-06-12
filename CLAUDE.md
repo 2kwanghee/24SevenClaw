@@ -51,7 +51,7 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 - `docs/architecture-overview.md` — 아키텍처 상세
 - `docs/agent-protocol.md` — 통신 프로토콜
 - `docs/cli-guide.md` — CLI 상세 가이드 (에이전트 카탈로그, 스택 프리셋)
-- `docs/pipeline-guide.md` — 자동화 파이프라인 가이드 (v5 순차 실행)
+- `docs/pipeline-guide.md` — 자동화 파이프라인 가이드 (v6 — 메타프롬프트 기획 + 거버넌스 게이트)
 - `docs/comparison.md` — 유사 플랫폼 비교
 - `docs/license-model.md` — 라이센스 정책
 

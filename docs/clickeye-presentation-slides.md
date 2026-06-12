@@ -400,7 +400,7 @@ my-project.zip
                 ↓
 [Linear watcher] DayQueued 이슈 1건 감지
                 ↓
-[Gemini] PLAN.md 생성 (요구분석, 수용기준, 리스크)
+[Claude 메타프롬프트] PLAN.md + refined 생성 (관측형 사전 정제)
                 ↓
 [Claude Code] 코드 작성 → TASK.md
    ├─ 브랜치 자동 생성 (fix/{ISSUE}/{slug})
@@ -408,6 +408,8 @@ my-project.zip
    └─ harness-gate.sh (lint / type / test) 매 커밋 검증
                 ↓
 [Codex] REVIEW.md (요구충족 · 리스크 · 테스트 부족)
+                ↓
+[거버넌스 게이트] 머지 직전 정합성·위험 검증 (HIGH-tier→PR 강등)
                 ↓
 [Linear] 상태 자동 전이  In Progress → Done
                 ↓
@@ -424,14 +426,15 @@ my-project.zip
 
 | Agent | 모델 | 역할 | 결과물 |
 |---|---|---|---|
-| **Gemini** | gemini-2.5 | 기획 | `PLAN.md` |
+| **Claude (메타프롬프트)** | Sonnet | 기획·정제 | `PLAN.md` + `refined/` |
 | **Claude** | Sonnet 4.6 | 구현 | `TASK.md` + 코드 |
 | **Codex** | gpt-5 | QA | `REVIEW.md` |
+| _Gemini_ | gemini-2.5 | 레거시 기획 폴백 | (`FLOWOPS_METAPROMPT=false`) |
 
 <br>
 
-> 세 AI 가 합의해야 머지.
-> **단일 AI 환각이 다른 둘에 의해 잡힌다.**
+> Claude 정제·구현 + Codex QA 후 **거버넌스 게이트**(정합성·위험)가 최종 검증해야 머지.
+> **단일 AI 환각을 교차 검토 + 결정적 게이트로 차단한다.**
 
 <br>
 
@@ -486,7 +489,7 @@ my-project.zip
 2. 🇰🇷 **한국 시장 친화** — Linear 워크플로 (`DayQueued`/`Confirm`) · Notion · Telegram · 한국어 PM
 3. 💰 **BYOK** — Anthropic/Google/OpenAI 토큰 사용자가 직접 관리. **토큰 비용 투명**
 4. 🛡 **하네스 엔지니어링** — AI 코드 작성 4 단계 통제 (환각/오류 사전 차단)
-5. 🤝 **멀티 Agent 합의** — Gemini(기획) → Claude(구현) → Codex(QA) **3 인 합의** 흐름
+5. 🤝 **멀티 Agent + 거버넌스** — Claude 메타프롬프트(기획) → Claude(구현) → Codex(QA) → **머지 직전 거버넌스 게이트**(정합성·위험) (Gemini 기획은 폴백)
 
 ---
 
@@ -781,7 +784,7 @@ M5 — 코드 분석 엔진 7-step pipeline + diagnose UI
 → Modernize 분석 워크스페이스는 Step 7 직후 즉시 삭제. DB 비저장.
 
 **Q2. AI 코드 품질 보장?**
-→ `harness-gate.sh` 매 커밋 lint/type/test + Gemini+Claude+Codex 3 자 합의
+→ `harness-gate.sh` 매 커밋 lint/type/test + Claude(정제·구현)·Codex(QA) 교차 검토 + 머지 직전 거버넌스 게이트(정합성·위험)
 
 **Q3. 토큰 비용?**
 → 신규 위저드 $0.5~$2, Modernize $1~$5, 자동 개발 $0.5~$10 (BYOK 투명)

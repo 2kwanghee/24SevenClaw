@@ -46,7 +46,7 @@ ClickEye 는 다음 원칙을 따릅니다:
 1. **자기 자신을 만든다** — ClickEye 제품 자체의 모든 신규 기능(예: 본 문서가 작성될 시점의 MVP-2-A Modernize) 은 ClickEye 가 생성하는 자동화 흐름과 **동일한 시스템** 으로 만들어진다.
 2. **비침습성 (Non-Invasive)** — 신규 기능 추가 시 기존 코드는 단 한 줄도 동작이 바뀌지 않는다. R-1 ~ R-7 회귀 검증 통과 필수.
 3. **Plan-first** — 모든 코드 작성 전에 `.claude/current-plan.md` 에 계획 + 사용자 승인 마커. 즉흥 코드 작성 금지.
-4. **Multi-AI 합의** — 단일 AI 환각 방지를 위해 Gemini(기획) → Claude(구현) → Codex(QA) 의 다단계 검토.
+4. **Multi-AI 검토 + 거버넌스** — Claude 메타프롬프트(기획·정제) → Claude(구현) → Codex(QA) 다단계 검토 후, 머지 직전 거버넌스 게이트(`pre_merge_gate.py`)가 정합성·위험을 검증한다. (Gemini는 `FLOWOPS_METAPROMPT=false` 시 레거시 기획 폴백.)
 5. **Budget-aware** — Opus 는 계획·설계만, 구현은 Sonnet, 단순 작업은 Haiku. 토큰 비용 최적화.
 
 ### 결과 (MVP-2-A 8 마일스톤 기준)
@@ -288,9 +288,12 @@ Backlog ──(수동)──→ Wait ──(수동)──→ DayQueued / NightQu
                           Done                 Backlog
                      (머지 또는 PR)         (실패/건너뜀)
                             │
+                  [거버넌스 게이트] pre_merge_gate.py (머지 직전 권위)
+                  검증 실패→차단·Backlog / HIGH-tier→PR 강등
+                            │
                   ┌─────────┴─────────┐
                   ↓                   ↓
-            AUTO_MERGE ON        AUTO_MERGE OFF
+       AUTO_MERGE ON & LOW       AUTO_MERGE OFF / HIGH-tier
             (직접 머지→push)      (PR→CI→머지)
                   │                   │
                   │            ┌──────┴──────┐
@@ -318,10 +321,12 @@ Backlog ──(수동)──→ Wait ──(수동)──→ DayQueued / NightQu
 
 ```env
 FLOWOPS_LINEAR_WATCHER=true     # Linear 이슈 감지
-FLOWOPS_GEMINI_PLAN=true        # Gemini 기획 단계 활성
+FLOWOPS_METAPROMPT=true         # Claude 메타프롬프트 기획(관측형 사전 정제) — 기본
+FLOWOPS_GEMINI_PLAN=false       # 레거시 Gemini 기획 (METAPROMPT=false일 때만 폴백)
 FLOWOPS_CODEX_REVIEW=true       # Codex QA 활성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # 텔레그램 알림
+FLOWOPS_GOVERNANCE=true         # 거버넌스 게이트 마스터 (+_CONTRACT/_TICKET/_TRACE/_RISK_DEMOTE/_PROMOTE)
 ```
 
 각 단계를 독립적으로 ON/OFF 가능 → 단계별 디버깅 / 점진 도입 용이.
@@ -341,8 +346,9 @@ FLOWOPS_TELEGRAM=true           # 텔레그램 알림
        ├─ fix_plan.md 생성 → .ralph/tasks/{ISSUE_KEY}.md
        └─ 태스크 매핑 → .ralph/.task_mapping.json
        ↓
-[STEP 2] Gemini 기획 (generate_plan_with_gemini.sh)
-       └─ .ralph/PLAN.md 생성 (요약 / 범위 / 작업단계 / 수용기준 / 리스크)
+[STEP 2] Claude 메타프롬프트 기획 (관측형 사전 정제, FLOWOPS_METAPROMPT=true 기본)
+       ├─ .ralph/refined/{ISSUE}.md + .ralph/PLAN.md 생성 (멱등) + Linear 코멘트 기록
+       └─ FLOWOPS_METAPROMPT=false 시 레거시 Gemini 기획(generate_plan_with_gemini.sh) 폴백
        ↓
 [STEP 3] 브랜치 자동 생성 ralph/{24S-XX}
        └─ Linear 상태 → In Progress
@@ -357,8 +363,13 @@ FLOWOPS_TELEGRAM=true           # 텔레그램 알림
        ↓
 [STEP 6] linear_reporter.py — Linear 이슈에 결과 코멘트
        ↓
-[STEP 7-A] AUTO_MERGE=true: git merge --no-ff → push origin main
-[STEP 7-B] AUTO_MERGE=false: auto_pr_creator.py → gh pr create
+[STEP 6.5] 거버넌스 게이트 (pre_merge_gate.py — 머지 직전 권위 SSOT)
+       ├─ contract-drift / ticket-ref 검증 실패 → 머지 차단 → Linear Backlog + Telegram
+       ├─ 위험분류 HIGH(contracts/infra/auth/보안) → 직접머지 금지·PR 강등
+       └─ direct-merge 고복잡도 산출물 → logs/governance/{ISSUE}/ 승격 (cleanup 전)
+       ↓
+[STEP 7-A] AUTO_MERGE=true & LOW-tier: git merge --no-ff → push origin main
+[STEP 7-B] AUTO_MERGE=false 또는 HIGH-tier: auto_pr_creator.py → gh pr create
        ↓
 [STEP 8] GitHub Actions
        ├─ ci.yml — pytest + ruff + pnpm lint + build
@@ -372,11 +383,12 @@ FLOWOPS_TELEGRAM=true           # 텔레그램 알림
 
 | Agent | 모델 | 입력 | 출력 | 목적 |
 |---|---|---|---|---|
-| **Gemini** | gemini-2.5 (예) | 이슈 + fix_plan | `PLAN.md` | 폭넓은 기획·long-context |
-| **Claude** | Sonnet 4.6 | PLAN.md + 코드베이스 | `TASK.md` + 실제 코드 | 정확한 구현 |
+| **Claude (메타프롬프트)** | Sonnet | 이슈 + fix_plan | `refined/{ISSUE}.md` + `PLAN.md` | 관측형 사전 정제(기획) — 기본 |
+| **Claude (구현)** | Sonnet 4.6 | PLAN.md + 코드베이스 | `TASK.md` + 실제 코드 | 정확한 구현 |
 | **Codex** | gpt-5 (예) | PLAN.md + TASK.md + diff | `REVIEW.md` | 외부 시각 QA |
+| _Gemini (폴백)_ | gemini-2.5 (예) | 이슈 + fix_plan | `PLAN.md` | `FLOWOPS_METAPROMPT=false` 시 레거시 기획 |
 
-> 세 AI 가 합의해야 머지. 단일 AI 환각이 다른 둘에 의해 잡힘.
+> Claude 정제·구현 + Codex QA 후, **머지 직전 거버넌스 게이트**(`pre_merge_gate.py`)가 정합성·위험을 최종 검증해야 머지된다.
 
 ---
 
@@ -624,7 +636,9 @@ ClickCode 의 `prd-to-linear` 스킬이 PRD 마크다운을 분석 → 태스크
 | `scripts/webhook_server.py` | Linear webhook 수신 데몬 |
 | `scripts/linear_watcher.py` | Queued 이슈 감지 |
 | `scripts/linear_tracker.py` | Linear CRUD 유틸 |
-| `scripts/generate_plan_with_gemini.sh` | Gemini 기획 단계 |
+| `scripts/pre_merge_gate.py` | 거버넌스 게이트 SSOT (검증+위험분류, 머지 직전) |
+| `.claude/skills/metaprompt/SKILL.md` | 메타프롬프트 기획(관측형 사전 정제) |
+| `scripts/generate_plan_with_gemini.sh` | 레거시 Gemini 기획 (METAPROMPT=false 폴백) |
 | `scripts/run_codex_review.sh` | Codex QA 단계 |
 | `scripts/pipeline_config.sh` | FLOWOPS_* 모듈 토글 |
 | `docs/pipeline-guide.md` | 본 파이프라인 사용자 가이드 |
@@ -638,7 +652,7 @@ ClickCode 의 `prd-to-linear` 스킬이 PRD 마크다운을 분석 → 태스크
 
 세 가지 키워드:
 1. **Plan-first** — 코드 작성 전 사용자 승인 마커
-2. **Multi-Agent 합의** — Gemini(기획) + Claude(구현) + Codex(QA) 3 자 검토
+2. **Multi-Agent + 거버넌스** — Claude 메타프롬프트(기획) + Claude(구현) + Codex(QA) → 머지 직전 거버넌스 게이트(정합성·위험)
 3. **비침습성 자동 검증** — 매 마일스톤 R-1~R-7 통과 보장 (회귀 0)
 
 ---

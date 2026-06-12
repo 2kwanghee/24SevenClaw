@@ -224,7 +224,7 @@ full-setup: "cd clickeye-infra && ./scripts/setup-dev.sh"
 **트리거**: 구현(harness-loop) 전 단계 / 자동 파이프라인의 기획 단계
 **동작**: Context(가림막: CLAUDE.md·module-agent.md 컨벤션 인용) → Router(가정 명시) → 구현 스펙 마크다운만 출력(코드 금지) → 자기 점검
 **연동**:
-- **자동 파이프라인**: `scripts/auto_dev_pipeline.sh` STEP A가 Gemini 기획을 대체해 비대화형(`claude -p`)으로 호출 → `.ralph/refined/{ISSUE}.md` + `.ralph/PLAN.md` + Linear 코멘트. 토글 `FLOWOPS_METAPROMPT`(기본 true).
+- **자동 파이프라인**: `scripts/auto_dev_pipeline.sh` STEP A가 `FLOWOPS_METAPROMPT=true`(기본)일 때 기획 단계로 비대화형(`claude -p`) 호출 → `.ralph/refined/{ISSUE}.md` + `.ralph/PLAN.md` + Linear 코멘트. `false`면 레거시 Gemini 기획(`FLOWOPS_GEMINI_PLAN`)으로 폴백. 머지 직전 거버넌스 게이트(`pre_merge_gate.py`)가 정합성·위험을 검증.
 - **대화형 하네스**: harness-loop 구현 전 구현 스펙 생성 단계로 사용 ([[pm-agent]] 참조)
 
 ---

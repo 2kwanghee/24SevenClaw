@@ -359,7 +359,7 @@ ZIP 안 `scripts/auto_dev_pipeline.sh` 가 실행되면:
                 ↓
 [Linear watcher] DayQueued 이슈 1건 감지
                 ↓
-[Gemini] PLAN.md 생성 (요구분석, 범위, 수용기준, 리스크)
+[Claude 메타프롬프트] PLAN.md + .ralph/refined/ 생성 (관측형 사전 정제: 요구분석·범위·수용기준·리스크)
                 ↓
 [Claude Code] 코드 작성 → TASK.md
    ├─ 브랜치 자동 생성 (fix/{ISSUE}/{slug})
@@ -367,6 +367,8 @@ ZIP 안 `scripts/auto_dev_pipeline.sh` 가 실행되면:
    └─ harness-gate.sh (lint / type / test) 매 커밋 검증
                 ↓
 [Codex] REVIEW.md (요구충족 / 리스크 / 테스트 부족 / PR 코멘트)
+                ↓
+[거버넌스 게이트] pre_merge_gate.py — 머지 직전 정합성·위험 검증 (HIGH-tier→PR 강등)
                 ↓
 [Linear] 상태 자동 전이 In Progress → Done
                 ↓
@@ -379,11 +381,12 @@ ZIP 안 `scripts/auto_dev_pipeline.sh` 가 실행되면:
 
 | Agent | 모델 | 역할 | 결과물 |
 |---|---|---|---|
-| **Gemini** | gemini-2.5 (예) | 기획 | `PLAN.md` |
+| **Claude (메타프롬프트)** | Sonnet | 기획(관측형 사전 정제) | `PLAN.md` + `refined/` |
 | **Claude** | Sonnet 4.6 | 구현 | `TASK.md` + 코드 |
 | **Codex** | gpt-5 (예) | QA | `REVIEW.md` |
+| _Gemini (폴백)_ | gemini-2.5 (예) | 레거시 기획 | `FLOWOPS_METAPROMPT=false` 시 |
 
-각 단계는 `FLOWOPS_*` 환경변수로 ON/OFF.
+각 단계는 `FLOWOPS_*` 환경변수로 ON/OFF. 머지 직전 거버넌스 게이트(`pre_merge_gate.py`)가 정합성·위험을 최종 검증.
 
 ---
 
@@ -422,7 +425,7 @@ ClickEye 가 만드는 ZIP 은 어느 플랫폼에서도 동작:
 2. **한국 시장 친화** — Linear 워크플로 (`DayQueued`/`NightQueued`/`Confirm`), Notion 통합, Telegram 알림, 한국어 PM/Agent 카탈로그.
 3. **BYOK** — Anthropic / Google / OpenAI 토큰은 사용자가 직접 관리. 토큰 비용 투명.
 4. **하네스 엔지니어링** — AI 코드 작성을 4 단계로 통제 (환각/오류 사전 차단). `harness-gate.sh` 가 매 커밋 lint/type/test 검증.
-5. **멀티 Agent 멀티 모델** — Gemini(기획) → Claude(구현) → Codex(QA) 3 인 합의 흐름.
+5. **멀티 Agent + 거버넌스** — Claude 메타프롬프트(기획) → Claude(구현) → Codex(QA) → 머지 직전 거버넌스 게이트(정합성·위험). (Gemini 기획은 폴백)
 
 ---
 

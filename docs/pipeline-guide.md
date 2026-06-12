@@ -56,13 +56,17 @@
                           ↓
               ┌───────────────────────┐
               │ linear_reporter.py    │  Linear 결과 보고
-              │ auto_pr_creator.py    │  PR 생성 또는 직접 머지
               └───────────┬───────────┘
+                          ↓
+              ┌───────────────────────┐
+              │ [거버넌스 게이트]      │  pre_merge_gate.py (머지 직전 권위)
+              │ contract/ticket/risk  │  검증 실패→차단·Backlog
+              └───────────┬───────────┘  HIGH-tier→직접머지 금지·PR 강등
                           ↓
                  ┌────────┴────────┐
                  ↓                 ↓
-          AUTO_MERGE ON      AUTO_MERGE OFF
-          (직접 머지→push)   (PR 생성→CI)
+       AUTO_MERGE ON & LOW   AUTO_MERGE OFF / HIGH-tier
+          (직접 머지→push)   (auto_pr_creator → PR→CI)
                  │                 │
                  │          ┌──────┴──────┐
                  │          │ GitHub Actions│
@@ -471,10 +475,18 @@ python3 scripts/linear_tracker.py task \
 ```env
 # 모듈 토글 (미설정 시 기본값: true)
 FLOWOPS_LINEAR_WATCHER=true     # Linear 이슈 감지
-FLOWOPS_GEMINI_PLAN=true        # Gemini 기획 → PLAN.md 생성
+FLOWOPS_METAPROMPT=true         # Claude 메타프롬프트 기획(관측형 사전 정제) → PLAN.md/refined
+FLOWOPS_GEMINI_PLAN=false       # 레거시 Gemini 기획(METAPROMPT=false일 때 폴백)
 FLOWOPS_CODEX_REVIEW=true       # Codex QA → REVIEW.md 생성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # Telegram 알림
+# 거버넌스 게이트(머지 직전 SSOT) — 상세: 위 "Step 5.5"
+FLOWOPS_GOVERNANCE=true         # 마스터(off면 게이트 전체 우회·회귀 0)
+FLOWOPS_GOVERNANCE_CONTRACT=true     # contract-drift 차단
+FLOWOPS_GOVERNANCE_TICKET=true       # ticket-ref 차단
+FLOWOPS_GOVERNANCE_TRACE=true        # plan-trace 권고(비차단)
+FLOWOPS_GOVERNANCE_RISK_DEMOTE=true  # HIGH-tier→PR 강등
+FLOWOPS_GOVERNANCE_PROMOTE=true      # 고복잡도 direct-merge 산출물 승격
 ```
 
 설정 로더: `scripts/pipeline_config.sh`
@@ -489,7 +501,8 @@ FLOWOPS_TELEGRAM=true           # Telegram 알림
 | 검증 주체 | 역할 | 시점 | 검증 항목 |
 |-----------|------|------|-----------|
 | `ralph-stop-hook.sh` | 빠른 피드백 (Claude 루프 내) | 매 iteration | fix_plan 완료 + pytest + ruff |
-| GitHub Actions CI | 공식 게이트 (PR 머지 조건) | PR 생성/업데이트 | pytest + ruff + pnpm lint + build |
+| **거버넌스 게이트** | **권위** (머지 직전, 인파이프라인) | 머지 직전 | `pre_merge_gate.py` — contract/ticket/risk |
+| GitHub Actions CI | 공식 게이트 (PR 머지 조건) + `governance` 미러 | PR 생성/업데이트 | pytest + ruff + pnpm lint + build + 게이트 미러 |
 | AI Review (GPT) | 코드 품질 검증 | PR 생성 | 버그/보안/성능/설계 리뷰 |
 
 ---

@@ -38,7 +38,7 @@
 
 1. **ZIP-first 보안** — 코드가 ClickEye 클라우드에 영구 저장되지 않음
 2. **한국 시장 친화** — Linear · Notion · Telegram · 한국어 PM/Agent
-3. **자율 진화** — Linear → 멀티 Agent (Gemini + Claude + Codex) → PR
+3. **자율 진화** — Linear → 멀티 Agent (Claude 메타프롬프트 → Claude → Codex) → 거버넌스 게이트 → PR
 
 ---
 
@@ -74,7 +74,7 @@
 > Modernize 의 분석 워크스페이스는 `/tmp/modernize/<session>/` 에 임시 생성되고 Step 7 종료 직후 `shutil.rmtree` 로 즉시 삭제됩니다. DB 에는 분석 메타(언어 비중, 의존성 목록, AI 요약 markdown)만 영속. 원본 코드는 어떤 곳에도 보관되지 않습니다.
 
 ### Q2. AI 가 작성한 코드의 품질은 어떻게 보장되나요?
-> 매 커밋마다 `harness-gate.sh` 가 모듈별 **lint + type + test** 를 자동 실행. 통과 못 하면 커밋 자체가 차단됩니다. 추가로 Gemini(기획) + Claude(구현) + Codex(QA) 3 자 합의 흐름으로 단일 AI 환각 방지.
+> 매 커밋마다 `harness-gate.sh` 가 모듈별 **lint + type + test** 를 자동 실행. 통과 못 하면 커밋 자체가 차단됩니다. 추가로 Claude 메타프롬프트(기획·정제) + Claude(구현) + Codex(QA) 교차 검토 후 **머지 직전 거버넌스 게이트**(정합성·위험)로 단일 AI 환각·계약 드리프트를 방지. (Gemini 기획은 폴백)
 
 ### Q3. AI 토큰 비용이 얼마나 드나요?
 > 사용량 의존. 평균:
@@ -111,7 +111,7 @@
 | Plan-first + 사용자 승인 마커 | "AI 즉흥 코드 차단" |
 | 모델 라우팅 Opus/Sonnet/Haiku | "토큰 80% 절감" |
 | Hook 시점 4 단계 자동 검증 | "PreToolUse + PostToolUse + Stop" |
-| 멀티 Agent 합의 | "Gemini + Claude + Codex 3 자 검토" |
+| 멀티 Agent + 거버넌스 | "Claude 메타프롬프트 → Claude → Codex + 머지 직전 거버넌스 게이트" |
 
 ---
 

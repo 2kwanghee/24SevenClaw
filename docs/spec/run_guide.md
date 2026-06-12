@@ -346,6 +346,9 @@ rm -f /mnt/c/workspace/ClickEye/.git/index.lock
 
 #### Gemini CLI 실행 실패 (`ERROR: Gemini CLI 실행 실패`)
 
+> 참고: 기획 단계는 기본적으로 **Claude 메타프롬프트 정제**(`FLOWOPS_METAPROMPT=true`)를 사용한다.
+> Gemini는 `FLOWOPS_METAPROMPT=false`로 전환했을 때만 동작하는 레거시 폴백이므로, 아래 절차는 Gemini 폴백을 쓰는 경우에만 해당한다.
+
 ```bash
 # 1. 바이너리 존재 확인
 which gemini || echo "설치 안 됨"
@@ -363,7 +366,7 @@ echo "안녕" | timeout 10 gemini 2>&1 | head -5
 **해결**:
 - `command not found` → `npm install -g @google/gemini-cli` 재설치 또는 PATH 확인
 - 인증 만료 → `gemini auth login` 재실행
-- 실패가 지속되면 `.env`에서 `FLOWOPS_GEMINI_PLAN=false`로 일시 비활성화 (fix_plan.md를 PLAN.md로 그대로 사용)
+- 기본값(`FLOWOPS_METAPROMPT=true`)이면 Gemini를 거치지 않으므로, 이 오류가 나면 `FLOWOPS_METAPROMPT=false`로 폴백을 끄거나 다시 메타프롬프트 기획으로 되돌린다 (Gemini 폴백 비활성 시 fix_plan.md를 PLAN.md로 그대로 사용)
 
 > `scripts/generate_plan_with_gemini.sh`에 `timeout 60` 래퍼가 적용되어 있어 무한 대기는 발생하지 않습니다.
 
@@ -398,9 +401,11 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 
 # 주요 토글
 # FLOWOPS_LINEAR_WATCHER=true   — Linear 이슈 감지 활성화 (false면 파이프라인 전체 스킵)
-# FLOWOPS_GEMINI_PLAN=true      — Gemini 기획 단계
+# FLOWOPS_METAPROMPT=true       — Claude 메타프롬프트 기획(관측형 사전 정제) — 기본
+# FLOWOPS_GEMINI_PLAN=false     — 레거시 Gemini 기획 (METAPROMPT=false일 때 폴백)
 # FLOWOPS_CODEX_REVIEW=true     — Codex QA 리뷰 단계
-# FLOWOPS_AUTO_MERGE=true       — PR 없이 main 직접 머지
+# FLOWOPS_AUTO_MERGE=true       — PR 없이 main 직접 머지 (HIGH-tier는 거버넌스 게이트가 PR 강등)
+# FLOWOPS_GOVERNANCE=true       — 머지 직전 거버넌스 게이트 (+_CONTRACT/_TICKET/_TRACE/_RISK_DEMOTE/_PROMOTE)
 # FLOWOPS_TELEGRAM=true         — Telegram 완료 알림
 ```
 
