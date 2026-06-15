@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 import anthropic
+import openai
 from anthropic.types import Message, TextBlock
 
 from app.config import settings
@@ -376,6 +377,8 @@ class ClaudeService:
         self._api_key = api_key or settings.anthropic_api_key
         self._model = settings.anthropic_model_default
         self._timeout = settings.prototype_generation_timeout
+        self._openai_api_key = settings.openai_api_key
+        self._openai_model = settings.openai_model_default
 
     def _get_client(self) -> anthropic.AsyncAnthropic:
         if not self._api_key:
@@ -386,6 +389,126 @@ class ClaudeService:
             api_key=self._api_key,
             timeout=float(self._timeout),
         )
+
+    def _get_openai_client(self) -> openai.AsyncOpenAI:
+        return openai.AsyncOpenAI(
+            api_key=self._openai_api_key,
+            timeout=float(self._timeout),
+        )
+
+    # ── LLM 호출 (Anthropic 기본 → OpenAI 폴백) ──────────────────────────────
+
+    @staticmethod
+    def _is_anthropic_fallback_error(exc: Exception) -> bool:
+        """Anthropic 키 무효/크레딧 부족/미설정 → OpenAI 폴백 대상인지 판별한다.
+
+        - AuthenticationError(401), PermissionDeniedError(403): 키 무효/권한 없음
+        - BadRequestError(400) + "credit balance" 메시지: 크레딧 부족
+        - RuntimeError: _get_client가 키 미설정 시 던지는 예외
+        레이트리밋/과부하/타임아웃/네트워크 일시 오류는 폴백 대상이 아니다.
+        """
+        if isinstance(exc, RuntimeError):
+            return True
+        if isinstance(
+            exc, anthropic.AuthenticationError | anthropic.PermissionDeniedError
+        ):
+            return True
+        if isinstance(exc, anthropic.BadRequestError):
+            return "credit balance" in str(exc).lower()
+        return False
+
+    async def _create_message(
+        self,
+        *,
+        max_tokens: int,
+        system: Any,
+        messages: list[dict[str, Any]],
+    ) -> str:
+        """Anthropic으로 메시지를 생성하고 텍스트를 반환한다.
+
+        Anthropic 키가 무효/크레딧 부족/미설정이면 OpenAI(설정 시)로 폴백한다.
+        system/messages는 Anthropic 형식(cache_control 포함 가능)을 그대로 받는다.
+        """
+        try:
+            client = self._get_client()
+            message = await client.messages.create(
+                model=self._model,
+                max_tokens=max_tokens,
+                system=system,
+                messages=messages,  # type: ignore[arg-type]
+            )
+            return _extract_text(message)
+        except Exception as exc:  # noqa: BLE001
+            if not (self._is_anthropic_fallback_error(exc) and self._openai_api_key):
+                raise
+            logger.warning(
+                "Anthropic 호출 실패(%s) → OpenAI(%s) 폴백",
+                type(exc).__name__,
+                self._openai_model,
+            )
+            return await self._call_openai(system, messages, max_tokens)
+
+    @staticmethod
+    def _flatten_content(content: Any) -> str:
+        """Anthropic content(str | list[{type,text,...}])를 평문으로 평탄화한다."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = [
+                str(block.get("text", ""))
+                for block in content
+                if isinstance(block, dict) and block.get("type", "text") == "text"
+            ]
+            return "\n\n".join(p for p in parts if p)
+        return str(content)
+
+    @classmethod
+    def _anthropic_to_openai_messages(
+        cls, system: Any, messages: list[dict[str, Any]]
+    ) -> list[dict[str, str]]:
+        """Anthropic system/messages를 OpenAI chat 메시지 목록으로 변환한다.
+
+        system은 system 롤 메시지로 선두에 배치하고, cache_control 등 Anthropic 전용
+        필드는 제거한다.
+        """
+        out: list[dict[str, str]] = []
+        system_text = cls._flatten_content(system)
+        if system_text:
+            out.append({"role": "system", "content": system_text})
+        for msg in messages:
+            out.append(
+                {
+                    "role": str(msg.get("role", "user")),
+                    "content": cls._flatten_content(msg.get("content", "")),
+                }
+            )
+        return out
+
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """OpenAI가 감싼 ```json ... ``` 코드펜스를 제거한다(raw JSON 파싱 대비)."""
+        stripped = text.strip()
+        if not stripped.startswith("```"):
+            return text
+        lines = stripped.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        return "\n".join(lines).strip()
+
+    async def _call_openai(
+        self, system: Any, messages: list[dict[str, Any]], max_tokens: int
+    ) -> str:
+        """OpenAI chat completions로 동일 프롬프트를 호출하고 텍스트를 반환한다."""
+        client = self._get_openai_client()
+        completion = await client.chat.completions.create(
+            model=self._openai_model,
+            max_tokens=max_tokens,
+            messages=self._anthropic_to_openai_messages(system, messages),  # type: ignore[arg-type]
+        )
+        content = completion.choices[0].message.content or "{}"
+        return self._strip_code_fence(content)
 
     # ── 폴백 동기 메서드 ─────────────────────────────────────────────────────
 
@@ -449,15 +572,11 @@ class ClaudeService:
             f"Organization context:\n{json.dumps(org_context, ensure_ascii=False)}"
         )
 
-        client = self._get_client()
-        message = await client.messages.create(
-            model=self._model,
+        raw = await self._create_message(
             max_tokens=1024,
             system=_ANALYZE_SOLUTION_SYSTEM,
             messages=[{"role": "user", "content": user_content}],
         )
-
-        raw = _extract_text(message)
         try:
             result: dict[str, Any] = json.loads(raw)
             # primary_tag / solution_type 정합성 보장
@@ -583,15 +702,11 @@ class ClaudeService:
             "company attribute (size, industry, or business_type)."
         )
 
-        client = self._get_client()
-        message = await client.messages.create(
-            model=self._model,
+        raw = await self._create_message(
             max_tokens=2048,
             system=_get_system_prompt("generate_ui_structure", locale),
             messages=[{"role": "user", "content": user_content}],
         )
-
-        raw = _extract_text(message)
         try:
             result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
@@ -663,9 +778,7 @@ class ClaudeService:
         catalog_json = json.dumps(pm_catalog, ensure_ascii=False, default=str)
         requirements_json = json.dumps(requirements, ensure_ascii=False)
 
-        client = self._get_client()
-        message = await client.messages.create(
-            model=self._model,
+        raw = await self._create_message(
             max_tokens=1024,
             system=[
                 {
@@ -694,8 +807,6 @@ class ClaudeService:
                 }
             ],
         )
-
-        raw = _extract_text(message)
         try:
             result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
@@ -736,9 +847,7 @@ class ClaudeService:
                 + "\n"
             )
 
-        client = self._get_client()
-        message = await client.messages.create(
-            model=self._model,
+        raw = await self._create_message(
             max_tokens=4096,
             system=[
                 {
@@ -749,8 +858,6 @@ class ClaudeService:
             ],
             messages=[{"role": "user", "content": user_text}],
         )
-
-        raw = _extract_text(message)
         try:
             parsed: list[dict[str, Any]] = json.loads(raw)
             if not isinstance(parsed, list):
@@ -807,9 +914,7 @@ class ClaudeService:
             "위 서브태스크에 대한 초안을 작성해 주세요."
         )
 
-        client = self._get_client()
-        message = await client.messages.create(
-            model=self._model,
+        return await self._create_message(
             max_tokens=2048,
             system=[
                 {
@@ -820,5 +925,3 @@ class ClaudeService:
             ],
             messages=[{"role": "user", "content": user_text}],
         )
-
-        return _extract_text(message)

@@ -3,6 +3,9 @@
 > ClickEye 클라우드(`clickeye-api` + `clickeye-web`)를 AWS ECS Fargate 위에 올리는 단계별 가이드.
 > 데이터 저장소는 관리형(RDS PostgreSQL + ElastiCache Redis)을 사용한다.
 > 리전 예시는 서울(`ap-northeast-2`) 기준이며, `<...>` 표기는 환경에 맞게 치환한다.
+>
+> 🟢 **AWS가 처음이거나 데모/소규모로 빠르게 띄우고 싶다면** 이 Fargate 가이드보다
+> [EC2 1대 초보자 가이드](./aws-deployment-guide-ec2.md)가 훨씬 쉽다. 본 문서는 본격 운영용이다.
 
 ---
 
