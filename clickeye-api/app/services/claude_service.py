@@ -596,6 +596,18 @@ class ClaudeService:
             result: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
             logger.warning("generate_ui_structure: Claude 응답 JSON 파싱 실패, 스텁 폴백")
+            # 정량 지표(복잡도/확장성/필요역량 등)도 채워 3단계 화면이 비지 않게 한다.
+            # 키 구조는 PrototypeSession 모델의 @property가 읽는 형태와 일치해야 한다.
+            skills = (user_tech_stack or [])[:4] or [
+                "백엔드 개발",
+                "프론트엔드 개발",
+                "DevOps",
+            ]
+            complexity = max(1, min(10, 4 + (variant_index % 3)))
+            scalability = max(1, min(10, 7 - (variant_index % 3)))
+            weeks_base = 4 + variant_index
+            team_base = 2 + (variant_index % 2)
+            cost_base = 300 + variant_index * 150
             result = {
                 "tech_stack_tags": user_tech_stack or [],
                 "architecture_pattern": "모놀리식 3-tier",
@@ -606,6 +618,17 @@ class ClaudeService:
                 "color_palette": {},
                 "typography": {},
                 "design_style": "minimal",
+                "complexity_score": complexity,
+                "scalability_score": scalability,
+                "skill_requirements": skills,
+                "estimated_weeks": {"min": weeks_base, "max": weeks_base + 3},
+                "team_size": {
+                    "min": team_base,
+                    "max": team_base + 1,
+                    "roles": ["백엔드", "프론트엔드"],
+                },
+                "monthly_cost_usd": {"min": cost_base, "max": cost_base + 400},
+                "maintenance_difficulty": "중간",
             }
         if "is_recommended" not in result:
             result["is_recommended"] = is_recommended

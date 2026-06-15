@@ -1119,6 +1119,43 @@ def _catalog_entry_to_dict(entry: Any) -> dict[str, Any]:
     }
 
 
+def _default_metrics(
+    idx: int,
+    tech_stack_tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """LLM 폴백(카탈로그/stub) 시 ui_structure에 채울 정량 지표 기본값.
+
+    LLM이 생성하지 못한 경우에도 3단계 화면의 복잡도/확장성/필요역량 등이
+    비지 않도록 합리적 기본값을 제공한다. skill_requirements는 가용한
+    tech_stack_tags 상위 4개에서 파생하고, complexity/scalability는
+    variant_index로 소폭 변주해 카드/비교표가 동일값으로 보이지 않게 한다.
+
+    키 구조는 PrototypeSession 모델의 @property가 읽는 형태와 일치해야 한다.
+    """
+    tags = [str(t) for t in (tech_stack_tags or [])]
+    skills = tags[:4] or ["백엔드 개발", "프론트엔드 개발", "DevOps"]
+
+    complexity = max(1, min(10, 4 + (idx % 3)))
+    scalability = max(1, min(10, 7 - (idx % 3)))
+    weeks_base = 4 + idx
+    team_base = 2 + (idx % 2)
+    cost_base = 300 + idx * 150
+
+    return {
+        "complexity_score": complexity,
+        "scalability_score": scalability,
+        "skill_requirements": skills,
+        "estimated_weeks": {"min": weeks_base, "max": weeks_base + 3},
+        "team_size": {
+            "min": team_base,
+            "max": team_base + 1,
+            "roles": ["백엔드", "프론트엔드"],
+        },
+        "monthly_cost_usd": {"min": cost_base, "max": cost_base + 400},
+        "maintenance_difficulty": "중간",
+    }
+
+
 def _build_proto_from_catalog(
     session_id: Any,
     idx: int,
@@ -1132,22 +1169,29 @@ def _build_proto_from_catalog(
             session_id=session_id,
             variant_index=idx,
             title=f"프로토타입 {idx + 1}",
+            ui_structure=_default_metrics(idx, user_tech_stack),
             status="ready",
         )
 
     stub_ui = dict(catalog_entry.get("ui_structure") or {})
     stub_ui["is_recommended"] = role_config.get("is_recommended", idx == 0)
-    stub_ui["tech_stack_tags"] = (
+    resolved_tech_stack = (
         user_tech_stack
         if idx == 0 and user_tech_stack
         else catalog_entry.get("tech_stack_tags", [])
     )
+    stub_ui["tech_stack_tags"] = resolved_tech_stack
     stub_ui["architecture_pattern"] = catalog_entry.get(
         "architecture_pattern"
     ) or catalog_entry.get("design_pattern", "")
     stub_ui["variant_rationale"] = catalog_entry.get("description", "")
     stub_ui["pros"] = catalog_entry.get("pros", [])
     stub_ui["cons"] = catalog_entry.get("cons", [])
+
+    # 카탈로그 seed에는 정량 지표가 없으므로 폴백 기본값으로 보강한다.
+    # 카탈로그 ui_structure에 이미 값이 있으면(LLM 캐시 등) 유지한다.
+    for key, value in _default_metrics(idx, resolved_tech_stack).items():
+        stub_ui.setdefault(key, value)
 
     return Prototype(
         session_id=session_id,
