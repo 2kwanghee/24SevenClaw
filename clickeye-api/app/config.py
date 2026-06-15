@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     anthropic_model_advanced: str = "claude-opus-4-7"
     prototype_generation_timeout: int = 60
 
+    # OpenAI (Anthropic 키 무효/크레딧 부족/미설정 시 LLM 폴백)
+    openai_api_key: str = ""
+    openai_model_default: str = "gpt-4o"
+
     # Queued/Backlog 이슈 자동 Wait 복귀 타임아웃 (분)
     queue_stale_minutes: int = 60
 
