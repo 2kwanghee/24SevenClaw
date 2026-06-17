@@ -1,14 +1,17 @@
 ---
-route: /경로/입력
 title: 페이지 제목
-status: draft
+category: page
+status: draft            # draft | in-progress | implemented | needs-revision
 version: 1.0.0
+last_updated: 2026-04-16
+route: /경로/입력
 pages:
   - src/app/(dashboard)/경로/page.tsx
 components:
   - src/components/경로/컴포넌트.tsx
 store: useStoreName (없으면 제거)
-last_updated: 2026-04-16
+related:                 # /docs-sync 역매핑용 추적 코드 경로 (pages+components 통합)
+  - src/app/(dashboard)/경로/page.tsx
 ---
 
 ## 목적

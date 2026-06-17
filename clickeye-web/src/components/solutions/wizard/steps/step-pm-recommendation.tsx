@@ -140,13 +140,16 @@ export function StepPMRecommendation() {
   const [isFailed, setIsFailed] = useState(false);
 
   const cancelledRef = useRef(false);
-  const hasStartedRef = useRef(false);
+  // StrictMode 이중 실행/토큰 변경 재렌더에서 동일 sessionId 중복 LLM 호출을 막기 위해
+  // ref에 sessionId를 저장한다(step-prototype-generation과 동일 패턴).
+  const startedSessionRef = useRef<string | null>(null);
 
   /* -- 추천 실행 -- */
   const startRecommendation = useCallback(async () => {
     if (!sessionId || !token) return;
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
+    // 동일 sessionId로 이미 시작한 경우 중복 호출 방지
+    if (startedSessionRef.current === sessionId) return;
+    startedSessionRef.current = sessionId;
 
     cancelledRef.current = false;
     setIsLoading(true);
@@ -212,16 +215,16 @@ export function StepPMRecommendation() {
     cancelledRef.current = false;
     void startRecommendation();
     return () => {
+      // in-flight 결과는 다음 마운트의 cancelledRef=false로 보존된다.
+      // 가드(startedSessionRef)는 리셋하지 않아 동일 sessionId 재호출을 막는다.
       cancelledRef.current = true;
-      // strict mode 이중 실행 시 재시작 허용
-      hasStartedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startRecommendation]);
 
   /* -- 재시도 -- */
   const handleRetry = () => {
-    hasStartedRef.current = false;
+    startedSessionRef.current = null; // 동일 sessionId라도 재시작 허용
     void startRecommendation();
   };
 

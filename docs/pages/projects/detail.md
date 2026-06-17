@@ -1,6 +1,7 @@
 ---
 route: /projects/[id]
 title: 프로젝트 개요
+category: page
 status: implemented
 version: 1.0.0
 pages:

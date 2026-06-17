@@ -24,10 +24,23 @@ async function detectLocale(): Promise<Locale> {
 type Messages = Record<string, unknown>;
 
 async function loadMessages(locale: Locale): Promise<Messages> {
+  // 한국어는 자체 완전 번역본을 그대로 사용한다.
   const ko = (await import("../../messages/ko.json")).default as Messages;
   if (locale === "ko") return ko;
+
+  // 그 외 언어는 en을 폴백 베이스로 깔고 해당 언어를 상위 병합한다.
+  // (네임스페이스 누락 시 영어로 안전하게 폴백)
   const en = (await import("../../messages/en.json")).default as Messages;
-  return { ...ko, ...en };
+  if (locale === "en") return en;
+  if (locale === "id") {
+    const id = (await import("../../messages/id.json")).default as Messages;
+    return { ...en, ...id };
+  }
+  if (locale === "ja") {
+    const ja = (await import("../../messages/ja.json")).default as Messages;
+    return { ...en, ...ja };
+  }
+  return en;
 }
 
 export default getRequestConfig(async () => {

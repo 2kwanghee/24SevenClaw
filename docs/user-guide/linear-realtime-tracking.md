@@ -1,6 +1,20 @@
+---
+title: Linear 실시간 연동 가이드 (엔드유저 ZIP 플로우)
+category: guide
+status: current
+last_updated: 2026-06-15
+related:
+  - scripts/start-webhook.sh
+  - scripts/linear_watcher.py
+  - clickeye-web/src/app/(dashboard)/settings/linear
+  - docs/spec/run_guide.md
+---
+
 # Linear 실시간 연동 가이드
 
 ZIP 다운로드부터 Local Claude Code가 Linear 이슈를 실시간으로 감지해 자동 개발을 트리거하기까지, 처음부터 끝까지 따라하는 가이드입니다.
+
+> 이 문서는 **ZIP을 받은 엔드유저**용 셋업 가이드입니다. ClickEye 레포 자체를 운영자로서 구동하는 절차(webhook_server.py + ngrok + crontab 워치독)는 [run_guide.md](../spec/run_guide.md)를 참조하세요.
 
 ---
 
@@ -30,9 +44,9 @@ ZIP 다운로드부터 Local Claude Code가 Linear 이슈를 실시간으로 감
 
 ## Step 1. 위저드에서 프로젝트 생성 & ZIP 다운로드
 
-1. ClickEye 웹(<https://app.24sevenclaw.com>)에 로그인합니다.
-2. **새 솔루션 만들기** → 7-Step 위저드를 완료합니다.
-   - **Step 8 (환경 변수)** 에서 Linear 스킬을 사용할 경우 터널 방식을 선택하세요.
+1. ClickEye 웹(<http://localhost:3000>)에 로그인합니다.
+2. **새 솔루션 만들기** → 12단계 위저드를 완료합니다.
+   - **환경 변수 단계**에서 Linear 스킬을 사용할 경우 터널 방식을 선택하세요.
      | 선택지 | 비용 | URL 고정 여부 | 권장 대상 |
      |--------|------|--------------|----------|
      | **Cloudflare Tunnel** (기본) | 무료 | ✅ 정적 | 대부분의 사용자 |
@@ -67,7 +81,7 @@ ClickEye가 사용자 본인의 Linear 워크스페이스에 이슈를 등록하
 
 ### 2-3. ClickEye 설정 페이지에서 저장
 
-1. <https://app.24sevenclaw.com/settings/linear> 접속
+1. <http://localhost:3000/settings/linear> 접속
 2. 다음 항목을 입력합니다.
 
    | 필드 | 설명 | 필수 |
@@ -92,7 +106,7 @@ ClickEye가 사용자 본인의 Linear 워크스페이스에 이슈를 등록하
 4. **AI 초안 생성** 클릭 → 두 가지 작업이 자동으로 순서대로 실행됩니다.
    - ① AI가 작업을 분석해 서브태스크 초안을 생성합니다.
    - ② 서버가 저장된 API 키로 Linear에 이슈를 등록합니다.
-5. 화면 하단에 등록된 이슈 ID (예: `24S-123`) 목록이 표시됩니다.
+5. 화면 하단에 등록된 이슈 ID (예: `CE-123`) 목록이 표시됩니다.
 
 ### 자격증명 미저장 시
 
@@ -121,6 +135,8 @@ TUNNEL_PROVIDER=cloudflare           # cloudflare | ngrok | polling
 > 폴링 모드를 선택한 경우 이 단계를 건너뛰고 [Step 6b](#step-6b-폴링-모드-fallback)로 이동하세요.
 
 ### Step 5a. Cloudflare Tunnel (무료, 정적 URL)
+
+> 헬퍼 스크립트 `scripts/setup-tunnel.sh`가 ZIP에 포함되지 않은 경우, [run_guide.md](../spec/run_guide.md)의 ngrok 수동 터널 절차(3-2)로 대체할 수 있습니다.
 
 ```bash
 bash scripts/setup-tunnel.sh
@@ -242,6 +258,6 @@ python scripts/linear_watcher.py &
 
 ## 관련 문서
 
-- [Webhook 상세 설정 가이드](../webhook/WEBHOOK_SETUP.md)
+- [서비스 구동 가이드 (운영자용 webhook/ngrok 상세)](../spec/run_guide.md)
 - [ClickEye 아키텍처 개요](../architecture-overview.md)
 - [AI 파이프라인 가이드](../pipeline-guide.md)

@@ -77,31 +77,9 @@ export function useUpdatePrototypeSession(sessionId: string) {
   });
 }
 
-// --- 프로토타입 생성 ---
-
-export function useGeneratePrototypes(sessionId: string) {
-  const token = useAccessToken();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => prototypeSessions.generatePrototypes(token, sessionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["prototype-sessions", sessionId, "status"],
-      });
-    },
-  });
-}
-
-// --- PM 추천 ---
-
-export function useRecommendPMs(sessionId: string) {
-  const token = useAccessToken();
-  return useQuery({
-    queryKey: ["prototype-sessions", sessionId, "recommend-pms"],
-    queryFn: () => prototypeSessions.recommendPMs(token, sessionId),
-    enabled: !!token && !!sessionId,
-  });
-}
+// 참고: 프로토타입 생성·PM 추천(LLM POST)은 useQuery/useMutation 훅을 쓰지 않는다.
+// useQuery로 POST를 감싸면 refetchOnWindowFocus/stale 재요청으로 LLM 호출이 중복된다.
+// 각 위저드 스텝 컴포넌트가 sessionId 키 ref 가드로 정확히 1회만 직접 호출한다.
 
 // --- 세션 확정 (프로젝트 생성) ---
 

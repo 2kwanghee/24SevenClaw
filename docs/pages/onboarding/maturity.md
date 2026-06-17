@@ -1,6 +1,7 @@
 ---
 route: /onboarding/maturity
 title: 성숙도 진단
+category: page
 status: implemented
 version: 1.0.0
 pages:

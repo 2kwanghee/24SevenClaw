@@ -1,6 +1,7 @@
 ---
 route: /settings/members
 title: 조직 멤버 관리
+category: page
 status: implemented
 version: 1.0.0
 pages:

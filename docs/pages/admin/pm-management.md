@@ -1,6 +1,7 @@
 ---
 route: /admin/pm
 title: PM 관리
+category: page
 status: implemented
 version: 1.0.0
 roles: superadmin, admin

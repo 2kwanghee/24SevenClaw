@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Info, Sparkles, UserCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -69,6 +69,8 @@ export function StepPMSelection() {
 
   const [items, setItems] = useState<PMListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // 폴백 recommend-pms(LLM) 중복 호출 방지 — sessionId당 1회로 제한
+  const fallbackStartedRef = useRef<string | null>(null);
 
   const selectedItem = items.find(
     (i) => i.profile.id === selectedPmProfileId,
@@ -94,6 +96,10 @@ export function StepPMSelection() {
         } else {
           // 폴백: recommend API 재호출
           if (sessionId) {
+            // StrictMode 이중 실행/토큰 변경 재렌더에서 동일 sessionId 중복 LLM 호출 방지.
+            // 첫 호출의 결과가 store/items를 채우므로 2번째는 건너뛴다.
+            if (fallbackStartedRef.current === sessionId) return;
+            fallbackStartedRef.current = sessionId;
             const result = await prototypeSessions.recommendPMs(
               token,
               sessionId,

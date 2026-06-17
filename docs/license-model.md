@@ -1,3 +1,11 @@
+---
+title: 라이선스 모델
+category: reference
+status: current
+last_updated: 2026-04-29
+related: []
+---
+
 # ClickEye - License Model
 
 ## 1. 현재 라이센스 정책 (v1)

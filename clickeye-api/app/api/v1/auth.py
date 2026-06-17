@@ -64,8 +64,8 @@ async def update_me(
 ) -> User:
     """사용자 프로필을 업데이트한다 (display_name, language)."""
     if data.language is not None:
-        if data.language not in ("ko", "en"):
-            raise AppError.from_key("LANGUAGE_INVALID", locale="ko", status_code=400)
+        if data.language not in ("ko", "en", "id", "ja"):
+            raise AppError.from_key("LANGUAGE_INVALID", status_code=400)
         user.language = data.language  # type: ignore[assignment]
     if data.display_name is not None:
         user.display_name = data.display_name  # type: ignore[assignment]

@@ -1,3 +1,13 @@
+---
+title: 발표 인덱스 (Quick Reference)
+category: presentation
+status: current
+last_updated: 2026-06-15
+related:
+  - docs/clickeye-presentation-slides.md
+  - docs/clickeye-product-guide.md
+---
+
 # ClickEye 발표 인덱스 (Quick Reference)
 
 > 내일 발표 시 빠르게 참조할 수 있는 한 페이지 요약.
@@ -130,7 +140,7 @@
 ## 청중별 강조점 (1 줄 정리)
 
 - **CTO / 기술 리더**: 멀티 Agent 합의 + Hook 자동 검증 + 비침습성 R-1~R-7
-- **PM / 기획**: 7-Step 위저드 + AI PM 추천 + Linear 자동 등록
+- **PM / 기획**: 12단계 위저드 + AI PM 추천 + Linear 자동 등록
 - **DevOps / SRE**: Webhook 진단 자동화 + harness-gate + ZIP-first 보안
 - **시니어 개발자**: Plan-first + 모델 라우팅 + Modernize 의 deterministic fallback
 - **C-level / 영업**: BYOK 비용 투명 + 한국 시장 친화 + 5 분 도입

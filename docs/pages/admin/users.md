@@ -1,6 +1,7 @@
 ---
 route: /admin/users
 title: 사용자 관리
+category: page
 status: implemented
 version: 1.0.0
 pages:

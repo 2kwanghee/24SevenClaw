@@ -1,6 +1,7 @@
 ---
 route: /projects/[id]/settings
 title: 프로젝트 설정
+category: page
 status: implemented
 version: 1.0.0
 pages:

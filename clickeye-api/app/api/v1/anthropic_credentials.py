@@ -5,11 +5,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import decrypt, encrypt
+from app.core.exceptions import AppError
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -47,9 +48,10 @@ async def save_anthropic_credentials(
 ) -> AnthropicCredentialsResponse:
     """Anthropic API 키 또는 OAuth Setup Token 저장 (upsert). Fernet 암호화 후 DB 저장."""
     if not data.api_key.startswith("sk-ant-"):
-        raise HTTPException(
+        # 메시지는 중앙 예외 핸들러에서 요청 locale로 재해석된다.
+        raise AppError.from_key(
+            "ANTHROPIC_KEY_INVALID_FORMAT",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="올바른 Anthropic API 키 형식이 아닙니다 (sk-ant-... 로 시작해야 합니다).",
         )
 
     encrypted_key = encrypt(data.api_key)
@@ -86,9 +88,9 @@ async def get_anthropic_credentials(
     """저장된 Anthropic 자격증명 조회 (마스킹)."""
     creds = await _get_creds(user.id, db, credential_type=credential_type)  # type: ignore[arg-type]
     if creds is None:
-        raise HTTPException(
+        raise AppError.from_key(
+            "CREDENTIALS_NOT_FOUND",
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="저장된 자격증명이 없습니다.",
         )
 
     return AnthropicCredentialsResponse(
@@ -107,9 +109,9 @@ async def delete_anthropic_credentials(
     """저장된 Anthropic 자격증명 삭제."""
     creds = await _get_creds(user.id, db, credential_type=credential_type)  # type: ignore[arg-type]
     if creds is None:
-        raise HTTPException(
+        raise AppError.from_key(
+            "CREDENTIALS_NOT_FOUND",
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="저장된 자격증명이 없습니다.",
         )
 
     await db.delete(creds)

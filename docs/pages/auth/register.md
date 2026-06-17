@@ -1,6 +1,7 @@
 ---
 route: /register
 title: 회원가입
+category: page
 status: implemented
 version: 1.0.0
 pages:

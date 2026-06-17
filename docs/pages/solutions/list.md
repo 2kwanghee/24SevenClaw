@@ -1,6 +1,7 @@
 ---
 route: /solutions
 title: 솔루션 목록
+category: page
 status: implemented
 version: 1.0.0
 pages:

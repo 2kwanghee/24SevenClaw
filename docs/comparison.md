@@ -1,3 +1,12 @@
+---
+title: 아키텍처 비교
+category: product
+status: current
+last_updated: 2026-04-21
+related:
+  - clickeye-web
+---
+
 # ClickEye - Architecture Comparison
 
 ## 1. 개요

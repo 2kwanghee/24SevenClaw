@@ -1,6 +1,7 @@
 ---
 route: /projects/[id]/ai-team
 title: AI 팀 관리
+category: page
 status: implemented
 version: 1.0.0
 pages:

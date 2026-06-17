@@ -1,10 +1,20 @@
+---
+title: 아키텍처 개요
+category: architecture
+status: current
+last_updated: 2026-06-15
+related:
+  - clickeye-web
+  - clickeye-api
+---
+
 # ClickEye - Architecture Overview
 
 ## 1. 시스템 개요
 
 ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent 플랫폼 (AI 개발)** 분리 아키텍처를 채택한 AI 개발 자동화 솔루션 빌더 플랫폼이다.
 
-- **웹 SaaS (Cloud)**: 회원가입 → 7-Step 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
+- **웹 SaaS (Cloud)**: 회원가입 → 12단계 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
 - **로컬 (사용자 PC)**: ZIP 해제 → Agent 플랫폼(Claude Code/Gemini CLI/Cursor 등) 실행 → AI 개발
 - **CLI (파워유저)**: `npx @clickeye/cli init`으로 동일한 설정 파일 생성 가능
 
@@ -89,7 +99,7 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 | 역할 | 설명 |
 |------|------|
 | **사용자 인증** | 계정 관리, 로그인, JWT 토큰 |
-| **7-Step 위저드** | 회사 정보 → 솔루션 정의 → 에이전트 채용 → 스킬 장착 → 파이프라인 → 플랫폼 선택 → 프리뷰 |
+| **12단계 위저드** | 회사정보 → 프로토타입 생성 → 프로토타입 선택 → PM 추천 → PM 선택 → PM 구성확인 → 에이전트 → 플랫폼 → OS → 환경변수 → ROI → 최종확인 |
 | **카탈로그 관리** | 에이전트/스킬/플랫폼/파이프라인 카탈로그 (JSON 기반) |
 | **추천 엔진** | 솔루션 유형 기반 에이전트/스킬/파이프라인 자동 추천 |
 | **프리뷰 생성** | 위저드 설정 → 파일 트리 + 내용 미리보기 |
@@ -123,7 +133,7 @@ clickeye-web (Next.js 15)
 ├── 대시보드
 │   ├── 프로젝트 목록/생성            (완료)
 │   └── 프로젝트 상세/설정            (완료)
-├── 7-Step 위저드 (/projects/new)    (LoadMap_v3)
+├── 12단계 위저드 (/solutions/new)   (LoadMap_v3)
 │   ├── Step 1: 회사 정보
 │   ├── Step 2: 솔루션 정의
 │   ├── Step 3: 에이전트 채용
@@ -193,7 +203,7 @@ my-project/
 ### 4.3 데이터 흐름
 
 ```
-[웹에서 7-Step 위저드 완료]
+[웹에서 12단계 위저드 완료]
         │
         ▼
 [ZIP 다운로드] → project-name.zip

@@ -1,12 +1,21 @@
+---
+title: AWS EC2 배포 가이드 (초보자용)
+category: guide
+status: current
+last_updated: 2026-06-15
+related:
+  - clickeye-infra/docker
+---
+
 # ClickEye AWS 배포 가이드 — EC2 1대 (초보자용)
 
 > **이 문서는 AWS를 처음 다루는 사람을 위한 가장 쉬운 배포 경로다.**
 > EC2 가상 컴퓨터 **1대**를 만들고, 그 안에서 `docker-compose.prod.yml` 하나로
 > DB·Redis·API·Web을 **전부 한 번에** 실행한다.
-> 운영 규모가 커지면 [ECS Fargate 가이드](./aws-deployment-guide.md)로 넘어가면 된다.
+> 운영 규모가 커지면 ECS Fargate(관리형 컨테이너) 기반 구성으로 넘어가는 것을 고려한다.
 >
 > - 적합: 데모, 내부 테스트, 소규모 운영, "일단 떠 있는 걸 보고 싶다"
-> - 부적합: 고가용성/오토스케일이 필요한 본격 운영 → Fargate 가이드 사용
+> - 부적합: 고가용성/오토스케일이 필요한 본격 운영 → ECS Fargate 등 관리형 컨테이너 구성 고려
 > - 리전 예시: 서울(`ap-northeast-2`). `<...>` 표기는 환경에 맞게 치환한다.
 
 ---
@@ -24,7 +33,7 @@
 
 핵심: **EC2 = AWS가 빌려주는 빈 컴퓨터 한 대.** 우리가 할 일은 ①빌리고 ②들어가서
 ③Docker 깔고 ④코드 올리고 ⑤`docker compose` 한 줄로 실행. 그게 전부다.
-Fargate 가이드의 ECR·RDS·ElastiCache·ALB·Secrets Manager는 **하나도 필요 없다**
+관리형 컨테이너(ECS Fargate) 구성에서 쓰는 ECR·RDS·ElastiCache·ALB·Secrets Manager는 **하나도 필요 없다**
 (DB·Redis도 컨테이너로 같은 서버에서 함께 돈다).
 
 ### 먼저 알아둘 AWS 용어 5개
@@ -134,44 +143,32 @@ POSTGRES_PASSWORD=<강한_비밀번호_직접지정>
 
 # --- 보안 키 (서버에서 `openssl rand -hex 32` 로 생성 추천) ---
 JWT_SECRET_KEY=<랜덤_긴_문자열>
+AUTH_SECRET=<랜덤_긴_문자열_또다른값>   # web 로그인 세션 암호화 키
 
-# --- 주소 (서버 공인 IP! 7단계 함정 주의) ---
+# --- 주소 (서버 공인 IP!) ---
 NEXT_PUBLIC_API_URL=http://<서버_Public_IP>:8000
+AUTH_URL=http://<서버_Public_IP>:3000
 CORS_ORIGINS=["http://<서버_Public_IP>:3000"]
 ```
 
 `docker-compose.prod.yml`이 사용하는 변수: `POSTGRES_DB`, `POSTGRES_USER`,
-`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `NEXT_PUBLIC_API_URL`
-(포트는 기본값 5432/6379/8000/3000 사용).
+`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `NEXT_PUBLIC_API_URL`,
+`AUTH_URL`, `AUTH_SECRET` (포트는 기본값 5432/6379/8000/3000 사용).
 
 ---
 
-## 7단계: ⚠️ 딱 하나 주의할 함정 (web 주소 빌드타임 인라인)
+## 7단계: ⚠️ 알아둘 함정 — web 주소 빌드타임 인라인 (이미 코드에 반영됨)
 
-Next.js의 `NEXT_PUBLIC_API_URL`은 **"실행할 때"가 아니라 "빌드할 때" 코드에 박힌다.**
-그런데 현재 `docker-compose.prod.yml`은 이 값을 *실행 시점 환경변수*로만 넘겨서,
-**브라우저 쪽 코드엔 반영되지 않는다.** (Fargate 가이드 §4-3과 동일한 이슈.)
+Next.js의 `NEXT_PUBLIC_API_URL`·`AUTH_URL`은 **"실행할 때"가 아니라 "빌드할 때" 코드에 박힌다.**
+런타임 환경변수로만 넘기면 **브라우저 쪽 코드엔 반영되지 않는다.** (관리형 컨테이너 구성에서도 동일한 빌드타임 주입 이슈.)
 
-EC2에서 web의 API 호출까지 제대로 동작시키려면 코드 2곳을 한 번 수정해야 한다:
-
-1. `clickeye-infra/docker/Dockerfile.web` — `npm run build` 앞에 빌드 ARG 추가:
-   ```dockerfile
-   ARG NEXT_PUBLIC_API_URL
-   ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-   RUN npm run build
-   ```
-2. `docker-compose.prod.yml`의 web 서비스 `build:` 아래에 인자 전달:
-   ```yaml
-   web:
-     build:
-       context: ../../clickeye-web
-       dockerfile: ../clickeye-infra/docker/Dockerfile.web
-       args:
-         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-   ```
-
-> 이 수정 없이도 **API(`/api/v1/health`)와 web 첫 화면**은 뜬다. 다만 web에서 로그인·
-> API 호출하는 기능은 위 수정을 해야 정상 동작한다. (이 수정은 별도 코드 작업으로 분리.)
+> ✅ **이 함정은 이미 코드에 처리되어 있다.** `Dockerfile.web`에 빌드 ARG가 들어가 있고
+> `docker-compose.prod.yml`이 `build.args`로 `NEXT_PUBLIC_API_URL`·`AUTH_URL`을 빌드타임에 주입한다.
+> 또한 web 서비스에 `AUTH_SECRET`·`AUTH_URL`·`AUTH_TRUST_HOST=true`가 런타임 env로 설정되어 로그인도 동작한다.
+>
+> **그래서 당신이 따로 코드를 고칠 필요는 없다.** 6단계 `.env`에 `NEXT_PUBLIC_API_URL`·`AUTH_URL`·
+> `AUTH_SECRET`을 **운영 주소/값으로 정확히 채우기만** 하면 된다. (값을 바꾸면 8단계 `--build`로 다시
+> 빌드해야 번들에 반영된다 — 런타임 재시작만으론 클라이언트 코드가 안 바뀐다.)
 
 ---
 
@@ -239,7 +236,7 @@ docker compose -f docker-compose.prod.yml exec api /app/.venv/bin/alembic upgrad
 | `:3000` 없이 도메인 접속 | 80포트 + nginx 리버스 프록시, 도메인 A레코드 연결 |
 | https 자물쇠 | Let's Encrypt(certbot) 무료 인증서 |
 | 서버 재부팅돼도 자동 실행 | compose에 `restart: always` 이미 있음 → 자동 복구 |
-| 본격 운영(고가용성) | [ECS Fargate 가이드](./aws-deployment-guide.md)로 이전 |
+| 본격 운영(고가용성) | ECS Fargate(관리형 컨테이너) + ALB + RDS/ElastiCache 구성으로 이전 |
 
 ---
 

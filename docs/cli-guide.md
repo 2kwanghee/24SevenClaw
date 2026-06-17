@@ -1,3 +1,12 @@
+---
+title: CLI 상세 가이드
+category: guide
+status: current
+last_updated: 2026-06-15
+related:
+  - clickeye-cli
+---
+
 # CLI 상세 가이드
 
 > `@clickeye/cli` v0.1.0 — 하네스 엔지니어링이 탑재된 Claude Code 워크플로우 CLI
@@ -24,7 +33,7 @@ npm install -g @clickeye/cli
 
 ## 명령어 상세
 
-### `24sc init`
+### `ce init`
 
 새 프로젝트에 AI 에이전트 워크플로우를 설정합니다.
 
@@ -76,16 +85,16 @@ npm install -g @clickeye/cli
 
 ---
 
-### `24sc add <category> <id>`
+### `ce add <category> <id>`
 
 기존 프로젝트에 에이전트, 스킬, Hook을 추가합니다.
 
 #### 사용법
 
 ```bash
-24sc add agent <id>     # 에이전트 추가
-24sc add skill <id>     # 스킬 추가
-24sc add hook <id>      # Hook 추가
+ce add agent <id>     # 에이전트 추가
+ce add skill <id>     # 스킬 추가
+ce add hook <id>      # Hook 추가
 ```
 
 #### 옵션
@@ -100,13 +109,13 @@ npm install -g @clickeye/cli
 
 ```bash
 # 프론트엔드 에이전트 추가
-24sc add agent frontend
+ce add agent frontend
 
 # TDD 워크플로우 추가 (hooks도 자동 등록)
-24sc add skill tdd
+ce add skill tdd
 
 # 하네스 게이트 Hook만 추가
-24sc add hook harness-gate
+ce add hook harness-gate
 ```
 
 **동작 방식**:
@@ -117,7 +126,7 @@ npm install -g @clickeye/cli
 
 ---
 
-### `24sc doctor`
+### `ce doctor`
 
 현재 프로젝트의 ClickEye 설정 상태를 진단합니다.
 

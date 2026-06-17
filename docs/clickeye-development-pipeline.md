@@ -1,3 +1,13 @@
+---
+title: 개발 파이프라인 동작 원리
+category: product
+status: current
+last_updated: 2026-06-12
+related:
+  - scripts/auto_dev_pipeline.sh
+  - docs/pipeline-guide.md
+---
+
 # ClickEye 개발 파이프라인 — 동작 원리 전체 설명
 
 > **"ClickEye 가 ClickEye 를 만든다."**

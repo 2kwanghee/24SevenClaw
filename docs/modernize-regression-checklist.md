@@ -1,3 +1,13 @@
+---
+title: Modernize 회귀 검증 체크리스트 (MVP-2-A)
+category: reference
+status: current
+last_updated: 2026-05-18
+related:
+  - clickeye-api
+  - clickeye-web
+---
+
 # ClickEye Modernize 회귀 검증 체크리스트 (MVP-2-A)
 
 > Modernize 파이프라인(M1~M7) PR 머지 전 매번 확인해야 할 비침습성 회귀 검증.

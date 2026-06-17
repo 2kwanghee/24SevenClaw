@@ -330,9 +330,41 @@ _SYSTEM_PROMPTS: dict[str, dict[str, str]] = {
 
 
 def _get_system_prompt(name: str, locale: str = "ko") -> str:
-    """프롬프트 이름과 locale로 시스템 프롬프트를 반환한다. 없으면 ko 버전을 사용한다."""
+    """프롬프트 이름과 locale로 시스템 프롬프트를 반환한다.
+
+    전용 프롬프트(ko/en)가 없는 locale(id/ja)은 en을 중립 베이스로 사용하고,
+    실제 출력 언어는 _language_directive()가 강제한다.
+    """
     prompts = _SYSTEM_PROMPTS.get(name, {})
-    return prompts.get(locale) or prompts.get("ko") or ""
+    return prompts.get(locale) or prompts.get("en") or prompts.get("ko") or ""
+
+
+_LANG_NAMES: dict[str, str] = {
+    "ko": "Korean (한국어)",
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "ja": "Japanese (日本語)",
+}
+
+
+def _language_directive(locale: str = "ko") -> str:
+    """LLM이 사람이 읽는 텍스트를 지정 언어로 쓰도록 강제하는 지시문.
+
+    카탈로그 매칭/enum 분기에 쓰이는 값(tags, primary_tag, design_style 등)은
+    canonical(영문/식별자)로 유지하도록 명시해 조용한 다운스트림 실패를 막는다.
+    system 프롬프트 텍스트에 주입되므로 Anthropic·OpenAI 폴백 양쪽에서 동작한다.
+    """
+    name = _LANG_NAMES.get(locale) or _LANG_NAMES["en"]
+    return (
+        "LANGUAGE INSTRUCTION (highest priority): Write ALL human-readable text values in "
+        f"{name}. This includes: features, target_users, key_requirements, "
+        "architecture_pattern, variant_rationale, pros, cons, match_reasoning, reasoning, "
+        "key_strengths, potential_gaps, skill_requirements, menu labels, and page names.\n"
+        "KEEP THESE CANONICAL — do NOT translate, output in English/identifier form: "
+        "JSON keys; tag values (primary_tag, tags, solution_type); tech_stack values and "
+        "framework/library names; enum values (design_style, maintenance_difficulty, "
+        "complexity, nav_type); hex color codes; route paths; icon names; UUIDs.\n\n"
+    )
 
 
 def _extract_text(message: Message) -> str:
@@ -574,7 +606,7 @@ class ClaudeService:
 
         raw = await self._create_message(
             max_tokens=1024,
-            system=_ANALYZE_SOLUTION_SYSTEM,
+            system=_language_directive(locale) + _ANALYZE_SOLUTION_SYSTEM,
             messages=[{"role": "user", "content": user_content}],
         )
         try:
@@ -704,7 +736,10 @@ class ClaudeService:
 
         raw = await self._create_message(
             max_tokens=2048,
-            system=_get_system_prompt("generate_ui_structure", locale),
+            system=(
+                _language_directive(locale)
+                + _get_system_prompt("generate_ui_structure", locale)
+            ),
             messages=[{"role": "user", "content": user_content}],
         )
         try:
@@ -783,7 +818,7 @@ class ClaudeService:
             system=[
                 {
                     "type": "text",
-                    "text": _RECOMMEND_PM_SYSTEM,
+                    "text": _language_directive(locale) + _RECOMMEND_PM_SYSTEM,
                     "cache_control": {"type": "ephemeral"},
                 }
             ],

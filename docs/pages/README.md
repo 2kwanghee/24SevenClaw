@@ -1,3 +1,13 @@
+---
+title: 페이지 스펙 기반 개발 파이프라인 (인덱스)
+category: page
+status: current
+last_updated: 2026-06-15
+related:
+  - clickeye-web/src/app
+  - docs/pages/_template.md
+---
+
 # 페이지 스펙 기반 개발 파이프라인
 
 `docs/pages/` 디렉토리는 ClickEye 웹 프로덕트의 **페이지 단위 스펙**을 관리하는 형상관리 저장소입니다.  
@@ -30,8 +40,10 @@ docs/pages/
 │       ├── step-06-pm-composition.md → Step 5: PM 구성확인
 │       ├── step-07-agents.md       → Step 6: 에이전트 선택
 │       ├── step-08-platform.md     → Step 7: 플랫폼 선택
-│       ├── step-09-env.md          → Step 8: 환경변수 입력
-│       └── step-10-confirmation.md → Step 9: 최종확인
+│       ├── step-09-os.md           → Step 8: 실행 환경(OS) 선택
+│       ├── step-10-env.md          → Step 9: 환경변수 입력
+│       ├── step-11-roi.md          → Step 10: ROI 비교
+│       └── step-12-confirmation.md → Step 11: 최종확인
 │
 ├── projects/
 │   ├── list.md                     → /projects
@@ -50,7 +62,13 @@ docs/pages/
 │   ├── users.md                    → /admin/users
 │   ├── contracts-list.md           → /admin/contracts
 │   ├── contracts-detail.md         → /admin/contracts/[id]
-│   └── audit.md                    → /admin/audit
+│   ├── audit.md                    → /admin/audit
+│   ├── pm-management.md            → /admin/pm (+[id], /composition)
+│   ├── registry.md                 → /admin/registry
+│   └── recommendation-logs.md      → /admin/recommendations
+│
+├── download/
+│   └── pm-environment.md           → (참조 문서, 독립 페이지 없음)
 │
 └── settings/
     └── members.md                  → /settings/members

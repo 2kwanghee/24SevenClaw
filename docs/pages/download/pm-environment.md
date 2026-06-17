@@ -1,6 +1,7 @@
 ---
 route: /download/pm-environment (참조 문서, 독립 페이지 없음)
 title: 플랫폼별 PM 배포 파일 매핑
+category: page
 status: implemented
 version: 1.0.0
 last_updated: 2026-04-17

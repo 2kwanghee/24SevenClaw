@@ -1,6 +1,7 @@
 ---
 route: /admin/contracts/[id]
 title: 계약 상세
+category: page
 status: implemented
 version: 1.0.0
 pages:

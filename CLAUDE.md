@@ -2,7 +2,7 @@
 
 ## Project Overview
 AI 개발 자동화 솔루션 빌더 플랫폼.
-- **Web-First 아키텍처**: 브라우저에서 7-Step 위저드로 솔루션 설계 → ZIP 다운로드 → 로컬에서 AI 개발
+- **Web-First 아키텍처**: 브라우저에서 12단계 위저드로 솔루션 설계 → ZIP 다운로드 → 로컬에서 AI 개발
 - **멀티 Agent 플랫폼**: Claude Code / Gemini CLI / Cursor / Codex 지원
 - **CLI 병행**: CLI는 파워유저용으로 유지 (동일 생성 엔진 공유)
 - 6개 레포: web, api, agent, infra, contracts, cli
@@ -29,7 +29,7 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 ┌─────────────────────────────────────────────┐
 │  Cloud (web + api)                          │
 │  ├── PostgreSQL + Redis                     │
-│  ├── 7-Step 위저드 (솔루션 설계)              │
+│  ├── 12단계 위저드 (솔루션 설계)              │
 │  ├── 카탈로그 (에이전트/스킬/플랫폼)           │
 │  ├── ZIP 생성 엔진 (프리뷰 + 다운로드)        │
 │  └── 라이센스 관리                            │
@@ -46,7 +46,8 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 ```
 
 ## Key Documents
-- `LoadMap_v3.md` — 마스터 로드맵 (2주 스프린트, 7-Step 위저드)
+- `docs/README.md` — **문서 매니페스트** (전체 docs/ 정식 레지스트리 + 정규화 프론트매터 규약). 새 문서는 반드시 여기 등재.
+- `LoadMap_v3.md` — 마스터 로드맵 (2주 스프린트, 12단계 위저드)
 - `TODO.md` — 일별 태스크
 - `docs/architecture-overview.md` — 아키텍처 상세
 - `docs/agent-protocol.md` — 통신 프로토콜
@@ -161,6 +162,14 @@ AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는
   자동 파이프라인(`auto_dev_pipeline.sh` STEP A, Gemini 기획 대체, 토글 `FLOWOPS_METAPROMPT`)과
   대화형 하네스(구현 스펙 생성)에서 공통 사용
 - `.claude/skills/` — 자동화 스킬 (run-pipeline, ralph-loop 등)
+- `.claude/skills/docs-sync/SKILL.md` — 코드 변경 후 `docs/` 현행화. 유의미 변경 후 자율 호출.
+
+## Documentation Workflow (문서 지속 현행화)
+문서는 최소 필수 세트로 유지하고 코드와 함께 현행화한다.
+- **단일 레지스트리**: `docs/README.md` 매니페스트가 전체 `docs/` 정식 목록 + 정규화 프론트매터 규약(SSoT). 매니페스트에 없는 `docs/` 문서 = 아카이브 후보(자동 아카이브 `WeeklyWorkReport/`·`daily/` 제외).
+- **정규화 포맷**: 모든 문서 상단 프론트매터(`title`/`category`/`status`/`last_updated`/`related`). 페이지 스펙은 `docs/pages/_template.md` 슈퍼셋. Marp 덱은 제외.
+- **강제 갱신(훅)**: `PostToolUse(Edit|Write)` 훅 `.claude/hooks/docs-sync-reminder.sh`(순수 스크립트, **LLM 0토큰**)가 코드 편집마다 실행 → 편집 파일을 문서 `related`와 매칭해 영향 문서를 `status: needs-revision`으로 표시 + 리마인더. 실제 본문 현행화(LLM)는 리마인더를 보고 **커밋 전 `/docs-sync` 1회**(영향 문서·변경 구간만, 배치)로 수행 → `status: current` 복귀. 토글 `FLOWOPS_DOCS_SYNC=off`(회귀 0). 문서 작성/구조 변경은 `docs` 에이전트가 매니페스트·규약 준수.
+- **신규 문서 최소화**: 신규 생성보다 기존 문서 갱신 우선. 새 문서는 매니페스트 등재 필수.
 
 ## Conventions
 - **브랜치**: `feature/{module}/{description}`, `fix/{module}/{description}`

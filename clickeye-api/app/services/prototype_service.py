@@ -30,6 +30,54 @@ from app.services.prototype_catalog_service import PrototypeCatalogService
 
 logger = logging.getLogger(__name__)
 
+_SUPPORTED_LOCALES = ("ko", "en", "id", "ja")
+
+# 프로토타입 카드 제목 접두 — LLM이 아닌 코드가 붙이므로 locale별로 직접 현지화한다.
+_PROTOTYPE_TITLE_PREFIX: dict[str, str] = {
+    "ko": "프로토타입",
+    "en": "Prototype",
+    "id": "Prototipe",
+    "ja": "プロトタイプ",
+}
+
+
+def _proto_prefix(locale: str) -> str:
+    return _PROTOTYPE_TITLE_PREFIX.get(locale) or _PROTOTYPE_TITLE_PREFIX["en"]
+
+
+# 규칙 기반 PM 추천 사유(Claude 미사용 PM/폴백) — locale별 템플릿
+_RULE_REASONING_DP_FALLBACK: dict[str, str] = {
+    "ko": "해당", "en": "target", "id": "target", "ja": "対象",
+}
+
+
+def _rule_reasoning(
+    locale: str, name: str, domain: str, design_pattern: str,
+    domain_pt: int, specialty_pt: int, metric_pt: int, final: int,
+) -> str:
+    """규칙 기반 추천 사유를 locale에 맞춰 생성한다."""
+    dp = design_pattern or _RULE_REASONING_DP_FALLBACK.get(locale, "target")
+    if locale == "en":
+        return (
+            f"{name} ({domain}) scores {final} overall for the {dp} project "
+            f"(domain {domain_pt}, specialty {specialty_pt}, rating {metric_pt})."
+        )
+    if locale == "id":
+        return (
+            f"{name} ({domain}) memperoleh skor total {final} untuk proyek {dp} "
+            f"(domain {domain_pt}, spesialisasi {specialty_pt}, penilaian {metric_pt})."
+        )
+    if locale == "ja":
+        return (
+            f"{name}（{domain}）は{dp}プロジェクトで総合{final}点"
+            f"（ドメイン{domain_pt}・専門分野{specialty_pt}・評価{metric_pt}）。"
+        )
+    return (
+        f"{name}({domain})은 {dp} 프로젝트에 "
+        f"도메인({domain_pt}pt)·전문분야({specialty_pt}pt)·평가({metric_pt}pt) "
+        f"기준으로 종합 {final}점입니다."
+    )
+
 
 def _slugify(text: str) -> str:
     slug = text.lower().strip()
@@ -128,25 +176,42 @@ class PrototypeService:
         return await self.get_session(session_id, user_id)
 
     async def start_generation(self, session_id: UUID, user_id: UUID) -> PrototypeSession:
-        """생성 시작: status를 generating으로 변경하고 세션을 반환한다.
+        """생성 시작: status를 generating으로 원자적으로 전이하고 세션을 반환한다.
 
-        이미 generating/completed 상태이면 AppError(409)를 발생시킨다.
+        동시 중복 POST로 인한 배치 중복 실행을 막기 위해 status 전이를
+        단일 조건부 UPDATE(WHERE status NOT IN ('generating','completed'))로 수행한다.
+        영향 행이 0이면:
+          - 세션이 없으면 SESSION_NOT_FOUND(404)
+          - 이미 generating/completed면 ALREADY_GENERATED(409)
+        'failed'은 제외집합이 아니므로 재시도(재생성)가 가능하다.
         """
-        session = await self.get_session(session_id, user_id)
+        result = await self.db.execute(
+            update(PrototypeSession)
+            .where(
+                PrototypeSession.id == session_id,
+                PrototypeSession.user_id == user_id,
+                PrototypeSession.status.notin_(("generating", "completed")),
+            )
+            .values(status="generating")
+        )
+        await self.db.commit()
 
-        if session.status in ("generating", "completed"):
+        if result.rowcount == 0:
+            # 조건 불충족: 세션 부재(404) 또는 이미 진행/완료(409) 구분
+            session = await self.db.get(PrototypeSession, session_id)
+            if session is None or session.user_id != user_id:
+                raise AppError("SESSION_NOT_FOUND", "프로토타입 세션을 찾을 수 없습니다", 404)
             raise AppError(
                 "ALREADY_GENERATED",
                 "이미 프로토타입이 생성된 세션입니다",
                 409,
             )
 
-        session.status = "generating"  # type: ignore[assignment]
-        await self.db.commit()
-        await self.db.refresh(session)
-        return session
+        return await self.get_session(session_id, user_id)
 
-    async def run_generation(self, session_id: UUID, user_id: UUID) -> None:
+    async def run_generation(
+        self, session_id: UUID, user_id: UUID, locale: str | None = None
+    ) -> None:
         """백그라운드에서 실제 프로토타입 생성 작업을 수행한다.
 
         이 메서드는 BackgroundTasks에 의해 독립 DB 세션으로 호출된다.
@@ -172,9 +237,12 @@ class PrototypeService:
 
         prompt = str(session.solution_prompt or "")
 
-        # 사용자 locale 조회 — Claude 응답 언어 분기에 사용
-        user = await self.db.get(_UserModel, user_id)
-        locale: str = getattr(user, "language", "ko") or "ko" if user else "ko"
+        # locale: 요청 시점 위저드 선택 언어(Accept-Language 우선)를 인자로 받는다.
+        # 미전달 시(직접 호출 등) user.language로 폴백한다.
+        if locale not in _SUPPORTED_LOCALES:
+            user = await self.db.get(_UserModel, user_id)
+            user_lang = (getattr(user, "language", "") or "") if user else ""
+            locale = user_lang if user_lang in _SUPPORTED_LOCALES else "ko"
 
         # 재진입(race condition) 방어: 기존 프로토타입을 모두 제거하고 새로 생성
         await self.db.execute(delete(Prototype).where(Prototype.session_id == session_id))
@@ -271,7 +339,7 @@ class PrototypeService:
                     proto = Prototype(
                         session_id=session.id,
                         variant_index=idx,
-                        title=f"프로토타입 {idx + 1} — {arch_pattern}",
+                        title=f"{_proto_prefix(locale)} {idx + 1} — {arch_pattern}",
                         design_pattern=design_style,
                         menu_structure=ui_data.get("menu_structure"),
                         ui_structure=ui_data,
@@ -297,7 +365,7 @@ class PrototypeService:
                         proto = Prototype(
                             session_id=session.id,
                             variant_index=idx,
-                            title=f"프로토타입 {idx + 1}",
+                            title=f"{_proto_prefix(locale)} {idx + 1}",
                             status="failed",
                         )
 
@@ -346,7 +414,7 @@ class PrototypeService:
                                 ui_data.get("architecture_pattern")
                                 or ui_data.get("design_style", "minimal")
                             )
-                            target_proto.title = f"프로토타입 3 — {arch_pattern}"  # type: ignore[assignment]
+                            target_proto.title = f"{_proto_prefix(locale)} 3 — {arch_pattern}"  # type: ignore[assignment]
                             target_proto.design_pattern = str(  # type: ignore[assignment]
                                 ui_data.get("design_style", "minimal")
                             )
@@ -607,12 +675,13 @@ class PrototypeService:
         return result
 
     async def recommend_pms_for_session(
-        self, session_id: UUID, user_id: UUID
+        self, session_id: UUID, user_id: UUID, locale: str = "ko"
     ) -> list[dict[str, Any]]:
         """세션의 선택된 프로토타입 기반으로 PM을 추천한다 (하이브리드 Claude+Rule).
 
         Claude 점수 × 0.7 + 규칙 점수 × 0.3으로 최종 순위 결정.
         Claude API 실패 시 규칙 기반 단독으로 폴백하며 결과를 로그에 기록한다.
+        locale은 Claude가 생성하는 추천 사유(reasoning) 언어 분기에 사용한다.
         """
         session = await self.get_session(session_id, user_id)
 
@@ -717,6 +786,7 @@ class PrototypeService:
                 requirements=requirements,
                 prototype_style=design_pattern,
                 pm_catalog=pm_catalog,
+                locale=locale,
             )
             claude_raw = claude_result
         except Exception as e:
@@ -761,13 +831,15 @@ class PrototypeService:
                 reasoning = str(claude_raw.get("reasoning") or "")
             else:
                 rs = rule_info
-                reasoning = (
-                    f"{profile.name}({profile.domain})은 "
-                    f"{design_pattern or '해당'} 프로젝트에 "
-                    f"도메인({int(rs.get('domain', 0))}pt)·"
-                    f"전문분야({int(rs.get('specialty', 0))}pt)·"
-                    f"평가({int(rs.get('metric', 0))}pt) 기준으로 "
-                    f"종합 {final_score_int}점입니다."
+                reasoning = _rule_reasoning(
+                    locale,
+                    str(profile.name),
+                    str(profile.domain or ""),
+                    design_pattern,
+                    int(rs.get("domain", 0)),
+                    int(rs.get("specialty", 0)),
+                    int(rs.get("metric", 0)),
+                    final_score_int,
                 )
 
             recommendations.append(

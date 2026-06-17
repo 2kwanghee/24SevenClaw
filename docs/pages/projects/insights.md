@@ -1,6 +1,7 @@
 ---
 route: /projects/[id]/insights
 title: 프로젝트 인사이트
+category: page
 status: implemented
 version: 1.0.0
 pages:

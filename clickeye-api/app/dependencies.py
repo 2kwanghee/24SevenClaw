@@ -67,28 +67,54 @@ def require_permission(permission: str) -> Callable[..., User]:
     return _check
 
 
+SUPPORTED_LOCALES: tuple[str, ...] = ("ko", "en", "id", "ja")
+
+
+def _locale_from_accept_language(request: Request) -> str | None:
+    """Accept-Language 헤더에서 지원 언어 코드를 prefix 매칭한다. 없으면 None."""
+    accept_lang = request.headers.get("Accept-Language", "").lower()
+    for part in accept_lang.split(","):
+        tag = part.split(";")[0].strip()
+        for code in SUPPORTED_LOCALES:
+            if tag.startswith(code):
+                return code
+    return None
+
+
 def get_locale(
     request: Request,
     user: User | None = None,
-) -> Literal["ko", "en"]:
+    prefer_header: bool = False,
+) -> Literal["ko", "en", "id", "ja"]:
     """사용자 locale을 결정한다.
 
-    우선순위:
+    기본 우선순위:
     1. 인증 사용자의 user.language
-    2. Accept-Language 헤더 ("ko" 포함 시 "ko")
+    2. Accept-Language 헤더 (지원 언어 코드 prefix 매칭)
     3. fallback "en"
+
+    prefer_header=True 이면 Accept-Language를 user.language보다 우선한다.
+    위저드처럼 UI 언어 선택이 user.language에 동기화되지 않고 쿠키(→Accept-Language)로만
+    전달되는 흐름에서 현재 선택 언어를 따르기 위해 사용한다.
 
     admin 엔드포인트에서는 이 함수를 사용하지 않고 "ko"를 직접 전달한다.
     """
-    if user is not None:
-        lang: str = getattr(user, "language", "") or ""
-        if lang == "ko":
-            return "ko"
-        if lang == "en":
-            return "en"
-    accept_lang = request.headers.get("Accept-Language", "")
-    if "ko" in accept_lang.lower():
-        return "ko"
+    user_lang: str = (getattr(user, "language", "") or "") if user is not None else ""
+    user_lang = user_lang if user_lang in SUPPORTED_LOCALES else ""
+
+    if prefer_header:
+        header_lang = _locale_from_accept_language(request)
+        if header_lang:
+            return header_lang  # type: ignore[return-value]
+        if user_lang:
+            return user_lang  # type: ignore[return-value]
+        return "en"
+
+    if user_lang:
+        return user_lang  # type: ignore[return-value]
+    header_lang = _locale_from_accept_language(request)
+    if header_lang:
+        return header_lang  # type: ignore[return-value]
     return "en"
 
 

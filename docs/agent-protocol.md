@@ -1,3 +1,13 @@
+---
+title: 통신 프로토콜
+category: architecture
+status: current
+last_updated: 2026-04-21
+related:
+  - clickeye-api/app/ws
+  - clickeye-agent
+---
+
 # ClickEye - Communication Protocol
 
 ## 1. 개요

@@ -1,6 +1,7 @@
 ---
 route: /onboarding/preset
 title: 프리셋 선택
+category: page
 status: implemented
 version: 1.0.0
 pages:

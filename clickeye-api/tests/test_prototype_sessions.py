@@ -1,5 +1,8 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_org(client: AsyncClient, headers: dict[str, str]) -> str:
@@ -26,6 +29,41 @@ async def _create_session(
     )
     assert resp.status_code == 201
     return resp.json()
+
+
+@pytest.mark.asyncio
+async def test_start_generation_atomic_guard(
+    client: AsyncClient, auth_headers: dict[str, str], db_session: AsyncSession
+) -> None:
+    """동시 중복 generate로 인한 배치 중복 실행을 막는 원자적 재진입 가드 검증.
+
+    - 1회차: pending → generating
+    - 2회차(동일 세션): 이미 generating → ALREADY_GENERATED(409)
+    - 미존재 세션: SESSION_NOT_FOUND(404)
+    엔드포인트는 live_preview 503 게이트로 막히므로 서비스 레벨에서 직접 검증한다.
+    """
+    from app.core.exceptions import AppError
+    from app.models.prototype_session import PrototypeSession
+    from app.services.prototype_service import PrototypeService
+
+    org_id = await _create_org(client, auth_headers)
+    session = await _create_session(client, auth_headers, org_id)
+    row = await db_session.get(PrototypeSession, uuid.UUID(session["id"]))
+    assert row is not None
+
+    svc = PrototypeService(db_session)
+
+    first = await svc.start_generation(row.id, row.user_id)
+    assert first.status == "generating"
+
+    with pytest.raises(AppError) as exc_dup:
+        await svc.start_generation(row.id, row.user_id)
+    assert exc_dup.value.status_code == 409
+    assert exc_dup.value.code == "ALREADY_GENERATED"
+
+    with pytest.raises(AppError) as exc_missing:
+        await svc.start_generation(uuid.uuid4(), row.user_id)
+    assert exc_missing.value.status_code == 404
 
 
 @pytest.mark.asyncio

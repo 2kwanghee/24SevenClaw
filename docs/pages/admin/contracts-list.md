@@ -1,6 +1,7 @@
 ---
 route: /admin/contracts
 title: 중앙 계약 관리
+category: page
 status: implemented
 version: 1.0.0
 pages:

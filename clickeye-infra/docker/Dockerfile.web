@@ -5,6 +5,15 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
+
+# Next.js의 NEXT_PUBLIC_*/AUTH_URL은 빌드 시점에 클라이언트 번들로 인라인된다.
+# 런타임 env로는 클라이언트 번들에 반영되지 않으므로 반드시 빌드 ARG로 주입한다.
+ARG NEXT_PUBLIC_API_URL
+ARG AUTH_URL
+ARG NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED=false
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    AUTH_URL=$AUTH_URL \
+    NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED=$NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED
 RUN npm run build
 
 FROM node:22-alpine

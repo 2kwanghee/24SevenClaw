@@ -1,6 +1,7 @@
 ---
 route: /admin/recommendations
 title: PM 추천 로그 (품질 대시보드)
+category: page
 status: implemented
 version: 1.0.0
 roles: superadmin, admin

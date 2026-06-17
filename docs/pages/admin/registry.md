@@ -1,6 +1,7 @@
 ---
 route: /admin/registry
 title: Registry 관리 (Agent / Skill / MCP Server)
+category: page
 status: implemented
 version: 1.0.0
 roles: superadmin, admin

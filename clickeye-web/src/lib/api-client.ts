@@ -1,5 +1,21 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+const LOCALE_COOKIE_NAME = "clickeye-locale";
+
+/**
+ * 활성 UI locale(`clickeye-locale` 쿠키)을 Accept-Language 헤더로 변환한다.
+ * 백엔드가 이 헤더로 에러 메시지(얼럿창)를 현지화한다.
+ * 브라우저 외 환경에서는 빈 객체를 반환해 안전하게 무시한다.
+ */
+function localeHeaders(): Record<string, string> {
+  if (typeof document === "undefined") return {};
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${LOCALE_COOKIE_NAME}=([^;]+)`),
+  );
+  const locale = match?.[1];
+  return locale ? { "Accept-Language": locale } : {};
+}
+
 interface ApiError {
   detail: string | Array<{ msg: string; loc: unknown[] }>;
 }
@@ -41,6 +57,7 @@ async function request<T>(
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...localeHeaders(),
         ...options.headers,
       },
     });
@@ -301,6 +318,7 @@ export const apiClient = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...localeHeaders(),
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
@@ -324,6 +342,7 @@ export const apiClient = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...localeHeaders(),
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),

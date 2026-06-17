@@ -1,6 +1,7 @@
 ---
 route: /login
 title: 로그인
+category: page
 status: implemented
 version: 1.0.0
 pages:

@@ -1,3 +1,13 @@
+---
+title: 자동화 파이프라인 가이드 (v6)
+category: guide
+status: current
+last_updated: 2026-06-12
+related:
+  - scripts/auto_dev_pipeline.sh
+  - scripts/pre_merge_gate.py
+---
+
 # 자동화 파이프라인 가이드
 
 > 이 문서는 ClickEye 자동화 파이프라인의 **전체 아키텍처, 실행 방법, 트리거 방식**을 설명합니다.

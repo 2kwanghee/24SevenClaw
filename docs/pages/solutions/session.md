@@ -1,6 +1,7 @@
 ---
 route: /solutions/[sessionId]
 title: 솔루션 세션 재개
+category: page
 status: implemented
 version: 1.0.0
 pages:

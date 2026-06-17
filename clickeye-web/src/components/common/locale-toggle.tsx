@@ -15,6 +15,8 @@ import {
 const options: { value: Locale; label: string }[] = [
   { value: "ko", label: "한국어" },
   { value: "en", label: "English" },
+  { value: "id", label: "Bahasa Indonesia" },
+  { value: "ja", label: "日本語" },
 ];
 
 function writeLocaleCookie(next: Locale) {

@@ -26,17 +26,28 @@ class AppError(Exception):
 
 async def app_exception_handler(request: Request, exc: AppError) -> JSONResponse:
     request_id = getattr(request.state, "request_id", "unknown")
+
+    # 레지스트리에 등록된 코드는 요청 locale(Accept-Language)로 메시지를 재해석한다.
+    # 등록되지 않은 코드는 raise 시점의 exc.message를 그대로 사용한다(회귀 0).
+    from app.dependencies import get_locale
+    from app.i18n.error_messages import get_message, has_code
+
+    detail = exc.message
+    if has_code(exc.code):
+        locale = get_locale(request)
+        detail = get_message(exc.code, locale)
+
     logger.warning(
         "app_error",
         code=exc.code,
-        message=exc.message,
+        message=detail,
         status_code=exc.status_code,
         request_id=request_id,
         path=str(request.url.path),
     )
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.message, "code": exc.code},
+        content={"detail": detail, "code": exc.code},
     )
 
 

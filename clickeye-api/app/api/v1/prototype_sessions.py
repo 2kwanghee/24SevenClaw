@@ -4,11 +4,11 @@ import contextlib
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session, get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_locale
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.prototype import (
@@ -31,14 +31,22 @@ from app.services.prototype_service import PrototypeService
 _bg_session_factory: Any = async_session
 
 
-async def _run_generation_bg(session_id: UUID, user_id: UUID) -> None:
-    """독립 DB 세션으로 백그라운드 프로토타입 생성을 실행한다."""
+async def _run_generation_bg(
+    session_id: UUID, user_id: UUID, locale: str | None = None
+) -> None:
+    """독립 DB 세션으로 백그라운드 프로토타입 생성을 실행한다.
+
+    locale은 요청 시점(Accept-Language 우선)에 산출된 위저드 선택 언어로,
+    LLM 피드백 언어 분기에 사용한다.
+    """
     import traceback  # noqa: PLC0415
     try:
         async with _bg_session_factory() as db:
             service = PrototypeService(db)
             with contextlib.suppress(Exception):
-                await service.run_generation(session_id=session_id, user_id=user_id)
+                await service.run_generation(
+                    session_id=session_id, user_id=user_id, locale=locale
+                )
     except Exception:
         print(f"[BG_ERROR] session={session_id}\n{traceback.format_exc()}", flush=True)
 
@@ -131,6 +139,7 @@ async def list_prototypes(
 async def generate_prototypes(
     session_id: UUID,
     background_tasks: BackgroundTasks,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> GenerateStartResponse:
@@ -150,12 +159,15 @@ async def generate_prototypes(
             detail="라이브 프리뷰 기능이 현재 비활성화되어 있습니다. 관리자에게 문의하세요.",
         )
 
+    # 위저드 선택 언어(Accept-Language 우선) — LLM 피드백 언어 분기에 사용
+    locale = get_locale(request, user, prefer_header=True)
+
     service = PrototypeService(db)
     await service.start_generation(
         session_id=session_id, user_id=user.id  # type: ignore[arg-type]
     )
     background_tasks.add_task(
-        _run_generation_bg, session_id, user.id  # type: ignore[arg-type]
+        _run_generation_bg, session_id, user.id, locale  # type: ignore[arg-type]
     )
     return GenerateStartResponse(
         task_id=session_id,
@@ -192,6 +204,7 @@ async def recommend_components(
 )
 async def recommend_pms(
     session_id: UUID,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecommendPMsResponse:
@@ -199,9 +212,10 @@ async def recommend_pms(
 
     선택된 프로토타입이 없으면 409를 반환한다.
     """
+    locale = get_locale(request, user, prefer_header=True)
     service = PrototypeService(db)
     recommendations = await service.recommend_pms_for_session(
-        session_id=session_id, user_id=user.id  # type: ignore[arg-type]
+        session_id=session_id, user_id=user.id, locale=locale  # type: ignore[arg-type]
     )
 
     items = []

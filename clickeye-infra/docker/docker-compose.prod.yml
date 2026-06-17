@@ -86,11 +86,19 @@ services:
     build:
       context: ../../clickeye-web
       dockerfile: ../clickeye-infra/docker/Dockerfile.web
+      # NEXT_PUBLIC_*/AUTH_URL은 빌드타임에 번들로 인라인되므로 build args로 주입
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        AUTH_URL: ${AUTH_URL}
+        NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED: ${NEXT_PUBLIC_FEATURE_MODERNIZE_ENABLED:-false}
     container_name: clickeye-web
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}   # SSR/서버컴포넌트 fetch용
+      AUTH_URL: ${AUTH_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"                        # 프록시/ALB 뒤 forwarded host 신뢰 (로그인 필수)
     depends_on:
       api:
         condition: service_healthy

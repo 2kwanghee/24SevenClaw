@@ -1,3 +1,15 @@
+---
+title: 서비스 실행 가이드
+category: guide
+status: current
+last_updated: 2026-06-15
+related:
+  - scripts/webhook_server.py
+  - scripts/auto_dev_pipeline.sh
+  - clickeye-api
+  - clickeye-web
+---
+
 # 서비스 실행 가이드
 
 ## 전제 조건
@@ -166,7 +178,7 @@ crontab -l
 
 ### 웹 UI (http://localhost:3000)
 
-- Solution Wizard v2 — 7단계 위저드 흐름
+- Solution Wizard v2 — 12단계 위저드 흐름
 - PM 시스템 UI (추천 · 구성 · 평가)
 - 프로토타입 UI
 - AI Team 3계층 운영 대시보드

@@ -1,3 +1,12 @@
+---
+title: Modernize GitHub App 등록 가이드
+category: guide
+status: current
+last_updated: 2026-05-18
+related:
+  - clickeye-api/app/api/v1/github_app.py
+---
+
 # ClickEye Modernize — GitHub App 등록 가이드
 
 > 이 문서는 ClickEye Modernize 파이프라인(MVP-2-A) 을 활성화하기 위한 **GitHub App 등록 절차** 를 정리합니다.

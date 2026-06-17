@@ -144,6 +144,11 @@
           {
             "type": "command",
             "command": "echo '[하네스 리마인더] 코드 수정됨 → 커밋 전 반드시 해당 모듈의 lint/typecheck/test를 실행하세요. Gate 미통과 시 커밋이 차단됩니다.' >&2"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/docs-sync-reminder.sh",
+            "timeout": 15
           }
         ]
       }

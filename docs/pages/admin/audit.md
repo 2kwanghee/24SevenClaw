@@ -1,6 +1,7 @@
 ---
 route: /admin/audit
 title: 감사 로그
+category: page
 status: implemented
 version: 1.0.0
 pages:

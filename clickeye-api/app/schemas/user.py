@@ -18,7 +18,7 @@ class UserLogin(BaseModel):
 
 class UserUpdate(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=100)
-    language: Literal["ko", "en"] | None = None
+    language: Literal["ko", "en", "id", "ja"] | None = None
 
 
 class UserResponse(BaseModel):
