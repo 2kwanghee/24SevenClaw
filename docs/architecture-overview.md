@@ -1,7 +1,7 @@
 ---
 title: 아키텍처 개요
 category: architecture
-status: current
+status: needs-revision
 last_updated: 2026-06-15
 related:
   - clickeye-web

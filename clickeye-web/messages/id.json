@@ -1153,7 +1153,8 @@
   },
   "guide": {
     "title": "Panduan Pengguna",
-    "subtitle": "Panduan langkah demi langkah untuk menggunakan platform ClickEye."
+    "subtitle": "Panduan langkah demi langkah untuk menggunakan platform ClickEye.",
+    "toc": "Daftar Isi"
   },
   "auth": {
     "login": {

@@ -1,7 +1,7 @@
 ---
 title: Modernize 회귀 검증 체크리스트 (MVP-2-A)
 category: reference
-status: current
+status: needs-revision
 last_updated: 2026-05-18
 related:
   - clickeye-api

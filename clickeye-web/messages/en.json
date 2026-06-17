@@ -1153,7 +1153,8 @@
   },
   "guide": {
     "title": "User Guide",
-    "subtitle": "Step-by-step guide to using the ClickEye platform."
+    "subtitle": "Step-by-step guide to using the ClickEye platform.",
+    "toc": "Contents"
   },
   "auth": {
     "login": {

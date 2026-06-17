@@ -1153,7 +1153,8 @@
   },
   "guide": {
     "title": "사용 가이드",
-    "subtitle": "ClickEye 플랫폼 사용법을 단계별로 안내합니다."
+    "subtitle": "ClickEye 플랫폼 사용법을 단계별로 안내합니다.",
+    "toc": "목차"
   },
   "auth": {
     "login": {

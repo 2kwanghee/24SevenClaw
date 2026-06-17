@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { getAllGuides, getGuide } from "@/lib/guide-loader";
 import { GuideToc } from "@/components/guide/guide-toc";
 import { MarkdownContent } from "@/components/guide/markdown-content";
@@ -13,10 +14,11 @@ export function generateStaticParams() {
 
 export default async function GuideSlugPage({ params }: GuideSlugPageProps) {
   const { slug } = await params;
-  const guide = getGuide(slug);
+  const locale = await getLocale();
+  const guide = getGuide(slug, locale);
   if (!guide) notFound();
 
-  const guides = getAllGuides();
+  const guides = getAllGuides(locale);
 
   return (
     <div className="flex gap-8">

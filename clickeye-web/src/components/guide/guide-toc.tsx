@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { BookOpen } from "lucide-react";
 import type { GuideMeta } from "@/lib/guide-loader";
 
@@ -11,6 +12,7 @@ interface GuideTocProps {
 
 export function GuideToc({ guides }: GuideTocProps) {
   const pathname = usePathname();
+  const t = useTranslations("guide");
 
   return (
     <aside className="w-52 shrink-0">
@@ -18,7 +20,7 @@ export function GuideToc({ guides }: GuideTocProps) {
         <div className="mb-4 flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-[var(--text-muted)]" />
           <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-            목차
+            {t("toc")}
           </p>
         </div>
         <nav className="space-y-1">

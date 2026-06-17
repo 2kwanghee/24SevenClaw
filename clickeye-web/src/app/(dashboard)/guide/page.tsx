@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getAllGuides } from "@/lib/guide-loader";
 import { GuideToc } from "@/components/guide/guide-toc";
 
 export default async function GuidePage() {
   const t = await getTranslations("guide");
-  const guides = getAllGuides();
+  const locale = await getLocale();
+  const guides = getAllGuides(locale);
 
   return (
     <div className="flex gap-8">

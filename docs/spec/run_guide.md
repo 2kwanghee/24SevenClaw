@@ -1,7 +1,7 @@
 ---
 title: 서비스 실행 가이드
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-06-15
 related:
   - scripts/webhook_server.py
