@@ -109,27 +109,11 @@ commit_repo() {
   fi
 }
 
-# ── Step 1: 하위 모듈 커밋 ──
-SUBMODULES=(
-  "24SevenClaw-web:web"
-  "24SevenClaw-api:api"
-  "24SevenClaw-agent:agent"
-  "24SevenClaw-infra:infra"
-  "24SevenClaw-contracts:contracts"
-)
-
-for entry in "${SUBMODULES[@]}"; do
-  IFS=':' read -r dir_name module_name <<< "$entry"
-  submod_path="$REPO_ROOT/$dir_name"
-  if [ -d "$submod_path/.git" ]; then
-    commit_repo "$submod_path" "$module_name"
-  fi
-done
-
-# ── Step 2: 루트 레포 커밋 ──
+# ── Step 1: 루트 레포 커밋 ──
+# ClickEye는 단일 git 레포(clickeye-* 는 하위 디렉토리). 루트 1회 커밋으로 전체 모듈 포함.
 commit_repo "$REPO_ROOT" "root"
 
-# ── Step 3: CHANGELOG 업데이트 ──
+# ── Step 2: CHANGELOG 업데이트 ──
 cd "$REPO_ROOT" || exit 0
 CHANGELOG="$REPO_ROOT/docs/CHANGELOG.md"
 if [ -f "$CHANGELOG" ]; then
@@ -144,7 +128,7 @@ if [ -f "$CHANGELOG" ]; then
       sed -i "/## \[Unreleased\]/a\\- $TIMESTAMP: $FIRST_LINE" "$CHANGELOG" 2>/dev/null || true
     fi
 
-    # Lock guard: Step 2 커밋 직후이므로 lock 해제 확인
+    # Lock guard: 루트 커밋 직후이므로 lock 해제 확인
     if wait_for_git_lock "$REPO_ROOT"; then
       git add "$CHANGELOG" 2>/dev/null || true
       if ! git diff-index --quiet HEAD 2>/dev/null; then

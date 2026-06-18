@@ -16,32 +16,38 @@ detect_changed_modules() {
     local modules=""
 
     # staged 파일 기준으로 변경 모듈 감지
-    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^24SevenClaw-api/"; then
+    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-api/"; then
         modules="$modules api"
     fi
-    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^24SevenClaw-web/"; then
+    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-web/"; then
         modules="$modules web"
     fi
-    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^24SevenClaw-agent/"; then
+    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-agent/"; then
         modules="$modules agent"
     fi
-    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^24SevenClaw-contracts/"; then
+    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-contracts/"; then
         modules="$modules contracts"
+    fi
+    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-cli/"; then
+        modules="$modules cli"
     fi
 
     # staged 파일이 없으면 unstaged 변경 확인
     if [ -z "$modules" ]; then
-        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^24SevenClaw-api/"; then
+        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-api/"; then
             modules="$modules api"
         fi
-        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^24SevenClaw-web/"; then
+        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-web/"; then
             modules="$modules web"
         fi
-        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^24SevenClaw-agent/"; then
+        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-agent/"; then
             modules="$modules agent"
         fi
-        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^24SevenClaw-contracts/"; then
+        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-contracts/"; then
             modules="$modules contracts"
+        fi
+        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-cli/"; then
+            modules="$modules cli"
         fi
     fi
 
@@ -77,25 +83,30 @@ fi
 for module in $MODULES; do
     case "$module" in
         api)
-            dir="$PROJECT_DIR/24SevenClaw-api"
+            dir="$PROJECT_DIR/clickeye-api"
             run_gate "Gate1:Lint" "api" "uv run ruff check ." "$dir"
             run_gate "Gate2:Type" "api" "uv run mypy app/" "$dir"
             run_gate "Gate3:Test" "api" "uv run pytest --tb=short -q" "$dir"
             ;;
         web)
-            dir="$PROJECT_DIR/24SevenClaw-web"
+            dir="$PROJECT_DIR/clickeye-web"
             run_gate "Gate1:Lint" "web" "npm run lint" "$dir"
             run_gate "Gate2:Type" "web" "npx tsc --noEmit" "$dir"
             ;;
         agent)
-            dir="$PROJECT_DIR/24SevenClaw-agent"
+            dir="$PROJECT_DIR/clickeye-agent"
             run_gate "Gate1:Lint" "agent" "uv run ruff check ." "$dir"
             run_gate "Gate2:Type" "agent" "uv run mypy agent/" "$dir"
             run_gate "Gate3:Test" "agent" "uv run pytest --tb=short -q" "$dir"
             ;;
         contracts)
-            dir="$PROJECT_DIR/24SevenClaw-contracts"
+            dir="$PROJECT_DIR/clickeye-contracts"
             run_gate "Gate2:Type" "contracts" "npx tsc --noEmit" "$dir"
+            ;;
+        cli)
+            dir="$PROJECT_DIR/clickeye-cli"
+            run_gate "Gate1:Lint" "cli" "npm run lint" "$dir"
+            run_gate "Gate2:Type" "cli" "npx tsc --noEmit" "$dir"
             ;;
     esac
 done
