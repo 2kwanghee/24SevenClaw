@@ -18,3 +18,7 @@ logs/
 .mcp.json
 __pycache__/
 .claude/current-plan.md
+
+# === Obsidian (개인용 지식관리 레이어) ===
+.obsidian/
+obsidian/
