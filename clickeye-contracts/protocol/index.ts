@@ -6,3 +6,4 @@ export * from './orchestrator';
 export * from './presets';
 export * from './rbac';
 export * from './central_contract';
+export * from './modernize';

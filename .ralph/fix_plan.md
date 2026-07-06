@@ -6,50 +6,31 @@
 
 ---
 
-## P2: 기능 요구사항
+## P1: 기능 요구사항
 
-- [x] **[backend] Phase 3 — 카탈로그/PM 영문 컬럼 + ZIP 영문화**
+- [ ] **[contracts/api] Modernize 6단계 Phase 데이터 모델 확장 (requirements/tobe/plan/preflight)**
   > 요청사항: ## 목표
 
-카탈로그(agents/skills/mcp_servers/hooks) + PM 프로필에 영문 컬럼 추가하고, ZIP 생성 시 사용자 locale에 따라 `body_md_ko`/`body_md_en` 선택하여 출력한다.
+현재 `ModernizeSession.status`(pending→cloning→analyzing→recommending→ready→finalized)를 6단계 워크플로(asis / requirements / tobe / plan / preflight / execute)를 표현할 수 있는 Phase 모델로 확장한다.
 
-## 변경 파일
+## As-Is 근거
 
-### 마이그레이션
+* `app/models/modernize_session.py` — phase 개념 없음, scenario 3종(versionup/refactor/language_migrate)만 존재
+* `app/models/codebase_analysis.py` — `dep_graph` 선언만 되고 미사용, `target_stack` 미활용
+* 산출물 저장 구조가 CodebaseAnalysis(1:1) + Recommendation(N)뿐 → 단계별 산출물 테이블 부재
 
-* `clickeye-api/alembic/versions/040_i18n_catalog_pm.py` (신규):
-  * `agents/skills/mcp_servers/hooks`: + `name_en`, `description_en`, `body_md_en`
-  * `pm_profiles`: + `name_en`, `title_en`, `description_en`, `bio_long_en`
-  * 기존 한국어 컬럼은 보존 (fallback)
+## 작업 내용
 
-### 모델/스키마
+1. contracts 레포에 Phase enum + 단계별 산출물(artifact) 스키마 정의 (Contract 우선 원칙)
+2. `modernize_sessions`에 `current_phase` 추가, 신규 테이블 `modernize_phase_artifacts` (session_id, phase, artifact_type, content_md, content_json, approved_at)
+3. 구조화 요구사항 스키마: 현재 스택(DB 종류/버전, 런타임, 프레임워크, 인프라) ↔ 목표 스택 쌍
+4. Alembic migration (비침습: 신규 생성 + nullable 컬럼 추가만, downgrade 완전 복원)
+5. `app/schemas/modernize.py` Pydantic 스키마 동기화 + openapi.json/generated 갱신 (contract-drift 게이트 대응)
 
-* `clickeye-api/app/models/{pm_profile,registry}.py` (또는 분리 모델 파일들) — `_en` 필드 추가
-* `clickeye-api/app/schemas/{registry,pm_profile}.py` — 응답 직전 `localize(item, locale)` 헬퍼 또는 스키마 분기. `name_en or name` fallback 패턴
+## 완료 조건
 
-### ZIP 생성
-
-* `clickeye-api/app/engine/generator.py` — `render_body(item, locale)` 함수에 locale 매개변수 추가. `body_md_en` 존재 시 사용, 없으면 `body_md` fallback
-* `clickeye-api/app/engine/catalog.py` — `prefetch_for_generator`에 locale 전달
-* `clickeye-api/app/engine/templates/docs/api-keys/*.{ko,en}.md` (분리) — Anthropic/Linear 키 발급 가이드 영문 작성
-
-### 시드 스크립트
-
-* `clickeye-api/scripts/seed_i18n_translations.py` (신규):
-  * 핵심 \~10개 항목 수동 영문 시드 (harness, backend, fullstack, ai-critique, tdd-smart-coding, github, linear, postgres, harness-gate, commit-session)
-  * 멱등 — 재실행 가능
-
-## 검증
-
-1. alembic up/down 양방향 무손실 동작
-2. en 사용자가 위저드에서 PM atlas 선택 시 카드 description이 영문 (en 누락 항목은 한국어 fallback)
-3. en 사용자 ZIP 다운로드 → `.claude/agents/backend.md` 본문 영문 (en 입력된 경우)
-4. 영문 미입력 카탈로그는 ko `body_md`가 그대로 사용됨 (부분 한국어 허용)
-
-## 의존성
-
-* 선행: [CE-256](https://linear.app/flow-ops/issue/CE-256/backend-phase-2-userlanguage-apperror-claude-locale-분기) (Phase 2 백엔드 다국어 — user.language 필드 필요)
-* 후속 CE-258이 본 이슈에 의존
+* 기존 파이프라인 회귀 0 (기존 status 흐름 유지, phase는 병행 도입)
+* 마이그레이션 up/down 검증, 스키마 단위 테스트
 
 ---
 
@@ -59,4 +40,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-05-28 | [backend] Phase 3 — 카탈로그/PM 영문 컬럼 + ZIP 영문화 | ✅ | 마이그레이션 040, _en 컬럼, locale 파라미터, EN 가이드, 시드스크립트 |

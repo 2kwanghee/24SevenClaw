@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+# 위저드 6단계 Phase 축 — 기존 status 파이프라인과 병행 도입.
+ModernizePhase = Literal[
+    "asis",
+    "requirements",
+    "tobe",
+    "plan",
+    "preflight",
+    "execute",
+]
 
 
 class InstallationListItem(BaseModel):
@@ -62,6 +72,7 @@ class ModernizeSessionResponse(BaseModel):
     commit_sha: str | None = None
     scenario: str
     status: str
+    current_phase: ModernizePhase
     progress_pct: int
     error: dict[str, Any] | None = None
     created_at: datetime | None = None
@@ -146,3 +157,45 @@ class FinalizeResponse(BaseModel):
     linear_errors: list[str] = Field(default_factory=list)
     zip_url: str
     selected_recommendation_count: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 산출물 — requirements(As-Is/To-Be 스택) 등 단계별 검수 문서
+# ---------------------------------------------------------------------------
+
+
+class StackDescriptor(BaseModel):
+    """단일 스택(As-Is 또는 To-Be) 서술자."""
+
+    db_type: str | None = None
+    db_version: str | None = None
+    runtime: str | None = None
+    runtime_version: str | None = None
+    framework: str | None = None
+    framework_version: str | None = None
+    infra: str | None = None
+    extra: dict[str, Any] = Field(default_factory=dict)
+
+
+class RequirementsArtifactContent(BaseModel):
+    """requirements phase 산출물의 구조화 내용 — As-Is ↔ To-Be 스택 쌍."""
+
+    as_is_stack: StackDescriptor
+    to_be_stack: StackDescriptor
+    notes_md: str | None = None
+
+
+class ModernizePhaseArtifactResponse(BaseModel):
+    """`modernize_phase_artifacts` 행 응답."""
+
+    id: UUID
+    session_id: UUID
+    phase: ModernizePhase
+    artifact_type: str
+    content_md: str | None = None
+    content_json: dict[str, Any] | None = None
+    approved_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = {"from_attributes": True}

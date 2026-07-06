@@ -372,3 +372,56 @@ class ContractSyncItem(BaseModel):
 class ContractSyncPayload(BaseModel):
     project_id: str
     contracts: list[ContractSyncItem]
+
+
+# === Modernize 6단계 Phase 워크플로 ===
+# 기존 ModernizeSession.status(pending→cloning→analyzing→recommending→ready→finalized)
+# 파이프라인과 병행 도입되는 축 — 사용자에게 노출되는 위저드 단계를 표현한다.
+# TypeScript protocol/modernize.ts 와 반드시 동기화 유지.
+
+ModernizePhase = Literal[
+    "asis",
+    "requirements",
+    "tobe",
+    "plan",
+    "preflight",
+    "execute",
+]
+
+MODERNIZE_PHASE_ORDER: list[str] = [
+    "asis",
+    "requirements",
+    "tobe",
+    "plan",
+    "preflight",
+    "execute",
+]
+
+
+class StackDescriptor(BaseModel):
+    db_type: str | None = None
+    db_version: str | None = None
+    runtime: str | None = None
+    runtime_version: str | None = None
+    framework: str | None = None
+    framework_version: str | None = None
+    infra: str | None = None
+    extra: dict[str, Any] = {}
+
+
+class RequirementsArtifactContent(BaseModel):
+    as_is_stack: StackDescriptor
+    to_be_stack: StackDescriptor
+    notes_md: str | None = None
+
+
+class ModernizePhaseArtifact(BaseModel):
+    id: str
+    session_id: str
+    phase: ModernizePhase
+    artifact_type: str
+    content_md: str | None = None
+    content_json: dict[str, Any] | None = None
+    approved_at: str | None = None
+    created_at: str
+    updated_at: str

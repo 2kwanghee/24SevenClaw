@@ -53,6 +53,14 @@ class ModernizeSession(UUIDPKMixin, TimestampMixin, Base):
         default="pending",
         server_default=text("'pending'"),
     )
+    # 사용자 위저드 단계 축 (status 와 병행 도입, 기존 7-step 파이프라인 무영향).
+    # 'asis' | 'requirements' | 'tobe' | 'plan' | 'preflight' | 'execute'
+    current_phase = Column(
+        String(20),
+        nullable=False,
+        default="asis",
+        server_default=text("'asis'"),
+    )
     progress_pct = Column(Integer, nullable=False, default=0, server_default=text("0"))
     error = Column(JSON, nullable=True)
     extra = Column(JSON, nullable=False, default=dict, server_default=text("'{}'::json"))
