@@ -7,8 +7,8 @@ Feature flag `feature_modernize_enabled` OFF 시 모든 endpoint 404.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime  # noqa: TC003 — runtime cast 에 필요
-from typing import cast
+from datetime import UTC, datetime  # noqa: TC003 — runtime cast 에 필요
+from typing import Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_phase_artifact import ModernizePhaseArtifact
 from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
@@ -28,16 +29,20 @@ from app.schemas.modernize import (
     FinalizeRequest,
     FinalizeResponse,
     InstallationListItem,
+    ModernizePhaseArtifactResponse,
     ModernizeRecommendationResponse,
     ModernizeRecommendationUpdate,
     ModernizeSessionCreate,
     ModernizeSessionResponse,
+    PreflightApproveRequest,
     RepoListItem,
 )
 from app.services.modernize import finalize as finalize_svc
 from app.services.modernize import pipeline, repo_service, zip_builder
+from app.services.modernize import preflight as preflight_svc
 
 _ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
+_PREFLIGHT_ARTIFACT_TYPE = "preflight_review"
 
 router = APIRouter(
     prefix="/modernize",
@@ -395,6 +400,163 @@ async def update_recommendation(
 
 
 # ----------------------------------------------------------------------
+# Pre-flight 게이트 (Phase 5)
+# ----------------------------------------------------------------------
+
+
+async def _get_latest_preflight_artifact(
+    db: AsyncSession, session_id: UUID
+) -> ModernizePhaseArtifact | None:
+    result = await db.execute(
+        select(ModernizePhaseArtifact)
+        .where(
+            ModernizePhaseArtifact.session_id == session_id,
+            ModernizePhaseArtifact.phase == "preflight",
+            ModernizePhaseArtifact.artifact_type == _PREFLIGHT_ARTIFACT_TYPE,
+        )
+        .order_by(ModernizePhaseArtifact.created_at.desc())
+    )
+    return result.scalars().first()
+
+
+async def _selected_recommendation_payloads(
+    db: AsyncSession, session_id: UUID
+) -> list[dict[str, Any]]:
+    rec_result = await db.execute(
+        select(ModernizeRecommendation)
+        .where(
+            ModernizeRecommendation.session_id == session_id,
+            ModernizeRecommendation.selected.is_(True),
+        )
+        .order_by(ModernizeRecommendation.priority.asc())
+    )
+    return [
+        {
+            "title": r.title,
+            "category": r.category,
+            "target_path": r.target_path,
+            "before": r.before,
+            "after": r.after,
+            "risk": r.risk,
+            "rationale_md": r.rationale_md,
+            "prompt_md": r.prompt_md,
+        }
+        for r in rec_result.scalars().all()
+    ]
+
+
+@router.post(
+    "/sessions/{session_id}/preflight",
+    response_model=ModernizePhaseArtifactResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def generate_preflight_review(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePhaseArtifactResponse:
+    """선택된 권장안 + as-is 스캔 신호로 Pre-flight 체크리스트를 (재)생성한다.
+
+    재생성 시 기존 승인은 무효화된다(계획이 바뀌었으므로 재검토 필요).
+    """
+    session_row, _ = await _get_recommendation_with_ownership(db, user, session_id, rec_id=None)
+
+    rec_payloads = await _selected_recommendation_payloads(db, session_id)
+
+    analysis_result = await db.execute(
+        select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
+    )
+    analysis = analysis_result.scalar_one_or_none()
+    framework_signals: dict[str, Any] = (
+        cast("dict[str, Any] | None", analysis.framework_signals) if analysis is not None else None
+    ) or {}
+
+    content = preflight_svc.build_preflight_checklist(
+        recommendations=rec_payloads, framework_signals=framework_signals
+    )
+    content_md = preflight_svc.render_markdown(content)
+
+    artifact = await _get_latest_preflight_artifact(db, session_id)
+    if artifact is None:
+        artifact = ModernizePhaseArtifact(
+            session_id=session_id,
+            phase="preflight",
+            artifact_type=_PREFLIGHT_ARTIFACT_TYPE,
+        )
+        db.add(artifact)
+
+    artifact.content_json = content  # type: ignore[assignment]
+    artifact.content_md = content_md  # type: ignore[assignment]
+    artifact.approved_at = None  # type: ignore[assignment]
+    session_row.current_phase = "preflight"  # type: ignore[assignment]
+
+    await db.commit()
+    await db.refresh(artifact)
+    return ModernizePhaseArtifactResponse.model_validate(artifact)
+
+
+@router.get(
+    "/sessions/{session_id}/preflight",
+    response_model=ModernizePhaseArtifactResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def get_preflight_review(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePhaseArtifactResponse:
+    """가장 최근 Pre-flight 체크리스트 조회."""
+    await _get_recommendation_with_ownership(db, user, session_id, rec_id=None)
+    artifact = await _get_latest_preflight_artifact(db, session_id)
+    if artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pre-flight 사전검토가 아직 생성되지 않았습니다.",
+        )
+    return ModernizePhaseArtifactResponse.model_validate(artifact)
+
+
+@router.post(
+    "/sessions/{session_id}/preflight/approve",
+    response_model=ModernizePhaseArtifactResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def approve_preflight_review(
+    session_id: UUID,
+    body: PreflightApproveRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePhaseArtifactResponse:
+    """Pre-flight 체크리스트 승인. block 항목이 남아 있으면 409.
+
+    HIGH 리스크 작업 block 항목은 `ack_high_risk=True` 로 수동 확인 후 예외적으로 승인 가능.
+    승인 후에만 실행 팩(ZIP) 다운로드가 허용된다.
+    """
+    session_row, _ = await _get_recommendation_with_ownership(db, user, session_id, rec_id=None)
+    artifact = await _get_latest_preflight_artifact(db, session_id)
+    if artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="먼저 Pre-flight 사전검토를 생성하세요.",
+        )
+
+    content = dict(cast("dict[str, Any]", artifact.content_json) or {})
+    can_approve, reason = preflight_svc.evaluate_approval(content, ack_high_risk=body.ack_high_risk)
+    if not can_approve:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=reason)
+
+    content["acknowledged_high_risk"] = body.ack_high_risk
+    artifact.content_json = content  # type: ignore[assignment]
+    artifact.content_md = preflight_svc.render_markdown(content)  # type: ignore[assignment]
+    artifact.approved_at = datetime.now(UTC)  # type: ignore[assignment]
+    session_row.current_phase = "execute"  # type: ignore[assignment]
+
+    await db.commit()
+    await db.refresh(artifact)
+    return ModernizePhaseArtifactResponse.model_validate(artifact)
+
+
+# ----------------------------------------------------------------------
 # Finalize + ZIP download (M7)
 # ----------------------------------------------------------------------
 
@@ -510,6 +672,17 @@ async def download_zip(
             detail="ModernizeSession 을 찾을 수 없습니다.",
         )
 
+    # Pre-flight 게이트 — 승인 없이는 실행 팩(ZIP) 발급 불가
+    preflight_artifact = await _get_latest_preflight_artifact(db, session_id)
+    if preflight_artifact is None or preflight_artifact.approved_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Pre-flight 사전검토 승인이 필요합니다. "
+                "POST /preflight 로 체크리스트를 생성하고 /preflight/approve 로 승인하세요."
+            ),
+        )
+
     # 분석 + 권장안 조회
     analysis_result = await db.execute(
         select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
@@ -575,6 +748,7 @@ async def download_zip(
         analysis_data=analysis_data,
         recommendations=rec_payloads,
         linear_issues=linear_issues,
+        preflight_review_md=cast("str | None", preflight_artifact.content_md),
     )
 
     safe_name = str(session_row.repo_full_name).replace("/", "_")

@@ -199,3 +199,38 @@ class ModernizePhaseArtifactResponse(BaseModel):
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Pre-flight 게이트 (Phase 5) — preflight 산출물 content_json 구조 + 승인 요청
+# ---------------------------------------------------------------------------
+
+PreflightVerdict = Literal["pass", "warn", "block"]
+
+
+class PreflightChecklistItem(BaseModel):
+    """Pre-flight 체크리스트 항목 1건."""
+
+    key: str
+    title: str
+    verdict: PreflightVerdict
+    detail_md: str
+    requires_manual_ack: bool = False
+
+
+class PreflightReviewContent(BaseModel):
+    """`preflight_review` artifact 의 `content_json` 구조."""
+
+    checklist: list[PreflightChecklistItem]
+    overall_verdict: PreflightVerdict
+    acknowledged_high_risk: bool = False
+    generated_at: str
+
+
+class PreflightApproveRequest(BaseModel):
+    """`POST /sessions/{id}/preflight/approve` 요청 body."""
+
+    ack_high_risk: bool = Field(
+        default=False,
+        description="HIGH 리스크(auth/보안/데이터 이관) block 항목을 수동 확인 후 승인할 때 true",
+    )

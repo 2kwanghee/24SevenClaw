@@ -58,3 +58,24 @@ export interface ModernizePhaseArtifact {
   created_at: string;
   updated_at: string;
 }
+
+// === Pre-flight 게이트 (Phase 5) ===
+// `preflight_review` artifact 의 content_json 구조. 실행(Phase 6) 직전 계획을
+// 영향도·위험 관점에서 점검하고, block 항목이 남아 있으면 승인(approve)이 불가능하다.
+
+export type PreflightVerdict = 'pass' | 'warn' | 'block';
+
+export interface PreflightChecklistItem {
+  key: string;
+  title: string;
+  verdict: PreflightVerdict;
+  detail_md: string;
+  requires_manual_ack: boolean;
+}
+
+export interface PreflightReviewContent {
+  checklist: PreflightChecklistItem[];
+  overall_verdict: PreflightVerdict;
+  acknowledged_high_risk: boolean;
+  generated_at: string;
+}

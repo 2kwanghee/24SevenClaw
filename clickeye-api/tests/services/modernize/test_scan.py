@@ -80,3 +80,28 @@ def test_scan_ignores_large_files(tmp_path: Path) -> None:
     result = scan_workspace(tmp_path)
     assert result["file_count"] == 1
     assert result["lang_distribution"] == {"python": 1.0}
+
+
+def test_scan_test_file_ratio_zero_when_no_tests(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("x" * 100)
+    (tmp_path / "app.py").write_text("y" * 100)
+    result = scan_workspace(tmp_path)
+    assert result["test_file_ratio"] == 0.0
+
+
+def test_scan_test_file_ratio_detects_by_prefix_and_dir(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("x" * 100)
+    (tmp_path / "test_main.py").write_text("x" * 100)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "helpers.py").write_text("x" * 100)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.test.ts").write_text("x" * 100)
+    result = scan_workspace(tmp_path)
+    # main.py 는 non-test, 나머지 3개는 test 로 감지 → 4개 중 3개
+    assert result["file_count"] == 4
+    assert result["test_file_ratio"] == 0.75
+
+
+def test_scan_empty_dir_test_file_ratio(tmp_path: Path) -> None:
+    result = scan_workspace(tmp_path)
+    assert result["test_file_ratio"] == 0.0

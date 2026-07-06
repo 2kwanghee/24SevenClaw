@@ -207,7 +207,10 @@ async def _upsert_analysis(
         "lang_distribution": scan_result.get("lang_distribution") or {},
         "manifests": manifest_result.get("manifests") or [],
         "outdated_packages": outdated_result.get("outdated_packages") or [],
-        "framework_signals": manifest_result.get("framework_signals") or {},
+        "framework_signals": {
+            **(manifest_result.get("framework_signals") or {}),
+            "test_file_ratio": scan_result.get("test_file_ratio", 0.0),
+        },
         "risk_flags": outdated_result.get("risk_flags") or [],
         "llm_summary_md": summary_md,
         "tokens_used": tokens_used,

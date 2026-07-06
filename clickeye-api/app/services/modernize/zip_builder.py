@@ -7,6 +7,7 @@
     ├── .ralph/tasks/<identifier>.md      # rec.prompt_md → AI 작업 지시
     ├── docs/diagnosis.md                 # CodebaseAnalysis.llm_summary_md
     ├── docs/diagnosis.json               # 분석 결과 머신리더블
+    ├── docs/preflight-review.md          # Pre-flight 체크리스트 승인본 (있을 때만)
     ├── MODERNIZE_README.md               # 1-pager 실행 가이드
     └── .env.example                      # LINEAR_API_KEY/TEAM_ID/REPO_URL 안내
 
@@ -72,6 +73,7 @@ def generate_modernize_zip(
     recommendations: list[dict[str, Any]],
     linear_team_id: str = "",
     linear_issues: list[dict[str, Any]] | None = None,
+    preflight_review_md: str | None = None,
 ) -> bytes:
     """ZIP 바이트 반환. 호출자가 file response 로 streaming."""
     project_name = project_name or repo_full_name.split("/")[-1] or "modernize-project"
@@ -133,6 +135,10 @@ def generate_modernize_zip(
                 repo_full_name=repo_full_name,
             ),
         )
+
+        # 7) docs/preflight-review.md — Pre-flight 게이트 승인 시 로컬 재확인용 (선택)
+        if preflight_review_md:
+            zf.writestr("docs/preflight-review.md", preflight_review_md)
 
     buf.seek(0)
     return buf.read()

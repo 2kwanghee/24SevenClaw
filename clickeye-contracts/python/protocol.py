@@ -425,3 +425,26 @@ class ModernizePhaseArtifact(BaseModel):
     approved_at: str | None = None
     created_at: str
     updated_at: str
+
+
+# === Pre-flight 게이트 (Phase 5) ===
+# `preflight_review` artifact 의 content_json 구조. 실행(Phase 6) 직전 계획을
+# 영향도·위험 관점에서 점검하고, block 항목이 남아 있으면 승인(approve)이 불가능하다.
+# TypeScript protocol/modernize.ts 와 반드시 동기화 유지.
+
+PreflightVerdict = Literal["pass", "warn", "block"]
+
+
+class PreflightChecklistItem(BaseModel):
+    key: str
+    title: str
+    verdict: PreflightVerdict
+    detail_md: str
+    requires_manual_ack: bool = False
+
+
+class PreflightReviewContent(BaseModel):
+    checklist: list[PreflightChecklistItem]
+    overall_verdict: PreflightVerdict
+    acknowledged_high_risk: bool = False
+    generated_at: str

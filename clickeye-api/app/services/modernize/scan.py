@@ -72,6 +72,16 @@ _SKIP_DIRS = frozenset(
     ]
 )
 
+_TEST_DIR_NAMES = frozenset(["test", "tests", "__tests__", "spec", "specs"])
+_TEST_NAME_PREFIXES = ("test_",)
+_TEST_NAME_SUFFIXES = (
+    "_test",
+    ".test",
+    ".spec",
+    "_spec",
+    "Test",  # Java/Kotlin: FooTest.java
+)
+
 
 def _iter_files(root: Path) -> Iterator[Path]:
     """root 아래 분석 대상 파일을 순회. SKIP_DIRS 제외."""
@@ -79,6 +89,16 @@ def _iter_files(root: Path) -> Iterator[Path]:
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS and not d.startswith(".")]
         for name in filenames:
             yield Path(dirpath) / name
+
+
+def _is_test_file(path: Path) -> bool:
+    """Pre-flight 테스트 커버리지 체크리스트용 — 경로/파일명 패턴으로 테스트 파일 추정."""
+    if any(part.lower() in _TEST_DIR_NAMES for part in path.parent.parts):
+        return True
+    stem = path.stem
+    if stem.startswith(_TEST_NAME_PREFIXES):
+        return True
+    return stem.endswith(_TEST_NAME_SUFFIXES)
 
 
 def scan_workspace(root: Path) -> dict[str, object]:
@@ -90,6 +110,7 @@ def scan_workspace(root: Path) -> dict[str, object]:
             "file_count": int,
             "lang_distribution": {"python": 0.62, "typescript": 0.28, ...} (정렬 X, 모든 값 합 ≤ 1)
             "truncated": bool — limit 초과 시 True
+            "test_file_ratio": float — 테스트 파일 추정 비율 (Pre-flight 체크리스트용)
         }
     """
     if not root.exists() or not root.is_dir():
@@ -98,10 +119,12 @@ def scan_workspace(root: Path) -> dict[str, object]:
             "file_count": 0,
             "lang_distribution": {},
             "truncated": False,
+            "test_file_ratio": 0.0,
         }
 
     byte_by_lang: Counter[str] = Counter()
     file_count = 0
+    test_file_count = 0
     total_bytes = 0
     truncated = False
 
@@ -122,10 +145,14 @@ def scan_workspace(root: Path) -> dict[str, object]:
         byte_by_lang[lang] += size
         file_count += 1
         total_bytes += size
+        if _is_test_file(file_path):
+            test_file_count += 1
 
         if file_count > _MAX_FILES or total_bytes > _MAX_TOTAL_BYTES:
             truncated = True
             break
+
+    test_file_ratio = round(test_file_count / file_count, 4) if file_count else 0.0
 
     if not byte_by_lang:
         return {
@@ -133,6 +160,7 @@ def scan_workspace(root: Path) -> dict[str, object]:
             "file_count": file_count,
             "lang_distribution": {},
             "truncated": truncated,
+            "test_file_ratio": test_file_ratio,
         }
 
     total = float(sum(byte_by_lang.values()))
@@ -146,4 +174,5 @@ def scan_workspace(root: Path) -> dict[str, object]:
         "file_count": file_count,
         "lang_distribution": distribution,
         "truncated": truncated,
+        "test_file_ratio": test_file_ratio,
     }
