@@ -8,29 +8,29 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[contracts/api] Modernize 6단계 Phase 데이터 모델 확장 (requirements/tobe/plan/preflight)**
+- [x] **[api] Phase 4 — 현대화 계획 수립 단계 구현 (태스크 DAG + 웨이브/마일스톤)**
   > 요청사항: ## 목표
 
-현재 `ModernizeSession.status`(pending→cloning→analyzing→recommending→ready→finalized)를 6단계 워크플로(asis / requirements / tobe / plan / preflight / execute)를 표현할 수 있는 Phase 모델로 확장한다.
+권장안을 **의존성 있는 실행 계획**으로 격상한다: 태스크 간 선후관계(DAG) + 웨이브(마일스톤) 묶음 + 각 태스크에 담당 에이전트 지정.
 
 ## As-Is 근거
 
-* `app/models/modernize_session.py` — phase 개념 없음, scenario 3종(versionup/refactor/language_migrate)만 존재
-* `app/models/codebase_analysis.py` — `dep_graph` 선언만 되고 미사용, `target_stack` 미활용
-* 산출물 저장 구조가 CodebaseAnalysis(1:1) + Recommendation(N)뿐 → 단계별 산출물 테이블 부재
+* `ModernizeRecommendation`에 priority/effort/risk만 있고 권장안 간 선후관계 없음
+* LLM 요약의 "phasing" 텍스트가 유일한 계획 (`llm_summary.py`)
+* 재분석 시 `_upsert_recommendations`가 전체 삭제·재삽입 → finalize 후 Linear 매핑/사용자 편집 유실 (`pipeline.py:232-236`)
 
 ## 작업 내용
 
-1. contracts 레포에 Phase enum + 단계별 산출물(artifact) 스키마 정의 (Contract 우선 원칙)
-2. `modernize_sessions`에 `current_phase` 추가, 신규 테이블 `modernize_phase_artifacts` (session_id, phase, artifact_type, content_md, content_json, approved_at)
-3. 구조화 요구사항 스키마: 현재 스택(DB 종류/버전, 런타임, 프레임워크, 인프라) ↔ 목표 스택 쌍
-4. Alembic migration (비침습: 신규 생성 + nullable 컬럼 추가만, downgrade 완전 복원)
-5. `app/schemas/modernize.py` Pydantic 스키마 동기화 + openapi.json/generated 갱신 (contract-drift 게이트 대응)
+1. Recommendation에 `depends_on`(rec idx 배열) + `wave`(정수) + `assigned_agent` 필드 추가 ([CE-284](https://linear.app/flow-ops/issue/CE-284/contractsapi-modernize-6단계-phase-데이터-모델-확장) 스키마 기반)
+2. 계획 생성 로직: 갭 매트릭스 + 권장안 → DAG 구성 (예: DB 스키마 변환 → 데이터 이관 → 앱 코드 수정 → 검증), 사이클 검출
+3. `modernization-plan.md`(웨이브별 태스크 목록/예상 공수/리스크) + `plan.json`(오케스트레이터 실행용 기계 포맷 — CE-290 입력) 산출
+4. 재분석 시 사용자 편집·Linear 매핑 보존하는 diff-merge upsert로 개선
 
 ## 완료 조건
 
-* 기존 파이프라인 회귀 0 (기존 status 흐름 유지, phase는 병행 도입)
-* 마이그레이션 up/down 검증, 스키마 단위 테스트
+* tobe 승인 후 plan phase 전이, plan.json이 DAG 검증(위상정렬 가능) 통과
+* 기존 finalize(Linear 등록)가 wave/depends_on을 blockedBy 관계로 반영
+* 단위 테스트 동반
 
 ---
 
@@ -40,3 +40,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-07-06 | [api] Phase 4 — 계획 수립 단계 | 완료 | `ModernizeRecommendation`에 depends_on/wave/assigned_agent 추가(마이그레이션 043) + `plan_builder`(순수 DAG/위상정렬/agent 추론 함수) + `plan_generation`(tobe 승인 전제조건 검사 → plan.json/modernization-plan.md 생성 → current_phase='plan' 전이) 신규. `_upsert_recommendations`를 idx 기준 diff-merge로 전환해 재분석 시 selected/priority/Linear 매핑 보존. finalize에서 depends_on을 Linear `blocks` 관계로 반영(best-effort, `create_issue_relation` 추가). openapi.json 재생성. 단위테스트 25건 추가, 전체 스위트 회귀 없음(기존 40건 실패는 모두 무관한 사전 존재 실패로 확인). |

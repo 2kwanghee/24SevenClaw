@@ -31,6 +31,7 @@ from app.services.modernize import (
     llm_summary,
     manifest,
     outdated,
+    plan_builder,
     sample,
     scan,
 )
@@ -229,38 +230,53 @@ async def _upsert_recommendations(
     session_id: UUID,
     recs: list[dict[str, object]],
 ) -> None:
-    """기존 세션의 권장안 모두 삭제 후 새로 insert (재분석 시 깔끔).
+    """세션의 권장안을 idx 기준 diff-merge (Phase 4 — 계획 수립).
 
-    M7 finalize 후 linear_issue_id 가 채워져도, 재분석 시 그 정보는 손실됨 — MVP 단순화.
-    M7+ 에서는 finalize 후 ModernizeSession.status='finalized' 이면 재분석 차단 또는
-    권장안 보존 정책 도입 검토.
+    AI 재생성 콘텐츠(category/target_path/before/after/title/rationale_md/effort/
+    risk/prompt_md)는 매번 새로 덮어쓰지만, 사용자 검수 상태(selected/priority)와
+    finalize 후 Linear 매핑(linear_issue_id/linear_identifier)은 동일 idx 행이 이미
+    존재하면 보존한다. 새 결과가 기존보다 짧아 사라지는 idx 는, 이미 Linear 에
+    등록된 행(linear_issue_id 존재)이면 매핑 보존을 위해 삭제하지 않고 남겨둔다.
+
+    마지막으로 plan_builder 로 depends_on/wave/assigned_agent 를 재계산해 저장한다.
     """
-    # 기존 권장안 삭제
-    existing = await db.execute(
+    existing_result = await db.execute(
         select(ModernizeRecommendation).where(ModernizeRecommendation.session_id == session_id)
     )
-    for row in existing.scalars().all():
-        await db.delete(row)
-    await db.flush()
+    existing_by_idx = {int(row.idx): row for row in existing_result.scalars().all()}
 
-    # 새 권장안 insert
+    plan_fields = plan_builder.build_plan(recs)
+
+    seen_idx: set[int] = set()
     for idx, rec in enumerate(recs):
-        row = ModernizeRecommendation(
-            session_id=session_id,
-            idx=idx,
-            category=str(rec.get("category", "upgrade")),
-            target_path=_cast_str_or_none(rec.get("target_path")),
-            before=rec.get("before") if isinstance(rec.get("before"), dict) else None,
-            after=rec.get("after") if isinstance(rec.get("after"), dict) else None,
-            title=str(rec.get("title", ""))[:300],
-            rationale_md=_cast_str_or_none(rec.get("rationale_md")),
-            effort=str(rec.get("effort", "M"))[:2],
-            risk=str(rec.get("risk", "med"))[:10],
-            priority=_extract_priority(rec.get("priority")),
-            prompt_md=_cast_str_or_none(rec.get("prompt_md")),
-            selected=True,
-        )
-        db.add(row)
+        seen_idx.add(idx)
+        plan_field = plan_fields[idx]
+        row = existing_by_idx.get(idx)
+        if row is None:
+            row = ModernizeRecommendation(session_id=session_id, idx=idx, selected=True)
+            row.priority = _extract_priority(rec.get("priority"))  # type: ignore[assignment]
+            db.add(row)
+
+        row.category = str(rec.get("category", "upgrade"))  # type: ignore[assignment]
+        row.target_path = _cast_str_or_none(rec.get("target_path"))  # type: ignore[assignment]
+        row.before = rec.get("before") if isinstance(rec.get("before"), dict) else None  # type: ignore[assignment]
+        row.after = rec.get("after") if isinstance(rec.get("after"), dict) else None  # type: ignore[assignment]
+        row.title = str(rec.get("title", ""))[:300]  # type: ignore[assignment]
+        row.rationale_md = _cast_str_or_none(rec.get("rationale_md"))  # type: ignore[assignment]
+        row.effort = str(rec.get("effort", "M"))[:2]  # type: ignore[assignment]
+        row.risk = str(rec.get("risk", "med"))[:10]  # type: ignore[assignment]
+        row.prompt_md = _cast_str_or_none(rec.get("prompt_md"))  # type: ignore[assignment]
+        row.depends_on = plan_field["depends_on"]
+        row.wave = plan_field["wave"]
+        row.assigned_agent = plan_field["assigned_agent"]
+
+    # 새 결과에서 사라진 idx — Linear 미등록 행만 정리
+    for idx, row in existing_by_idx.items():
+        if idx in seen_idx:
+            continue
+        if row.linear_issue_id is None:
+            await db.delete(row)
+
     await db.commit()
 
 

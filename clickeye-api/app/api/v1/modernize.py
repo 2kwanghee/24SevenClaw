@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime  # noqa: TC003 — runtime cast 에 필요
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_phase_artifact import ModernizePhaseArtifact
 from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
@@ -28,14 +29,17 @@ from app.schemas.modernize import (
     FinalizeRequest,
     FinalizeResponse,
     InstallationListItem,
+    ModernizePlanResponse,
     ModernizeRecommendationResponse,
     ModernizeRecommendationUpdate,
     ModernizeSessionCreate,
     ModernizeSessionResponse,
+    PlanTaskItem,
+    PlanWaveGroup,
     RepoListItem,
 )
 from app.services.modernize import finalize as finalize_svc
-from app.services.modernize import pipeline, repo_service, zip_builder
+from app.services.modernize import pipeline, plan_generation, repo_service, zip_builder
 
 _ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
 
@@ -484,6 +488,113 @@ async def finalize_session(
         zip_url=f"/api/v1/modernize/sessions/{session_id}/zip",
         selected_recommendation_count=len(selected_recs),
     )
+
+
+
+# ----------------------------------------------------------------------
+# Plan phase — 태스크 DAG + 웨이브/마일스톤 (Phase 4)
+# ----------------------------------------------------------------------
+
+
+def _plan_response_from_artifacts(
+    session_id: UUID,
+    json_artifact: ModernizePhaseArtifact,
+    summary_artifact: ModernizePhaseArtifact,
+) -> ModernizePlanResponse:
+    content = cast("dict[str, Any]", json_artifact.content_json or {})
+    waves = [
+        PlanWaveGroup(
+            wave=w.get("wave", 0),
+            tasks=[PlanTaskItem(**t) for t in w.get("tasks", [])],
+        )
+        for w in content.get("waves", [])
+    ]
+    return ModernizePlanResponse(
+        session_id=session_id,
+        waves=waves,
+        plan_md=summary_artifact.content_md or "",
+        approved_at=cast("datetime | None", json_artifact.approved_at),
+        generated_at=cast("datetime | None", json_artifact.updated_at),
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/plan/generate",
+    response_model=ModernizePlanResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def generate_plan(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePlanResponse:
+    """tobe 승인 후 plan.json + modernization-plan.md 생성. current_phase='plan' 전이."""
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    try:
+        json_artifact, summary_artifact = await plan_generation.generate_plan_artifacts(
+            db, session_row
+        )
+    except plan_generation.TobeNotApprovedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except plan_generation.NoRecommendationsError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return _plan_response_from_artifacts(session_id, json_artifact, summary_artifact)
+
+
+@router.get(
+    "/sessions/{session_id}/plan",
+    response_model=ModernizePlanResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def get_plan(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePlanResponse:
+    """가장 최근 생성된 plan 산출물 조회. 미생성 시 404."""
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    if session_result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    artifacts_result = await db.execute(
+        select(ModernizePhaseArtifact).where(
+            ModernizePhaseArtifact.session_id == session_id,
+            ModernizePhaseArtifact.phase == "plan",
+        )
+    )
+    by_type: dict[str, ModernizePhaseArtifact] = {
+        str(row.artifact_type): row for row in artifacts_result.scalars().all()
+    }
+    json_artifact = by_type.get(plan_generation.PLAN_JSON_ARTIFACT_TYPE)
+    summary_artifact = by_type.get(plan_generation.PLAN_SUMMARY_ARTIFACT_TYPE)
+    if json_artifact is None or summary_artifact is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="plan 산출물이 아직 생성되지 않았습니다.",
+        )
+
+    return _plan_response_from_artifacts(session_id, json_artifact, summary_artifact)
 
 
 @router.get(

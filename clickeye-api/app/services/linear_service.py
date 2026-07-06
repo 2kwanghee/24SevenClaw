@@ -76,6 +76,14 @@ mutation IssueUpdate($id: String!, $stateId: String!) {
 }
 """
 
+_ISSUE_RELATION_CREATE = """
+mutation IssueRelationCreate($input: IssueRelationCreateInput!) {
+  issueRelationCreate(input: $input) {
+    success
+  }
+}
+"""
+
 
 def _call(api_key: str, query: str, variables: dict | None = None, timeout: int = 15) -> dict:  # type: ignore[type-arg]
     body = json.dumps({"query": query, "variables": variables or {}}).encode()
@@ -381,6 +389,34 @@ def create_modernize_child_issues(
             }
         )
     return created
+
+
+def create_issue_relation(
+    api_key: str,
+    *,
+    blocking_issue_id: str,
+    blocked_issue_id: str,
+) -> bool:
+    """`blocking_issue_id` 가 `blocked_issue_id` 를 막는(blocks) 관계 등록.
+
+    Modernize plan phase 의 depends_on 을 Linear 이슈 관계로 반영할 때 사용 —
+    실패해도 finalize 전체를 막지 않는 best-effort 헬퍼.
+
+    Returns:
+        성공 여부.
+    """
+    variables: dict = {  # type: ignore[type-arg]
+        "input": {
+            "issueId": blocking_issue_id,
+            "relatedIssueId": blocked_issue_id,
+            "type": "blocks",
+        }
+    }
+    try:
+        data = _call(api_key, _ISSUE_RELATION_CREATE, variables)
+    except Exception:
+        return False
+    return bool(data.get("issueRelationCreate", {}).get("success"))
 
 
 def ensure_webhook(
