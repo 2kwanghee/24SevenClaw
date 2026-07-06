@@ -10,6 +10,11 @@ related:
 
 # ClickEye Modernize 회귀 검증 체크리스트 (MVP-2-A)
 
+> TODO(docs-sync): 6단계 Phase 모델(asis/requirements/tobe/plan/preflight/execute) +
+> Phase 3 To-Be 설계(`services/modernize/tobe.py`, `GET/POST .../phase-artifacts*`)가
+> M8 이후 추가됨. R-1~R-7 항목 자체는 여전히 유효(신규 기능은 병행 도입/옵트인)하나,
+> 마일스톤 목록과 R-7 migration 버전(039)이 042 기준으로 갱신 필요 — 사람 판단 후 반영.
+
 > Modernize 파이프라인(M1~M7) PR 머지 전 매번 확인해야 할 비침습성 회귀 검증.
 > 핵심 원칙: **기존 코드 무영향, 신규 기능은 옵트인 분기로만 추가.**
 
