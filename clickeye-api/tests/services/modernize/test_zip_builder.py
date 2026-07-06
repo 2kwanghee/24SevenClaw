@@ -57,6 +57,29 @@ def test_zip_tree_has_required_files() -> None:
     assert "docs/diagnosis.json" in names
     assert "MODERNIZE_README.md" in names
     assert ".env.example" in names
+    assert "plan.json" in names
+    assert "scripts/modernize_pipeline.sh" in names
+    assert "scripts/orchestrator.py" in names
+
+
+def test_zip_plan_json_contains_task_matching_recommendation() -> None:
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        plan = json.loads(zf.read("plan.json"))
+    assert plan["session_id"] == "session-uuid-123"
+    assert plan["repo_full_name"] == "acme/api"
+    task_ids = {t["id"] for t in plan["tasks"]}
+    assert "CE-101" in task_ids
+    task = next(t for t in plan["tasks"] if t["id"] == "CE-101")
+    assert task["prompt_file"] == ".ralph/tasks/CE-101.md"
+    assert task["risk"] == "high"
+
+
+def test_zip_orchestrator_script_is_valid_python() -> None:
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        source = zf.read("scripts/orchestrator.py").decode("utf-8")
+    compile(source, "orchestrator.py", "exec")
 
 
 def test_zip_linear_issues_json_content() -> None:
