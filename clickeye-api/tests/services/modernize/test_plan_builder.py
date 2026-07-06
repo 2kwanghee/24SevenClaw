@@ -124,3 +124,30 @@ def test_unknown_target_path_has_no_gate_commands() -> None:
     plan = build_plan(recommendations=recs, **_BASE_KWARGS)
     gate = plan["tasks"][0]["gate"]
     assert gate == {"test_cmd": None, "lint_cmd": None}
+
+
+def test_assigned_agent_is_none_without_requirement_tags() -> None:
+    """requirement_tags 미지정 시 기존 동작 유지 — assigned_agent 는 항상 None."""
+    recs = [{"linear_identifier": "CE-M1", "title": "migrate step", "category": "migrate"}]
+    plan = build_plan(recommendations=recs, **_BASE_KWARGS)
+    assert plan["requirement_tags"] == []
+    assert plan["tasks"][0]["assigned_agent"] is None
+
+
+def test_assigned_agent_set_for_migrate_task_with_db_migrate_tag() -> None:
+    recs = [
+        {"linear_identifier": "CE-M1", "title": "schema dump", "category": "migrate"},
+        {"linear_identifier": "CE-U1", "title": "unrelated upgrade", "category": "upgrade"},
+    ]
+    plan = build_plan(
+        recommendations=recs,
+        requirement_tags=["db_migrate"],
+        source_db="mariadb",
+        target_db="postgresql",
+        **_BASE_KWARGS,
+    )
+    assert plan["requirement_tags"] == ["db_migrate"]
+    by_id = {t["id"]: t for t in plan["tasks"]}
+    assert by_id["CE-M1"]["assigned_agent"] == "db-migrator"
+    # migrate 가 아닌 카테고리는 여전히 배정하지 않음(MVP 범위)
+    assert by_id["CE-U1"]["assigned_agent"] is None

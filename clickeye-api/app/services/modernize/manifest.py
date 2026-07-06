@@ -16,6 +16,44 @@ _DOCKERFILE_FROM = re.compile(r"^\s*FROM\s+([^\s]+)", re.MULTILINE | re.IGNORECA
 # go.mod 의 go directive
 _GO_DIRECTIVE = re.compile(r"^\s*go\s+([\d.]+)", re.MULTILINE)
 
+# 의존성 이름에 포함된 키워드로 DB 종류를 추정 — 순서대로 첫 매치 우선.
+_DB_DRIVER_KEYWORDS: tuple[tuple[str, str], ...] = (
+    ("psycopg", "postgresql"),
+    ("asyncpg", "postgresql"),
+    ("pg8000", "postgresql"),
+    ("postgres", "postgresql"),
+    ("mariadb", "mariadb"),
+    ("pymysql", "mysql"),
+    ("mysqlclient", "mysql"),
+    ("mysql-connector", "mysql"),
+    ("mysql2", "mysql"),
+    ("aiomysql", "mysql"),
+    ("mysql", "mysql"),
+    ("pyodbc", "mssql"),
+    ("pymssql", "mssql"),
+    ("mssql", "mssql"),
+    ("cx_oracle", "oracle"),
+    ("cx-oracle", "oracle"),
+    ("oracledb", "oracle"),
+    ("oracle", "oracle"),
+    ("better-sqlite3", "sqlite"),
+    ("sqlite3", "sqlite"),
+    ("sqlite", "sqlite"),
+    ("pymongo", "mongodb"),
+    ("mongoose", "mongodb"),
+    ("mongodb", "mongodb"),
+)
+
+# Dockerfile FROM 베이스 이미지 이름 → DB 종류 (보조 신호, 앱 의존성에서 못 찾았을 때만 사용).
+_DB_IMAGE_KEYWORDS: tuple[tuple[str, str], ...] = (
+    ("mariadb", "mariadb"),
+    ("mysql", "mysql"),
+    ("postgres", "postgresql"),
+    ("mssql", "mssql"),
+    ("oracle", "oracle"),
+    ("mongo", "mongodb"),
+)
+
 
 def parse_manifests(root: Path) -> dict[str, object]:
     """워크스페이스 root 의 manifest 들을 파싱.
@@ -45,7 +83,7 @@ def parse_manifests(root: Path) -> dict[str, object]:
             if name == "pyproject.toml":
                 _parse_pyproject(path, rel, manifests, framework_signals)
             elif name == "requirements.txt":
-                _parse_requirements_txt(path, rel, manifests)
+                _parse_requirements_txt(path, rel, manifests, framework_signals)
             elif name == "package.json":
                 _parse_package_json(path, rel, manifests, framework_signals)
             elif name == "go.mod":
@@ -97,9 +135,15 @@ def _parse_pyproject(
 
     manifests.append({"path": str(rel), "kind": "python", "raw_deps": deps})
     _detect_python_frameworks(deps, framework_signals)
+    _detect_db_signals(deps, framework_signals)
 
 
-def _parse_requirements_txt(path: Path, rel: Path, manifests: list[dict[str, object]]) -> None:
+def _parse_requirements_txt(
+    path: Path,
+    rel: Path,
+    manifests: list[dict[str, object]],
+    framework_signals: dict[str, str],
+) -> None:
     deps: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -109,6 +153,7 @@ def _parse_requirements_txt(path: Path, rel: Path, manifests: list[dict[str, obj
         if name:
             deps[name] = version
     manifests.append({"path": str(rel), "kind": "python", "raw_deps": deps})
+    _detect_db_signals(deps, framework_signals)
 
 
 def _parse_package_json(
@@ -136,6 +181,7 @@ def _parse_package_json(
 
     manifests.append({"path": str(rel), "kind": "node", "raw_deps": deps})
     _detect_node_frameworks(deps, framework_signals)
+    _detect_db_signals(deps, framework_signals)
 
 
 def _parse_go_mod(
@@ -197,6 +243,12 @@ def _parse_dockerfile(
             framework_signals.setdefault("python", base.split(":", 1)[1].split("-", 1)[0])
         elif base.lower().startswith("node:"):
             framework_signals.setdefault("node", base.split(":", 1)[1].split("-", 1)[0])
+        if "db_type" not in framework_signals:
+            lowered_base = base.lower()
+            for keyword, db_type in _DB_IMAGE_KEYWORDS:
+                if keyword in lowered_base:
+                    framework_signals["db_type"] = db_type
+                    break
 
     manifests.append({"path": str(rel), "kind": "dockerfile", "raw_deps": {"from": bases}})
 
@@ -222,6 +274,21 @@ def _detect_node_frameworks(deps: dict[str, str], framework_signals: dict[str, s
     ):
         if fw in deps:
             framework_signals[fw] = deps[fw]
+
+
+def _detect_db_signals(deps: dict[str, str], framework_signals: dict[str, str]) -> None:
+    """의존성 이름에서 DB 드라이버 키워드를 감지해 `framework_signals['db_type']` 채움.
+
+    이미 감지된 값이 있으면 덮어쓰지 않음(가장 먼저 파싱된 manifest 의 값 우선).
+    """
+    if "db_type" in framework_signals:
+        return
+    for name in deps:
+        lowered = name.lower()
+        for keyword, db_type in _DB_DRIVER_KEYWORDS:
+            if keyword in lowered:
+                framework_signals["db_type"] = db_type
+                return
 
 
 def _parse_dep_string(dep: str) -> tuple[str, str]:

@@ -183,3 +183,85 @@ def test_zip_deterministic_for_same_input() -> None:
     b = generate_modernize_zip(**_BASE_KWARGS)
     with _open(a) as za, _open(b) as zb:
         assert set(za.namelist()) == set(zb.namelist())
+
+
+# ---------------------------------------------------------------------------
+# CE-291 — 요구사항 태그 → 에이전트 매핑 레지스트리 / DB 마이그레이션 팩
+# ---------------------------------------------------------------------------
+
+
+def test_zip_bundles_versionup_pack_by_default() -> None:
+    """target_stack/goals_text 미지정 시에도 scenario 기반 기본 팩(versionup)이 번들됨."""
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        names = set(zf.namelist())
+        plan = json.loads(zf.read("plan.json"))
+    assert ".claude/agents/dependency-upgrader.md" in names
+    assert ".claude/skills/upgrade-verify.md" in names
+    assert plan["requirement_tags"] == ["versionup"]
+
+
+def test_zip_mariadb_to_postgresql_selects_db_migrator_pack() -> None:
+    """fix_plan.md 완료조건 — mariadb→postgresql 샘플 요구사항으로 db-migrator 팩이 선택됨."""
+    kwargs = {
+        **_BASE_KWARGS,
+        "scenario": "language_migrate",
+        "analysis_data": {
+            **_BASE_KWARGS["analysis_data"],
+            "framework_signals": {"python": "3.11", "db_type": "mariadb"},
+        },
+        "recommendations": [
+            {
+                "id": "rec-db-1",
+                "linear_identifier": "CE-M1",
+                "title": "스키마 덤프 및 타입 매핑",
+                "prompt_md": "# 스키마 덤프\n",
+                "target_path": "db/schema.sql",
+                "risk": "high",
+                "effort": "L",
+                "category": "migrate",
+                "priority": 10,
+            },
+        ],
+        "linear_issues": [],
+        "target_stack": {"db_type": "postgresql"},
+        "goals_text": "MariaDB를 PostgreSQL로 이관합니다",
+    }
+    data = generate_modernize_zip(**kwargs)
+    with _open(data) as zf:
+        names = set(zf.namelist())
+        plan = json.loads(zf.read("plan.json"))
+        agent_md = zf.read(".claude/agents/db-migrator.md").decode("utf-8")
+        readme = zf.read("MODERNIZE_README.md").decode("utf-8")
+
+    assert ".claude/agents/db-migrator.md" in names
+    assert ".claude/skills/migration-verify.md" in names
+    assert "db_migrate" in plan["requirement_tags"]
+
+    migrate_task = next(t for t in plan["tasks"] if t["id"] == "CE-M1")
+    assert migrate_task["assigned_agent"] == "db-migrator"
+
+    assert "mariadb->postgresql" in agent_md
+    assert "AUTO_INCREMENT" in agent_md
+    assert "schema_dump" in agent_md
+
+    # README 에 preflight 체크리스트 섹션이 채워짐
+    assert "Preflight 체크리스트" in readme
+    assert "백업" in readme
+
+
+def test_zip_same_source_and_target_db_skips_db_migrate_pack() -> None:
+    kwargs = {
+        **_BASE_KWARGS,
+        "analysis_data": {
+            **_BASE_KWARGS["analysis_data"],
+            "framework_signals": {"python": "3.11", "db_type": "postgresql"},
+        },
+        "target_stack": {"db_type": "postgresql"},
+    }
+    data = generate_modernize_zip(**kwargs)
+    with _open(data) as zf:
+        names = set(zf.namelist())
+        plan = json.loads(zf.read("plan.json"))
+    assert ".claude/agents/db-migrator.md" not in names
+    assert "db_migrate" not in plan["requirement_tags"]

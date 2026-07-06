@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime  # noqa: TC003 — runtime cast 에 필요
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -575,6 +575,8 @@ async def download_zip(
         analysis_data=analysis_data,
         recommendations=rec_payloads,
         linear_issues=linear_issues,
+        target_stack=cast("dict[str, Any] | None", session_row.target_stack),
+        goals_text=cast("str | None", session_row.goals_text),
     )
 
     safe_name = str(session_row.repo_full_name).replace("/", "_")

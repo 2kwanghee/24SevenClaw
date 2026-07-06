@@ -23,7 +23,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from app.services.modernize import plan_builder
+from app.services.modernize import agent_registry, plan_builder
 
 _TEMPLATES_DIR = Path(__file__).parent / "orchestrator_templates"
 
@@ -59,6 +59,10 @@ bash scripts/modernize_pipeline.sh   # plan.json 의 태스크 DAG를 순서대�
 ## 5. 권장사항 ({recommendation_count} 건)
 
 {recommendation_list}
+
+## 6. Preflight 체크리스트
+
+{preflight_list}
 """
 
 _ENV_EXAMPLE = """# Linear 자동 등록을 위해 사용된 자격증명
@@ -84,10 +88,35 @@ def generate_modernize_zip(
     recommendations: list[dict[str, Any]],
     linear_team_id: str = "",
     linear_issues: list[dict[str, Any]] | None = None,
+    target_stack: dict[str, Any] | None = None,
+    goals_text: str | None = None,
 ) -> bytes:
-    """ZIP 바이트 반환. 호출자가 file response 로 streaming."""
+    """ZIP 바이트 반환. 호출자가 file response 로 streaming.
+
+    `target_stack`/`goals_text` 가 주어지면 CE-291 에이전트 매핑 레지스트리를 통해
+    요구사항 태그(예: db_migrate)를 도출하고, 태그에 맞는 `.claude/agents/*.md` /
+    `.claude/skills/*.md` 를 번들하며 plan.json 태스크에 `assigned_agent` 를 채운다.
+    """
     project_name = project_name or repo_full_name.split("/")[-1] or "modernize-project"
     linear_issues = linear_issues or []
+
+    framework_signals = analysis_data.get("framework_signals")
+    as_is_db = (
+        framework_signals.get("db_type")
+        if isinstance(framework_signals, dict)
+        else None
+    )
+    to_be_db = (
+        (target_stack.get("db_type") or target_stack.get("db"))
+        if isinstance(target_stack, dict)
+        else None
+    )
+    requirement_tags = agent_registry.derive_requirement_tags(
+        scenario=scenario, as_is_db=as_is_db, to_be=target_stack, goals_text=goals_text
+    )
+    resolved_pack = agent_registry.resolve_pack(
+        requirement_tags, source_db=as_is_db, target_db=to_be_db
+    )
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -126,6 +155,7 @@ def generate_modernize_zip(
 
         # 5) MODERNIZE_README.md
         rec_list_md = _build_rec_list_md(recommendations)
+        preflight_list_md = _build_preflight_list_md(resolved_pack.preflight_checks)
         zf.writestr(
             "MODERNIZE_README.md",
             _README_TEMPLATE.format(
@@ -134,6 +164,7 @@ def generate_modernize_zip(
                 scenario=scenario,
                 recommendation_count=len(recommendations),
                 recommendation_list=rec_list_md,
+                preflight_list=preflight_list_md,
             ),
         )
 
@@ -152,6 +183,9 @@ def generate_modernize_zip(
             repo_full_name=repo_full_name,
             scenario=scenario,
             recommendations=recommendations,
+            requirement_tags=requirement_tags,
+            source_db=as_is_db,
+            target_db=to_be_db,
         )
         zf.writestr("plan.json", json.dumps(plan, ensure_ascii=False, indent=2))
 
@@ -164,6 +198,24 @@ def generate_modernize_zip(
             "scripts/orchestrator.py",
             (_TEMPLATES_DIR / "orchestrator.py").read_text(encoding="utf-8"),
         )
+
+        # 9) .claude/agents/*.md + .claude/skills/*.md — 요구사항 태그 기반 에이전트 팩 번들
+        written_agents: set[str] = set()
+        written_skills: set[str] = set()
+        for tag in resolved_pack.tags:
+            pack = resolved_pack.packs_by_tag[tag]
+            for agent_name in pack.agents:
+                if agent_name in written_agents:
+                    continue
+                written_agents.add(agent_name)
+                agent_md = _render_agent_md(agent_name, tag, resolved_pack)
+                zf.writestr(f".claude/agents/{agent_name}.md", agent_md)
+            for skill_name in pack.skills:
+                if skill_name in written_skills:
+                    continue
+                written_skills.add(skill_name)
+                skill_md = _render_skill_md(skill_name, pack.description)
+                zf.writestr(f".claude/skills/{skill_name}.md", skill_md)
 
     buf.seek(0)
     return buf.read()
@@ -180,6 +232,63 @@ def _build_rec_list_md(recommendations: list[dict[str, Any]]) -> str:
         effort = rec.get("effort", "M")
         lines.append(f"- `{identifier}` **{title}** — risk: {risk}, effort: {effort}")
     return "\n".join(lines)
+
+
+def _build_preflight_list_md(checks: list[str]) -> str:
+    if not checks:
+        return "_(추가 preflight 체크 없음)_"
+    return "\n".join(f"- [ ] {c}" for c in checks)
+
+
+def _render_agent_md(agent_name: str, tag: str, resolved_pack: agent_registry.ResolvedPack) -> str:
+    """요구사항 태그 팩의 에이전트 1개를 `.claude/agents/<name>.md` 내용으로 렌더링.
+
+    db_migrate 태그는 소스→타깃 DB 조합별 콤보(주의사항/태스크 시퀀스)를 우선 사용한다.
+    """
+    pack = resolved_pack.packs_by_tag[tag]
+    lines = [
+        "---",
+        f"name: {agent_name}",
+        f"description: {pack.description}",
+        "---",
+        "",
+        f"# {agent_name}",
+        "",
+        pack.description,
+        "",
+    ]
+
+    combo = resolved_pack.combo if tag == "db_migrate" else None
+    if combo is not None and combo.task_sequence:
+        lines.append(f"## 태스크 시퀀스 ({resolved_pack.combo_key})")
+        lines.extend(f"{i}. {step}" for i, step in enumerate(combo.task_sequence, start=1))
+        lines.append("")
+        if combo.notes_md:
+            lines.append("## 조합별 주의사항")
+            lines.append(combo.notes_md)
+            lines.append("")
+    elif pack.task_templates:
+        lines.append("## 태스크 템플릿")
+        lines.extend(f"- {t}" for t in pack.task_templates)
+        lines.append("")
+
+    if pack.preflight_checks:
+        lines.append("## Preflight 체크리스트")
+        lines.extend(f"- [ ] {c}" for c in pack.preflight_checks)
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _render_skill_md(skill_name: str, description: str) -> str:
+    return (
+        "---\n"
+        f"name: {skill_name}\n"
+        f"description: {description}\n"
+        "---\n\n"
+        f"# {skill_name}\n\n"
+        f"{description}\n"
+    )
 
 
 def _fallback_prompt_from_rec(rec: dict[str, Any]) -> str:

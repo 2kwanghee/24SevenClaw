@@ -17,6 +17,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.services.modernize import agent_registry
+
 _GATE_BY_TARGET: tuple[tuple[str, dict[str, str | None]], ...] = (
     (
         "pyproject.toml",
@@ -35,14 +37,27 @@ def build_plan(
     repo_full_name: str,
     scenario: str,
     recommendations: list[dict[str, Any]],
+    requirement_tags: list[str] | None = None,
+    source_db: str | None = None,
+    target_db: str | None = None,
 ) -> dict[str, Any]:
     """recommendations → plan.json 직렬화 가능 dict.
 
     각 rec 는 zip_builder 와 동일한 필드(id/linear_identifier/title/target_path/risk/
     effort/category/priority)를 사용. 누락 필드는 안전 기본값으로 채운다.
+
+    `requirement_tags` 가 주어지면 CE-291 에이전트 매핑 레지스트리(`agent_registry`)를 조회해
+    category == 'migrate' 태스크에 `assigned_agent` 를 채운다(예: db_migrate 태그 → db-migrator).
+    태그가 없으면 기존과 동일하게 `assigned_agent` 는 None.
     """
     tasks: list[dict[str, Any]] = []
     ordered = sorted(recommendations, key=lambda r: _safe_priority(r.get("priority")))
+
+    resolved_pack = (
+        agent_registry.resolve_pack(requirement_tags, source_db=source_db, target_db=target_db)
+        if requirement_tags
+        else None
+    )
 
     # target_path 별 첫 등장(가장 낮은 priority) 태스크 id 추적 — 충돌 의존성 생성용
     first_task_by_target: dict[str, str] = {}
@@ -70,6 +85,7 @@ def build_plan(
                 "effort": str(rec.get("effort") or "M"),
                 "depends_on": depends_on,
                 "gate": _resolve_gate(target_path),
+                "assigned_agent": _resolve_assigned_agent(category, resolved_pack),
             }
         )
 
@@ -83,8 +99,18 @@ def build_plan(
         "session_id": session_id,
         "repo_full_name": repo_full_name,
         "scenario": scenario,
+        "requirement_tags": list(requirement_tags or []),
         "tasks": tasks,
     }
+
+
+def _resolve_assigned_agent(
+    category: str, resolved_pack: agent_registry.ResolvedPack | None
+) -> str | None:
+    """migrate 태스크에만 레지스트리의 primary agent 를 배정. 그 외는 None(기존 동작 유지)."""
+    if resolved_pack is None or category != "migrate":
+        return None
+    return resolved_pack.primary_agent
 
 
 def _resolve_task_id(rec: dict[str, Any]) -> str:

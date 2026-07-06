@@ -1,0 +1,131 @@
+{
+  "language_migrate": {
+    "description": "언어/프레임워크 전면 이관을 담당하는 에이전트 팩. scaffolding부터 cutover까지 단계적으로 진행한다.",
+    "agents": ["code-migrator"],
+    "skills": ["migration-verify"],
+    "task_templates": [
+      "scaffolding",
+      "core_logic_port",
+      "test_port",
+      "cutover"
+    ],
+    "preflight_checks": [
+      "이관 대상 코드 전체 커밋/백업",
+      "기존 테스트 스위트 그린 상태 확인",
+      "롤백 브랜치 준비"
+    ],
+    "combos": {}
+  },
+  "db_migrate": {
+    "description": "관계형 데이터베이스 엔진 마이그레이션 전문 에이전트 팩. 소스→타깃 조합별 스키마 변환, 데이터 이관, 정합성 검증, 롤백 스크립트를 순서대로 생성한다.",
+    "agents": ["db-migrator"],
+    "skills": ["migration-verify", "db-rollback-check"],
+    "task_templates": [
+      "schema_dump",
+      "ddl_generate",
+      "data_migrate",
+      "app_config_update",
+      "integrity_verify",
+      "rollback_script"
+    ],
+    "preflight_checks": [
+      "전체 DB 백업 스냅샷 생성",
+      "롤백 스크립트 사전 작성 및 dry-run",
+      "다운타임 윈도우 사전 협의",
+      "이관 대상 테이블 행수/체크섬 베이스라인 기록"
+    ],
+    "combos": {
+      "mariadb->postgresql": {
+        "notes_md": "- `AUTO_INCREMENT` → `GENERATED ALWAYS AS IDENTITY`\n- MariaDB `ENUM` → PostgreSQL `CHECK` 제약 또는 native `ENUM` 타입\n- `UNSIGNED` 정수 → 상위 타입(`BIGINT` 등)으로 승격\n- 문자셋 utf8mb4 → PostgreSQL UTF8 (콜레이션 재검토)\n- MariaDB 전용 함수(`IFNULL`, `GROUP_CONCAT`) → `COALESCE`, `STRING_AGG` 로 치환",
+        "task_sequence": [
+          "schema_dump",
+          "ddl_generate",
+          "data_migrate",
+          "app_config_update",
+          "integrity_verify",
+          "rollback_script"
+        ]
+      },
+      "mysql->postgresql": {
+        "notes_md": "- `AUTO_INCREMENT` → `GENERATED ALWAYS AS IDENTITY`\n- `TINYINT(1)` → `BOOLEAN`\n- `DATETIME` → `TIMESTAMP` (타임존 정책 확인)\n- MySQL 전용 함수(`IFNULL`, `GROUP_CONCAT`, `NOW()`) → `COALESCE`, `STRING_AGG`, `now()`\n- 암묵적 문자열↔숫자 형변환 의존 쿼리 재검토 (PostgreSQL은 엄격한 타입 체크)",
+        "task_sequence": [
+          "schema_dump",
+          "ddl_generate",
+          "data_migrate",
+          "app_config_update",
+          "integrity_verify",
+          "rollback_script"
+        ]
+      },
+      "mssql->postgresql": {
+        "notes_md": "- T-SQL `IDENTITY` → `GENERATED ALWAYS AS IDENTITY`\n- T-SQL 저장 프로시저/함수 → PL/pgSQL로 재작성 필요\n- `NVARCHAR`/`VARCHAR(MAX)` → `TEXT`\n- `GETDATE()` → `now()`, `ISNULL()` → `COALESCE()`\n- T-SQL `TOP n` → `LIMIT n`\n- 트랜잭션 격리수준/락 힌트 문법 차이 검토",
+        "task_sequence": [
+          "schema_dump",
+          "ddl_generate",
+          "data_migrate",
+          "app_config_update",
+          "integrity_verify",
+          "rollback_script"
+        ]
+      },
+      "oracle->postgresql": {
+        "notes_md": "- Oracle `NUMBER` → `NUMERIC`/`INTEGER` (정밀도별 매핑 필요)\n- `SEQUENCE` + `NEXTVAL` 문법은 PostgreSQL도 지원하나 `GENERATED ALWAYS AS IDENTITY` 로 단순화 검토\n- PL/SQL 패키지/프로시저 → PL/pgSQL 재작성 필요 (가장 리스크 높은 구간)\n- Oracle `VARCHAR2` → `VARCHAR`/`TEXT`, `DATE` (Oracle은 시각 포함) → `TIMESTAMP`\n- `ROWNUM` → `LIMIT`/윈도우 함수 (`ROW_NUMBER() OVER (...)`)\n- `DUAL` 테이블 참조 쿼리 제거",
+        "task_sequence": [
+          "schema_dump",
+          "ddl_generate",
+          "data_migrate",
+          "app_config_update",
+          "integrity_verify",
+          "rollback_script"
+        ]
+      },
+      "generic": {
+        "notes_md": "- 소스/타깃 DB 조합에 대한 전용 가이드가 없습니다 — 타입 매핑, 함수 치환, 인덱스/제약조건 차이를 수동 검토하세요.\n- 스키마 덤프 → 타입 매핑표 작성 → DDL 생성 → 배치 단위 데이터 이관 → 행수/체크섬 검증 순서를 권장합니다.",
+        "task_sequence": [
+          "schema_dump",
+          "ddl_generate",
+          "data_migrate",
+          "app_config_update",
+          "integrity_verify",
+          "rollback_script"
+        ]
+      }
+    }
+  },
+  "replatform": {
+    "description": "인프라/컨테이너 리플랫폼(온프레미스→클라우드, VM→컨테이너 등)을 담당하는 에이전트 팩.",
+    "agents": ["infra-migrator"],
+    "skills": ["migration-verify"],
+    "task_templates": [
+      "infra_manifest_convert",
+      "config_externalize",
+      "deploy_verify"
+    ],
+    "preflight_checks": [
+      "현재 인프라 구성 백업(IaC 코드/설정 스냅샷)",
+      "무중단 배포 전략 확인"
+    ],
+    "combos": {}
+  },
+  "versionup": {
+    "description": "런타임/프레임워크/의존성 버전 업그레이드를 담당하는 에이전트 팩.",
+    "agents": ["dependency-upgrader"],
+    "skills": ["upgrade-verify"],
+    "task_templates": ["dependency_bump", "breaking_change_fix"],
+    "preflight_checks": [
+      "CI 파이프라인 그린 상태 확인",
+      "lockfile 백업"
+    ],
+    "combos": {}
+  },
+  "refactor": {
+    "description": "코드 품질/구조 개선(리팩터링)을 담당하는 범용 에이전트 팩.",
+    "agents": ["code-refactorer"],
+    "skills": ["migration-verify"],
+    "task_templates": ["quality_pass"],
+    "preflight_checks": [
+      "기존 테스트 스위트 그린 상태 확인"
+    ],
+    "combos": {}
+  }
+}

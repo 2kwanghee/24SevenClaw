@@ -126,3 +126,44 @@ def test_parse_skips_node_modules(tmp_path: Path) -> None:
     result = parse_manifests(tmp_path)
     # node_modules 의 package.json 은 skip — 루트만 카운트
     assert len(result["manifests"]) == 1  # type: ignore[arg-type]
+
+
+def test_detect_db_type_from_python_driver(tmp_path: Path) -> None:
+    (tmp_path / "requirements.txt").write_text("Django==4.2\nPyMySQL==1.1.0\n")
+    result = parse_manifests(tmp_path)
+    signals: dict[str, str] = result["framework_signals"]  # type: ignore[assignment]
+    assert signals.get("db_type") == "mysql"
+
+
+def test_detect_db_type_from_pyproject_driver(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\n"
+        'name = "demo"\n'
+        'dependencies = ["fastapi>=0.115", "psycopg[binary]>=3.1"]\n'
+    )
+    result = parse_manifests(tmp_path)
+    signals: dict[str, str] = result["framework_signals"]  # type: ignore[assignment]
+    assert signals.get("db_type") == "postgresql"
+
+
+def test_detect_db_type_from_node_driver(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text(
+        '{"dependencies": {"express": "^4.18.0", "mariadb": "^3.2.0"}}'
+    )
+    result = parse_manifests(tmp_path)
+    signals: dict[str, str] = result["framework_signals"]  # type: ignore[assignment]
+    assert signals.get("db_type") == "mariadb"
+
+
+def test_detect_db_type_from_dockerfile_image_fallback(tmp_path: Path) -> None:
+    (tmp_path / "Dockerfile").write_text("FROM mcr.microsoft.com/mssql/server:2022-latest\n")
+    result = parse_manifests(tmp_path)
+    signals: dict[str, str] = result["framework_signals"]  # type: ignore[assignment]
+    assert signals.get("db_type") == "mssql"
+
+
+def test_no_db_driver_leaves_db_type_unset(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text('{"dependencies": {"react": "^18.0.0"}}')
+    result = parse_manifests(tmp_path)
+    signals: dict[str, str] = result["framework_signals"]  # type: ignore[assignment]
+    assert "db_type" not in signals
