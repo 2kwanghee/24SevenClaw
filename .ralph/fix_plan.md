@@ -8,29 +8,38 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[contracts/api] Modernize 6단계 Phase 데이터 모델 확장 (requirements/tobe/plan/preflight)**
+- [x] **[api/zip] 로컬 실행 팩 — 현대화 에이전트·스킬·룰 ZIP 생성**
   > 요청사항: ## 목표
 
-현재 `ModernizeSession.status`(pending→cloning→analyzing→recommending→ready→finalized)를 6단계 워크플로(asis / requirements / tobe / plan / preflight / execute)를 표현할 수 있는 Phase 모델로 확장한다.
+ZIP 산출물을 "문서 6종"에서 **사용자 로컬에서 즉시 실행 가능한 현대화 팩**으로 격상: `.claude/` 에이전트·스킬·룰을 베이크한다. (R1)
 
 ## As-Is 근거
 
-* `app/models/modernize_session.py` — phase 개념 없음, scenario 3종(versionup/refactor/language_migrate)만 존재
-* `app/models/codebase_analysis.py` — `dep_graph` 선언만 되고 미사용, `target_stack` 미활용
-* 산출물 저장 구조가 CodebaseAnalysis(1:1) + Recommendation(N)뿐 → 단계별 산출물 테이블 부재
+* `zip_builder.py` 산출물: `.clickeye/linear-issues.json`, `.ralph/tasks/*.md`, `docs/diagnosis.{md,json}`, `MODERNIZE_README.md`, `.env.example` 뿐
+* `.claude/` 구조·에이전트·스킬·룰·실행 스크립트 전무. README가 안내하는 `auto_dev_pipeline.sh`도 미포함 (`zip_builder.py:13` 주석이 후속으로 미룸)
 
 ## 작업 내용
 
-1. contracts 레포에 Phase enum + 단계별 산출물(artifact) 스키마 정의 (Contract 우선 원칙)
-2. `modernize_sessions`에 `current_phase` 추가, 신규 테이블 `modernize_phase_artifacts` (session_id, phase, artifact_type, content_md, content_json, approved_at)
-3. 구조화 요구사항 스키마: 현재 스택(DB 종류/버전, 런타임, 프레임워크, 인프라) ↔ 목표 스택 쌍
-4. Alembic migration (비침습: 신규 생성 + nullable 컬럼 추가만, downgrade 완전 복원)
-5. `app/schemas/modernize.py` Pydantic 스키마 동기화 + openapi.json/generated 갱신 (contract-drift 게이트 대응)
+1. ZIP 트리 확장:
+
+```
+.claude/
+├── agents/  modernize-pm.md, asis-analyzer.md, code-migrator.md,
+│            db-migrator.md, test-guardian.md, work-recorder.md
+├── skills/  modernize-phase-runner/, migration-verify/, record-work/
+└── CLAUDE.md  (현대화 룰: 단계 게이트, 커밋 규칙, 기록지침, 롤백 원칙)
+docs/modernize/  requirements.md, tobe-architecture.md,
+                 modernization-plan.md, preflight-review.md, plan.json
+```
+
+2. 에이전트 파일은 카탈로그 템플릿 + 세션별 산출물(요구사항/계획) 컨텍스트를 렌더링해 생성 (기존 솔루션 ZIP 생성 엔진 패턴 재사용)
+3. 멀티 플랫폼 대응: `.claude/` 우선, 기존 위저드의 platform 선택과 동일하게 `.gemini/`/`.cursor/` 변환 훅 자리만 마련
+4. 결정성(같은 입력→같은 ZIP) 유지 — 기존 test_zip_builder R-2 원칙
 
 ## 완료 조건
 
-* 기존 파이프라인 회귀 0 (기존 status 흐름 유지, phase는 병행 도입)
-* 마이그레이션 up/down 검증, 스키마 단위 테스트
+* ZIP 압축 해제 → `claude` 실행 → 에이전트/스킬 인식 확인 (수동 E2E 1회 포함)
+* zip_builder 단위 테스트 확장 (필수 트리/렌더링/빈 산출물 폴백)
 
 ---
 
@@ -40,3 +49,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-07-06 | [api/zip] 로컬 실행 팩 | 완료 | `zip_builder.py`에 `.claude/CLAUDE.md`+6개 agents(YAML frontmatter 포함)+3개 skills(SKILL.md)+`docs/modernize/` 5개 산출물 추가. `phase_artifacts` 파라미터로 `modernize_phase_artifacts` 테이블 데이터를 승인 산출물로 렌더링, 없으면 플레이스홀더 폴백. `platform_id` 훅 자리(`_agent_dir_prefix`)만 마련(현재 `.claude/`만 구현). `/sessions/{id}/zip` 엔드포인트에서 ModernizePhaseArtifact 조회해 전달. 단위 테스트 8건 추가(트리/프론트매터/렌더링/폴백/결정성), 기존 8건 포함 총 37건 통과. 수동 E2E는 실제 `claude` 세션 대신 프로젝트 자체 `.claude/agents`·`.claude/skills` 컨벤션과의 구조 대조로 검증(YAML `name`/`description` 프론트매터 일치 확인) — API 비용 소모 회피. |

@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_phase_artifact import ModernizePhaseArtifact
 from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
@@ -567,6 +568,19 @@ async def download_zip(
         if rec.linear_identifier
     ]
 
+    artifact_result = await db.execute(
+        select(ModernizePhaseArtifact).where(ModernizePhaseArtifact.session_id == session_id)
+    )
+    phase_artifacts = [
+        {
+            "phase": artifact.phase,
+            "artifact_type": artifact.artifact_type,
+            "content_md": artifact.content_md,
+            "content_json": artifact.content_json,
+        }
+        for artifact in artifact_result.scalars().all()
+    ]
+
     zip_bytes = zip_builder.generate_modernize_zip(
         repo_full_name=str(session_row.repo_full_name),
         scenario=str(session_row.scenario),
@@ -575,6 +589,7 @@ async def download_zip(
         analysis_data=analysis_data,
         recommendations=rec_payloads,
         linear_issues=linear_issues,
+        phase_artifacts=phase_artifacts,
     )
 
     safe_name = str(session_row.repo_full_name).replace("/", "_")

@@ -59,6 +59,105 @@ def test_zip_tree_has_required_files() -> None:
     assert ".env.example" in names
 
 
+def test_zip_tree_has_local_execution_pack() -> None:
+    """R1 — `.claude/` 에이전트·스킬·룰 + `docs/modernize/` 단계 산출물."""
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        names = set(zf.namelist())
+
+    assert ".claude/CLAUDE.md" in names
+    for slug in (
+        "modernize-pm",
+        "asis-analyzer",
+        "code-migrator",
+        "db-migrator",
+        "test-guardian",
+        "work-recorder",
+    ):
+        assert f".claude/agents/{slug}.md" in names
+    for slug in ("modernize-phase-runner", "migration-verify", "record-work"):
+        assert f".claude/skills/{slug}/SKILL.md" in names
+    for doc in (
+        "requirements.md",
+        "tobe-architecture.md",
+        "modernization-plan.md",
+        "preflight-review.md",
+        "plan.json",
+    ):
+        assert f"docs/modernize/{doc}" in names
+
+
+def test_zip_agents_and_skills_have_recognizable_frontmatter() -> None:
+    """Claude Code 가 서브에이전트/스킬로 인식하려면 YAML frontmatter(name/description) 필요."""
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        for slug in (
+            "modernize-pm",
+            "asis-analyzer",
+            "code-migrator",
+            "db-migrator",
+            "test-guardian",
+            "work-recorder",
+        ):
+            body = zf.read(f".claude/agents/{slug}.md").decode("utf-8")
+            assert body.startswith("---\n")
+            assert f"name: {slug}" in body
+            assert "description:" in body
+        for slug in ("modernize-phase-runner", "migration-verify", "record-work"):
+            body = zf.read(f".claude/skills/{slug}/SKILL.md").decode("utf-8")
+            assert body.startswith("---\n")
+            assert f"name: {slug}" in body
+            assert "description:" in body
+
+
+def test_zip_claude_md_renders_session_context() -> None:
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        claude_md = zf.read(".claude/CLAUDE.md").decode("utf-8")
+        pm_md = zf.read(".claude/agents/modernize-pm.md").decode("utf-8")
+    assert "acme/api" in claude_md
+    assert "session-uuid-123" in claude_md
+    assert "acme/api" in pm_md
+
+
+def test_zip_phase_docs_fallback_when_no_artifacts() -> None:
+    """phase_artifacts 미전달 시 각 단계 문서는 승인 전 플레이스홀더로 폴백."""
+    data = generate_modernize_zip(**_BASE_KWARGS)
+    with _open(data) as zf:
+        requirements_md = zf.read("docs/modernize/requirements.md").decode("utf-8")
+        plan_json = json.loads(zf.read("docs/modernize/plan.json"))
+    assert "아직 승인된" in requirements_md
+    assert plan_json == {}
+
+
+def test_zip_phase_docs_render_approved_artifacts() -> None:
+    kwargs = {
+        **_BASE_KWARGS,
+        "phase_artifacts": [
+            {
+                "phase": "requirements",
+                "artifact_type": "requirements_stack",
+                "content_md": "# 요구사항\n\npostgresql 12 -> 16",
+                "content_json": None,
+            },
+            {
+                "phase": "plan",
+                "artifact_type": "plan_summary",
+                "content_md": "# 계획\n\n단계별 작업 목록",
+                "content_json": {"tasks": ["CE-101"]},
+            },
+        ],
+    }
+    data = generate_modernize_zip(**kwargs)
+    with _open(data) as zf:
+        requirements_md = zf.read("docs/modernize/requirements.md").decode("utf-8")
+        plan_md = zf.read("docs/modernize/modernization-plan.md").decode("utf-8")
+        plan_json = json.loads(zf.read("docs/modernize/plan.json"))
+    assert "postgresql 12 -> 16" in requirements_md
+    assert "단계별 작업 목록" in plan_md
+    assert plan_json == {"tasks": ["CE-101"]}
+
+
 def test_zip_linear_issues_json_content() -> None:
     data = generate_modernize_zip(**_BASE_KWARGS)
     with _open(data) as zf:
