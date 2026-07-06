@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.services.modernize.manifest import parse_manifests
+from app.services.modernize.manifest import build_dependency_graph, parse_manifests
 
 
 def test_parse_empty_dir(tmp_path: Path) -> None:
@@ -126,3 +126,36 @@ def test_parse_skips_node_modules(tmp_path: Path) -> None:
     result = parse_manifests(tmp_path)
     # node_modules 의 package.json 은 skip — 루트만 카운트
     assert len(result["manifests"]) == 1  # type: ignore[arg-type]
+
+
+def test_build_dependency_graph_empty() -> None:
+    graph = build_dependency_graph([])
+    assert graph["nodes"] == []
+    assert graph["edges"] == []
+    assert graph["mermaid"] == "graph TD"
+
+
+def test_build_dependency_graph_nodes_and_edges() -> None:
+    manifests: list[dict[str, Any]] = [
+        {"path": "pyproject.toml", "kind": "python", "raw_deps": {"django": "5.0"}},
+        {"path": "clickeye-web/package.json", "kind": "node", "raw_deps": {"react": "18"}},
+        {"path": "requirements.txt", "kind": "python", "raw_deps": {}},
+    ]
+    graph = build_dependency_graph(manifests)
+    node_ids = {n["id"] for n in graph["nodes"]}  # type: ignore[union-attr]
+
+    # 매니페스트 노드 3개 + kind 그룹 노드 2개(python, node)
+    assert len(graph["nodes"]) == 5  # type: ignore[arg-type]
+    assert "kind_python" in node_ids
+    assert "kind_node" in node_ids
+
+    # 매니페스트 → kind 노드로 향하는 엣지가 매니페스트 개수만큼 존재
+    assert len(graph["edges"]) == 3  # type: ignore[arg-type]
+
+    manifest_node = next(
+        n for n in graph["nodes"] if n["path"] == "pyproject.toml"  # type: ignore[index]
+    )
+    assert manifest_node["dep_count"] == 1  # type: ignore[index]
+
+    assert "graph TD" in graph["mermaid"]  # type: ignore[operator]
+    assert "-->" in graph["mermaid"]  # type: ignore[operator]

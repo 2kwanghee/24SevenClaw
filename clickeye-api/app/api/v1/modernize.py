@@ -7,7 +7,7 @@ Feature flag `feature_modernize_enabled` OFF 시 모든 endpoint 404.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime  # noqa: TC003 — runtime cast 에 필요
+from datetime import UTC, datetime  # noqa: TC003 — runtime cast 에 필요
 from typing import cast
 from uuid import UUID
 
@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_phase_artifact import ModernizePhaseArtifact
 from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
@@ -28,14 +29,17 @@ from app.schemas.modernize import (
     FinalizeRequest,
     FinalizeResponse,
     InstallationListItem,
+    ModernizePhaseArtifactResponse,
     ModernizeRecommendationResponse,
     ModernizeRecommendationUpdate,
     ModernizeSessionCreate,
     ModernizeSessionResponse,
+    PhaseArtifactApproveResponse,
     RepoListItem,
 )
 from app.services.modernize import finalize as finalize_svc
 from app.services.modernize import pipeline, repo_service, zip_builder
+from app.services.modernize import tobe as tobe_svc
 
 _ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
 
@@ -293,6 +297,102 @@ async def get_session_analysis(
         )
 
     return CodebaseAnalysisResponse.model_validate(analysis_row)
+
+
+# ----------------------------------------------------------------------
+# ModernizePhaseArtifact — 6단계 위저드 산출물 조회/승인 (requirements → tobe)
+# ----------------------------------------------------------------------
+
+
+async def _get_owned_session(db: AsyncSession, user: User, session_id: UUID) -> ModernizeSession:
+    result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+    return session_row
+
+
+@router.get(
+    "/sessions/{session_id}/phase-artifacts",
+    response_model=list[ModernizePhaseArtifactResponse],
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def list_phase_artifacts(
+    session_id: UUID,
+    phase: str | None = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ModernizePhaseArtifactResponse]:
+    """세션의 단계별 산출물 목록. `phase` 쿼리로 필터링 가능."""
+    await _get_owned_session(db, user, session_id)
+
+    stmt = select(ModernizePhaseArtifact).where(ModernizePhaseArtifact.session_id == session_id)
+    if phase is not None:
+        stmt = stmt.where(ModernizePhaseArtifact.phase == phase)
+    stmt = stmt.order_by(ModernizePhaseArtifact.created_at.asc())
+    result = await db.execute(stmt)
+    rows = list(result.scalars().all())
+    return [ModernizePhaseArtifactResponse.model_validate(r) for r in rows]
+
+
+@router.post(
+    "/sessions/{session_id}/phase-artifacts/{artifact_id}/approve",
+    response_model=PhaseArtifactApproveResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def approve_phase_artifact(
+    session_id: UUID,
+    artifact_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> PhaseArtifactApproveResponse:
+    """단계 산출물 승인.
+
+    requirements 단계 산출물을 승인하면 To-Be 아키텍처(Phase 3) 산출물을 자동 생성하고
+    세션을 'tobe' phase 로 전이한다. 그 외 단계는 승인만 기록한다.
+    """
+    session_row = await _get_owned_session(db, user, session_id)
+
+    artifact_result = await db.execute(
+        select(ModernizePhaseArtifact).where(
+            ModernizePhaseArtifact.id == artifact_id,
+            ModernizePhaseArtifact.session_id == session_id,
+        )
+    )
+    artifact_row = artifact_result.scalar_one_or_none()
+    if artifact_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="산출물을 찾을 수 없습니다.",
+        )
+
+    if artifact_row.approved_at is None:
+        artifact_row.approved_at = datetime.now(UTC)
+        await db.commit()
+        await db.refresh(artifact_row)
+
+    generated: list[ModernizePhaseArtifact] = []
+    if str(artifact_row.phase) == "requirements":
+        generated = await tobe_svc.generate_and_persist_tobe_artifacts(
+            db, session_row=session_row, requirements_artifact=artifact_row
+        )
+        session_row.current_phase = "tobe"  # type: ignore[assignment]
+        await db.commit()
+        await db.refresh(session_row)
+
+    return PhaseArtifactApproveResponse(
+        approved=ModernizePhaseArtifactResponse.model_validate(artifact_row),
+        generated=[ModernizePhaseArtifactResponse.model_validate(g) for g in generated],
+        session=ModernizeSessionResponse.model_validate(session_row),
+    )
 
 
 # ----------------------------------------------------------------------

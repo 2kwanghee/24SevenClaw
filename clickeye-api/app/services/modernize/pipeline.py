@@ -84,6 +84,7 @@ async def _execute(db: AsyncSession, session_row: ModernizeSession) -> None:
 
     # Step 3 manifest
     manifest_result = manifest.parse_manifests(workspace)
+    dep_graph = manifest.build_dependency_graph(manifest_result["manifests"])  # type: ignore[arg-type]
     await _update_status(db, session_id, status="analyzing", progress=55)
 
     # Step 4 outdated
@@ -128,6 +129,7 @@ async def _execute(db: AsyncSession, session_row: ModernizeSession) -> None:
         scan_result=scan_result,
         manifest_result=manifest_result,
         outdated_result=outdated_result,
+        dep_graph=dep_graph,
         summary_md=summary_md,
         tokens_used=tokens_used,
     )
@@ -192,6 +194,7 @@ async def _upsert_analysis(
     scan_result: dict,  # type: ignore[type-arg]
     manifest_result: dict,  # type: ignore[type-arg]
     outdated_result: dict,  # type: ignore[type-arg]
+    dep_graph: dict,  # type: ignore[type-arg]
     summary_md: str,
     tokens_used: int,
 ) -> None:
@@ -206,6 +209,7 @@ async def _upsert_analysis(
         "file_count": scan_result.get("file_count"),
         "lang_distribution": scan_result.get("lang_distribution") or {},
         "manifests": manifest_result.get("manifests") or [],
+        "dep_graph": dep_graph or None,
         "outdated_packages": outdated_result.get("outdated_packages") or [],
         "framework_signals": manifest_result.get("framework_signals") or {},
         "risk_flags": outdated_result.get("risk_flags") or [],

@@ -89,6 +89,7 @@ class CodebaseAnalysisResponse(BaseModel):
     file_count: int | None = None
     lang_distribution: dict[str, float] = Field(default_factory=dict)
     manifests: list[dict[str, Any]] = Field(default_factory=list)
+    dep_graph: dict[str, Any] | None = None
     outdated_packages: list[dict[str, Any]] = Field(default_factory=list)
     framework_signals: dict[str, Any] = Field(default_factory=dict)
     risk_flags: list[str] = Field(default_factory=list)
@@ -199,3 +200,39 @@ class ModernizePhaseArtifactResponse(BaseModel):
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class PhaseArtifactApproveResponse(BaseModel):
+    """`POST /phase-artifacts/{id}/approve` 응답.
+
+    requirements 단계 산출물을 승인하면 To-Be(Phase 3) 산출물이 자동 생성되어
+    `generated` 에 채워지고 세션이 'tobe' phase 로 전이된다. 그 외 단계는 `generated` 가 빈 리스트.
+    """
+
+    approved: ModernizePhaseArtifactResponse
+    generated: list[ModernizePhaseArtifactResponse] = Field(default_factory=list)
+    session: ModernizeSessionResponse
+
+
+# ---------------------------------------------------------------------------
+# Phase 산출물 — tobe(Phase 3, To-Be 아키텍처 설계 + 갭 매트릭스)
+# ---------------------------------------------------------------------------
+
+GapArea = Literal["code", "dependency", "database", "infra", "test"]
+GapTransitionType = Literal["rehost", "replatform", "refactor"]
+
+
+class GapMatrixItem(BaseModel):
+    """As-Is → To-Be 전환 갭 매트릭스 한 행."""
+
+    area: GapArea
+    as_is: str
+    to_be: str
+    transition_type: GapTransitionType
+
+
+class TobeArchitectureArtifactContent(BaseModel):
+    """tobe phase 'tobe_architecture' + 'gap_matrix' 산출물의 구조화 내용."""
+
+    tobe_architecture_md: str
+    gap_matrix: list[GapMatrixItem] = Field(default_factory=list)

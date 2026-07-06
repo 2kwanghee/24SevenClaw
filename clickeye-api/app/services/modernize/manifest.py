@@ -224,6 +224,49 @@ def _detect_node_frameworks(deps: dict[str, str], framework_signals: dict[str, s
             framework_signals[fw] = deps[fw]
 
 
+def build_dependency_graph(manifests: list[dict[str, object]]) -> dict[str, object]:
+    """manifest 목록에서 최소 의존성 그래프 구성 (`CodebaseAnalysis.dep_graph`).
+
+    실제 import 그래프가 아닌, manifest 파일 단위 노드 + kind 그룹 노드로 구성된
+    최소 시각화용 그래프. Mermaid 소스는 그대로 tobe-architecture.md 에 재사용된다.
+
+    Returns:
+        {"nodes": [{"id", "path", "kind", "dep_count"}], "edges": [{"from", "to"}], "mermaid": str}
+    """
+    nodes: list[dict[str, object]] = []
+    edges: list[dict[str, str]] = []
+    seen_kinds: set[str] = set()
+
+    for m in manifests:
+        path = str(m.get("path", ""))
+        kind = str(m.get("kind", "unknown"))
+        raw_deps = m.get("raw_deps")
+        dep_count = len(raw_deps) if isinstance(raw_deps, dict) else 0
+
+        node_id = _sanitize_node_id(path) or f"manifest_{len(nodes)}"
+        nodes.append({"id": node_id, "path": path, "kind": kind, "dep_count": dep_count})
+
+        kind_id = f"kind_{kind}"
+        if kind not in seen_kinds:
+            nodes.append({"id": kind_id, "path": None, "kind": kind, "dep_count": 0})
+            seen_kinds.add(kind)
+        edges.append({"from": node_id, "to": kind_id})
+
+    mermaid_lines = ["graph TD"]
+    for n in nodes:
+        label = n["path"] or n["kind"]
+        mermaid_lines.append(f'  {n["id"]}["{label}"]')
+    for e in edges:
+        mermaid_lines.append(f"  {e['from']} --> {e['to']}")
+
+    return {"nodes": nodes, "edges": edges, "mermaid": "\n".join(mermaid_lines)}
+
+
+def _sanitize_node_id(path: str) -> str:
+    """Mermaid 노드 id 로 쓸 수 있도록 경로를 영숫자/언더스코어로 치환."""
+    return re.sub(r"[^A-Za-z0-9_]", "_", path)
+
+
 def _parse_dep_string(dep: str) -> tuple[str, str]:
     """예: 'django>=3.2,<4' → ('django', '>=3.2,<4'). extras 무시."""
     # extras 제거: 'celery[redis]>=5' → 'celery>=5'
