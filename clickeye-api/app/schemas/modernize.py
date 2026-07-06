@@ -177,10 +177,31 @@ class StackDescriptor(BaseModel):
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
+# 요구사항 유형 태그 — CE-291 에이전트 매핑의 입력이 된다.
+RequirementTag = Literal[
+    "versionup",
+    "db_migrate",
+    "language_migrate",
+    "replatform",
+    "refactor",
+]
+
+
 class RequirementsArtifactContent(BaseModel):
     """requirements phase 산출물의 구조화 내용 — As-Is ↔ To-Be 스택 쌍."""
 
     as_is_stack: StackDescriptor
+    to_be_stack: StackDescriptor
+    notes_md: str | None = None
+    requirement_tags: list[RequirementTag] = Field(default_factory=list)
+
+
+class RequirementsSubmitRequest(BaseModel):
+    """`POST /modernize/sessions/{id}/requirements` 요청 body.
+
+    As-Is 스택은 서버가 CodebaseAnalysis 로부터 자동 유추 — 클라이언트는 To-Be 만 제출.
+    """
+
     to_be_stack: StackDescriptor
     notes_md: str | None = None
 

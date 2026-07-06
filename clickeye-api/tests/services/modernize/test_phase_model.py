@@ -90,3 +90,28 @@ async def test_modernize_phase_artifact_crud(db_session: AsyncSession) -> None:
     parsed = RequirementsArtifactContent.model_validate(resp.content_json)
     assert parsed.as_is_stack.db_version == "12"
     assert parsed.to_be_stack.db_version == "16"
+    assert parsed.requirement_tags == []  # 기본값 — 하위 호환
+
+
+@pytest.mark.asyncio
+async def test_pipeline_advances_phase_to_requirements_after_asis(db_session: AsyncSession) -> None:
+    """analyzing 완료(status=ready) 후 current_phase 가 asis→requirements 로 전이되는지 확인."""
+    from app.services.modernize import pipeline
+
+    user = await _make_user(db_session)
+    session_row = ModernizeSession(
+        user_id=user.id,
+        repo_full_name="acme/widgets",
+        scenario="versionup",
+        status="ready",
+    )
+    db_session.add(session_row)
+    await db_session.commit()
+    await db_session.refresh(session_row)
+
+    assert session_row.current_phase == "asis"
+
+    await pipeline._advance_phase(db_session, session_row.id, phase="requirements")  # noqa: SLF001
+    await db_session.refresh(session_row)
+
+    assert session_row.current_phase == "requirements"

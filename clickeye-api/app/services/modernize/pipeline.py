@@ -134,6 +134,8 @@ async def _execute(db: AsyncSession, session_row: ModernizeSession) -> None:
 
     # M6 에서 권장안 생성 단계 추가 예정. M5 는 ready 로 마무리.
     await _update_status(db, session_id, status="ready", progress=100)
+    # asis 분석 완료 — 위저드 Phase 축을 requirements 로 전이 (기존 status 흐름과 병행)
+    await _advance_phase(db, session_id, phase="requirements")
 
 
 def _resolve_installation_id(session_row: ModernizeSession) -> int:
@@ -166,6 +168,15 @@ async def _update_status(db: AsyncSession, session_id: UUID, *, status: str, pro
         return
     row.status = status  # type: ignore[assignment]
     row.progress_pct = progress  # type: ignore[assignment]
+    await db.commit()
+
+
+async def _advance_phase(db: AsyncSession, session_id: UUID, *, phase: str) -> None:
+    result = await db.execute(select(ModernizeSession).where(ModernizeSession.id == session_id))
+    row = result.scalar_one_or_none()
+    if row is None:
+        return
+    row.current_phase = phase  # type: ignore[assignment]
     await db.commit()
 
 

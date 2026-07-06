@@ -409,10 +409,21 @@ class StackDescriptor(BaseModel):
     extra: dict[str, Any] = {}
 
 
+# 요구사항 유형 태그 (CE-291 에이전트 매핑의 입력)
+RequirementTag = Literal[
+    "versionup",
+    "db_migrate",
+    "language_migrate",
+    "replatform",
+    "refactor",
+]
+
+
 class RequirementsArtifactContent(BaseModel):
     as_is_stack: StackDescriptor
     to_be_stack: StackDescriptor
     notes_md: str | None = None
+    requirement_tags: list[str] = []
 
 
 class ModernizePhaseArtifact(BaseModel):

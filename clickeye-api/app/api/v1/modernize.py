@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, require_modernize_feature
 from app.models.codebase_analysis import CodebaseAnalysis
 from app.models.github_installation import GitHubInstallation
 from app.models.github_repo import GitHubRepo
+from app.models.modernize_phase_artifact import ModernizePhaseArtifact
 from app.models.modernize_recommendation import ModernizeRecommendation
 from app.models.modernize_session import ModernizeSession
 from app.models.user import User
@@ -28,14 +29,17 @@ from app.schemas.modernize import (
     FinalizeRequest,
     FinalizeResponse,
     InstallationListItem,
+    ModernizePhaseArtifactResponse,
     ModernizeRecommendationResponse,
     ModernizeRecommendationUpdate,
     ModernizeSessionCreate,
     ModernizeSessionResponse,
     RepoListItem,
+    RequirementsArtifactContent,
+    RequirementsSubmitRequest,
 )
 from app.services.modernize import finalize as finalize_svc
-from app.services.modernize import pipeline, repo_service, zip_builder
+from app.services.modernize import pipeline, repo_service, requirements_svc, zip_builder
 
 _ALLOWED_SCENARIOS = frozenset({"versionup", "refactor", "language_migrate"})
 
@@ -293,6 +297,146 @@ async def get_session_analysis(
         )
 
     return CodebaseAnalysisResponse.model_validate(analysis_row)
+
+
+# ----------------------------------------------------------------------
+# Requirements phase — As-Is/To-Be 스택 + 요구사항 태그 산출물 (Phase 2)
+# ----------------------------------------------------------------------
+
+
+@router.post(
+    "/sessions/{session_id}/requirements",
+    response_model=ModernizePhaseArtifactResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def submit_requirements(
+    session_id: UUID,
+    body: RequirementsSubmitRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePhaseArtifactResponse:
+    """To-Be 스택 제출 → As-Is 자동 유추 + 태그 계산 + requirements 산출물 생성/갱신.
+
+    AS-IS 분석(CodebaseAnalysis)이 아직 없으면 409 — asis phase 완료 전 호출 불가.
+    """
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    analysis_result = await db.execute(
+        select(CodebaseAnalysis).where(CodebaseAnalysis.session_id == session_id)
+    )
+    analysis_row = analysis_result.scalar_one_or_none()
+    if analysis_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="AS-IS 분석이 아직 완료되지 않아 요구사항을 제출할 수 없습니다.",
+        )
+
+    as_is_stack = requirements_svc.derive_as_is_stack(
+        lang_distribution=cast("dict[str, float]", analysis_row.lang_distribution) or {},
+        framework_signals=cast("dict[str, object]", analysis_row.framework_signals) or {},
+        manifests=cast("list[dict[str, object]]", analysis_row.manifests) or [],
+    )
+    to_be_stack = body.to_be_stack.model_dump()
+    goals_text = str(session_row.goals_text or "")
+
+    requirement_tags = requirements_svc.tag_requirements(
+        as_is=as_is_stack, to_be=to_be_stack, goals_text=goals_text
+    )
+    content_md = await requirements_svc.build_requirements_artifact(
+        goals_text=goals_text,
+        as_is_stack=as_is_stack,
+        to_be_stack=to_be_stack,
+        requirement_tags=requirement_tags,
+    )
+    content = RequirementsArtifactContent(
+        as_is_stack=as_is_stack,
+        to_be_stack=body.to_be_stack,
+        notes_md=body.notes_md,
+        requirement_tags=requirement_tags,
+    )
+
+    # 세션의 target_stack 을 최신 To-Be 로 갱신 (기존 미활용 필드를 실제 파이프라인에 연결)
+    session_row.target_stack = to_be_stack  # type: ignore[assignment]
+    session_row.current_phase = "requirements"  # type: ignore[assignment]
+    # 요구사항 태그 기반으로 scenario 재정의 (재분석 시 시나리오별 recommendations 프롬프트에 반영)
+    session_row.scenario = requirements_svc.derive_scenario_from_tags(  # type: ignore[assignment]
+        requirement_tags, fallback_scenario=str(session_row.scenario)
+    )
+
+    artifact_result = await db.execute(
+        select(ModernizePhaseArtifact).where(
+            ModernizePhaseArtifact.session_id == session_id,
+            ModernizePhaseArtifact.phase == "requirements",
+            ModernizePhaseArtifact.artifact_type == "requirements_stack",
+        )
+    )
+    artifact_row = artifact_result.scalar_one_or_none()
+    if artifact_row is None:
+        artifact_row = ModernizePhaseArtifact(
+            session_id=session_id,
+            phase="requirements",
+            artifact_type="requirements_stack",
+        )
+        db.add(artifact_row)
+    artifact_row.content_md = content_md  # type: ignore[assignment]
+    artifact_row.content_json = content.model_dump()  # type: ignore[assignment]
+
+    await db.commit()
+    await db.refresh(artifact_row)
+
+    return ModernizePhaseArtifactResponse.model_validate(artifact_row)
+
+
+@router.get(
+    "/sessions/{session_id}/requirements",
+    response_model=ModernizePhaseArtifactResponse,
+    dependencies=[Depends(require_modernize_feature)],
+)
+async def get_requirements(
+    session_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ModernizePhaseArtifactResponse:
+    """requirements phase 산출물 조회. 미생성 시 404."""
+    session_result = await db.execute(
+        select(ModernizeSession).where(
+            ModernizeSession.id == session_id,
+            ModernizeSession.user_id == user.id,
+        )
+    )
+    session_row = session_result.scalar_one_or_none()
+    if session_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ModernizeSession 을 찾을 수 없습니다.",
+        )
+
+    artifact_result = await db.execute(
+        select(ModernizePhaseArtifact).where(
+            ModernizePhaseArtifact.session_id == session_id,
+            ModernizePhaseArtifact.phase == "requirements",
+            ModernizePhaseArtifact.artifact_type == "requirements_stack",
+        )
+    )
+    artifact_row = artifact_result.scalar_one_or_none()
+    if artifact_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="requirements 산출물이 아직 생성되지 않았습니다.",
+        )
+
+    return ModernizePhaseArtifactResponse.model_validate(artifact_row)
 
 
 # ----------------------------------------------------------------------

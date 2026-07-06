@@ -37,12 +37,22 @@ export interface StackDescriptor {
   extra: Record<string, unknown>;
 }
 
+// === 요구사항 유형 태그 (CE-291 에이전트 매핑의 입력) ===
+
+export type RequirementTag =
+  | 'versionup'
+  | 'db_migrate'
+  | 'language_migrate'
+  | 'replatform'
+  | 'refactor';
+
 // === requirements phase 산출물 내용 ===
 
 export interface RequirementsArtifactContent {
   as_is_stack: StackDescriptor;
   to_be_stack: StackDescriptor;
   notes_md: string | null;
+  requirement_tags: RequirementTag[];
 }
 
 // === 단계별 산출물 (영속 레코드) ===
