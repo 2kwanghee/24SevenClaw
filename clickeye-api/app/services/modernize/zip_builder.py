@@ -7,10 +7,11 @@
     ├── .ralph/tasks/<identifier>.md      # rec.prompt_md → AI 작업 지시
     ├── docs/diagnosis.md                 # CodebaseAnalysis.llm_summary_md
     ├── docs/diagnosis.json               # 분석 결과 머신리더블
+    ├── plan.json                         # 태스크 DAG (orchestrator.py 입력)
+    ├── scripts/modernize_pipeline.sh     # 오케스트레이터 엔트리 (환경 점검 → orchestrator.py)
+    ├── scripts/orchestrator.py           # plan.json 위상정렬 → 웨이브 순차 실행
     ├── MODERNIZE_README.md               # 1-pager 실행 가이드
     └── .env.example                      # LINEAR_API_KEY/TEAM_ID/REPO_URL 안내
-
-기존 자산(`auto_dev_pipeline.sh` 등) 통합은 M7-B 또는 후속 마일스톤에서.
 """
 
 from __future__ import annotations
@@ -19,7 +20,12 @@ import io
 import json
 import re
 import zipfile
+from pathlib import Path
 from typing import Any
+
+from app.services.modernize import plan_builder
+
+_TEMPLATES_DIR = Path(__file__).parent / "orchestrator_templates"
 
 _README_TEMPLATE = """# {project_name} — ClickEye Modernize
 
@@ -37,12 +43,18 @@ _README_TEMPLATE = """# {project_name} — ClickEye Modernize
 ```bash
 cp .env.example .env
 # .env 에 LINEAR_API_KEY / LINEAR_TEAM_ID / ANTHROPIC_API_KEY 설정
-bash scripts/auto_dev_pipeline.sh   # (별도 ClickEye 솔루션 ZIP 의 스크립트 활용)
+bash scripts/modernize_pipeline.sh   # plan.json 의 태스크 DAG를 순서대로 실행
 ```
+- `plan.json` — 태스크 DAG (의존성/게이트 정의). `scripts/orchestrator.py` 가 위상정렬 후
+  웨이브 단위로 순차 실행한다.
+- 옵션: `--dry-run`(실행 순서만 출력), `--resume`(중단 지점부터 재개),
+  `--only <task-id>`(단일 태스크만), `--wave <n>`(특정 웨이브만)
+- 다른 CLI를 쓰려면 `AGENT_CLI=gemini bash scripts/modernize_pipeline.sh` 처럼 지정
 
 ## 4. 결과 확인
 - 각 이슈는 `fix/{scenario}/<slug>` 브랜치로 PR 생성
 - `harness-gate.sh` (lint/type/test) 통과 시 자동 라벨 `qa-ready`
+- 진행 상태는 `.clickeye/state.json` 에 기록됨
 
 ## 5. 권장사항 ({recommendation_count} 건)
 
@@ -132,6 +144,25 @@ def generate_modernize_zip(
                 team_id=linear_team_id or "<your-linear-team-id>",
                 repo_full_name=repo_full_name,
             ),
+        )
+
+        # 7) plan.json — 태스크 DAG (orchestrator.py 입력)
+        plan = plan_builder.build_plan(
+            session_id=session_id,
+            repo_full_name=repo_full_name,
+            scenario=scenario,
+            recommendations=recommendations,
+        )
+        zf.writestr("plan.json", json.dumps(plan, ensure_ascii=False, indent=2))
+
+        # 8) scripts/modernize_pipeline.sh + scripts/orchestrator.py — 오케스트레이터
+        zf.writestr(
+            "scripts/modernize_pipeline.sh",
+            (_TEMPLATES_DIR / "modernize_pipeline.sh").read_text(encoding="utf-8"),
+        )
+        zf.writestr(
+            "scripts/orchestrator.py",
+            (_TEMPLATES_DIR / "orchestrator.py").read_text(encoding="utf-8"),
         )
 
     buf.seek(0)

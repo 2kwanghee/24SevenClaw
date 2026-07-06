@@ -8,29 +8,32 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **[contracts/api] Modernize 6단계 Phase 데이터 모델 확장 (requirements/tobe/plan/preflight)**
+- [x] **[zip] 오케스트레이터 스크립트 — modernize_pipeline.sh + orchestrator.py (단계 순차 실행)**
   > 요청사항: ## 목표
 
-현재 `ModernizeSession.status`(pending→cloning→analyzing→recommending→ready→finalized)를 6단계 워크플로(asis / requirements / tobe / plan / preflight / execute)를 표현할 수 있는 Phase 모델로 확장한다.
+ZIP에 포함되는 **sh/py 오케스트레이터**를 구현한다. plan.json의 태스크 DAG를 순서대로 읽어 각 태스크에 지정된 에이전트·스킬을 호출하며 현대화를 수행한다. (R2, R3)
 
 ## As-Is 근거
 
-* `app/models/modernize_session.py` — phase 개념 없음, scenario 3종(versionup/refactor/language_migrate)만 존재
-* `app/models/codebase_analysis.py` — `dep_graph` 선언만 되고 미사용, `target_stack` 미활용
-* 산출물 저장 구조가 CodebaseAnalysis(1:1) + Recommendation(N)뿐 → 단계별 산출물 테이블 부재
+* 현재 ZIP에 실행 스크립트가 전혀 없음. `.ralph/tasks/*.md`는 작업 지시 마크다운일 뿐
+* 레포의 `auto_dev_pipeline.sh` / `ralph-loop` / harness 5단계 패턴이 재사용 가능한 선례
 
 ## 작업 내용
 
-1. contracts 레포에 Phase enum + 단계별 산출물(artifact) 스키마 정의 (Contract 우선 원칙)
-2. `modernize_sessions`에 `current_phase` 추가, 신규 테이블 `modernize_phase_artifacts` (session_id, phase, artifact_type, content_md, content_json, approved_at)
-3. 구조화 요구사항 스키마: 현재 스택(DB 종류/버전, 런타임, 프레임워크, 인프라) ↔ 목표 스택 쌍
-4. Alembic migration (비침습: 신규 생성 + nullable 컬럼 추가만, downgrade 완전 복원)
-5. `app/schemas/modernize.py` Pydantic 스키마 동기화 + openapi.json/generated 갱신 (contract-drift 게이트 대응)
+1. `scripts/modernize_pipeline.sh` (엔트리): 환경 점검(.env, git, agent CLI) → preflight-review.md 재확인 → [orchestrator.py](<http://orchestrator.py>) 기동
+2. `scripts/orchestrator.py`:
+   * `plan.json` 로드 → 위상정렬 → 웨이브 단위 순차 실행
+   * 태스크별 `claude` (또는 선택 플랫폼 CLI) 호출: 지정 에이전트 + `.ralph/tasks/&lt;id&gt;.md` 프롬프트 주입
+   * 태스크 완료 판정: 테스트/빌드 게이트 (harness-loop 패턴, 실패 시 MAX 5회 재시도)
+   * **state 파일**(`.clickeye/state.json`)로 진행 상태 기록 → 중단 후 `--resume` 재개
+   * `--dry-run` (호출 없이 실행 순서만 출력), `--only &lt;task-id&gt;`, `--wave &lt;n&gt;` 옵션
+3. 모든 태스크 시작/종료/결과를 work-recorder 훅으로 기록 (CE-293 기록지침 연동 지점 마련)
+4. 위험 태스크(HIGH)는 실행 전 y/N 확인 프롬프트
 
 ## 완료 조건
 
-* 기존 파이프라인 회귀 0 (기존 status 흐름 유지, phase는 병행 도입)
-* 마이그레이션 up/down 검증, 스키마 단위 테스트
+* 샘플 plan.json으로 dry-run/resume/게이트 실패 재시도 시나리오 pytest 검증
+* ZIP에 스크립트 포함 + MODERNIZE_README 실행 가이드 현행화
 
 ---
 
@@ -40,3 +43,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-07-06 | [zip] 오케스트레이터 스크립트 | 완료 | `plan_builder.py`(DAG 생성) + `orchestrator_templates/{orchestrator.py,modernize_pipeline.sh}`(위상정렬/웨이브 실행/게이트 재시도 MAX5/`--resume`/`--dry-run`/`--only`/`--wave`/HIGH risk confirm) + `zip_builder.py` 통합. pytest 61건(신규 33 + 회귀 28) 통과, ruff/mypy strict 클린 |
