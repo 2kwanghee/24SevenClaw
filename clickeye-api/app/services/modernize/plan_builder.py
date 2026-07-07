@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict, deque
 from typing import Any
 
@@ -156,9 +157,7 @@ def build_plan_json(
 
     return {
         "session_id": session_id,
-        "waves": [
-            {"wave": wave, "tasks": tasks} for wave, tasks in sorted(waves_map.items())
-        ],
+        "waves": [{"wave": wave, "tasks": tasks} for wave, tasks in sorted(waves_map.items())],
     }
 
 
@@ -187,3 +186,113 @@ def render_plan_markdown(recs: list[dict[str, Any]]) -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+
+# ── plan.json (orchestrator 실행 계약) ────────────────────────────────────
+# CE-290 의 scripts/orchestrator.py 가 읽는 실행 계획서 스키마(flat tasks + id +
+# prompt_file + gate + 문자열 depends_on). 위 build_plan/build_plan_json 의
+# wave/idx 계획 로직과 별개로, ZIP 산출 시 orchestrator 가 소비하는 직렬화 포맷을
+# 생성한다. zip_builder.build_modernize_zip 가 호출한다.
+
+_GATE_BY_TARGET: tuple[tuple[str, dict[str, str | None]], ...] = (
+    (
+        "pyproject.toml",
+        {"test_cmd": "uv run pytest --tb=short -q", "lint_cmd": "uv run ruff check ."},
+    ),
+    ("requirements.txt", {"test_cmd": "pytest --tb=short -q", "lint_cmd": None}),
+    ("package.json", {"test_cmd": "npm test", "lint_cmd": "npm run lint"}),
+    ("go.mod", {"test_cmd": "go test ./...", "lint_cmd": None}),
+    ("cargo.toml", {"test_cmd": "cargo test", "lint_cmd": None}),
+)
+
+
+def build_orchestrator_plan(
+    *,
+    session_id: str,
+    repo_full_name: str,
+    scenario: str,
+    recommendations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """recommendations → orchestrator.py 가 읽는 plan.json 직렬화 가능 dict.
+
+    각 rec 는 zip_builder 와 동일한 필드(id/linear_identifier/title/target_path/risk/
+    effort/category/priority)를 사용. 누락 필드는 안전 기본값으로 채운다.
+    depends_on 은 태스크 id(문자열) 기반이며 웨이브는 orchestrator 가 런타임 위상정렬로 계산한다.
+    """
+    tasks: list[dict[str, Any]] = []
+    ordered = sorted(recommendations, key=lambda r: _safe_priority(r.get("priority")))
+
+    # target_path 별 첫 등장(가장 낮은 priority) 태스크 id 추적 — 충돌 의존성 생성용
+    first_task_by_target: dict[str, str] = {}
+    migrate_chain_prev: str | None = None
+
+    for rec in ordered:
+        task_id = _resolve_task_id(rec)
+        target_path = str(rec.get("target_path") or "")
+        category = str(rec.get("category") or "upgrade")
+
+        depends_on: list[str] = []
+
+        if category == "migrate" and migrate_chain_prev is not None:
+            depends_on.append(migrate_chain_prev)
+        elif target_path and target_path in first_task_by_target:
+            depends_on.append(first_task_by_target[target_path])
+
+        tasks.append(
+            {
+                "id": task_id,
+                "title": str(rec.get("title") or task_id),
+                "prompt_file": f".ralph/tasks/{_safe_filename(task_id)}.md",
+                "category": category,
+                "risk": _normalize_risk(rec.get("risk")),
+                "effort": str(rec.get("effort") or "M"),
+                "depends_on": depends_on,
+                "gate": _resolve_gate(target_path),
+            }
+        )
+
+        if target_path and target_path not in first_task_by_target:
+            first_task_by_target[target_path] = task_id
+        if category == "migrate":
+            migrate_chain_prev = task_id
+
+    return {
+        "version": 1,
+        "session_id": session_id,
+        "repo_full_name": repo_full_name,
+        "scenario": scenario,
+        "tasks": tasks,
+    }
+
+
+def _resolve_task_id(rec: dict[str, Any]) -> str:
+    identifier = rec.get("linear_identifier") or rec.get("id")
+    return str(identifier) if identifier else "unknown"
+
+
+def _safe_filename(identifier: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", identifier)
+
+
+def _safe_priority(v: object) -> int:
+    if isinstance(v, bool):
+        return 50
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    return 50
+
+
+def _normalize_risk(v: object) -> str:
+    if isinstance(v, str) and v.lower() in ("low", "med", "high"):
+        return v.lower()
+    return "med"
+
+
+def _resolve_gate(target_path: str) -> dict[str, str | None]:
+    lowered = target_path.lower()
+    for suffix, gate in _GATE_BY_TARGET:
+        if lowered.endswith(suffix):
+            return dict(gate)
+    return {"test_cmd": None, "lint_cmd": None}

@@ -1,6 +1,6 @@
 """linear_service.create_issues 단위 테스트 — description 포맷 검증."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -8,11 +8,15 @@ from app.schemas.review_pipeline import LinearSyncHintSubtask
 from app.services.linear_service import create_issue_relation, create_issues
 
 
-def _make_subtask(title: str = "서브태스크 제목", role: str = "backend", summary: str = "초안 내용") -> LinearSyncHintSubtask:
+def _make_subtask(
+    title: str = "서브태스크 제목", role: str = "backend", summary: str = "초안 내용"
+) -> LinearSyncHintSubtask:
     return LinearSyncHintSubtask(title=title, role=role, draft_summary=summary)
 
 
-def _call_create_issues(subtasks: list[LinearSyncHintSubtask], session_description: str | None) -> list[dict]:
+def _call_create_issues(
+    subtasks: list[LinearSyncHintSubtask], session_description: str | None
+) -> list[dict]:
     """_call을 mock하고 create_issues를 호출. 전달된 GraphQL 변수를 반환."""
     captured_vars: list[dict] = []
 
