@@ -6,34 +6,31 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [ ] **[api/zip] 요구사항→에이전트 매핑 레지스트리 + DB 마이그레이션 에이전트 팩**
+- [ ] **[cli] `clickeye modernize` 명령 — run / status / resume / report**
   > 요청사항: ## 목표
 
-요구사항 태그(Phase 2 산출)에 따라 **필요한 에이전트·스킬·태스크 템플릿을 자동 선택**하는 레지스트리를 구축한다. 1호 수직 팩으로 **DB 마이그레이션 팩**을 구현한다. (R4)
+CLI(`@clickeye/cli`)에서 현대화를 수행할 수 있는 `clickeye modernize` 서브커맨드를 추가한다. (R2 — CLI는 파워유저 경로, 웹과 동일 생성 엔진 공유)
 
 ## As-Is 근거
 
-* 현재 시나리오 분기는 시스템 프롬프트 차이뿐, DB/인프라 등 요구사항 유형별 전용 처리 없음
-* outdated 감지도 python/node 레지스트리만 지원
+* clickeye-cli에 modernize 관련 명령 없음 (as-is 분석 확인)
+* 위저드 5단계는 웹 전용, CLI 사용자는 실행 팩을 받을 방법이 없음
 
 ## 작업 내용
 
-1. **매핑 레지스트리** (YAML/JSON, 카탈로그 DB 연동):
-   * `요구사항 태그 → {agents[], skills[], task_templates[], preflight_checks[]}`
-   * 예: `db_migrate(mariadb→postgresql)` → db-migrator 에이전트 + 스키마변환/데이터이관/검증 태스크 템플릿 + 백업·롤백 preflight 항목
-2. **DB 마이그레이션 팩** (MariaDB / MySQL / MSSQL / Oracle / PostgreSQL 조합):
-   * 소스→타깃 조합별 태스크 시퀀스: ①스키마 덤프·타입 매핑 변환 → ②DDL 생성·적용 → ③데이터 이관(배치/검증 쿼리) → ④앱 코드의 SQL/드라이버/ORM 설정 수정 → ⑤정합성 검증(행수/체크섬) → ⑥롤백 스크립트
-   * 조합별 주의사항(예: MSSQL T-SQL→PostgreSQL 함수 차이, AUTO_INCREMENT→IDENTITY) 지식을 에이전트 프롬프트에 내장
-3. as-is 스캔에 DB 감지 추가 (드라이버 의존성·connection string·ORM 설정 기반)
-4. Phase 4 계획 생성이 레지스트리를 참조해 태스크에 `assigned_agent` 자동 지정
-5. 이후 수직 팩(프레임워크 업그레이드, 컨테이너 리플랫폼)을 같은 레지스트리 형식으로 추가 가능한 구조
+1. `clickeye modernize init` — API로 세션 생성(repo/branch/요구사항 입력, 대화형 프롬프트) 후 6단계 진행 상태 폴링
+2. `clickeye modernize pull` — preflight 승인된 세션의 실행 팩 ZIP 다운로드·압축 해제
+3. `clickeye modernize run [--resume|--dry-run|--wave n]` — 로컬 [orchestrator.py](<http://orchestrator.py>) 래핑 실행
+4. `clickeye modernize status` — 세션 phase + 로컬 state.json 진행 현황 통합 표시
+5. `clickeye modernize report` — 기록지침 로그를 요약 리포트로 출력 (CE-293 연동)
+6. contracts의 Phase/산출물 타입 재사용 (openapi generated client)
 
 ## 완료 조건
 
-* mariadb→postgresql 샘플 요구사항으로 계획~ZIP까지 db-migrator 팩이 선택·베이크되는 E2E 테스트
-* 레지스트리 스키마 검증 테스트
+* 명령별 단위 테스트 + `docs/cli-guide.md` 현행화
+* 웹 위저드에서 만든 세션을 CLI로 이어받는(pull→run) 시나리오 검증
 
 ---
 
