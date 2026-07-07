@@ -80,6 +80,24 @@ def expand_to_leaves(api_key: str, team_id: str, issue: dict) -> list[dict]:
     return leaves
 
 
+def incomplete_blockers(issue: dict) -> list[str]:
+    """이 이슈를 막고 있는(blockedBy) 선행 이슈 중 아직 미완료인 것의 identifier 목록.
+
+    Linear 관계에서 "A blocks B" 는 B 의 inverseRelations 에 type="blocks", issue=A 로 나타난다.
+    선행 이슈(A)의 state.type 이 completed/canceled 가 아니면 B 는 아직 실행 불가로 본다.
+    """
+    blockers: list[str] = []
+    inv = (issue.get("inverseRelations") or {}).get("nodes", [])
+    for rel in inv:
+        if rel.get("type") != "blocks":
+            continue
+        blocker = rel.get("issue") or {}
+        state_type = (blocker.get("state") or {}).get("type", "")
+        if state_type not in ("completed", "canceled"):
+            blockers.append(blocker.get("identifier") or "?")
+    return blockers
+
+
 def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
     """큐 상태 이슈를 조회하고 부모 이슈는 활성 리프 태스크로 확장해 반환한다.
 
@@ -105,6 +123,12 @@ def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
                 url
                 labels { nodes { name } }
                 state { id name }
+                inverseRelations {
+                    nodes {
+                        type
+                        issue { identifier state { type name } }
+                    }
+                }
             }
         }
     }
@@ -119,6 +143,15 @@ def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
     seen_ids: set[str] = set()
     expanded: list[dict] = []
     for node in nodes:
+        # blockedBy 가드: 미완료 선행 이슈가 있으면 순서 역전 머지를 막기 위해 이번 큐에서 제외.
+        # (선행 이슈가 완료되면 다음 감지 라운드에 자연히 진행된다.)
+        pending = incomplete_blockers(node)
+        if pending:
+            print(
+                f"SKIP: {node.get('identifier')} — 미완료 선행(blockedBy) 이슈: {', '.join(pending)}",
+                file=sys.stderr,
+            )
+            continue
         parent_identifier = node.get("identifier")
         for leaf in expand_to_leaves(api_key, team_id, node):
             if leaf["id"] in seen_ids:
