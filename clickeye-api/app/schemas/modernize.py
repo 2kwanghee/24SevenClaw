@@ -122,6 +122,9 @@ class ModernizeRecommendationResponse(BaseModel):
     linear_issue_id: str | None = None
     linear_identifier: str | None = None
     selected: bool
+    depends_on: list[int] = Field(default_factory=list)
+    wave: int = 0
+    assigned_agent: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -199,3 +202,38 @@ class ModernizePhaseArtifactResponse(BaseModel):
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Plan phase (Phase 4) — 태스크 DAG + 웨이브/마일스톤
+# ---------------------------------------------------------------------------
+
+
+class PlanTaskItem(BaseModel):
+    """`plan.json` 의 태스크 1건."""
+
+    rec_id: str
+    idx: int
+    title: str
+    category: str
+    effort: str
+    risk: str
+    assigned_agent: str | None = None
+    depends_on: list[int] = Field(default_factory=list)
+
+
+class PlanWaveGroup(BaseModel):
+    """`plan.json` 의 웨이브(마일스톤) 1건."""
+
+    wave: int
+    tasks: list[PlanTaskItem]
+
+
+class ModernizePlanResponse(BaseModel):
+    """`GET/POST /sessions/{id}/plan` 응답 — plan.json + modernization-plan.md."""
+
+    session_id: UUID
+    waves: list[PlanWaveGroup]
+    plan_md: str
+    approved_at: datetime | None = None
+    generated_at: datetime | None = None

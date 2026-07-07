@@ -55,6 +55,12 @@ class ModernizeRecommendation(UUIDPKMixin, TimestampMixin, Base):
     linear_identifier = Column(String(50), nullable=True)
     # 사용자 검수 — 기본 true, PATCH 로 false 처리 가능
     selected = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    # plan phase (M8) — 동일 세션 내 다른 권장안 idx 배열. plan_builder.build_plan 이 계산.
+    depends_on = Column(JSON, nullable=False, default=list, server_default=text("'[]'::json"))
+    # 위상정렬 기반 마일스톤 번호 (0 부터). depends_on 이 없으면 0.
+    wave = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    # target_path/category 로 추론된 담당 에이전트 — 'web'|'api'|'agent'|'infra'|'contracts' 등
+    assigned_agent = Column(String(30), nullable=True)
 
     __table_args__ = (
         Index(

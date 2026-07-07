@@ -147,7 +147,7 @@ def generate_modernize_zip(
         )
 
         # 7) plan.json — 태스크 DAG (orchestrator.py 입력)
-        plan = plan_builder.build_plan(
+        plan = plan_builder.build_orchestrator_plan(
             session_id=session_id,
             repo_full_name=repo_full_name,
             scenario=scenario,

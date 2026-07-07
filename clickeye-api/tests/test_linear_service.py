@@ -1,18 +1,22 @@
 """linear_service.create_issues 단위 테스트 — description 포맷 검증."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from app.schemas.review_pipeline import LinearSyncHintSubtask
-from app.services.linear_service import create_issues
+from app.services.linear_service import create_issue_relation, create_issues
 
 
-def _make_subtask(title: str = "서브태스크 제목", role: str = "backend", summary: str = "초안 내용") -> LinearSyncHintSubtask:
+def _make_subtask(
+    title: str = "서브태스크 제목", role: str = "backend", summary: str = "초안 내용"
+) -> LinearSyncHintSubtask:
     return LinearSyncHintSubtask(title=title, role=role, draft_summary=summary)
 
 
-def _call_create_issues(subtasks: list[LinearSyncHintSubtask], session_description: str | None) -> list[dict]:
+def _call_create_issues(
+    subtasks: list[LinearSyncHintSubtask], session_description: str | None
+) -> list[dict]:
     """_call을 mock하고 create_issues를 호출. 전달된 GraphQL 변수를 반환."""
     captured_vars: list[dict] = []
 
@@ -95,3 +99,34 @@ async def test_issue_title_format() -> None:
     vars_list = _call_create_issues([subtask], session_description=None)
 
     assert vars_list[0]["input"]["title"] == "[architect] API 설계"
+
+
+def test_create_issue_relation_sends_blocks_type() -> None:
+    """create_issue_relation 은 issueId(blocking) → relatedIssueId(blocked), type='blocks'."""
+    captured: list[dict] = []
+
+    def fake_call(api_key: str, query: str, variables: dict) -> dict:
+        captured.append(variables)
+        return {"issueRelationCreate": {"success": True}}
+
+    with patch("app.services.linear_service._call", side_effect=fake_call):
+        ok = create_issue_relation(
+            "fake-key", blocking_issue_id="issue-a", blocked_issue_id="issue-b"
+        )
+
+    assert ok is True
+    assert captured[0]["input"] == {
+        "issueId": "issue-a",
+        "relatedIssueId": "issue-b",
+        "type": "blocks",
+    }
+
+
+def test_create_issue_relation_returns_false_on_error() -> None:
+    """Linear API 호출 실패 시 예외를 삼키고 False 반환 (best-effort)."""
+    with patch("app.services.linear_service._call", side_effect=RuntimeError("boom")):
+        ok = create_issue_relation(
+            "fake-key", blocking_issue_id="issue-a", blocked_issue_id="issue-b"
+        )
+
+    assert ok is False
