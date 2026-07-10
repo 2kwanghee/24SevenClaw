@@ -232,3 +232,46 @@ def test_extract_task_info_no_parent_for_top_level():
     leaf = _issue("l1", "CE-1", state="DayQueued")
     task = linear_watcher.extract_task_info(leaf)
     assert task["parent_identifier"] is None
+
+
+# ── incomplete_blockers (blockedBy 가드) ─────────────────────────────────────
+
+
+def _with_blocker(identifier: str, blocker_id: str, blocker_state_type: str, rel_type: str = "blocks") -> dict:
+    """inverseRelations 로 blocker 를 가진 이슈 픽스처."""
+    issue = _issue("x", identifier)
+    issue["inverseRelations"] = {
+        "nodes": [
+            {"type": rel_type, "issue": {"identifier": blocker_id, "state": {"type": blocker_state_type}}}
+        ]
+    }
+    return issue
+
+
+def test_incomplete_blockers_none_when_blocker_completed():
+    """선행 이슈가 완료(completed)면 차단 없음."""
+    issue = _with_blocker("CE-285", "CE-284", "completed")
+    assert linear_watcher.incomplete_blockers(issue) == []
+
+
+def test_incomplete_blockers_flags_started_blocker():
+    """선행 이슈가 미완료(started 등)면 그 identifier 를 반환."""
+    issue = _with_blocker("CE-285", "CE-284", "started")
+    assert linear_watcher.incomplete_blockers(issue) == ["CE-284"]
+
+
+def test_incomplete_blockers_canceled_treated_as_done():
+    """취소(canceled)된 선행은 차단으로 보지 않는다."""
+    issue = _with_blocker("CE-285", "CE-284", "canceled")
+    assert linear_watcher.incomplete_blockers(issue) == []
+
+
+def test_incomplete_blockers_ignores_non_blocks_relation():
+    """related/duplicate 관계는 무시한다 (blocks 만 게이팅)."""
+    issue = _with_blocker("CE-285", "CE-9", "started", rel_type="related")
+    assert linear_watcher.incomplete_blockers(issue) == []
+
+
+def test_incomplete_blockers_empty_when_no_relations():
+    """관계 정보가 없으면 빈 리스트."""
+    assert linear_watcher.incomplete_blockers(_issue("x", "CE-1")) == []
