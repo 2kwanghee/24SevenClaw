@@ -78,6 +78,7 @@ version: ...       # 선택
 |------|------|--------|
 | [license-model.md](license-model.md) | 라이선스 정책(프로젝트 단위, 티어) | current |
 | [modernize-regression-checklist.md](modernize-regression-checklist.md) | Modernize 비침습 회귀 검증 R-1~R-7 | current |
+| [hybrid-runner-headless-poc.md](hybrid-runner-headless-poc.md) | CE-297 SPIKE — 컨테이너 헤드리스 PoC + 동시성 실측 결정 메모 | current |
 
 ### page — UI 페이지 스펙
 | 문서 | 목적 | status |
