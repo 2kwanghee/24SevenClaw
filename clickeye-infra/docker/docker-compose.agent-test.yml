@@ -8,9 +8,11 @@ services:
       dockerfile: Dockerfile
     container_name: clickeye-agent-test
     environment:
-      CLOUD_WS_URL: ws://host.docker.internal:8000
-      AGENT_ID: test-agent-001
-      LICENSE_KEY: CLK-FREE-test000000-0000
+      # CE-300: AgentSettings 는 env_prefix="CLICKEYE_" 를 사용하므로 접두어 정합화.
+      CLICKEYE_CLOUD_WS_URL: ws://host.docker.internal:8000
+      CLICKEYE_AGENT_ID: test-agent-001
+      CLICKEYE_AGENT_TOKEN: test-token-001
+      CLICKEYE_LICENSE_KEY: CLK-FREE-test000000-0000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - agent-data:/data

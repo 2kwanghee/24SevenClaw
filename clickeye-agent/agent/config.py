@@ -3,7 +3,10 @@ from pydantic_settings import BaseSettings
 
 class AgentSettings(BaseSettings):
     # Agent 식별
-    agent_id: str = ""
+    agent_id: str = ""  # hub 라우팅용 라벨 (DB 컬럼 아님)
+    agent_token: str = ""  # canonical 크리덴셜 (DB unique 컬럼과 매칭, 핸드셰이크 쿼리 인증)
+    # NOTE(CE-300): agent_secret은 하위 호환을 위해 유지하나 핸드셰이크에서는 미사용.
+    #   현재 인증은 쿼리 agent_id + agent_token 조합만 사용한다.
     agent_secret: str = ""
     license_key: str = ""
 

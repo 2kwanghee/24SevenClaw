@@ -3,6 +3,7 @@
 import asyncio
 import json
 from typing import Any
+from urllib.parse import quote
 
 import structlog
 import websockets
@@ -22,10 +23,14 @@ class CloudConnection:
         self._reconnect_delay = 1.0
 
     async def connect(self) -> None:
-        url = f"{self.config.cloud_ws_url}/ws/agent?agent_id={self.config.agent_id}"
-        headers = {"Authorization": f"Bearer {self.config.agent_secret}"}
+        # CE-300: 서버는 쿼리 파라미터 agent_id + agent_token 을 필수로 요구한다.
+        #   (Bearer 헤더 인증 경로는 제거 — 서버가 읽지 않으므로 혼선 방지)
+        #   특수문자를 포함할 수 있어 URL 인코딩한다.
+        agent_id = quote(self.config.agent_id, safe="")
+        agent_token = quote(self.config.agent_token, safe="")
+        url = f"{self.config.cloud_ws_url}/ws/agent?agent_id={agent_id}&agent_token={agent_token}"
 
-        self.ws = await websockets.connect(url, additional_headers=headers)
+        self.ws = await websockets.connect(url)
         self._reconnect_delay = 1.0  # 성공 시 리셋
         logger.info("Cloud 연결 성공", url=self.config.cloud_ws_url)
 

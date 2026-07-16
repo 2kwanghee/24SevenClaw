@@ -22,16 +22,22 @@ async def handle_agent_message(
     agent_id: str,
     message: dict[str, Any],
     db: AsyncSession,
+    agent_token: str | None = None,
 ) -> dict[str, Any] | None:
-    """Agent 메시지를 타입별로 처리한다."""
+    """Agent 메시지를 타입별로 처리한다.
+
+    CE-300: DB 매칭은 canonical 크리덴셜인 ``agent_token`` 으로 수행한다.
+      ``agent_id`` 는 hub 라우팅용 라벨이므로 DB where 절에 쓰면 안 된다.
+      router 가 쿼리로 검증한 ``agent_token`` 을 그대로 전달한다.
+    """
     msg_type = message.get("type", "")
     payload = message.get("payload", {})
 
     match msg_type:
         case "agent.register":
-            return await _handle_register(agent_id, payload, db)
+            return await _handle_register(agent_id, payload, db, agent_token)
         case "agent.heartbeat":
-            return await _handle_heartbeat(agent_id, payload, db)
+            return await _handle_heartbeat(agent_id, payload, db, agent_token)
         case "agent.status":
             _handle_status(agent_id, payload)
             return None
@@ -56,15 +62,19 @@ async def _handle_register(
     agent_id: str,
     payload: dict[str, Any],
     db: AsyncSession,
+    agent_token: str | None = None,
 ) -> dict[str, Any]:
     """Agent 등록: 연결 메타데이터 업데이트."""
     hostname = payload.get("hostname", "unknown")
     agent_hub.update_heartbeat(agent_id, {"status": "idle"})
 
-    # DB에 연결 상태 업데이트
+    # CE-300: agent_token 이 없으면(예: 검증 경로 밖 직접 호출) hub 라우팅 라벨로 폴백.
+    match_token = agent_token if agent_token is not None else agent_id
+
+    # DB에 연결 상태 업데이트 (canonical 크리덴셜 agent_token 기준 매칭)
     await db.execute(
         update(AgentConnection)
-        .where(AgentConnection.agent_token == agent_id)
+        .where(AgentConnection.agent_token == match_token)
         .values(
             status="connected",
             hostname=hostname,
@@ -91,13 +101,17 @@ async def _handle_heartbeat(
     agent_id: str,
     payload: dict[str, Any],
     db: AsyncSession,
+    agent_token: str | None = None,
 ) -> dict[str, Any]:
     """하트비트: 연결 상태 갱신."""
     agent_hub.update_heartbeat(agent_id, payload)
 
+    # CE-300: agent_token 기준 매칭 (agent_id 는 라우팅 라벨일 뿐 DB 컬럼 아님)
+    match_token = agent_token if agent_token is not None else agent_id
+
     await db.execute(
         update(AgentConnection)
-        .where(AgentConnection.agent_token == agent_id)
+        .where(AgentConnection.agent_token == match_token)
         .values(
             last_heartbeat_at=datetime.now(UTC),
             status=payload.get("status", "idle"),
