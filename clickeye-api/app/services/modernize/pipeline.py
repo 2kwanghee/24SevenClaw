@@ -106,6 +106,8 @@ async def _execute(db: AsyncSession, session_row: ModernizeSession) -> None:
         framework_signals=manifest_result["framework_signals"],  # type: ignore[arg-type]
         outdated_packages=outdated_result["outdated_packages"],  # type: ignore[arg-type]
         snippets=snippets,
+        db=db,  # CE-299: feature_llm_gateway on 시 게이트웨이 경유로 usage 원장 기록
+        task_id=str(session_row.id),
     )
     await _update_status(db, session_id, status="recommending", progress=85)
 
