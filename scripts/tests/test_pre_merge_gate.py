@@ -17,7 +17,13 @@ _SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
-import pre_merge_gate as g  # noqa: E402
+# 커널은 저장소 루트의 governance 패키지에 단일 존재(SSOT). cwd 무관하게 import 되도록
+# 저장소 루트(=scripts 의 상위)를 sys.path 에 추가한다.
+_REPO_ROOT = os.path.dirname(_SCRIPTS_DIR)
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+from governance import core as g  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -104,21 +110,24 @@ def test_plan_trace_no_artifacts_skips():
     assert r["status"] != "fail"
 
 
-def test_plan_trace_with_artifact(tmp_path, monkeypatch):
-    # 임시 PROJECT_DIR 에 .ralph/refined/<key>.md 를 만들어 pass/warn 경로 커버
-    monkeypatch.setattr(g, "PROJECT_DIR", str(tmp_path))
+def test_plan_trace_with_artifact(tmp_path):
+    # 임시 project_dir 에 .ralph/refined/<key>.md 를 만들어 pass/warn 경로 커버
     refined = tmp_path / ".ralph" / "refined"
     refined.mkdir(parents=True)
     (refined / "CE-77.md").write_text(
         "# 구현 스펙\nclickeye-api 의 서비스 로직을 충분히 길게 설명한 정제 스펙 본문입니다." * 2,
         encoding="utf-8",
     )
-    r = g.check_plan_trace("CE-77", ["clickeye-api/app/services/x.py"])
+    r = g.check_plan_trace(
+        "CE-77", ["clickeye-api/app/services/x.py"], project_dir=str(tmp_path)
+    )
     assert r["status"] == "pass"
 
     # plan이 변경 영역을 전혀 언급 안 하면 warn
     (refined / "CE-78.md").write_text("관련 없는 내용을 길게 적은 정제 스펙 본문." * 4, encoding="utf-8")
-    r2 = g.check_plan_trace("CE-78", ["clickeye-web/src/app/page.tsx"])
+    r2 = g.check_plan_trace(
+        "CE-78", ["clickeye-web/src/app/page.tsx"], project_dir=str(tmp_path)
+    )
     assert r2["status"] == "warn"
 
 
