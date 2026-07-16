@@ -1,7 +1,7 @@
 ---
 title: 하이브리드 러너 — 컨테이너 헤드리스 PoC + 동시성 실측 (CE-297)
 category: reference
-status: current
+status: needs-revision
 last_updated: 2026-07-15
 related:
   - .ralph/fix_plan.md

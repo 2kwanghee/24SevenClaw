@@ -30,6 +30,16 @@ else
   echo "❌ 연결 불가"
 fi
 
+# Temporal (temporal 프로파일로 기동한 경우에만 표시 — 미기동 시 skip)
+if docker compose ps --services --filter "status=running" 2>/dev/null | grep -qx temporal; then
+  echo -n "⏱️  Temporal (localhost:7233): "
+  if docker compose exec -T temporal tctl --address temporal:7233 cluster health > /dev/null 2>&1; then
+    echo "✅ 정상"
+  else
+    echo "❌ 연결 불가"
+  fi
+fi
+
 # API 서버
 echo -n "🚀 API 서버 (localhost:8000): "
 if curl -s http://localhost:8000/api/v1/health > /dev/null 2>&1; then

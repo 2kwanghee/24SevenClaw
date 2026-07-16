@@ -1,6 +1,8 @@
 # ClickEye - 로컬 개발 환경
 # 기본: docker compose up -d (DB + Redis만)
 # 전체: docker compose --profile full up -d (API 포함)
+# Temporal: docker compose --profile temporal up -d (Temporal 서버 + UI + 워커)
+#   → CE-296. temporal 프로파일은 기본 up 에 포함되지 않음(회귀 0).
 
 services:
   db:
@@ -35,8 +37,9 @@ services:
 
   api:
     build:
-      context: ../../clickeye-api
-      dockerfile: ../clickeye-infra/docker/Dockerfile.api
+      # 단계6: 컨텍스트를 레포 루트로 → governance editable(path="../") 해석 가능.
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.api
     container_name: clickeye-api
     ports:
       - "8000:8000"
@@ -54,6 +57,85 @@ services:
     restart: unless-stopped
     profiles:
       - full
+
+  # ── Temporal 오케스트레이션 (CE-296) ──
+  # 전부 profiles: [temporal] 뒤 → 기본 `docker compose up` 에서 미기동(회귀 0).
+  # temporal DB 전략: 별도 컨테이너 대신 기존 `db`(postgres:16) 재사용.
+  #   clickeye 유저가 POSTGRES_USER = 인스턴스 superuser 이므로 auto-setup 이
+  #   temporal / temporal_visibility DB 를 자동 생성할 수 있다(추가 볼륨·컨테이너 0).
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    container_name: clickeye-temporal
+    environment:
+      # postgres12 드라이버는 postgres 12+ 전체(=pg16)와 호환
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: clickeye
+      POSTGRES_PWD: devpassword
+      POSTGRES_SEEDS: db
+      # 생성될 DB 이름 (auto-setup 이 없으면 만든다)
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+    ports:
+      - "7233:7233"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # auto-setup 이미지에 포함된 tctl 로 클러스터 헬스 확인 (순차기동용)
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    profiles:
+      - temporal
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    container_name: clickeye-temporal-ui
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - temporal
+    restart: unless-stopped
+    profiles:
+      - temporal
+
+  # 워커: api 이미지를 재사용(동일 build 참조)하되 command 로 워커 엔트리 override.
+  # 단계6에서 빌드 컨텍스트를 레포 루트로 올려 governance editable 을 해석하도록 수정
+  #   (api 와 동일 컨텍스트/Dockerfile → 동일 이미지 레이어 캐시 공유). profiles 로
+  #   감싸 기본 미기동(회귀 0).
+  worker:
+    build:
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.api
+    container_name: clickeye-temporal-worker
+    command: ["/app/.venv/bin/python", "-m", "app.temporal.worker"]
+    # 워커는 api 이미지를 재사용하지만 uvicorn(:8000)을 띄우지 않으므로 api 의
+    #   HEALTHCHECK(curl :8000/health) 를 상속하면 항상 unhealthy 로 오표시된다.
+    #   워커 헬스는 별도 curl 엔드포인트가 없어 disable(정상 기동은 로그로 확인).
+    #   → deploy.sh status 에서 워커가 오해 없이 표시된다(다른 동작 불변).
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: postgresql+asyncpg://clickeye:devpassword@db:5432/clickeye
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET_KEY: dev-secret-key
+      # 워커 서비스는 켜진 상태로 기동(profiles 로 이미 게이트됨)
+      FEATURE_TEMPORAL: "true"
+      TEMPORAL_HOST: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: clickeye-default
+    depends_on:
+      temporal:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - temporal
 
 volumes:
   pgdata:

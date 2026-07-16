@@ -56,8 +56,9 @@ services:
 
   api:
     build:
-      context: ../../clickeye-api
-      dockerfile: ../clickeye-infra/docker/Dockerfile.api
+      # 단계6: 컨텍스트를 레포 루트로 → governance editable(path="../") 해석 가능.
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.api
     container_name: clickeye-api
     ports:
       - "${API_PORT:-8000}:8000"

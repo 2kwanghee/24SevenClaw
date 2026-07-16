@@ -29,6 +29,15 @@ until docker compose exec -T redis redis-cli ping > /dev/null 2>&1; do
 done
 echo "✅ Redis 준비 완료"
 
+# 3.5 Temporal 준비 대기 (temporal 프로파일로 기동한 경우에만 — 미기동 시 skip → 회귀 0)
+if docker compose ps --services --filter "status=running" 2>/dev/null | grep -qx temporal; then
+  echo "⏳ Temporal 준비 대기 중..."
+  until docker compose exec -T temporal tctl --address temporal:7233 cluster health > /dev/null 2>&1; do
+    sleep 1
+  done
+  echo "✅ Temporal 준비 완료 (Web UI: http://localhost:8080)"
+fi
+
 # 4. API DB 마이그레이션 (api 레포가 있을 때만)
 API_DIR="$ROOT_DIR/clickeye-api"
 if [ -d "$API_DIR" ] && [ -f "$API_DIR/alembic.ini" ]; then
