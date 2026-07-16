@@ -17,9 +17,11 @@ export type CommandMessageType =
   | 'command.deploy_ticket'
   | 'command.build'
   | 'command.run'
+  | 'command.run_task' // CE-301: 위치 무관 Runner 태스크 실행 (payload=RunnerTaskPayload)
   | 'command.stop'
   | 'command.destroy_env'
   | 'config.update'
+  // TODO(범위 밖): contract_service.py:305 는 'contract.sync' 문자열을 사용 — 계약면 불일치. 별도 티켓에서 통일.
   | 'command.contract_sync';
 
 export type MessageType = AgentMessageType | CommandMessageType | 'error';
@@ -70,6 +72,7 @@ export interface EnvironmentStatus {
 export interface StatusPayload {
   event: string;
   project_id: string;
+  // 상관관계 키 — Runner 태스크(command.run_task, CE-301)의 task_id 와 동일 값. 진행 상태를 태스크에 귀속.
   task_id?: string;
   progress?: number;
   message?: string;
@@ -78,6 +81,7 @@ export interface StatusPayload {
 
 export interface LogPayload {
   project_id: string;
+  // 상관관계 키 — Runner 태스크(command.run_task)의 task_id. 로그 스트리밍을 태스크에 귀속.
   task_id?: string;
   level: 'info' | 'warn' | 'error';
   source: 'docker' | 'claude' | 'git' | 'build' | 'agent';
@@ -90,6 +94,9 @@ export interface ResultPayload {
   ticket_id?: string;
   status: 'completed' | 'failed' | 'partial';
   summary: string;
+  // CE-301: 러너 실행 팔·인증 모드 회계 — LLM 게이트웨이+원장(CE-299)이 구독 시트/조직 키 비용을 구분 집계.
+  target?: 'cloud' | 'desktop';
+  auth_mode?: 'subscription_seat' | 'org_api_key';
   changes?: {
     files_created: string[];
     files_modified: string[];
