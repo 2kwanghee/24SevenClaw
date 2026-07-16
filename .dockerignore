@@ -1,0 +1,47 @@
+# 빌드 컨텍스트 최소화
+# api/worker 이미지는 레포 루트를 빌드 컨텍스트로 사용한다(governance editable 해석용).
+# 아래 경로는 이미지 빌드에 불필요하므로 컨텍스트 전송에서 제외해 비대화를 막는다.
+# (web/agent 이미지는 각자 자체 컨텍스트(clickeye-web/clickeye-agent)로 빌드되므로 무관.)
+
+# --- VCS / IDE / 개인 지식레이어 ---
+.git
+.github
+.idea
+.obsidian
+.vscode
+
+# --- 파이썬 가상환경 / 캐시 ---
+.venv
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+
+# --- Node ---
+node_modules
+**/node_modules
+
+# --- Flow-Ops 파이프라인 런타임 / 워크트리 / 로그 ---
+.ralph
+.run
+.worktrees
+logs
+**/logs
+.image
+
+# --- 로컬 환경/시크릿 (이미지에 포함 금지) ---
+.env
+**/.env
+.mcp.json
+
+# --- api 이미지에 불필요한 형제 레포 (각자 자체 컨텍스트로 빌드) ---
+clickeye-web
+clickeye-agent
+clickeye-cli
+clickeye-contracts
+clickeye
+docs
+
+# --- 기타 대용량/무관 자산 ---
+*.pdf

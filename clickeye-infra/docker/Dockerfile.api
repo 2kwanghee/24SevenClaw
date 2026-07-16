@@ -1,20 +1,52 @@
+# ClickEye API 이미지 (단계6: 빌드 컨텍스트 = 레포 루트)
+#
+# 왜 컨텍스트가 레포 루트인가:
+#   clickeye-api/pyproject.toml 의 clickeye-governance = { path = "..", editable = true }
+#   는 저장소 루트(clickeye-api 의 부모)의 pyproject + governance/ 를 참조한다.
+#   컨텍스트를 clickeye-api 로 한정하면 path=".." 가 컨텍스트 밖이라 해석 불가 → 빌드 실패.
+#   따라서 컨텍스트를 레포 루트로 올리고, 컨테이너 안에 레포 레이아웃을 미러한다:
+#     /app                 (= 저장소 루트: 루트 pyproject + governance/)
+#     /app/clickeye-api    (= api 프로젝트)
+#   editable governance 는 /app/clickeye-api 기준 ../ = /app 에서 원본 소스로 해석된다.
+
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
 RUN pip install uv
 
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
+# uv 가상환경을 레포 루트(/app/.venv)에 고정한다.
+#   → WORKDIR 가 /app/clickeye-api 로 바뀌어도 venv 경로가 일정 → CMD/워커 command 문자열
+#     (/app/.venv/bin/...) 불변(회귀 0).
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 
-COPY app/ ./app/
-COPY alembic/ ./alembic/
-COPY alembic.ini ./
+# 1) 거버넌스 커널(루트 프로젝트) — clickeye-api 의 editable path="../" 대상.
+COPY pyproject.toml ./
+COPY governance/ ./governance/
+
+# 2) api 의존성 메타만 먼저 복사(레이어 캐시: 소스보다 의존성 우선).
+COPY clickeye-api/pyproject.toml clickeye-api/uv.lock* ./clickeye-api/
+
+# 3) 의존성 설치(프로젝트 자체 제외). editable governance 는 ../governance 원본으로 빌드.
+#    앱 소스 없이도 캐시 가능 → 소스만 바뀌면 이 레이어 재사용.
+WORKDIR /app/clickeye-api
+RUN uv sync --frozen --no-dev --no-install-project
+
+# 4) 앱 소스(자주 바뀌는 레이어는 마지막).
+COPY clickeye-api/app ./app
+COPY clickeye-api/alembic ./alembic
+COPY clickeye-api/alembic.ini ./alembic.ini
+
+# 5) 프로젝트(app) editable 설치 — 소스가 준비된 뒤 빠르게 완료.
+RUN uv sync --frozen --no-dev
 
 FROM python:3.12-slim
 
-WORKDIR /app
+# 런타임 WORKDIR = api 프로젝트. `app.main` / `app.temporal.worker` 임포트 기준.
+WORKDIR /app/clickeye-api
 RUN useradd -m -r appuser
 
+# 레포 루트 미러 전체 복사(/app/.venv, /app/pyproject.toml, /app/governance, /app/clickeye-api).
+#   editable governance 의 .pth 는 /app 를 가리키므로 런타임에도 /app 레이아웃이 필요.
 COPY --from=builder /app /app
 
 USER appuser

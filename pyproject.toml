@@ -1,0 +1,31 @@
+# 저장소 루트 pyproject — clickeye-governance 커널 패키징 전용(SSOT).
+#
+# 왜 루트에 두는가: hatchling 의 editable 설치는 "프로젝트 루트(=이 pyproject 의
+# 디렉터리)"를 사이트패키지 .pth 로 sys.path 에 추가한다. 프로젝트 루트를 저장소 루트로
+# 두면 editable 설치 시 `import governance` 가 site-packages 사본이 아니라 저장소 루트의
+# 원본 소스(governance/__init__.py)로 해석된다 → 커널 편집이 즉시 반영(true-editable),
+# SSOT 중복 사본 없음.
+#
+# 불변식: 파이프라인/CI 는 저장소 루트를 sys.path 에 올려 `import governance.core` 를
+# 설치 없이 직접 하므로 governance/ 는 지금 위치(저장소 루트 하위)에 그대로 있어야 한다.
+[project]
+name = "clickeye-governance"
+version = "0.1.0"
+description = "ClickEye 머지 직전 거버넌스 게이트 커널 (stdlib 전용 SSOT)"
+requires-python = ">=3.12"
+# 의존성 0 — 파이프라인/CI 가 시스템 python3 로 설치 없이 호출한다.
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# governance/ 는 __init__.py 를 가진 정상 패키지 → 저장소 루트 기준 packages 매핑이
+# 그대로 성립(force-include 매핑 불필요).
+[tool.hatch.build.targets.wheel]
+packages = ["governance"]
+
+# uv 가 저장소 루트를 워크스페이스로 오인해 clickeye-api 등 하위 프로젝트의 독립 sync 를
+# 방해하지 않도록, 이 루트는 단일 패키지로만 취급한다(워크스페이스 멤버 미선언).
+[tool.uv]
+package = true

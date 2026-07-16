@@ -15,6 +15,7 @@ def test_settings() -> AgentSettings:
     """테스트용 Agent 설정."""
     return AgentSettings(
         agent_id="test-agent-001",
+        agent_token="test-token-001",
         agent_secret="test-secret",
         license_key="test-license",
         cloud_ws_url="ws://localhost:9999",

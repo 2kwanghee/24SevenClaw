@@ -11,9 +11,11 @@ from app.api.v1.contracts import router as contracts_router
 from app.api.v1.contracts import sync_router as contracts_sync_router
 from app.api.v1.control_tower import router as control_tower_router
 from app.api.v1.github_app import router as github_app_router
+from app.api.v1.governance import router as governance_router
 from app.api.v1.health import router as health_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.linear_credentials import router as linear_credentials_router
+from app.api.v1.llm_ledger import router as llm_ledger_router
 from app.api.v1.maturity import router as maturity_router
 from app.api.v1.modernize import router as modernize_router
 from app.api.v1.orchestrator import router as orchestrator_router
@@ -38,6 +40,7 @@ from app.api.v1.wizard_preview import router as wizard_preview_router
 api_v1_router = APIRouter()
 api_v1_router.include_router(admin_recommendations_router)
 api_v1_router.include_router(app_settings_admin_router)
+api_v1_router.include_router(llm_ledger_router)
 api_v1_router.include_router(registry_admin_router)
 api_v1_router.include_router(prototype_catalog_admin_router)
 api_v1_router.include_router(prototype_catalog_router)
@@ -63,6 +66,7 @@ api_v1_router.include_router(anthropic_credentials_router)
 api_v1_router.include_router(linear_credentials_router)
 api_v1_router.include_router(integrations_router)
 api_v1_router.include_router(github_app_router)
+api_v1_router.include_router(governance_router)
 api_v1_router.include_router(modernize_router)
 api_v1_router.include_router(control_tower_router)
 api_v1_router.include_router(roi_router)

@@ -49,6 +49,7 @@ version: ...       # 선택
 |------|------|--------|
 | [architecture-overview.md](architecture-overview.md) | 클라우드 SaaS + 로컬 에이전트 분리, 12단계 위저드 전체 구조 | current |
 | [agent-protocol.md](agent-protocol.md) | 서버↔에이전트 통신 프로토콜 | current |
+| [si-factory-transition.md](si-factory-transition.md) | SI 딜리버리 팩토리 전환 마스터 설계 기준 (P0~P4 티켓 CE-296~301 참조) | current |
 
 ### guide — 실행/사용 가이드
 | 문서 | 목적 | status |
@@ -78,6 +79,7 @@ version: ...       # 선택
 |------|------|--------|
 | [license-model.md](license-model.md) | 라이선스 정책(프로젝트 단위, 티어) | current |
 | [modernize-regression-checklist.md](modernize-regression-checklist.md) | Modernize 비침습 회귀 검증 R-1~R-7 | current |
+| [hybrid-runner-headless-poc.md](hybrid-runner-headless-poc.md) | CE-297 SPIKE — 컨테이너 헤드리스 PoC + 동시성 실측 결정 메모 | current |
 
 ### page — UI 페이지 스펙
 | 문서 | 목적 | status |

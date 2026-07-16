@@ -1,11 +1,13 @@
 ---
 title: 통신 프로토콜
 category: architecture
-status: current
-last_updated: 2026-04-21
+status: needs-revision
+last_updated: 2026-07-16
 related:
   - clickeye-api/app/ws
   - clickeye-agent
+  - clickeye-contracts/protocol/commands.ts
+  - clickeye-contracts/protocol/messages.ts
 ---
 
 # ClickEye - Communication Protocol
@@ -276,3 +278,51 @@ CLI 실행 시 → JWT 클레임에서 라이센스 상태 확인
 유효 → 정상 동작
 만료 → 기능 제한 + 웹에서 갱신 안내
 ```
+
+---
+
+## 7. Runner 태스크 프로토콜 (위치 무관 실행 계약)
+
+> SI 팩토리 전환 P0 — CE-301. 설계 근거: `docs/si-factory-transition.md` §1.1(실행 계층 균일 추상화), §2.4·§3.2(하이브리드 러너 패턴).
+> 계약 SSOT: `clickeye-contracts/protocol/commands.ts`(`RunnerTaskPayload`), `messages.ts`(`command.run_task`, `StatusPayload`/`LogPayload`/`ResultPayload`) + Python 미러 `python/protocol.py`.
+
+### 7.1 목적 — 위치 무관 실행
+
+**데스크탑 러너**(구독 시트, 주력)와 **클라우드 컨테이너**(조직 API 키, 폴백)가 **동일하게 소비**하는 하나의 실행 계약이다. 컨트롤 플레인은 실행 위치에 무관하게 동일한 `RunnerTaskPayload`를 발신하고, 러너는 자신의 팔(`target`)에 맞게 이를 해석한다.
+
+- **데스크탑 러너** = `target: "desktop"` → `claude -p` claude.ai 구독 세션 (주력, §2.1)
+- **클라우드 컨테이너** = `target: "cloud"` → `clickeye-agent`가 컨테이너 내에서 조직 API 키로 실행 (폴백)
+
+### 7.2 흐름 — 요청 → 상태 → 로그 → 결과
+
+```
+컨트롤 플레인 ──[command.run_task: RunnerTaskPayload(task_id 발급)]──► 러너(desktop|cloud)
+러너 ──[agent.status: StatusPayload(task_id)]──────────► 진행 상태 (진행률/이벤트)
+러너 ──[agent.log:    LogPayload(task_id)]─────────────► 로그 스트리밍 (streaming.logs)
+러너 ──[agent.result: ResultPayload(task_id)]──────────► 최종 결과 (완료/실패/부분 + 변경/메트릭)
+```
+
+**task_id 상관관계**: 발신 주체(컨트롤 플레인)가 `task_id`를 발급하고, 이후 모든 상태·로그·결과 메시지가 동일 `task_id`를 실어 하나의 태스크로 묶인다. `HeartbeatPayload.active_tasks`는 러너가 현재 실행 중인 `task_id` 목록을 보고한다.
+
+### 7.3 `RunnerTaskPayload` (`command.run_task`)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `task_id` | string | ✅ | 상관관계 키. 컨트롤 플레인이 발급, status/log/result가 공유 |
+| `project_id` | string | ✅ | 프로젝트 식별자 |
+| `target` | `"cloud" \| "desktop"` | ✅ | 실행 팔. desktop=구독 시트 주력 / cloud=조직 키 폴백 |
+| `auth_mode` | `"subscription_seat" \| "org_api_key"` | | 하이브리드 인증 결정. 미지정 시 `target` 기본값 |
+| `ticket_id` | string | △ | 작업 단위 = Linear 이슈(§1.1). 러너가 이슈를 컨텍스트로 실행 |
+| `prompt` | string | △ | AI 코딩 지시 (desktop=`claude -p` 세션 / cloud=컨테이너 내 동일 세션) |
+| `command` | string | △ | 순수 셸 명령 (AI 없이 빌드/스크립트 실행) |
+| `model` | string | | 모델 라우팅 힌트(opus/sonnet/haiku). 미지정 시 러너 정책 기본값 |
+| `streaming` | `{ logs?, artifacts? }` | | 로그·산출물 스트리밍 정책. 미지정 시 러너 기본값 |
+| `timeout_seconds` | number | | 실행 타임아웃(**정수 초**). 초과 시 러너가 중단 후 result status=failed |
+
+> **실행 명세 제약(△)**: `ticket_id` / `prompt` / `command` 중 **최소 하나 필수**. 조합 근거 — ticket_id(+prompt)=이슈 기반 AI 작업, prompt 단독=ad-hoc AI 작업, command 단독=비-AI 실행. TypeScript 인터페이스로 "최소 하나" 제약은 표현 불가하므로 소비 핸들러가 런타임 검증한다(P1/P3 범위). 이 '최소 하나' 제약은 Python 미러 `RunnerTaskPayload`의 `model_validator(mode="after")`로 강제된다(W1).
+
+### 7.4 결과 회계 (`ResultPayload` 확장)
+
+`ResultPayload`에 optional `target` / `auth_mode`를 추가해, LLM 게이트웨이+원장(CE-299)이 **구독 시트 vs 조직 키** 비용을 실행 팔별로 구분 집계할 수 있게 한다.
+
+> **범위 밖 TODO**: (1) `clickeye-agent`의 `DockerHandler` 실행 핸들러 스키마를 본 계약에 정합화(P1/P3). (2) `contract_service.py`의 `'contract.sync'` 문자열 ↔ 계약면 `'command.contract_sync'` 불일치 통일(별도 티켓). 이번 범위는 계약 스키마 확정만.

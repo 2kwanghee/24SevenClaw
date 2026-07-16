@@ -25,7 +25,15 @@ dependencies = [
     "openai>=1.0.0",
     "pyyaml>=6.0.0",
     "python-pptx>=0.6.23",
+    "temporalio>=1.8.0",
+    "clickeye-governance",
 ]
+
+[tool.uv.sources]
+# 거버넌스 커널은 저장소 루트 프로젝트(clickeye-governance). path 는 저장소 루트(..)이며
+# editable 설치 시 저장소 루트가 sys.path 에 올라가 `import governance` 가 원본 소스로
+# 해석된다(true-editable, site-packages 사본 없음 = SSOT).
+clickeye-governance = { path = "..", editable = true }
 
 [project.optional-dependencies]
 dev = [

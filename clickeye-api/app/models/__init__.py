@@ -12,6 +12,7 @@ from app.models.codebase_analysis import CodebaseAnalysis  # noqa: F401
 from app.models.github_installation import GitHubInstallation  # noqa: F401
 from app.models.github_repo import GitHubRepo  # noqa: F401
 from app.models.license import License  # noqa: F401
+from app.models.llm_usage_ledger import LlmUsageLedger  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
 from app.models.modernize_phase_artifact import ModernizePhaseArtifact  # noqa: F401
 from app.models.modernize_recommendation import ModernizeRecommendation  # noqa: F401
@@ -51,6 +52,7 @@ __all__ = [
     "GitHubInstallation",
     "GitHubRepo",
     "License",
+    "LlmUsageLedger",
     "MaturityAssessment",
     "MCPServer",
     "ModernizePhaseArtifact",

@@ -1,7 +1,7 @@
 ---
 title: AWS EC2 배포 가이드 (초보자용)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-06-15
 related:
   - clickeye-infra/docker

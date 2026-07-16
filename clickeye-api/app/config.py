@@ -78,6 +78,23 @@ class Settings(BaseSettings):
     # 프론트엔드 URL (OAuth callback 후 redirect 대상)
     frontend_url: str = "http://localhost:3000"
 
+    # 거버넌스 게이트 HTTP 노출용 머신 토큰. None/빈값이면 dev 개방(인증 없음),
+    # 설정 시 POST /governance/evaluate 는 X-Governance-Token 헤더 일치를 요구.
+    governance_service_token: str | None = None
+
+    # LLM 게이트웨이 (CE-299, "로깅만"). 기본 off — flag on 시에만 대표 호출처를
+    # 게이트웨이 경유로 라우팅해 usage 를 원장에 기록. off 면 기존 경로 그대로(회귀 0).
+    feature_llm_gateway: bool = False
+    llm_gateway_max_concurrency: int = 8  # 전역 동시성 세마포어 상한
+
+    # Temporal 오케스트레이션 (CE-296, P0 토대). 기본 off — 토글 on 시에만 워커가
+    # Temporal 서버에 연결한다. off 면 워커 프로세스가 즉시 종료(회귀 0). 실 워크플로
+    # 글루는 P1. host 기본값은 docker compose 서비스명(로컬 직접 실행 시 localhost:7233).
+    feature_temporal: bool = False
+    temporal_host: str = "temporal:7233"
+    temporal_namespace: str = "default"
+    temporal_task_queue: str = "clickeye-default"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

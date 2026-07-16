@@ -5,7 +5,7 @@ TypeScript protocol/ 디렉토리와 반드시 동기화 유지
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 # === 공통 ===
@@ -54,8 +54,20 @@ class ResultPayload(BaseModel):
     ticket_id: str | None = None
     status: Literal["completed", "failed", "partial"]
     summary: str
+    # CE-301: 러너 실행 팔·인증 모드 회계 (LLM 원장 구분 집계용)
+    target: Literal["cloud", "desktop"] | None = None
+    auth_mode: Literal["subscription_seat", "org_api_key"] | None = None
     changes: dict[str, Any] | None = None
     metrics: dict[str, Any] | None = None
+
+
+class LogPayload(BaseModel):
+    project_id: str
+    task_id: str | None = None
+    level: Literal["info", "warn", "error"]
+    source: Literal["docker", "claude", "git", "build", "agent"]
+    message: str
+    truncated: bool | None = None
 
 
 # === Cloud → Agent ===
@@ -85,10 +97,52 @@ class BuildPayload(BaseModel):
     stream_logs: bool = False
 
 
+class RunPayload(BaseModel):
+    project_id: str
+    command: str
+    port: int | None = None
+    env_vars: dict[str, str] | None = None
+
+
 class StopPayload(BaseModel):
     project_id: str
     target: Literal["all", "build", "service"]
     force: bool = False
+
+
+# === 위치 무관 Runner 태스크 실행 (CE-301) ===
+# TypeScript protocol/commands.ts 의 RunnerTaskPayload 와 반드시 동기화 유지.
+# 데스크탑 러너(구독 시트, 주력)·클라우드 컨테이너(조직 키, 폴백)가 동일 소비하는 위치 무관 계약.
+# TODO(P1/P3, 범위 밖): clickeye-agent DockerHandler 실행 핸들러 스키마를 본 계약에 정합화.
+
+RunnerTarget = Literal["cloud", "desktop"]
+RunnerAuthMode = Literal["subscription_seat", "org_api_key"]
+
+
+class RunnerStreamingPolicy(BaseModel):
+    logs: bool | None = None
+    artifacts: bool | None = None
+
+
+class RunnerTaskPayload(BaseModel):
+    task_id: str
+    project_id: str
+    target: RunnerTarget
+    auth_mode: RunnerAuthMode | None = None
+    # 실행 명세 — ticket_id / prompt / command 중 최소 하나 필수(소비 핸들러가 검증, P1/P3).
+    ticket_id: str | None = None
+    prompt: str | None = None
+    command: str | None = None
+    model: str | None = None
+    streaming: RunnerStreamingPolicy | None = None
+    timeout_seconds: int | None = None
+
+    @model_validator(mode="after")
+    def _require_exec_spec(self):
+        # W1: 실행 지시(ticket_id/prompt/command) 없는 no-op 태스크가 러너에 도달하는 것을 값싸게 방어.
+        if not (self.ticket_id or self.prompt or self.command):
+            raise ValueError("ticket_id/prompt/command 중 최소 하나 필수")
+        return self
 
 
 # === 에러 ===
