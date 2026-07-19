@@ -230,6 +230,15 @@ P0 티켓들의 "자산 처리" 라인에서 재구성한 부분집합입니다.
 - FLOWOPS_* 토글로 회귀 경로 유지
 - 검증 후 컷오버 (기존→Temporal 단계 이동)
 
+**첫 섀도우 워크플로 (CE-297)**: `ShadowDeliveryWorkflow`(clickeye-api/app/temporal/)가 P1의
+첫 미러링 레일이다. `auto_dev_pipeline.sh`가 이슈/브랜치 확정 직후, `FLOWOPS_TEMPORAL`이 명시적으로
+활성일 때만 `scripts/temporal_shadow_trigger.py`로 워크플로를 fire-and-forget 트리거한다. 셸 트리거는
+bash 거버넌스 게이트와 **동일한 three-dot**(`git diff --name-only main...<head>`)으로 변경 파일을 계산해
+인자로 전달하고, 워크플로는 `evaluate_governance_activity`(governance 커널 호출)만 실행해 거버넌스 결정
+(merge_decision/tier/verdict)을 **대조 로깅**한다. **부작용은 0** — 머지/커밋/PR/Linear-write는 포함하지
+않으며, Temporal 미가용·연결 실패 시에도 파이프라인을 막지 않는다(비블로킹, 회귀 0). 실제 컷오버(부작용
+activity 배선·Linear fetch)는 후속 단계로 남긴다.
+
 ### P2: 동시성 + 거버넌스 강화 (전략 성과 터닝)
 
 **목표**: WFQ(Work-Stealing Queue) 기반 예산집행 + 3단 주의-트리아지 라우터
@@ -247,6 +256,24 @@ P0 티켓들의 "자산 처리" 라인에서 재구성한 부분집합입니다.
 - 라우터: 프로젝트→데스크탑 또는 클라우드 자동 배치
 - 수주 인테이크 자동화 (Linear 티켓→ZIP→실행)
 - 마진 추적·보고 (ROI 고도화)
+
+#### P3 설계 노트 (실동작 이월 — 스켈레톤/설계만)
+
+**수주 인테이크 자동화 (실동작 이월):** 인테이크 자동화는 기존 modernize 흐름
+(레거시 분석 → Linear 티켓화 → ZIP 산출)과 신규 agent 실행 핸들러
+(`clickeye-agent`의 `RunnerHandler`, 메시지 타입 `command.run_task`)를 잇는 배선이다.
+트리거 지점은 modernize 세션의 **finalize/ZIP 생성 직후** — 이 시점에서 프로젝트를
+러너(데스크탑=구독 시트 주력 / 클라우드=조직 키 폴백)로 `RunnerTaskPayload`
+(`task_id`/`project_id`/`target`/`ticket_id`|`prompt`|`command`)로 push 한다.
+실동작 배선(러너 push, 라우터 배치)은 범위 폭발 방지를 위해 이월하며, 코드 앵커는
+modernize finalize 서비스와 `clickeye-agent`의 `RunnerHandler` docstring TODO로 표시한다.
+
+**마진 관리 (실동작 이월):** 실마진 = ROI 견적(추정 `clickeye_cost`, `roi_service.py`)
+대비 실제 비용(LLM 원장 실 cost, `llm_ledger_service.py` + 향후 인건비/시간).
+두 축은 `project_id`를 상관키로 조인한다. 현재 ROI는 인건비(일/역할) 기반 KRW,
+LLM 원장은 토큰 기반 cost로 **단위가 불일치**하므로 실마진 정의(인건비 vs 토큰비
+단위 통일)를 선행 설계해야 한다. 실동작 집계·리포트는 이월하며, 코드 앵커는
+`roi_service.py`/`llm_ledger_service.py`의 TODO 주석으로 표시한다.
 
 ### P4: 스케일 + 경화 + 레거시 폐기
 

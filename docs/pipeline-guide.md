@@ -306,6 +306,16 @@ CI(`ci.yml`의 `governance` 잡)는 동일 모듈을 PR에서 재확인하는 **
 
 토글: `FLOWOPS_GOVERNANCE`(마스터) + `_CONTRACT`/`_TICKET`/`_TRACE`/`_RISK_DEMOTE`. **마스터 off면 게이트 전체 우회 → 기존 동작과 동일(회귀 0).**
 
+**판정 경로 — 로컬 shim vs HTTP 컨트롤 플레인:** 기본은 로컬에서 `pre_merge_gate.py`를 직접 호출한다.
+`FLOWOPS_GOVERNANCE_SERVICE_URL`이 설정되면(예: `http://api:8000`) 게이트는 대신 그 서비스의
+`POST /api/v1/governance/evaluate`로 판정한다 — 파이프라인이 로컬에서 변경 파일(`git diff --name-only main...<branch>`)을
+계산해 `{base:"main", head:<branch>, files:[...]}` 페이로드로 전송하고, 응답의 `merge_decision`/`tier`/`failures`를
+로컬 shim과 동일한 분기 로직에 투입한다(머신 토큰은 `GOVERNANCE_SERVICE_TOKEN` → `X-Governance-Token` 헤더,
+양쪽 미설정 시 dev 개방). **비200·타임아웃·연결실패 시 조용히 skip하지 않고 `WARN` 로그 후 로컬 shim으로 폴백**하여
+권위 게이트 판정을 반드시 유지한다. `FLOWOPS_GOVERNANCE_SERVICE_URL`이 **빈 값이면 HTTP 경로를 완전히 건너뛰어
+기존 로컬 판정 그대로(회귀 0)** — URL 존재 여부가 스위치이므로 `is_enabled` 미설정=활성 규약과 무관하다.
+(관련 변수: `FLOWOPS_GOVERNANCE_SERVICE_URL`·`FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT`·`GOVERNANCE_SERVICE_TOKEN`, `.env.example` 참조.)
+
 ### Step 6: 머지 — 2가지 경로
 
 > 거버넌스 게이트(Step 5.5)가 먼저 판정한다. HIGH-tier면 아래 경로와 무관하게 PR로 강등된다.
