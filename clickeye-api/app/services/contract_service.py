@@ -305,7 +305,11 @@ class ContractService:
             sent = await agent_hub.send_to_agent(
                 str(conn.agent_token),
                 {
-                    "type": "contract.sync",
+                    # 계약면(clickeye-contracts messages.ts CommandMessageType /
+                    # python/protocol.py) canonical 값과 정합. 이전 'contract.sync'는 불일치였음.
+                    # TODO: agent 측 command.contract_sync 핸들러 미구현 — 별도 작업
+                    # (clickeye-agent/agent/main.py dispatcher 미등록).
+                    "type": "command.contract_sync",
                     "payload": {
                         "project_id": str(project_id),
                         "contracts": contracts_payload,

@@ -21,7 +21,8 @@ export type CommandMessageType =
   | 'command.stop'
   | 'command.destroy_env'
   | 'config.update'
-  // TODO(범위 밖): contract_service.py:305 는 'contract.sync' 문자열을 사용 — 계약면 불일치. 별도 티켓에서 통일.
+  // 송신부(contract_service.py)는 이 canonical 값으로 정합됨.
+  // TODO(범위 밖): agent 측 command.contract_sync 핸들러 미구현 — 별도 작업.
   | 'command.contract_sync';
 
 export type MessageType = AgentMessageType | CommandMessageType | 'error';
