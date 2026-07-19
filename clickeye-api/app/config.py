@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model_default: str = "claude-sonnet-4-6"
     anthropic_model_advanced: str = "claude-opus-4-7"
+    # 경량 티어(분류/추출 등) — LLM 게이트웨이 라우팅 정책이 참조. 미설정이면 default 로 폴백.
+    anthropic_model_light: str = "claude-haiku-4-5"
     prototype_generation_timeout: int = 60
 
     # OpenAI (Anthropic 키 무효/크레딧 부족/미설정 시 LLM 폴백)
@@ -82,10 +84,24 @@ class Settings(BaseSettings):
     # 설정 시 POST /governance/evaluate 는 X-Governance-Token 헤더 일치를 요구.
     governance_service_token: str | None = None
 
+    # 트리아지(항목 G) 예산 한도/경고 임계. 문서·기본값 제공용 필드다. 실제 판정은 커널
+    # (governance.core.assess_budget)이 동일 이름의 FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_*
+    # 환경변수를 직접 읽어 수행한다(SSOT). 0 이하면 해당 축 비활성(회귀 0, 기본 off).
+    # 운영에서는 .env 에 FLOWOPS_GOVERNANCE_TRIAGE=on 및 아래 임계를 env 로 설정.
+    governance_triage_budget_cost_limit: float = 0.0
+    governance_triage_budget_cost_warn: float = 0.0
+    governance_triage_budget_token_limit: float = 0.0
+    governance_triage_budget_token_warn: float = 0.0
+
     # LLM 게이트웨이 (CE-299, "로깅만"). 기본 off — flag on 시에만 대표 호출처를
     # 게이트웨이 경유로 라우팅해 usage 를 원장에 기록. off 면 기존 경로 그대로(회귀 0).
     feature_llm_gateway: bool = False
     llm_gateway_max_concurrency: int = 8  # 전역 동시성 세마포어 상한
+    # 가격맵 외부화(P2). 빈값이면 번들 기본 파일(app/data/llm_pricing.json) 사용.
+    # 테스트/운영에서 대체 파일 경로 주입 가능.
+    llm_pricing_path: str = ""
+    # 모델 라우팅 정책(P2): complexity 가 이 임계 이상이면 advanced(opus) 티어로 격상.
+    llm_route_complexity_threshold: float = 0.7
 
     # Temporal 오케스트레이션 (CE-296, P0 토대). 기본 off — 토글 on 시에만 워커가
     # Temporal 서버에 연결한다. off 면 워커 프로세스가 즉시 종료(회귀 0). 실 워크플로

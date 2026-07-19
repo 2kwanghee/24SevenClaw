@@ -11,8 +11,10 @@ import secrets
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.database import get_db
 from app.schemas.governance import GovernanceEvaluateRequest, GovernanceEvaluateResponse
 from app.services.governance_gate_service import GovernanceGateService
 
@@ -42,10 +44,18 @@ def verify_governance_token(
 @router.post(
     "/evaluate",
     response_model=GovernanceEvaluateResponse,
+    # None 필드 제외 → triage off 응답에 triage/risk_score/triage_reasons/budget 키가
+    # null 로 새지 않도록(커널 "off면 triage 키 미포함" 계약과 정합). on 시엔 값이 있어 포함.
+    response_model_exclude_none=True,
     dependencies=[Depends(verify_governance_token)],
 )
 async def evaluate_governance(
     req: GovernanceEvaluateRequest,
+    db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """변경 파일/브랜치를 커널로 평가하여 머지 판정(direct/pr/block)을 반환한다."""
-    return GovernanceGateService().evaluate(req)
+    """변경 파일/브랜치를 커널로 평가하여 머지 판정(direct/pr/block)을 반환한다.
+
+    db 세션은 주입하되 실제 원장 조회는 트리아지 예산 opt-in + project_id 가 있을 때만
+    수행된다(그 외엔 세션 미사용 → 연결도 없음). 현행 DB-less 계약과 하위호환.
+    """
+    return await GovernanceGateService(db).evaluate(req)

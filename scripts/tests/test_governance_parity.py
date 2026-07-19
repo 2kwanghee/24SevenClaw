@@ -214,6 +214,51 @@ def test_http_files_omitted_equals_empty():
     )
 
 
+def test_triage_parity_across_paths(monkeypatch):
+    """트리아지 ON + 동일 usage 를 3경로에 동일 주입 → 코어 서브셋 + 관측 키 일치.
+
+    (a) 커널 직접  (b) shim CLI --usage-json  (c) HTTP 요청 usage 필드.
+    ENFORCE 는 켜지 않는다(순수 관측). 예산 한도를 낮춰 band=review 를 유도.
+    """
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_TRIAGE", "on")
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_WARN", "5")
+    head = "ralph/CE-2"
+    files = ["clickeye-web/src/app/page.tsx"]
+    usage = {"cost": 6.0, "tokens": 100}
+
+    # (a) 커널
+    a = g.evaluate("main", head, files=files, usage=usage)
+    assert a["triage"] == "review"
+
+    # (b) shim CLI --usage-json
+    r = subprocess.run(
+        [
+            sys.executable, _GATE_SCRIPT,
+            "--base", "main", "--head", head,
+            "--diff-files", ",".join(files),
+            "--usage-json", json.dumps(usage),
+            "--json",
+        ],
+        capture_output=True, text=True, env=dict(os.environ),
+    )
+    b = json.loads(r.stdout)
+    assert _subset(a) == _subset(b), f"core≠shim\ncore={_subset(a)}\nshim={_subset(b)}"
+    assert (a["triage"], a["risk_score"]) == (b["triage"], b["risk_score"])
+
+    # (c) HTTP usage 필드
+    client = _fastapi_client()
+    if client is None:
+        pytest.skip("FastAPI/clickeye-api import 불가 → path c skip")
+    resp = client.post(
+        "/api/v1/governance/evaluate",
+        json={"base": "main", "head": head, "files": files, "usage": usage},
+    )
+    assert resp.status_code == 200, resp.text
+    c = resp.json()
+    assert _subset(a) == _subset(c), f"core≠http\ncore={_subset(a)}\nhttp={_subset(c)}"
+    assert (a["triage"], a["risk_score"]) == (c["triage"], c["risk_score"])
+
+
 def test_installed_kernel_is_true_editable():
     """governance 가 저장소 루트 원본 소스로 해석되는지(true-editable, SSOT 사본 없음).
 
