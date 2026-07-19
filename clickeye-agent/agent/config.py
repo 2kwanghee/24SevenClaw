@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 
+# Agent 데몬 버전. register/heartbeat 페이로드의 agent_version 으로 보고된다.
+AGENT_VERSION = "0.1.0"
+
 
 class AgentSettings(BaseSettings):
     # Agent 식별

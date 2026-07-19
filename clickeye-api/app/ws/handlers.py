@@ -68,6 +68,23 @@ async def _handle_register(
     hostname = payload.get("hostname", "unknown")
     agent_hub.update_heartbeat(agent_id, {"status": "idle"})
 
+    # 항목 F: registration_token 대조(defense-in-depth).
+    #   register 는 연결 후 메타데이터 등록 용도이며, 연결 인증은 이미 쿼리
+    #   agent_token 으로 완료됐다. registration_token 은 그 agent_token 을 재제시하는
+    #   것이므로, 검증된 agent_token 과 일치하는지 확인한다. 불일치 시 경고 로그만
+    #   남긴다(연결은 이미 인증됐으므로 강제 종료하지 않음 — 캐노니컬 결정).
+    registration_token = payload.get("registration_token")
+    if (
+        agent_token is not None
+        and registration_token is not None
+        and registration_token != agent_token
+    ):
+        logger.warning(
+            "register_token_mismatch",
+            agent_id=agent_id,
+            reason="registration_token 이 연결의 검증된 agent_token 과 불일치",
+        )
+
     # CE-300: agent_token 이 없으면(예: 검증 경로 밖 직접 호출) hub 라우팅 라벨로 폴백.
     match_token = agent_token if agent_token is not None else agent_id
 

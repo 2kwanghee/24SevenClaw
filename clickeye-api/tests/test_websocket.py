@@ -124,6 +124,114 @@ async def test_ws_message_handler_log(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_ws_message_handler_register_records_metadata(db_session) -> None:
+    """agent.register: registration_token 이 agent_token 과 일치하면 host 메타데이터를 기록."""
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.models.agent_connection import AgentConnection
+    from app.ws.handlers import handle_agent_message
+
+    token = "reg-token-match"
+    row = AgentConnection(
+        id=uuid.uuid4(),
+        project_id=uuid.uuid4(),
+        license_id=uuid.uuid4(),
+        agent_token=token,
+        status="disconnected",
+    )
+    db_session.add(row)
+    await db_session.commit()
+
+    result = await handle_agent_message(
+        agent_id="label-1",
+        message={
+            "type": "agent.register",
+            "payload": {
+                "registration_token": token,
+                "hostname": "host-01",
+                "os": "Linux 6.1",
+                "docker_version": "24.0.7",
+                "agent_version": "0.1.0",
+                "capabilities": ["setup_env", "build", "config.update"],
+            },
+        },
+        db=db_session,
+        agent_token=token,
+    )
+
+    assert result is not None
+    assert result["type"] == "agent.register.ack"
+
+    refreshed = (
+        await db_session.execute(
+            select(AgentConnection).where(AgentConnection.agent_token == token)
+        )
+    ).scalar_one()
+    assert refreshed.hostname == "host-01"
+    assert refreshed.status == "connected"
+    assert refreshed.metadata_ is not None
+    assert refreshed.metadata_["os"] == "Linux 6.1"
+    assert refreshed.metadata_["agent_version"] == "0.1.0"
+    assert refreshed.metadata_["docker_version"] == "24.0.7"
+    assert refreshed.metadata_["capabilities"] == [
+        "setup_env",
+        "build",
+        "config.update",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_ws_message_handler_register_token_mismatch(db_session) -> None:
+    """agent.register: registration_token 불일치여도(연결은 이미 인증) 등록은 진행되고 예외 없음."""
+    import uuid
+
+    from sqlalchemy import select
+
+    from app.models.agent_connection import AgentConnection
+    from app.ws.handlers import handle_agent_message
+
+    token = "reg-token-conn"
+    row = AgentConnection(
+        id=uuid.uuid4(),
+        project_id=uuid.uuid4(),
+        license_id=uuid.uuid4(),
+        agent_token=token,
+        status="disconnected",
+    )
+    db_session.add(row)
+    await db_session.commit()
+
+    # registration_token 이 연결의 검증된 agent_token 과 다름 → 경고 로그만, 강제 종료 없음
+    result = await handle_agent_message(
+        agent_id="label-2",
+        message={
+            "type": "agent.register",
+            "payload": {
+                "registration_token": "some-other-token",
+                "hostname": "host-02",
+                "capabilities": [],
+            },
+        },
+        db=db_session,
+        agent_token=token,
+    )
+
+    assert result is not None
+    assert result["type"] == "agent.register.ack"
+
+    # 매칭은 검증된 agent_token(연결 크리덴셜) 기준이므로 메타데이터는 여전히 기록됨
+    refreshed = (
+        await db_session.execute(
+            select(AgentConnection).where(AgentConnection.agent_token == token)
+        )
+    ).scalar_one()
+    assert refreshed.hostname == "host-02"
+    assert refreshed.status == "connected"
+
+
+@pytest.mark.asyncio
 async def test_ws_message_handler_result(db_session) -> None:
     """작업 결과 메시지 처리 테스트."""
     from app.ws.handlers import handle_agent_message
