@@ -22,7 +22,11 @@ from app.services.base import BaseService
 
 
 class LlmLedgerService(BaseService):
-    """원장 1행 기록 + 프로젝트별 집계 조회."""
+    """원장 1행 기록 + 프로젝트별 집계 조회.
+
+    TODO(P3, 이월): project_id 상관키로 roi_service 추정치와 조인해 실마진을 산출한다.
+      단위 통일(토큰비 vs 인건비 KRW) 설계 선행 필요. docs/si-factory-transition.md P3.
+    """
 
     async def record(
         self,

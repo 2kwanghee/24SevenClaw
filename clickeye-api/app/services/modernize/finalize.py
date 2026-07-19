@@ -170,3 +170,6 @@ async def mark_finalized(
     row.progress_pct = 100  # type: ignore[assignment]
     row.updated_at = datetime.now(UTC)  # type: ignore[assignment]
     await db.commit()
+    # TODO(P3, 이월): 수주 인테이크 자동화 — 이 finalize/ZIP 지점 직후 러너로
+    #   RunnerTaskPayload(command.run_task) 를 push 하는 배선을 붙인다
+    #   (clickeye-agent RunnerHandler 가 소비). 설계 노트: docs/si-factory-transition.md P3.
