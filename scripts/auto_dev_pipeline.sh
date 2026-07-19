@@ -169,6 +169,15 @@ for title, meta in m.items():
   log "  이슈: $ISSUE_KEY | 브랜치: $BRANCH"
   log "══════════════════════════════════════"
 
+  # ── Temporal 섀도우 트리거(CE-297, P1) ──
+  # FLOWOPS_TEMPORAL 활성 시에만 거버넌스 결정을 미러링하는 ShadowDeliveryWorkflow 를
+  # fire-and-forget 로 트리거한다. 부작용 0(머지/커밋/PR 없음), 비블로킹, 실패 무시 →
+  # 기존 파이프라인 실제 경로를 막지 않고 병렬 대조 로깅만 한다. 미설정 시 아무 것도 안 함(회귀 0).
+  if is_enabled "FLOWOPS_TEMPORAL" 2>/dev/null && [ -n "${FLOWOPS_TEMPORAL:-}" ]; then
+    python3 "$PROJECT_DIR/scripts/temporal_shadow_trigger.py" \
+      --issue-key "$ISSUE_KEY" --head "$BRANCH" >>"$CLAUDE_LOG" 2>&1 || true
+  fi
+
   # 브랜치 생성/전환
   safe_git checkout main 2>/dev/null || true
   safe_git pull origin main 2>/dev/null || true
@@ -373,11 +382,50 @@ $(cat .ralph/PROMPT.md)"
   MERGED_DIRECT=false
   if is_enabled "FLOWOPS_GOVERNANCE" 2>/dev/null; then
     GATE_RC=0
-    GATE_JSON=$(python3 scripts/pre_merge_gate.py --base main --head "$BRANCH" --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+    GATE_JSON=""
+
+    # ── 거버넌스 판정 획득: HTTP 컨트롤 플레인 경유(선택) → 실패 시 로컬 shim 폴백 ──
+    # FLOWOPS_GOVERNANCE_SERVICE_URL 이 설정된 경우에만 HTTP 서비스를 경유한다.
+    # 미설정(빈 값)이면 이 블록 전체를 건너뛰어 기존 로컬 shim 경로 그대로 → 회귀 0.
+    if [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
+      # 변경 파일 목록 계산(원격 호출자는 git 접근 불가 → 명시 전달). 커널과 동일 three-dot(merge-base) 사용.
+      GATE_FILES=$(safe_git diff --name-only "main...${BRANCH}" 2>>"$CLAUDE_LOG" || true)
+      # JSON 페이로드 구성(jq 우선, 없으면 python3 로 안전 직렬화)
+      if command -v jq >/dev/null 2>&1; then
+        GATE_PAYLOAD=$(printf '%s\n' "$GATE_FILES" | jq -R . | jq -s --arg h "$BRANCH" '{base:"main", head:$h, files:[.[]|select(.!="")], plan_text:null}' 2>>"$CLAUDE_LOG" || echo '')
+      else
+        GATE_PAYLOAD=$(GATE_BRANCH="$BRANCH" GATE_FILES="$GATE_FILES" python3 -c 'import os,json;fs=[f for f in os.environ.get("GATE_FILES","").splitlines() if f];print(json.dumps({"base":"main","head":os.environ["GATE_BRANCH"],"files":fs,"plan_text":None}))' 2>>"$CLAUDE_LOG" || echo '')
+      fi
+      GATE_URL="${FLOWOPS_GOVERNANCE_SERVICE_URL%/}/api/v1/governance/evaluate"
+      # curl 실패(연결/타임아웃)가 set -e 로 스크립트를 죽이지 않게 rc 캡처. 응답 마지막 줄=HTTP 코드.
+      GATE_HTTP_RESP=$(curl -sS -m "${FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT:-10}" -w $'\n%{http_code}' \
+        -X POST "$GATE_URL" \
+        -H "Content-Type: application/json" \
+        -H "X-Governance-Token: ${GOVERNANCE_SERVICE_TOKEN:-}" \
+        -d "$GATE_PAYLOAD" 2>>"$CLAUDE_LOG") || GATE_HTTP_RESP=""
+      GATE_HTTP_CODE=$(printf '%s' "$GATE_HTTP_RESP" | tail -n1)
+      GATE_HTTP_BODY=$(printf '%s' "$GATE_HTTP_RESP" | sed '$d')
+      if [ "$GATE_HTTP_CODE" = "200" ] && [ -n "$GATE_HTTP_BODY" ]; then
+        GATE_JSON="$GATE_HTTP_BODY"
+        log "거버넌스 게이트: HTTP 서비스 경유 성공 (url=$GATE_URL code=200)"
+      else
+        # 권위 게이트는 조용히 skip 금지 → WARN 후 로컬 shim 으로 판정 계속.
+        log "WARN: 거버넌스 HTTP 서비스 호출 실패 (url=$GATE_URL code=${GATE_HTTP_CODE:-none}) → 로컬 shim 폴백"
+      fi
+    fi
+
+    # HTTP 미사용(URL 미설정) 또는 HTTP 실패 → 로컬 shim(SSOT) 으로 판정(권위 게이트 유지).
+    if [ -z "$GATE_JSON" ]; then
+      GATE_JSON=$(python3 scripts/pre_merge_gate.py --base main --head "$BRANCH" --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+    fi
+
     GATE_DECISION=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('merge_decision','block'))" 2>/dev/null || echo "block")
     GATE_TIER=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('tier','LOW'))" 2>/dev/null || echo "LOW")
     GATE_FAILS=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(' / '.join(json.load(sys.stdin).get('failures',[])) or '검증 실패')" 2>/dev/null || echo "게이트 파싱 실패")
     log "거버넌스 게이트: rc=$GATE_RC tier=$GATE_TIER decision=$GATE_DECISION"
+    # 트리아지(항목 G) 관측 로깅만 — merge_decision 도메인/판정에는 영향 없음(extra 키 무시).
+    GATE_TRIAGE=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('triage',''))" 2>/dev/null || echo "")
+    [ -n "$GATE_TRIAGE" ] && log "거버넌스 트리아지: band=$GATE_TRIAGE"
 
     if [ "$GATE_RC" -eq 2 ] || [ "$GATE_DECISION" = "block" ]; then
       log "ERROR: 거버넌스 검증 실패 → 머지 차단 ($GATE_FAILS)"
