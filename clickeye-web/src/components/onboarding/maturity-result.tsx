@@ -128,7 +128,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
 
           <button
             type="button"
-            onClick={() => router.push("/solutions/new")}
+            onClick={() => router.push("/delivery")}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] px-5 py-3 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <Settings2 className="h-4 w-4" />

@@ -917,7 +917,7 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
           </a>
         ) : (
           <a
-            href="/solutions/new"
+            href="/delivery"
             className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />

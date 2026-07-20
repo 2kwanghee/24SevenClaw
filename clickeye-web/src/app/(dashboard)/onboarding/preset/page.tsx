@@ -34,7 +34,7 @@ export default function PresetSelectionPage() {
 
   const handleApplyAndStart = () => {
     if (!selectedPreset) return;
-    router.push("/solutions/new");
+    router.push("/delivery");
   };
 
   const handleNlAnalyze = async (text: string) => {
@@ -67,11 +67,11 @@ export default function PresetSelectionPage() {
     } catch {
       // sessionStorage 사용 불가 시 무시 (SSR/프라이버시 모드)
     }
-    router.push("/solutions/new");
+    router.push("/delivery");
   };
 
   const handleSkip = () => {
-    router.push("/solutions/new");
+    router.push("/delivery");
   };
 
   return (

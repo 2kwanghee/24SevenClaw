@@ -83,7 +83,7 @@ export default function RegisterPage() {
         display_name: data.displayName,
       });
 
-      router.push("/login?registered=1&callbackUrl=/onboarding/maturity");
+      router.push("/login?registered=1&callbackUrl=/delivery");
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.detail);
@@ -113,7 +113,7 @@ export default function RegisterPage() {
       <div className="mb-6 grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => signIn("github", { callbackUrl: "/onboarding/maturity" })}
+          onClick={() => signIn("github", { callbackUrl: "/delivery" })}
           className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
         >
           <Github className="h-4 w-4" />
@@ -121,7 +121,7 @@ export default function RegisterPage() {
         </button>
         <button
           type="button"
-          onClick={() => signIn("google", { callbackUrl: "/onboarding/maturity" })}
+          onClick={() => signIn("google", { callbackUrl: "/delivery" })}
           className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
         >
           <Chrome className="h-4 w-4" />
