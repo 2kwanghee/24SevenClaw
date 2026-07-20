@@ -52,5 +52,3 @@ async def update_rag_top_k(
     svc = AppSettingService(db)
     row = await svc.set_rag_top_k(data.value, user)
     return AppSettingResponse.model_validate(row)
-
-

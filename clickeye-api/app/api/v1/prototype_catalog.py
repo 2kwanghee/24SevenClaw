@@ -7,8 +7,8 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.prototype_catalog import (
-    PrototypeCatalogListResponse,
     PrototypeCatalogEntryResponse,
+    PrototypeCatalogListResponse,
     PrototypeTagListResponse,
     PrototypeTagResponse,
 )

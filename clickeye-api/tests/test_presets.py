@@ -32,9 +32,7 @@ async def _seed_preset(db: AsyncSession) -> Preset:
 
 
 @pytest.mark.asyncio
-async def test_list_presets_empty(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_list_presets_empty(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """프리셋이 없으면 빈 목록 반환."""
     resp = await client.get("/api/v1/presets/", headers=auth_headers)
     assert resp.status_code == 200
@@ -74,17 +72,13 @@ async def test_list_presets_filter_maturity(
     """maturity_level 필터 동작 확인."""
     await _seed_preset(db_session)
 
-    resp = await client.get(
-        "/api/v1/presets/?maturity_level=starter", headers=auth_headers
-    )
+    resp = await client.get("/api/v1/presets/?maturity_level=starter", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] >= 1
 
     # 없는 레벨 필터
-    resp2 = await client.get(
-        "/api/v1/presets/?maturity_level=advanced", headers=auth_headers
-    )
+    resp2 = await client.get("/api/v1/presets/?maturity_level=advanced", headers=auth_headers)
     data2 = resp2.json()
     # seed한 것은 starter이므로 advanced에는 없어야 함
     for item in data2["items"]:
@@ -119,9 +113,7 @@ async def test_get_preset_by_id(
 
 
 @pytest.mark.asyncio
-async def test_get_preset_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_preset_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """존재하지 않는 프리셋 조회 시 404."""
     fake_id = uuid.uuid4()
     resp = await client.get(f"/api/v1/presets/{fake_id}", headers=auth_headers)
@@ -132,9 +124,7 @@ async def test_get_preset_not_found(
 
 
 @pytest.mark.asyncio
-async def test_get_maturity_questions(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_maturity_questions(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """성숙도 질문지 조회."""
     resp = await client.get("/api/v1/presets/questions", headers=auth_headers)
     assert resp.status_code == 200

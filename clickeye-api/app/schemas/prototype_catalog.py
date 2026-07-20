@@ -6,8 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # ── PrototypeCatalogEntry ─────────────────────────────────────────────────────
+
 
 class PrototypeCatalogEntryBase(BaseModel):
     slug: str = Field(..., min_length=1, max_length=200, pattern=r"^[a-z0-9-]+$")
@@ -88,6 +88,7 @@ class PrototypeCatalogListResponse(BaseModel):
 
 
 # ── PrototypeTag ──────────────────────────────────────────────────────────────
+
 
 class PrototypeTagBase(BaseModel):
     slug: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")

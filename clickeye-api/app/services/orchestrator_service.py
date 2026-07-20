@@ -134,9 +134,7 @@ class OrchestratorService:
         if phase_filter:
             conditions.append(OrchestratorSession.phase == phase_filter)
 
-        count_stmt = (
-            select(func.count()).select_from(OrchestratorSession).where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(OrchestratorSession).where(*conditions)
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         stmt = (
@@ -192,7 +190,10 @@ class OrchestratorService:
                 analysis_result=analysis_result,
             )
             if raw:
-                subtasks = [self._build_subtask_from_dict(session, item, idx) for idx, item in enumerate(raw)]  # noqa: E501
+                subtasks = [
+                    self._build_subtask_from_dict(session, item, idx)
+                    for idx, item in enumerate(raw)
+                ]  # noqa: E501
             else:
                 # Claude 분해 빈 응답 → 키워드 폴백, 분석 결과도 무효화
                 session.analysis_result = None
@@ -271,9 +272,7 @@ class OrchestratorService:
 
     # === 서브태스크 관리 ===
 
-    async def create_subtask(
-        self, session_id: UUID, data: SubTaskCreate
-    ) -> SubTask:
+    async def create_subtask(self, session_id: UUID, data: SubTaskCreate) -> SubTask:
         await self.get_session(session_id)
         subtask = SubTask(
             session_id=session_id,
@@ -289,9 +288,7 @@ class OrchestratorService:
         await self.db.refresh(subtask)
         return subtask
 
-    async def update_subtask(
-        self, subtask_id: UUID, data: SubTaskUpdate
-    ) -> SubTask:
+    async def update_subtask(self, subtask_id: UUID, data: SubTaskUpdate) -> SubTask:
         subtask = await self.db.get(SubTask, subtask_id)
         if subtask is None:
             raise AppError("SUBTASK_NOT_FOUND", "서브태스크를 찾을 수 없습니다.", 404)
@@ -377,8 +374,7 @@ class OrchestratorService:
         if target_phase not in allowed:
             raise AppError(
                 "INVALID_TRANSITION",
-                f"'{old_phase}' → '{target_phase}' 전이는 허용되지 않습니다. "
-                f"허용: {allowed}",
+                f"'{old_phase}' → '{target_phase}' 전이는 허용되지 않습니다. 허용: {allowed}",
                 422,
             )
 
@@ -398,9 +394,7 @@ class OrchestratorService:
         # approved 전이 시 연결된 Artifact도 자동 approved 전이
         if target_phase == "approved":
             subtasks = await self._get_subtasks(session.id)
-            artifact_ids = [
-                st.artifact_id for st in subtasks if st.artifact_id is not None
-            ]
+            artifact_ids = [st.artifact_id for st in subtasks if st.artifact_id is not None]
             if artifact_ids:
                 artifact_svc = ArtifactService(self.db)
                 await artifact_svc.bulk_transition(
@@ -479,9 +473,7 @@ class OrchestratorService:
 
         return subtasks
 
-    def _build_prompt_template(
-        self, session: OrchestratorSession, subtasks: list[SubTask]
-    ) -> str:
+    def _build_prompt_template(self, session: OrchestratorSession, subtasks: list[SubTask]) -> str:
         """프롬프트 표준화 (기능 2): 세션 정보를 기반으로 표준 프롬프트 생성."""
         lines = [
             f"# 오케스트레이션 세션: {session.title}",

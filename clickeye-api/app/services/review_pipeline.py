@@ -25,7 +25,6 @@ from app.schemas.review_pipeline import (
     ReviewSubmit,
 )
 from app.services.artifact_service import ArtifactService
-from app.services.claude_service import ClaudeService
 
 logger = logging.getLogger(__name__)
 
@@ -199,8 +198,7 @@ class ReviewPipelineService:
         if review_round.status != "review_completed":
             raise AppError(
                 "INVALID_STATUS",
-                f"병합은 'review_completed' 상태에서만 가능합니다. "
-                f"현재: '{review_round.status}'",
+                f"병합은 'review_completed' 상태에서만 가능합니다. 현재: '{review_round.status}'",
                 422,
             )
 
@@ -265,8 +263,7 @@ class ReviewPipelineService:
         if review_round.status != "review_completed":
             raise AppError(
                 "INVALID_STATUS",
-                f"거절은 'review_completed' 상태에서만 가능합니다. "
-                f"현재: '{review_round.status}'",
+                f"거절은 'review_completed' 상태에서만 가능합니다. 현재: '{review_round.status}'",
                 422,
             )
 

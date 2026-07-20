@@ -1,4 +1,5 @@
 """Notion API 서비스 — 유효성 검증 및 페이지 생성."""
+
 from __future__ import annotations
 
 import json
@@ -26,9 +27,7 @@ def _call(
         with urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())  # type: ignore[no-any-return]
     except HTTPError as exc:
-        raise RuntimeError(
-            f"Notion API 오류 {exc.code}: {exc.read().decode()[:200]}"
-        ) from exc
+        raise RuntimeError(f"Notion API 오류 {exc.code}: {exc.read().decode()[:200]}") from exc
 
 
 def validate_credentials(api_key: str, database_id: str) -> tuple[bool, str]:
@@ -40,9 +39,7 @@ def validate_credentials(api_key: str, database_id: str) -> tuple[bool, str]:
     try:
         result = _call(api_key, "GET", f"/databases/{database_id}")
         title_arr = result.get("title", [])
-        db_title = (
-            title_arr[0].get("plain_text", database_id) if title_arr else database_id
-        )
+        db_title = title_arr[0].get("plain_text", database_id) if title_arr else database_id
         return True, f"인증 성공 ({db_title})"
     except RuntimeError as exc:
         return False, f"데이터베이스 ID 조회 실패: {exc}"
@@ -64,9 +61,7 @@ def create_page(
             {
                 "object": "block",
                 "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [{"type": "text", "text": {"content": body}}]
-                },
+                "paragraph": {"rich_text": [{"type": "text", "text": {"content": body}}]},
             }
         ],
     }
@@ -74,9 +69,7 @@ def create_page(
     return result.get("url") or None
 
 
-def create_initial_task(
-    api_key: str, database_id: str, project_name: str
-) -> str | None:
+def create_initial_task(api_key: str, database_id: str, project_name: str) -> str | None:
     """프로젝트 생성 완료 알림 페이지를 Notion에 생성하고 URL을 반환한다."""
     title = f"[{project_name}] 프로젝트 생성 완료"
     body = (

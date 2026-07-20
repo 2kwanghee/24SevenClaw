@@ -58,9 +58,7 @@ def upgrade() -> None:
     for row in rows:
         pm_id, slugs = row
         existing = conn.execute(
-            sa.text(
-                "SELECT supported_platforms FROM pm_profiles WHERE id = :pm_id"
-            ),
+            sa.text("SELECT supported_platforms FROM pm_profiles WHERE id = :pm_id"),
             {"pm_id": pm_id},
         ).scalar()
         existing_list: list[str] = existing if isinstance(existing, list) else []

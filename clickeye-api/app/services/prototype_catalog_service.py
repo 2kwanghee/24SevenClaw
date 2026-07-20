@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
@@ -37,11 +37,7 @@ class PrototypeCatalogService:
         if primary_tag:
             conditions.append(PrototypeCatalogEntry.primary_tag == primary_tag)
 
-        count_stmt = (
-            select(func.count())
-            .select_from(PrototypeCatalogEntry)
-            .where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(PrototypeCatalogEntry).where(*conditions)
         total = int((await self.db.execute(count_stmt)).scalar_one())
 
         stmt = (
@@ -119,8 +115,7 @@ class PrototypeCatalogService:
             return list((await self.db.execute(stmt)).scalars().all())
 
         stmt = (
-            select(PrototypeCatalogEntry)
-            .where(PrototypeCatalogEntry.is_active == True)  # noqa: E712
+            select(PrototypeCatalogEntry).where(PrototypeCatalogEntry.is_active == True)  # noqa: E712
         )
         all_entries = list((await self.db.execute(stmt)).scalars().all())
 
@@ -136,9 +131,7 @@ class PrototypeCatalogService:
 
     # ── PrototypeTag CRUD ─────────────────────────────────────────────────────
 
-    async def list_tags(
-        self, *, is_active: bool | None = None
-    ) -> tuple[list[PrototypeTag], int]:
+    async def list_tags(self, *, is_active: bool | None = None) -> tuple[list[PrototypeTag], int]:
         conditions: list = []
         if is_active is not None:
             conditions.append(PrototypeTag.is_active == is_active)
@@ -162,9 +155,7 @@ class PrototypeCatalogService:
 
     async def create_tag(self, data: PrototypeTagCreate) -> PrototypeTag:
         existing = (
-            await self.db.execute(
-                select(PrototypeTag).where(PrototypeTag.slug == data.slug)
-            )
+            await self.db.execute(select(PrototypeTag).where(PrototypeTag.slug == data.slug))
         ).scalar_one_or_none()
         if existing is not None:
             raise AppError("SLUG_CONFLICT", "이미 사용 중인 slug입니다", 409)

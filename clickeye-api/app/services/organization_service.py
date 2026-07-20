@@ -59,15 +59,11 @@ class OrganizationService:
 
         org_id = user.organization_id  # type: ignore[attr-defined]
         if org_id is None:
-            raise AppError(
-                "ORGANIZATION_NOT_FOUND", "등록된 회사 정보가 없습니다", 404
-            )
+            raise AppError("ORGANIZATION_NOT_FOUND", "등록된 회사 정보가 없습니다", 404)
 
         stmt = select(Organization).where(Organization.id == org_id)
         result = await self.db.execute(stmt)
         org = result.scalar_one_or_none()
         if org is None:
-            raise AppError(
-                "ORGANIZATION_NOT_FOUND", "조직을 찾을 수 없습니다", 404
-            )
+            raise AppError("ORGANIZATION_NOT_FOUND", "조직을 찾을 수 없습니다", 404)
         return org

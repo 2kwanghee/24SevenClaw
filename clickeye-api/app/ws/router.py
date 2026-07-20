@@ -68,16 +68,16 @@ async def agent_websocket(
                 message = json.loads(raw)
             except json.JSONDecodeError:
                 await ws.send_text(
-                    json.dumps({
-                        "type": "error",
-                        "payload": {"code": "INVALID_JSON", "message": "유효하지 않은 JSON"},
-                    })
+                    json.dumps(
+                        {
+                            "type": "error",
+                            "payload": {"code": "INVALID_JSON", "message": "유효하지 않은 JSON"},
+                        }
+                    )
                 )
                 continue
 
-            response = await handle_agent_message(
-                agent_id, message, db, agent_token=agent_token
-            )
+            response = await handle_agent_message(agent_id, message, db, agent_token=agent_token)
             if response is not None:
                 await ws.send_text(json.dumps(response, default=str))
 

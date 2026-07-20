@@ -1,7 +1,7 @@
 import json
-import urllib.request
 import os
 import sys
+import urllib.request
 
 # .env 수동 로드
 base = os.path.dirname(os.path.abspath(__file__))

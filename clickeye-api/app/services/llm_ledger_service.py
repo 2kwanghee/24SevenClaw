@@ -78,30 +78,20 @@ class LlmLedgerService(BaseService):
         if status is not None:
             stmt = stmt.where(LlmUsageLedger.status == status)
 
-        total = await self.db.scalar(
-            select(func.count()).select_from(stmt.subquery())
-        )
+        total = await self.db.scalar(select(func.count()).select_from(stmt.subquery()))
         total = int(total or 0)
 
-        page_stmt = (
-            stmt.order_by(LlmUsageLedger.created_at.desc())
-            .limit(limit)
-            .offset(offset)
-        )
+        page_stmt = stmt.order_by(LlmUsageLedger.created_at.desc()).limit(limit).offset(offset)
         result = await self.db.execute(page_stmt)
         return list(result.scalars().all()), total
 
-    async def summary_by_project(
-        self, project_id: UUID | None
-    ) -> LlmProjectUsageSummary:
+    async def summary_by_project(self, project_id: UUID | None) -> LlmProjectUsageSummary:
         """프로젝트별 토큰/비용 합계를 key_source 구분해 집계한다.
 
         DB 함수 의존을 피하기 위해 행을 로드해 파이썬에서 합산한다(원장 로깅 범위이므로
         규모가 크지 않다). 비용은 조직키 행에만 존재하므로 None 을 건너뛰고 합산한다.
         """
-        stmt = select(LlmUsageLedger).where(
-            LlmUsageLedger.project_id == project_id
-        )
+        stmt = select(LlmUsageLedger).where(LlmUsageLedger.project_id == project_id)
         result = await self.db.execute(stmt)
         rows = list(result.scalars().all())
 
@@ -111,12 +101,8 @@ class LlmLedgerService(BaseService):
         total_cost: Decimal | None = None
 
         for row in rows:
-            ks = row.key_source.value if hasattr(row.key_source, "value") else str(
-                row.key_source
-            )
-            bucket = buckets.setdefault(
-                ks, {"input": 0, "output": 0, "cost": None}
-            )
+            ks = row.key_source.value if hasattr(row.key_source, "value") else str(row.key_source)
+            bucket = buckets.setdefault(ks, {"input": 0, "output": 0, "cost": None})
             # ORM 컬럼 읽기는 mypy 상 Column 타입이므로 파이썬 값 타입으로 좁힌다(런타임 불변).
             in_tok = int(row.input_tokens or 0)
             out_tok = int(row.output_tokens or 0)

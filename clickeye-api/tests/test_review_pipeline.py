@@ -23,9 +23,7 @@ async def project_id(client: AsyncClient, auth_headers: dict[str, str]) -> str:
 
 
 @pytest.fixture
-async def session_id(
-    client: AsyncClient, auth_headers: dict[str, str], project_id: str
-) -> str:
+async def session_id(client: AsyncClient, auth_headers: dict[str, str], project_id: str) -> str:
     """오케스트레이션 세션 생성 → 분해 → 배정 → drafting 전이까지."""
     # 세션 생성
     resp = await client.post(
@@ -59,9 +57,7 @@ async def session_id(
 
 
 @pytest.fixture
-async def round_id(
-    client: AsyncClient, auth_headers: dict[str, str], session_id: str
-) -> str:
+async def round_id(client: AsyncClient, auth_headers: dict[str, str], session_id: str) -> str:
     """리뷰 라운드 생성 후 ID 반환."""
     resp = await client.post(
         f"/api/v1/orchestrator/sessions/{session_id}/reviews",
@@ -124,9 +120,7 @@ async def test_submit_draft_wrong_phase(
 
 
 @pytest.mark.asyncio
-async def test_submit_draft_no_auth(
-    client: AsyncClient, session_id: str
-) -> None:
+async def test_submit_draft_no_auth(client: AsyncClient, session_id: str) -> None:
     """인증 없이 초안 제출 → 401/403."""
     resp = await client.post(
         f"/api/v1/orchestrator/sessions/{session_id}/reviews",
@@ -222,9 +216,7 @@ async def test_submit_review_on_merged_round(
 
 
 @pytest.mark.asyncio
-async def test_get_diff(
-    client: AsyncClient, auth_headers: dict[str, str], round_id: str
-) -> None:
+async def test_get_diff(client: AsyncClient, auth_headers: dict[str, str], round_id: str) -> None:
     """리뷰 후 diff 조회."""
     # 리뷰 제출
     await client.post(
@@ -708,14 +700,17 @@ async def session_with_description(
         f"/api/v1/orchestrator/projects/{project_id}/sessions",
         json={
             "title": "React + FastAPI 프로젝트 첫 세팅",
-            "description": "React 프론트엔드와 FastAPI 백엔드로 구성된 풀스택 프로젝트의 초기 세팅을 구현해주세요.",
+            "description": "React 프론트엔드와 FastAPI 백엔드로 구성된 "
+            "풀스택 프로젝트의 초기 세팅을 구현해주세요.",
         },
         headers=auth_headers,
     )
     assert resp.status_code == 201
     sid = resp.json()["id"]
 
-    await client.post(f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers)
+    await client.post(
+        f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers
+    )
     await client.post(f"/api/v1/orchestrator/sessions/{sid}/assign", json={}, headers=auth_headers)
     return sid
 
@@ -749,7 +744,13 @@ async def test_push_to_linear_includes_session_description(
 
     def fake_create_issues(*args, **kwargs):  # type: ignore[no-untyped-def]
         captured.update(kwargs)
-        return [{"identifier": "TEST-1", "title": "[backend] 세팅", "url": "https://linear.app/test/TEST-1"}]
+        return [
+            {
+                "identifier": "TEST-1",
+                "title": "[backend] 세팅",
+                "url": "https://linear.app/test/TEST-1",
+            }
+        ]
 
     with (
         patch("app.services.linear_service.create_issues", side_effect=fake_create_issues),
@@ -781,7 +782,9 @@ async def test_push_to_linear_without_description(
         headers=auth_headers,
     )
     sid = resp.json()["id"]
-    await client.post(f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers)
+    await client.post(
+        f"/api/v1/orchestrator/sessions/{sid}/decompose", json={}, headers=auth_headers
+    )
     await client.post(f"/api/v1/orchestrator/sessions/{sid}/assign", json={}, headers=auth_headers)
 
     me = await client.get("/api/v1/auth/me", headers=auth_headers)
@@ -791,7 +794,13 @@ async def test_push_to_linear_without_description(
 
     def fake_create_issues(*args, **kwargs):  # type: ignore[no-untyped-def]
         captured.update(kwargs)
-        return [{"identifier": "TEST-2", "title": "[backend] 태스크", "url": "https://linear.app/test/TEST-2"}]
+        return [
+            {
+                "identifier": "TEST-2",
+                "title": "[backend] 태스크",
+                "url": "https://linear.app/test/TEST-2",
+            }
+        ]
 
     with (
         patch("app.services.linear_service.create_issues", side_effect=fake_create_issues),

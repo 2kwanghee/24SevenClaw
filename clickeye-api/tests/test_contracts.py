@@ -37,9 +37,7 @@ async def _set_role(db: AsyncSession, user_id: str, role: str) -> None:
     await db.commit()
 
 
-async def _admin_headers(
-    client: AsyncClient, db: AsyncSession
-) -> dict[str, str]:
+async def _admin_headers(client: AsyncClient, db: AsyncSession) -> dict[str, str]:
     """admin 역할 헤더 생성."""
     headers, user_id = await _register_and_login(
         client, "admin-contract@example.com", "contract-admin"
@@ -70,9 +68,7 @@ async def _seed_contract(db: AsyncSession) -> CentralContract:
 
 
 @pytest.mark.asyncio
-async def test_create_contract(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_create_contract(client: AsyncClient, db_session: AsyncSession) -> None:
     """계약 생성 성공."""
     headers = await _admin_headers(client, db_session)
 
@@ -115,9 +111,7 @@ async def test_create_contract_duplicate_slug(
 
 
 @pytest.mark.asyncio
-async def test_list_contracts(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_list_contracts(client: AsyncClient, db_session: AsyncSession) -> None:
     """계약 목록 조회."""
     headers = await _admin_headers(client, db_session)
     await _seed_contract(db_session)
@@ -130,36 +124,26 @@ async def test_list_contracts(
 
 
 @pytest.mark.asyncio
-async def test_get_contract(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_get_contract(client: AsyncClient, db_session: AsyncSession) -> None:
     """계약 단건 조회."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
 
-    resp = await client.get(
-        f"/api/v1/contracts/{contract.id}", headers=headers
-    )
+    resp = await client.get(f"/api/v1/contracts/{contract.id}", headers=headers)
     assert resp.status_code == 200
     assert resp.json()["id"] == str(contract.id)
 
 
 @pytest.mark.asyncio
-async def test_get_contract_not_found(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_get_contract_not_found(client: AsyncClient, db_session: AsyncSession) -> None:
     """없는 계약 조회 시 404."""
     headers = await _admin_headers(client, db_session)
-    resp = await client.get(
-        f"/api/v1/contracts/{uuid.uuid4()}", headers=headers
-    )
+    resp = await client.get(f"/api/v1/contracts/{uuid.uuid4()}", headers=headers)
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_update_contract(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_update_contract(client: AsyncClient, db_session: AsyncSession) -> None:
     """계약 수정 성공."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -176,22 +160,16 @@ async def test_update_contract(
 
 
 @pytest.mark.asyncio
-async def test_delete_contract(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_delete_contract(client: AsyncClient, db_session: AsyncSession) -> None:
     """계약 삭제 성공."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
 
-    resp = await client.delete(
-        f"/api/v1/contracts/{contract.id}", headers=headers
-    )
+    resp = await client.delete(f"/api/v1/contracts/{contract.id}", headers=headers)
     assert resp.status_code == 204
 
     # 삭제 후 조회 시 404
-    resp2 = await client.get(
-        f"/api/v1/contracts/{contract.id}", headers=headers
-    )
+    resp2 = await client.get(f"/api/v1/contracts/{contract.id}", headers=headers)
     assert resp2.status_code == 404
 
 
@@ -203,9 +181,7 @@ async def test_contract_unauthorized(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_contract_forbidden_member(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_contract_forbidden_member(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """member 역할로 접근 시 403."""
     resp = await client.get("/api/v1/contracts/", headers=auth_headers)
     assert resp.status_code == 403
@@ -215,9 +191,7 @@ async def test_contract_forbidden_member(
 
 
 @pytest.mark.asyncio
-async def test_apply_contract_to_project(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_apply_contract_to_project(client: AsyncClient, db_session: AsyncSession) -> None:
     """프로젝트에 계약 적용 (오버라이드 생성)."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -248,9 +222,7 @@ async def test_apply_contract_to_project(
 
 
 @pytest.mark.asyncio
-async def test_override_disallowed_field(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_override_disallowed_field(client: AsyncClient, db_session: AsyncSession) -> None:
     """allowed_overrides 외 필드 수정 시 422."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -275,9 +247,7 @@ async def test_override_disallowed_field(
 
 
 @pytest.mark.asyncio
-async def test_update_override(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_update_override(client: AsyncClient, db_session: AsyncSession) -> None:
     """오버라이드 수정 성공 (허용 필드만)."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -311,9 +281,7 @@ async def test_update_override(
 
 
 @pytest.mark.asyncio
-async def test_update_override_disallowed(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_update_override_disallowed(client: AsyncClient, db_session: AsyncSession) -> None:
     """오버라이드 수정 시 비허용 필드 → 422."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -344,9 +312,7 @@ async def test_update_override_disallowed(
 
 
 @pytest.mark.asyncio
-async def test_list_project_overrides(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_list_project_overrides(client: AsyncClient, db_session: AsyncSession) -> None:
     """프로젝트별 오버라이드 목록 조회."""
     headers = await _admin_headers(client, db_session)
     contract = await _seed_contract(db_session)
@@ -380,9 +346,7 @@ async def test_list_project_overrides(
 
 
 @pytest.mark.asyncio
-async def test_sync_contracts_no_agents(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_sync_contracts_no_agents(client: AsyncClient, db_session: AsyncSession) -> None:
     """연결된 Agent 없을 때 sync → 0건."""
     headers = await _admin_headers(client, db_session)
 

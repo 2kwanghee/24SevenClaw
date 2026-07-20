@@ -23,9 +23,7 @@ async def run_worker() -> None:
     """워커 본체. 토글 off 면 아무 것도 하지 않는다."""
     if not settings.feature_temporal:
         # 회귀 0: 토글 꺼짐 → 서버 연결 없이 즉시 반환 (에러 없음)
-        logger.info(
-            "feature_temporal=off → Temporal 워커를 기동하지 않습니다 (회귀 0)."
-        )
+        logger.info("feature_temporal=off → Temporal 워커를 기동하지 않습니다 (회귀 0).")
         return
 
     # 무거운 SDK import 는 토글 on 경로에서만 (off 실행 시 불필요한 의존성 로드 회피)

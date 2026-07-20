@@ -1,4 +1,5 @@
 """Linear API Key 유효성 검증 엔드포인트 테스트 (POST /api/v1/integrations/validate/linear)."""
+
 from unittest.mock import patch
 
 import pytest

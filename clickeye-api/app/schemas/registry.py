@@ -28,6 +28,7 @@ def localize_registry_item(item: dict[str, Any], locale: str) -> dict[str, Any]:
         overrides["description"] = desc_en
     return {**item, **overrides} if overrides else item
 
+
 # --- 공통 베이스 ---
 
 

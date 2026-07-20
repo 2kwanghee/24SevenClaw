@@ -10,9 +10,7 @@ class PrototypeSession(Base):
     __tablename__ = "prototype_sessions"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     organization_id = Column(
         Uuid, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -25,9 +23,7 @@ class PrototypeSession(Base):
         ForeignKey("prototypes.id", ondelete="SET NULL", use_alter=True),
         nullable=True,
     )
-    selected_pm_id = Column(
-        Uuid, ForeignKey("pm_profiles.id", ondelete="SET NULL"), nullable=True
-    )
+    selected_pm_id = Column(Uuid, ForeignKey("pm_profiles.id", ondelete="SET NULL"), nullable=True)
     current_step = Column(Integer, nullable=False, default=1)
     extra = Column("metadata", JSON, nullable=True, default=dict)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

@@ -89,8 +89,6 @@ def downgrade() -> None:
     conn = op.get_bind()
     for slug in _TARGET_SLUGS:
         conn.execute(
-            sa.text(
-                "UPDATE skills SET body_md = NULL, updated_at = :now WHERE slug = :slug"
-            ),
+            sa.text("UPDATE skills SET body_md = NULL, updated_at = :now WHERE slug = :slug"),
             {"slug": slug, "now": _NOW},
         )

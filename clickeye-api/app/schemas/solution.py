@@ -92,9 +92,7 @@ class SolutionAnalyzeResponse(BaseModel):
         default_factory=dict,
         description="파싱된 요구사항 (기능 목록, 비기능 요구사항 등)",
     )
-    recommended_ui_structure: UIStructureSchema = Field(
-        ..., description="추천 UI 구조"
-    )
+    recommended_ui_structure: UIStructureSchema = Field(..., description="추천 UI 구조")
     recommended_pm_slugs: list[str] = Field(
         default_factory=list,
         description="추천 PM 슬러그 목록 (우선순위 순)",

@@ -109,7 +109,7 @@ def _quote_env_value(value: str) -> str:
     """
     if not value:
         return value
-    needs_quote = any(c in value for c in ' \t#$\\`!')
+    needs_quote = any(c in value for c in " \t#$\\`!")
     if not needs_quote:
         return value
     if '"' not in value:

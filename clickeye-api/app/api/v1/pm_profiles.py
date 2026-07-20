@@ -93,9 +93,7 @@ async def recommend_pms(
     )
 
 
-@router.get(
-    "/{profile_id}/composition", response_model=PMCompositionGroupedResponse
-)
+@router.get("/{profile_id}/composition", response_model=PMCompositionGroupedResponse)
 async def get_composition(
     profile_id: UUID,
     user: User = Depends(get_current_user),
@@ -106,9 +104,7 @@ async def get_composition(
     return await service.get_composition(profile_id)
 
 
-@router.post(
-    "/{profile_id}/ratings", response_model=PMRatingResponse, status_code=201
-)
+@router.post("/{profile_id}/ratings", response_model=PMRatingResponse, status_code=201)
 async def rate_pm(
     profile_id: UUID,
     data: PMRatingCreate,
@@ -118,14 +114,14 @@ async def rate_pm(
     """PM을 평가한다."""
     service = PMService(db)
     rating = await service.rate_pm(
-        pm_profile_id=profile_id, user_id=user.id, data=data  # type: ignore[arg-type]
+        pm_profile_id=profile_id,
+        user_id=user.id,
+        data=data,  # type: ignore[arg-type]
     )
     return PMRatingResponse.model_validate(rating)
 
 
-@router.get(
-    "/{profile_id}/ratings", response_model=PMRatingListResponse
-)
+@router.get("/{profile_id}/ratings", response_model=PMRatingListResponse)
 async def list_ratings(
     profile_id: UUID,
     offset: int = Query(0, ge=0),
@@ -144,9 +140,7 @@ async def list_ratings(
     )
 
 
-@router.get(
-    "/{profile_id}/metrics", response_model=PMMetricsResponse
-)
+@router.get("/{profile_id}/metrics", response_model=PMMetricsResponse)
 async def get_metrics(
     profile_id: UUID,
     user: User = Depends(get_current_user),
@@ -263,6 +257,7 @@ async def get_profile_markdown(
     from fastapi import HTTPException
 
     from app.models.pm_profile import PMProfile as _PMModel
+
     profile = await db.get(_PMModel, profile_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="PM 프로필을 찾을 수 없습니다")

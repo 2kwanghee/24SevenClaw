@@ -60,8 +60,7 @@ class QualityGateService:
         if session.phase != "validating":
             raise AppError(
                 "INVALID_PHASE",
-                f"품질 검증은 'validating' 단계에서만 가능합니다. "
-                f"현재: '{session.phase}'",
+                f"품질 검증은 'validating' 단계에서만 가능합니다. 현재: '{session.phase}'",
                 422,
             )
 
@@ -116,8 +115,7 @@ class QualityGateService:
         if run.status not in ("pending", "running"):
             raise AppError(
                 "INVALID_STATUS",
-                f"검사 제출은 'pending' 또는 'running' 상태에서만 가능합니다. "
-                f"현재: '{run.status}'",
+                f"검사 제출은 'pending' 또는 'running' 상태에서만 가능합니다. 현재: '{run.status}'",
                 422,
             )
 
@@ -216,9 +214,7 @@ class QualityGateService:
         if all_passed and run.overall_score >= run.threshold:
             run.status = "passed"
             run.verdict = "approved"
-            run.verdict_reason = (
-                f"모든 검사 통과 — 종합 점수: {run.overall_score}/{run.threshold}"
-            )
+            run.verdict_reason = f"모든 검사 통과 — 종합 점수: {run.overall_score}/{run.threshold}"
         else:
             run.status = "failed"
             run.verdict = "rejected"
@@ -255,9 +251,7 @@ class QualityGateService:
 
     # === 리포트 조회 ===
 
-    async def get_report(
-        self, run_id: UUID
-    ) -> tuple[QualityGateRun, list[QualityCheck]]:
+    async def get_report(self, run_id: UUID) -> tuple[QualityGateRun, list[QualityCheck]]:
         """검증 결과 리포트를 조회한다."""
         run = await self._get_run(run_id)
         checks = await self._get_checks(run_id)

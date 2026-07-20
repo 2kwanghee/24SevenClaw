@@ -29,9 +29,7 @@ class PresetService:
         if maturity_level:
             conditions.append(Preset.maturity_level == maturity_level)
 
-        count_stmt = (
-            select(func.count()).select_from(Preset).where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(Preset).where(*conditions)
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
 
@@ -60,14 +58,10 @@ class PresetService:
             raise AppError("PRESET_NOT_FOUND", "프리셋을 찾을 수 없습니다", 404)
         return preset
 
-    async def apply_preset(
-        self, project_id: UUID, preset_id: UUID, owner_id: UUID
-    ) -> dict:
+    async def apply_preset(self, project_id: UUID, preset_id: UUID, owner_id: UUID) -> dict:
         """프리셋을 프로젝트에 적용하여 settings에 기본 구성을 저장한다."""
         # 프로젝트 소유권 확인
-        proj_stmt = select(Project).where(
-            Project.id == project_id, Project.owner_id == owner_id
-        )
+        proj_stmt = select(Project).where(Project.id == project_id, Project.owner_id == owner_id)
         proj_result = await self.db.execute(proj_stmt)
         project = proj_result.scalar_one_or_none()
         if project is None:

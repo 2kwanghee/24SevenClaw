@@ -24,9 +24,7 @@ class ArtifactService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(
-        self, project_id: UUID, data: ArtifactCreate
-    ) -> Artifact:
+    async def create(self, project_id: UUID, data: ArtifactCreate) -> Artifact:
         artifact = Artifact(
             project_id=project_id,
             name=data.name,
@@ -83,8 +81,7 @@ class ArtifactService:
         if new_status not in allowed:
             raise AppError(
                 "INVALID_TRANSITION",
-                f"'{old_status}' → '{new_status}' 전이는 허용되지 않습니다. "
-                f"허용: {allowed}",
+                f"'{old_status}' → '{new_status}' 전이는 허용되지 않습니다. 허용: {allowed}",
                 422,
             )
 

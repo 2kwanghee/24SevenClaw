@@ -85,9 +85,7 @@ def _map_analysis_to_suggestions(
     agents = ["harness"] + _TAG_TO_AGENTS.get(primary_tag, ["fullstack"])
 
     # features + key_requirements를 합쳐 키워드 매칭
-    feature_text = " ".join(
-        analysis.get("features", []) + analysis.get("key_requirements", [])
-    )
+    feature_text = " ".join(analysis.get("features", []) + analysis.get("key_requirements", []))
     skills = _extract_keyword_matches(feature_text, _KEYWORD_TO_SKILLS)
     pipelines = _extract_keyword_matches(feature_text, _KEYWORD_TO_PIPELINES)
 

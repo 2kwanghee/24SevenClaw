@@ -43,9 +43,7 @@ async def refresh_token(
 
 
 @router.post("/oauth", response_model=TokenResponse)
-async def oauth_login(
-    data: OAuthLoginRequest, db: AsyncSession = Depends(get_db)
-) -> TokenResponse:
+async def oauth_login(data: OAuthLoginRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
     """소셜 로그인 (GitHub/Google). 미가입 시 자동 회원가입."""
     service = AuthService(db)
     return await service.oauth_login(data)

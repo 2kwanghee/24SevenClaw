@@ -53,8 +53,7 @@ class PreviewRequest(BaseModel):
         invalid = [pid for pid in v if pid not in valid_pipelines]
         if invalid:
             raise ValueError(
-                f"유효하지 않은 파이프라인 ID: {invalid}. "
-                f"허용: {sorted(valid_pipelines)}"
+                f"유효하지 않은 파이프라인 ID: {invalid}. 허용: {sorted(valid_pipelines)}"
             )
         return v
 

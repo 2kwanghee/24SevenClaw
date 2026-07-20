@@ -75,18 +75,14 @@ async def test_get_project_report_with_artifacts(
     )
     assert resp.status_code == 200
     body = resp.json()
-    draft_count = next(
-        c for c in body["artifact_status_counts"] if c["status"] == "draft"
-    )
+    draft_count = next(c for c in body["artifact_status_counts"] if c["status"] == "draft")
     assert draft_count["count"] == 2
     assert body["quality_metrics"]["total_artifacts"] == 2
     assert body["quality_metrics"]["released_artifacts"] == 0
 
 
 @pytest.mark.asyncio
-async def test_get_project_report_no_auth(
-    client: AsyncClient, project_id: str
-) -> None:
+async def test_get_project_report_no_auth(client: AsyncClient, project_id: str) -> None:
     """인증 없이 리포트 조회 → 401/403."""
     resp = await client.get(f"/api/v1/reports/project/{project_id}")
     assert resp.status_code in (401, 403)
@@ -161,9 +157,7 @@ async def test_get_project_kpi_with_data(
     now = datetime.now(UTC)
 
     # 오케스트레이터 세션 생성
-    session = OrchestratorSession(
-        project_id=pid, title="KPI 테스트 세션", phase="designing"
-    )
+    session = OrchestratorSession(project_id=pid, title="KPI 테스트 세션", phase="designing")
     db_session.add(session)
     await db_session.flush()
 
@@ -239,18 +233,14 @@ async def test_get_project_kpi_with_data(
 
 
 @pytest.mark.asyncio
-async def test_get_project_kpi_no_auth(
-    client: AsyncClient, project_id: str
-) -> None:
+async def test_get_project_kpi_no_auth(client: AsyncClient, project_id: str) -> None:
     """인증 없이 KPI 조회 → 401/403."""
     resp = await client.get(f"/api/v1/reports/projects/{project_id}/kpi")
     assert resp.status_code in (401, 403)
 
 
 @pytest.mark.asyncio
-async def test_get_project_kpi_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_project_kpi_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """존재하지 않는 프로젝트 KPI → 404."""
     resp = await client.get(
         "/api/v1/reports/projects/00000000-0000-0000-0000-000000000000/kpi",
@@ -263,9 +253,7 @@ async def test_get_project_kpi_not_found(
 
 
 @pytest.fixture
-async def superadmin_headers(
-    client: AsyncClient, db_session: AsyncSession
-) -> dict[str, str]:
+async def superadmin_headers(client: AsyncClient, db_session: AsyncSession) -> dict[str, str]:
     """superadmin 사용자 생성 후 인증 헤더 반환."""
     await client.post(
         "/api/v1/auth/register",
@@ -276,9 +264,7 @@ async def superadmin_headers(
         },
     )
     # DB에서 역할 변경
-    result = await db_session.execute(
-        select(User).where(User.email == "admin@example.com")
-    )
+    result = await db_session.execute(select(User).where(User.email == "admin@example.com"))
     admin = result.scalar_one()
     admin.system_role = "superadmin"  # type: ignore[assignment]
     await db_session.commit()

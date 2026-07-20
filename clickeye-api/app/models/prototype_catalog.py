@@ -23,13 +23,13 @@ class PrototypeCatalogEntry(Base):
     description = Column(Text, nullable=True)
 
     # 분류 (태그 기반 — 고정 enum 아님)
-    tags = Column(JSON, nullable=False, default=list)           # ["saas", "fullstack"]
-    primary_tag = Column(String(100), nullable=True, index=True) # 대표 태그
+    tags = Column(JSON, nullable=False, default=list)  # ["saas", "fullstack"]
+    primary_tag = Column(String(100), nullable=True, index=True)  # 대표 태그
 
     # 아키텍처 정보
-    design_pattern = Column(String(100), nullable=True)         # "saas-fullstack"
-    architecture_pattern = Column(String(200), nullable=True)   # "모놀리식 3-tier"
-    tech_stack_tags = Column(JSON, nullable=False, default=list) # ["Next.js", "FastAPI"]
+    design_pattern = Column(String(100), nullable=True)  # "saas-fullstack"
+    architecture_pattern = Column(String(200), nullable=True)  # "모놀리식 3-tier"
+    tech_stack_tags = Column(JSON, nullable=False, default=list)  # ["Next.js", "FastAPI"]
 
     # 사용자 표시 정보
     pros = Column(JSON, nullable=False, default=list)
@@ -62,9 +62,9 @@ class PrototypeTag(Base):
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     slug = Column(String(100), unique=True, nullable=False, index=True)
-    label = Column(String(100), nullable=False)      # "SaaS"
-    label_ko = Column(String(100), nullable=True)    # "SaaS 플랫폼"
+    label = Column(String(100), nullable=False)  # "SaaS"
+    label_ko = Column(String(100), nullable=True)  # "SaaS 플랫폼"
     description = Column(Text, nullable=True)
-    color = Column(String(20), nullable=True)        # "#3B82F6"
+    color = Column(String(20), nullable=True)  # "#3B82F6"
     is_active = Column(Boolean, nullable=False, default=True)
     sort_order = Column(Integer, nullable=False, default=0)

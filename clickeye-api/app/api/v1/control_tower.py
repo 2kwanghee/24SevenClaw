@@ -66,9 +66,7 @@ async def list_customer_projects(
 ) -> ProjectListResponse:
     """고객사의 프로젝트 목록."""
     service = ControlTowerService(db)
-    items, total = await service.list_customer_projects(
-        org_id=org_id, offset=offset, limit=limit
-    )
+    items, total = await service.list_customer_projects(org_id=org_id, offset=offset, limit=limit)
     return ProjectListResponse(
         items=[ProjectOverview(**item) for item in items],
         total=total,

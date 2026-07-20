@@ -17,9 +17,7 @@ async def project_id(client: AsyncClient, auth_headers: dict[str, str]) -> str:
 
 
 @pytest.fixture
-async def artifact_id(
-    client: AsyncClient, auth_headers: dict[str, str], project_id: str
-) -> str:
+async def artifact_id(client: AsyncClient, auth_headers: dict[str, str], project_id: str) -> str:
     """테스트용 산출물 생성 후 ID 반환."""
     resp = await client.post(
         f"/api/v1/artifacts/projects/{project_id}/artifacts",
@@ -111,9 +109,7 @@ async def test_get_artifact(
 
 
 @pytest.mark.asyncio
-async def test_get_artifact_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_artifact_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """존재하지 않는 산출물 조회 → 404."""
     resp = await client.get(
         "/api/v1/artifacts/00000000-0000-0000-0000-000000000000",

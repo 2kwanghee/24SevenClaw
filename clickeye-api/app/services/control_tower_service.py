@@ -33,8 +33,11 @@ class ControlTowerService:
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         orgs_result = await self.db.execute(
-            select(Organization).where(*conditions).order_by(Organization.created_at.desc())
-            .offset(offset).limit(limit)
+            select(Organization)
+            .where(*conditions)
+            .order_by(Organization.created_at.desc())
+            .offset(offset)
+            .limit(limit)
         )
         orgs = list(orgs_result.scalars().all())
 
@@ -43,7 +46,9 @@ class ControlTowerService:
             # 프로젝트 수
             proj_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(Project).where(
+                    select(func.count())
+                    .select_from(Project)
+                    .where(
                         Project.organization_id == org.id,
                         Project.status != "deleted",
                     )
@@ -53,7 +58,8 @@ class ControlTowerService:
             # 활성 세션 수 (project → session 조인)
             active_session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession)
+                    select(func.count())
+                    .select_from(OrchestratorSession)
                     .join(Project, OrchestratorSession.project_id == Project.id)
                     .where(
                         Project.organization_id == org.id,
@@ -68,17 +74,19 @@ class ControlTowerService:
                 if mgr:
                     manager_name = mgr.display_name or mgr.email
 
-            items.append({
-                "id": org.id,
-                "company_name": org.company_name,
-                "org_type": org.org_type,
-                "customer_status": org.customer_status,
-                "account_manager_id": org.account_manager_id,
-                "account_manager_name": manager_name,
-                "project_count": proj_count,
-                "active_session_count": active_session_count,
-                "created_at": org.created_at,
-            })
+            items.append(
+                {
+                    "id": org.id,
+                    "company_name": org.company_name,
+                    "org_type": org.org_type,
+                    "customer_status": org.customer_status,
+                    "account_manager_id": org.account_manager_id,
+                    "account_manager_name": manager_name,
+                    "project_count": proj_count,
+                    "active_session_count": active_session_count,
+                    "created_at": org.created_at,
+                }
+            )
 
         return items, int(total)
 
@@ -128,15 +136,15 @@ class ControlTowerService:
         ]
 
         total = (
-            await self.db.execute(
-                select(func.count()).select_from(Project).where(*conditions)
-            )
+            await self.db.execute(select(func.count()).select_from(Project).where(*conditions))
         ).scalar_one()
 
         projects_result = await self.db.execute(
-            select(Project).where(*conditions)
+            select(Project)
+            .where(*conditions)
             .order_by(Project.created_at.desc())
-            .offset(offset).limit(limit)
+            .offset(offset)
+            .limit(limit)
         )
         projects = list(projects_result.scalars().all())
 
@@ -147,35 +155,39 @@ class ControlTowerService:
 
             session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession).where(
-                        OrchestratorSession.project_id == proj.id
-                    )
+                    select(func.count())
+                    .select_from(OrchestratorSession)
+                    .where(OrchestratorSession.project_id == proj.id)
                 )
             ).scalar_one()
 
             active_session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession).where(
+                    select(func.count())
+                    .select_from(OrchestratorSession)
+                    .where(
                         OrchestratorSession.project_id == proj.id,
                         OrchestratorSession.phase.notin_(["completed", "cancelled"]),
                     )
                 )
             ).scalar_one()
 
-            items.append({
-                "id": proj.id,
-                "name": proj.name,
-                "slug": proj.slug,
-                "status": proj.status,
-                "project_type": proj.project_type,
-                "owner_id": proj.owner_id,
-                "owner_name": owner_name,
-                "organization_id": proj.organization_id,
-                "session_count": session_count,
-                "active_session_count": active_session_count,
-                "created_at": proj.created_at,
-                "updated_at": proj.updated_at,
-            })
+            items.append(
+                {
+                    "id": proj.id,
+                    "name": proj.name,
+                    "slug": proj.slug,
+                    "status": proj.status,
+                    "project_type": proj.project_type,
+                    "owner_id": proj.owner_id,
+                    "owner_name": owner_name,
+                    "organization_id": proj.organization_id,
+                    "session_count": session_count,
+                    "active_session_count": active_session_count,
+                    "created_at": proj.created_at,
+                    "updated_at": proj.updated_at,
+                }
+            )
 
         return items, int(total)
 
@@ -190,15 +202,17 @@ class ControlTowerService:
 
         session_count = (
             await self.db.execute(
-                select(func.count()).select_from(OrchestratorSession).where(
-                    OrchestratorSession.project_id == project_id
-                )
+                select(func.count())
+                .select_from(OrchestratorSession)
+                .where(OrchestratorSession.project_id == project_id)
             )
         ).scalar_one()
 
         active_session_count = (
             await self.db.execute(
-                select(func.count()).select_from(OrchestratorSession).where(
+                select(func.count())
+                .select_from(OrchestratorSession)
+                .where(
                     OrchestratorSession.project_id == project_id,
                     OrchestratorSession.phase.notin_(["completed", "cancelled"]),
                 )

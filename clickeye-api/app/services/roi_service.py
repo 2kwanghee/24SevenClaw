@@ -1,6 +1,5 @@
 """ROI 계산 및 표준 단가/공수 관리 서비스."""
 
-from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -94,7 +93,9 @@ class RoiService:
             )
         )
         if existing.scalar_one_or_none():
-            raise AppError("ROI_STANDARD_DUPLICATE", f"'{data.category}/{data.key}' 키가 이미 존재합니다", 409)
+            raise AppError(
+                "ROI_STANDARD_DUPLICATE", f"'{data.category}/{data.key}' 키가 이미 존재합니다", 409
+            )
 
         item = RoiStandard(**data.model_dump(), updated_by=updated_by)
         self.db.add(item)
@@ -102,7 +103,9 @@ class RoiService:
         await self.db.refresh(item)
         return item
 
-    async def update_standard(self, standard_id: UUID, data: RoiStandardUpdate, updated_by: UUID) -> RoiStandard:
+    async def update_standard(
+        self, standard_id: UUID, data: RoiStandardUpdate, updated_by: UUID
+    ) -> RoiStandard:
         item = await self.get_standard(standard_id)
         for field, value in data.model_dump(exclude_none=True).items():
             setattr(item, field, value)
@@ -123,7 +126,9 @@ class RoiService:
 
         # 표준 단가 로드
         role_rates = dict(DEFAULT_RATES)
-        effort_by_solution: dict[str, dict[str, float]] = {k: dict(v) for k, v in DEFAULT_EFFORT.items()}
+        effort_by_solution: dict[str, dict[str, float]] = {
+            k: dict(v) for k, v in DEFAULT_EFFORT.items()
+        }
         multipliers = dict(DEFAULT_MULTIPLIERS)
 
         standards = await self.list_standards()
@@ -145,7 +150,9 @@ class RoiService:
                 effective_rates[sub_key] = value
             elif prefix == "effort" and sub_key:
                 if effective_efforts is None:
-                    base = effort_by_solution.get(req.solution_type, DEFAULT_EFFORT.get("custom", {}))
+                    base = effort_by_solution.get(
+                        req.solution_type, DEFAULT_EFFORT.get("custom", {})
+                    )
                     effective_efforts = dict(base)
                 effective_efforts[sub_key] = value
 
@@ -175,13 +182,15 @@ class RoiService:
             total_days = base_days * multiplier + component_extra
             subtotal = total_days * rate
 
-            breakdown.append(RoiBreakdownItem(
-                role_key=role_key,
-                label=_role_label(role_key),
-                days=round(total_days, 1),
-                rate=rate,
-                subtotal=round(subtotal, 0),
-            ))
+            breakdown.append(
+                RoiBreakdownItem(
+                    role_key=role_key,
+                    label=_role_label(role_key),
+                    days=round(total_days, 1),
+                    rate=rate,
+                    subtotal=round(subtotal, 0),
+                )
+            )
             total_baseline_days += total_days
             total_baseline_cost += subtotal
 
@@ -200,7 +209,8 @@ class RoiService:
         if req.solution_type not in effort_by_solution:
             raise AppError(
                 "ROI_SOLUTION_TYPE_NOT_FOUND",
-                f"솔루션 타입 '{req.solution_type}'에 대한 공수 데이터가 없습니다. 관리자에게 문의하세요.",
+                f"솔루션 타입 '{req.solution_type}'에 대한 공수 데이터가 없습니다. "
+                "관리자에게 문의하세요.",
                 422,
             )
 

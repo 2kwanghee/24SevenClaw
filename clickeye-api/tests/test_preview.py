@@ -153,9 +153,7 @@ async def test_preview_service_response_structure() -> None:
 
     # 파일 트리에 루트 노드 존재 확인
     root_paths = [n.path for n in response.file_tree]
-    assert any(".claude" in p for p in root_paths) or any(
-        n.children for n in response.file_tree
-    )
+    assert any(".claude" in p for p in root_paths) or any(n.children for n in response.file_tree)
 
 
 @pytest.mark.no_db

@@ -55,9 +55,7 @@ class ContractService:
 
     # ── CentralContract CRUD ─────────────────────────────────
 
-    async def create_contract(
-        self, data: CentralContractCreate, actor_id: UUID
-    ) -> CentralContract:
+    async def create_contract(self, data: CentralContractCreate, actor_id: UUID) -> CentralContract:
         """중앙 계약 생성."""
         existing = await self.db.execute(
             select(CentralContract).where(CentralContract.slug == data.slug)
@@ -169,7 +167,8 @@ class ContractService:
 
         # allowed_overrides 검증
         self._validate_override_fields(
-            data.override_content, contract.allowed_overrides  # type: ignore[arg-type]
+            data.override_content,
+            contract.allowed_overrides,  # type: ignore[arg-type]
         )
 
         override = CustomerContractOverride(
@@ -205,11 +204,7 @@ class ContractService:
             CustomerContractOverride.is_active == True,  # noqa: E712
         ]
 
-        count_stmt = (
-            select(func.count())
-            .select_from(CustomerContractOverride)
-            .where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(CustomerContractOverride).where(*conditions)
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         stmt = (
@@ -238,14 +233,13 @@ class ContractService:
         result = await self.db.execute(stmt)
         override = result.scalar_one_or_none()
         if override is None:
-            raise AppError(
-                "OVERRIDE_NOT_FOUND", "계약 오버라이드를 찾을 수 없습니다", 404
-            )
+            raise AppError("OVERRIDE_NOT_FOUND", "계약 오버라이드를 찾을 수 없습니다", 404)
 
         # 원본 계약의 allowed_overrides 확인
         contract = await self.get_contract(override.central_contract_id)  # type: ignore[arg-type]
         self._validate_override_fields(
-            data.override_content, contract.allowed_overrides  # type: ignore[arg-type]
+            data.override_content,
+            contract.allowed_overrides,  # type: ignore[arg-type]
         )
 
         old_content = override.override_content
@@ -359,9 +353,7 @@ class ContractService:
             count_stmt = count_stmt.where(*conditions)
         total = (await self.db.execute(count_stmt)).scalar_one()
 
-        stmt = select(ContractAuditLog).order_by(
-            ContractAuditLog.created_at.desc()
-        )
+        stmt = select(ContractAuditLog).order_by(ContractAuditLog.created_at.desc())
         if conditions:
             stmt = stmt.where(*conditions)
         stmt = stmt.offset(offset).limit(limit)

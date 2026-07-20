@@ -91,9 +91,7 @@ async def test_org_api_key_computes_cost(db_session) -> None:
     # 조직키 + 알려진 모델 → 비용 산정 (opus-4-8: 5/25 per 1M → 5 + 25 = 30)
     with (
         patch.object(llm_gateway.settings, "anthropic_api_key", "sk-ant-org"),
-        patch.object(
-            llm_gateway.settings, "anthropic_model_default", "claude-opus-4-8"
-        ),
+        patch.object(llm_gateway.settings, "anthropic_model_default", "claude-opus-4-8"),
     ):
         result = await llm_gateway.call(
             db_session,

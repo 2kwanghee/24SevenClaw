@@ -32,9 +32,7 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(100), nullable=False),
         sa.Column("avatar_url", sa.String(500), nullable=True),
         sa.Column("plan", sa.String(20), server_default="free"),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             postgresql.TIMESTAMP(timezone=True),

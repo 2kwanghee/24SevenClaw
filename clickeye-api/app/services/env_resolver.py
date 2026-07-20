@@ -29,9 +29,7 @@ async def resolve_linear_key(
                 pass
 
     result = await db.execute(
-        select(UserLinearCredentials).where(
-            UserLinearCredentials.user_id == user_id
-        )
+        select(UserLinearCredentials).where(UserLinearCredentials.user_id == user_id)
     )
     creds = result.scalar_one_or_none()
     if creds is None:
@@ -57,9 +55,7 @@ async def resolve_linear_team_id(
             return str(creds.team_id)
 
     result = await db.execute(
-        select(UserLinearCredentials).where(
-            UserLinearCredentials.user_id == user_id
-        )
+        select(UserLinearCredentials).where(UserLinearCredentials.user_id == user_id)
     )
     creds = result.scalar_one_or_none()
     if creds is None:

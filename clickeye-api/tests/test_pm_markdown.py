@@ -162,11 +162,9 @@ def test_roundtrip_serialize_parse_serialize() -> None:
 
     parsed_dict = parse_markdown_to_pm_dict(first_md)
     # 파싱 결과로 새 프로필 구성 (slug는 URL 기반이므로 원본 유지)
-    reconstructed = _make_profile(**{
-        k: v
-        for k, v in parsed_dict.items()
-        if v is not None and k != "slug"
-    })
+    reconstructed = _make_profile(
+        **{k: v for k, v in parsed_dict.items() if v is not None and k != "slug"}
+    )
     second_md = serialize_pm_to_markdown(reconstructed)
 
     assert second_md == first_md

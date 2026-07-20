@@ -35,9 +35,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("slug"),
     )
     op.create_index("ix_central_contracts_slug", "central_contracts", ["slug"])
-    op.create_index(
-        "ix_central_contracts_contract_type", "central_contracts", ["contract_type"]
-    )
+    op.create_index("ix_central_contracts_contract_type", "central_contracts", ["contract_type"])
 
     op.create_table(
         "customer_contract_overrides",
@@ -50,15 +48,11 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["central_contract_id"], ["central_contracts.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(
-            ["approved_by"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["approved_by"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index(
         "ix_customer_contract_overrides_project_id",
@@ -81,17 +75,13 @@ def upgrade() -> None:
         sa.Column("diff_snapshot", sa.JSON(), nullable=False, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["contract_id"], ["central_contracts.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["contract_id"], ["central_contracts.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(
             ["override_id"],
             ["customer_contract_overrides.id"],
             ondelete="SET NULL",
         ),
-        sa.ForeignKeyConstraint(
-            ["actor_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["actor_id"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index(
         "ix_contract_audit_logs_contract_id",

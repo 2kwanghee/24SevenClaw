@@ -48,9 +48,7 @@ class ReportService:
         phase_timeline = await self._build_phase_timeline(project_id)
         quality = await self._calculate_quality_metrics(project_id)
         activities = await self._collect_ai_team_activities(project_id)
-        sessions_total, subtasks_total = await self._count_sessions_and_subtasks(
-            project_id
-        )
+        sessions_total, subtasks_total = await self._count_sessions_and_subtasks(project_id)
 
         return ProjectReportResponse(
             project_id=project.id,
@@ -77,9 +75,7 @@ class ReportService:
             raise AppError("FORBIDDEN", "이 프로젝트에 접근할 수 없습니다.", 403)
         return project
 
-    async def _aggregate_artifact_statuses(
-        self, project_id: UUID
-    ) -> list[ArtifactStatusCount]:
+    async def _aggregate_artifact_statuses(self, project_id: UUID) -> list[ArtifactStatusCount]:
         stmt = (
             select(Artifact.status, func.count().label("cnt"))
             .where(Artifact.project_id == project_id)
@@ -92,13 +88,10 @@ class ReportService:
 
         # 모든 상태를 포함하되 0도 표시
         return [
-            ArtifactStatusCount(status=s, count=counts_map.get(s, 0))
-            for s in ALL_ARTIFACT_STATUSES
+            ArtifactStatusCount(status=s, count=counts_map.get(s, 0)) for s in ALL_ARTIFACT_STATUSES
         ]
 
-    async def _build_phase_timeline(
-        self, project_id: UUID
-    ) -> list[PhaseTimelineEntry]:
+    async def _build_phase_timeline(self, project_id: UUID) -> list[PhaseTimelineEntry]:
         # 프로젝트의 모든 세션에서 PhaseEvent 조회
         stmt = (
             select(PhaseEvent)
@@ -132,15 +125,13 @@ class ReportService:
             )
         return entries
 
-    async def _calculate_quality_metrics(
-        self, project_id: UUID
-    ) -> QualityMetrics:
+    async def _calculate_quality_metrics(self, project_id: UUID) -> QualityMetrics:
         # 산출물 집계
         artifact_stmt = select(
             func.count().label("total"),
-            func.count(
-                case((Artifact.status == "released", Artifact.id), else_=None)
-            ).label("released"),
+            func.count(case((Artifact.status == "released", Artifact.id), else_=None)).label(
+                "released"
+            ),
             func.coalesce(func.avg(Artifact.revision_count), 0).label("avg_rev"),
         ).where(Artifact.project_id == project_id)
         art_row = (await self.db.execute(artifact_stmt)).one()
@@ -173,9 +164,7 @@ class ReportService:
             total_artifacts=art_row.total or 0,
             released_artifacts=art_row.released or 0,
             avg_review_score=(
-                round(float(rev_row.avg_score), 1)
-                if rev_row.avg_score is not None
-                else None
+                round(float(rev_row.avg_score), 1) if rev_row.avg_score is not None else None
             ),
             avg_revision_count=round(float(art_row.avg_rev), 1),
             review_rounds_total=total_rounds,
@@ -240,9 +229,7 @@ class ReportService:
         activities.sort(key=lambda a: a.timestamp, reverse=True)
         return activities[:limit]
 
-    async def _count_sessions_and_subtasks(
-        self, project_id: UUID
-    ) -> tuple[int, int]:
+    async def _count_sessions_and_subtasks(self, project_id: UUID) -> tuple[int, int]:
         session_stmt = (
             select(func.count())
             .select_from(OrchestratorSession)
@@ -267,9 +254,7 @@ class ReportService:
     # KPI 메트릭 집계
     # ==================================================================
 
-    async def generate_project_kpi(
-        self, project_id: UUID, owner_id: UUID
-    ) -> ProjectKPIResponse:
+    async def generate_project_kpi(self, project_id: UUID, owner_id: UUID) -> ProjectKPIResponse:
         """프로젝트 KPI 메트릭 집계."""
         project = await self._get_project(project_id, owner_id)
 
@@ -279,9 +264,7 @@ class ReportService:
             avg_phase_duration=await self._calc_avg_phase_duration(project_id),
             throughput_per_week=await self._calc_throughput_per_week(project_id),
             automation_rate=await self._calc_automation_rate(project_id),
-            review_acceptance_rate=await self._calc_review_acceptance_rate(
-                project_id
-            ),
+            review_acceptance_rate=await self._calc_review_acceptance_rate(project_id),
             generated_at=datetime.now(UTC),
         )
 
@@ -291,9 +274,7 @@ class ReportService:
             await self.db.execute(select(func.count()).select_from(Project))
         ).scalar_one()
         sessions_total = (
-            await self.db.execute(
-                select(func.count()).select_from(OrchestratorSession)
-            )
+            await self.db.execute(select(func.count()).select_from(OrchestratorSession))
         ).scalar_one()
         subtasks_total = (
             await self.db.execute(select(func.count()).select_from(SubTask))
@@ -338,17 +319,13 @@ class ReportService:
         for session_evts in session_events.values():
             for i, ev in enumerate(session_evts):
                 if i + 1 < len(session_evts):
-                    delta = (
-                        session_evts[i + 1].created_at - ev.created_at
-                    ).total_seconds()
+                    delta = (session_evts[i + 1].created_at - ev.created_at).total_seconds()
                     phase_durations[ev.new_phase].append(delta)  # type: ignore[index]
 
         return [
             PhaseDurationAvg(
                 phase=phase,
-                avg_duration_seconds=round(
-                    sum(durations) / len(durations), 1
-                ),
+                avg_duration_seconds=round(sum(durations) / len(durations), 1),
                 sample_count=len(durations),
             )
             for phase, durations in sorted(phase_durations.items())
@@ -383,15 +360,13 @@ class ReportService:
             for week, count in sorted(week_counts.items())
         ]
 
-    async def _calc_automation_rate(
-        self, project_id: UUID | None = None
-    ) -> float:
+    async def _calc_automation_rate(self, project_id: UUID | None = None) -> float:
         """AI 자동처리 비율 — 완료 SubTask / 전체 SubTask × 100."""
         stmt = select(
             func.count().label("total"),
-            func.count(
-                case((SubTask.status == "completed", SubTask.id), else_=None)
-            ).label("completed"),
+            func.count(case((SubTask.status == "completed", SubTask.id), else_=None)).label(
+                "completed"
+            ),
         ).join(
             OrchestratorSession,
             SubTask.session_id == OrchestratorSession.id,
@@ -404,9 +379,7 @@ class ReportService:
         completed: int = row.completed or 0
         return round(completed / total * 100, 1) if total > 0 else 0.0
 
-    async def _calc_review_acceptance_rate(
-        self, project_id: UUID | None = None
-    ) -> float:
+    async def _calc_review_acceptance_rate(self, project_id: UUID | None = None) -> float:
         """초안 수용률 — 리뷰 후 수정 없이 수용된 Artifact 비율."""
         reviewed_statuses = (
             "reviewed",
@@ -417,11 +390,9 @@ class ReportService:
         )
         stmt = select(
             func.count().label("total_reviewed"),
-            func.count(
-                case(
-                    (Artifact.revision_count == 0, Artifact.id), else_=None
-                )
-            ).label("accepted"),
+            func.count(case((Artifact.revision_count == 0, Artifact.id), else_=None)).label(
+                "accepted"
+            ),
         ).where(Artifact.status.in_(reviewed_statuses))
 
         if project_id is not None:

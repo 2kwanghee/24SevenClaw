@@ -10,14 +10,16 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.user_linear_credentials import UserLinearCredentials
-from app.schemas.linear_credentials import LinearConnectionStatus, LinearCredentialsSave, LinearCredentialsResponse
+from app.schemas.linear_credentials import (
+    LinearConnectionStatus,
+    LinearCredentialsResponse,
+    LinearCredentialsSave,
+)
 
 router = APIRouter(prefix="/me/linear-credentials", tags=["linear-credentials"])
 
 
-async def _get_creds(
-    user_id: UUID, db: AsyncSession
-) -> UserLinearCredentials | None:
+async def _get_creds(user_id: UUID, db: AsyncSession) -> UserLinearCredentials | None:
     result = await db.execute(
         select(UserLinearCredentials).where(UserLinearCredentials.user_id == user_id)
     )
@@ -38,7 +40,9 @@ async def save_linear_credentials(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> LinearCredentialsResponse:
-    """Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화. tunnel_url 제공 시 Linear webhook 자동 등록.
+    """Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화.
+
+    tunnel_url 제공 시 Linear webhook 자동 등록.
     api_key 미입력 시 기존 키 유지 (tunnel_url·webhook_secret만 갱신 가능).
     """
     from app.core.crypto import decrypt as _decrypt
@@ -113,7 +117,9 @@ async def get_linear_credentials(
     """저장된 Linear 자격증명 조회 (API 키는 마스킹)."""
     creds = await _get_creds(user.id, db)  # type: ignore[arg-type]
     if creds is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linear 자격증명이 없습니다")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Linear 자격증명이 없습니다"
+        )
 
     return LinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
@@ -151,6 +157,7 @@ async def get_linear_connection_status(
     # tunnel 응답 확인 (5초 타임아웃, 동기 → 스레드)
     tunnel_reachable: bool | None = None
     if creds.tunnel_url:
+
         def _check_tunnel(url: str) -> bool:
             try:
                 req = Request(f"{url.rstrip('/')}/health", method="HEAD")
@@ -188,7 +195,9 @@ async def delete_linear_credentials(
     """Linear 자격증명 삭제."""
     creds = await _get_creds(user.id, db)  # type: ignore[arg-type]
     if creds is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linear 자격증명이 없습니다")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Linear 자격증명이 없습니다"
+        )
 
     await db.delete(creds)
     await db.commit()

@@ -17,9 +17,7 @@ async def project_id(client: AsyncClient, auth_headers: dict[str, str]) -> str:
 
 
 @pytest.fixture
-async def session_id(
-    client: AsyncClient, auth_headers: dict[str, str], project_id: str
-) -> str:
+async def session_id(client: AsyncClient, auth_headers: dict[str, str], project_id: str) -> str:
     """테스트용 오케스트레이션 세션 생성 후 ID 반환."""
     resp = await client.post(
         f"/api/v1/orchestrator/projects/{project_id}/sessions",
@@ -60,9 +58,7 @@ async def test_create_session(
 
 
 @pytest.mark.asyncio
-async def test_create_session_no_auth(
-    client: AsyncClient, project_id: str
-) -> None:
+async def test_create_session_no_auth(client: AsyncClient, project_id: str) -> None:
     """인증 없이 세션 생성 → 401/403."""
     resp = await client.post(
         f"/api/v1/orchestrator/projects/{project_id}/sessions",
@@ -110,9 +106,7 @@ async def test_get_session(
 
 
 @pytest.mark.asyncio
-async def test_get_session_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_session_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """존재하지 않는 세션 → 404."""
     resp = await client.get(
         "/api/v1/orchestrator/sessions/00000000-0000-0000-0000-000000000000",
@@ -168,9 +162,7 @@ async def test_decompose_wrong_phase(
 
 
 @pytest.mark.asyncio
-async def test_assign(
-    client: AsyncClient, auth_headers: dict[str, str], session_id: str
-) -> None:
+async def test_assign(client: AsyncClient, auth_headers: dict[str, str], session_id: str) -> None:
     """분해 후 팀 배정 → 단계 assigned 전이."""
     # 1. 분해
     await client.post(
@@ -212,8 +204,13 @@ async def test_transition_flow(
 
     # assigned → drafting → ... → completed (전체 단계 순회)
     phases = [
-        "drafting", "reviewing", "integrating", "validating",
-        "approved", "transitioning", "completed",
+        "drafting",
+        "reviewing",
+        "integrating",
+        "validating",
+        "approved",
+        "transitioning",
+        "completed",
     ]
     for target in phases:
         resp = await client.put(

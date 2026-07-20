@@ -25,6 +25,7 @@ router = APIRouter(prefix="/admin/registry", tags=["admin-prototype-catalog"])
 
 # ── Catalog Entries ───────────────────────────────────────────────────────────
 
+
 @router.get("/prototype-catalog", response_model=PrototypeCatalogListResponse)
 async def list_catalog_entries(
     primary_tag: str | None = Query(None),
@@ -93,6 +94,7 @@ async def delete_catalog_entry(
 
 
 # ── Prototype Tags ────────────────────────────────────────────────────────────
+
 
 @router.get("/prototype-tags", response_model=PrototypeTagListResponse)
 async def list_tags(

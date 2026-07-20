@@ -4,7 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class LinearCredentialsSave(BaseModel):
-    api_key: str | None = Field(None, min_length=10, description="Linear API 키 (lin_api_...); 미입력 시 기존 키 유지")
+    api_key: str | None = Field(
+        None, min_length=10, description="Linear API 키 (lin_api_...); 미입력 시 기존 키 유지"
+    )
     team_id: str = Field(..., min_length=1, description="Linear 팀 ID (UUID)")
     webhook_secret: str | None = Field(None, description="Webhook 서명 검증 시크릿")
     tunnel_url: str | None = Field(None, description="Cloudflare/ngrok 터널 URL")

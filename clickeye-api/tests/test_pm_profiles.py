@@ -58,9 +58,7 @@ async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
     return ids
 
 
-async def _create_session_id(
-    client: AsyncClient, headers: dict[str, str], db: AsyncSession
-) -> str:
+async def _create_session_id(client: AsyncClient, headers: dict[str, str], db: AsyncSession) -> str:
     """테스트용 조직(API) + PrototypeSession(DB 직접 시딩)을 생성하고 session_id를 반환한다.
 
     위저드 프로토타입 세션 엔드포인트는 P3 에서 제거되었으므로, PM 평가/추천 회귀
@@ -73,9 +71,7 @@ async def _create_session_id(
     )
     org_id = org_resp.json()["id"]
 
-    user = (
-        await db.execute(select(User).where(User.email == "test@example.com"))
-    ).scalar_one()
+    user = (await db.execute(select(User).where(User.email == "test@example.com"))).scalar_one()
 
     session = PrototypeSession(
         user_id=user.id,
@@ -110,9 +106,7 @@ async def _create_org_and_prototype(
 
 
 @pytest.mark.asyncio
-async def test_list_profiles_empty(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_list_profiles_empty(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     resp = await client.get("/api/v1/pm-profiles/", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
@@ -142,9 +136,7 @@ async def test_list_profiles_filter_domain(
 ) -> None:
     await _seed_pm_profiles(db_session)
 
-    resp = await client.get(
-        "/api/v1/pm-profiles/?domain=product", headers=auth_headers
-    )
+    resp = await client.get("/api/v1/pm-profiles/?domain=product", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["total"] == 1
@@ -159,17 +151,13 @@ async def test_get_profile(
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
 
-    resp = await client.get(
-        f"/api/v1/pm-profiles/{pm_ids[0]}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/pm-profiles/{pm_ids[0]}", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["name"] == "김제품"
 
 
 @pytest.mark.asyncio
-async def test_get_profile_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_profile_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     resp = await client.get(
         "/api/v1/pm-profiles/00000000-0000-0000-0000-000000000000",
         headers=auth_headers,
@@ -296,9 +284,7 @@ async def test_get_metrics(
         headers=auth_headers,
     )
 
-    resp = await client.get(
-        f"/api/v1/pm-profiles/{pm_ids[0]}/metrics", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/pm-profiles/{pm_ids[0]}/metrics", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["total_ratings"] == 1
@@ -306,9 +292,7 @@ async def test_get_metrics(
 
 
 @pytest.mark.asyncio
-async def test_get_metrics_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_metrics_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     resp = await client.get(
         "/api/v1/pm-profiles/00000000-0000-0000-0000-000000000000/metrics",
         headers=auth_headers,

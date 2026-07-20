@@ -69,9 +69,7 @@ async def create_session(
 ) -> SessionResponse:
     """오케스트레이션 세션을 생성한다."""
     service = OrchestratorService(db)
-    session = await service.create_session(
-        project_id=project_id, user_id=user.id, data=data
-    )
+    session = await service.create_session(project_id=project_id, user_id=user.id, data=data)
     return SessionResponse.model_validate(session)
 
 

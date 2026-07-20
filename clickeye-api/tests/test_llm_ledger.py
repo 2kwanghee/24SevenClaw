@@ -66,9 +66,7 @@ async def test_list_requires_admin(client: AsyncClient, auth_headers: dict) -> N
 
 
 @pytest.mark.asyncio
-async def test_list_allows_admin(
-    client: AsyncClient, db_session, admin_auth_headers: dict
-) -> None:
+async def test_list_allows_admin(client: AsyncClient, db_session, admin_auth_headers: dict) -> None:
     rows = (await db_session.execute(select(LlmUsageLedger))).scalars().all()
     assert isinstance(rows, list)  # 테이블 생성 확인
     resp = await client.get("/api/v1/llm-ledger", headers=admin_auth_headers)

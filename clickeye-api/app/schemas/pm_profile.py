@@ -10,12 +10,32 @@ from pydantic import BaseModel, Field, model_validator
 IndustryTag = str
 
 # 영문 슬러그 정규값 (추천 알고리즘 매칭용)
-INDUSTRY_TAG_SLUGS: frozenset[str] = frozenset([
-    "it", "fintech", "ecommerce", "healthcare", "education",
-    "manufacturing", "logistics", "marketing", "game", "other",
-    "finance", "retail", "it-saas", "public", "media",
-    "b2b", "b2c", "b2b2c", "internal", "startup", "enterprise", "saas",
-])
+INDUSTRY_TAG_SLUGS: frozenset[str] = frozenset(
+    [
+        "it",
+        "fintech",
+        "ecommerce",
+        "healthcare",
+        "education",
+        "manufacturing",
+        "logistics",
+        "marketing",
+        "game",
+        "other",
+        "finance",
+        "retail",
+        "it-saas",
+        "public",
+        "media",
+        "b2b",
+        "b2c",
+        "b2b2c",
+        "internal",
+        "startup",
+        "enterprise",
+        "saas",
+    ]
+)
 
 # --- PMProfile ---
 
