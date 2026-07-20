@@ -135,7 +135,7 @@ function AuditContent() {
           <button
             type="button"
             onClick={() => setFilterOpen(!filterOpen)}
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)]"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]"
           >
             <Filter className="h-4 w-4" />
             {actionFilter
@@ -257,7 +257,7 @@ function AuditContent() {
             disabled={currentPage <= 1}
             onClick={() => updateParams({ page: String(currentPage - 1) })}
             aria-label="이전 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -271,7 +271,7 @@ function AuditContent() {
             disabled={!hasMore}
             onClick={() => updateParams({ page: String(currentPage + 1) })}
             aria-label="다음 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

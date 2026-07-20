@@ -29,15 +29,15 @@ const KEY_STATUS_META: Record<KeyStatus, { label: string; cls: string }> = {
   },
   no_saved_key: {
     label: "미저장",
-    cls: "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
+    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
   },
   never_downloaded: {
     label: "미다운로드",
-    cls: "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
+    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
   },
   "n/a": {
     label: "해당 없음",
-    cls: "border-zinc-200 bg-zinc-100 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400",
+    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
   },
 };
 
@@ -75,7 +75,7 @@ export function ConsoleHeader({
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href="/delivery"
-            className="mt-0.5 rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            className="mt-0.5 rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             aria-label="딜리버리 목록으로 돌아가기"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -112,7 +112,7 @@ export function ConsoleHeader({
             type="button"
             onClick={onSync}
             disabled={syncing}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
           >
             <GitBranch
               className={`h-3.5 w-3.5 ${syncing ? "animate-pulse" : ""}`}

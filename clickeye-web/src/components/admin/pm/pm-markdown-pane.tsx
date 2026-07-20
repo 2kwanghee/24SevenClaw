@@ -26,7 +26,7 @@ export function PMMarkdownPane({ value, onChange, defaultOpen = false }: PMMarkd
           ) : (
             <ChevronRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
           )}
-          <Code2 className="h-3.5 w-3.5 text-zinc-700" />
+          <Code2 className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
             MD 전체 편집
           </span>

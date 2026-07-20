@@ -261,7 +261,7 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-medium)] border-t-[var(--accent)]" />
         <p className="mt-4 text-sm text-[var(--text-muted)]">{tD("loading")}</p>
       </div>
     );
@@ -329,7 +329,7 @@ export default function ProjectDetailPage() {
             <button
               onClick={handleDownloadEnv}
               disabled={envDownloading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-50"
             >
               {envDownloading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -412,7 +412,7 @@ export default function ProjectDetailPage() {
                   className={`rounded-md px-2.5 py-0.5 text-xs font-medium ${
                     isActive
                       ? "bg-emerald-50 text-emerald-700"
-                      : "bg-zinc-100 text-zinc-500"
+                      : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
                   }`}
                 >
                   {isActive ? tD("statusActive") : tD("statusArchived")}
@@ -628,7 +628,7 @@ export default function ProjectDetailPage() {
                                   ? "border-red-300 focus:border-red-400 focus:ring-red-200"
                                   : sanitizedKeys[key]
                                     ? "border-amber-400 focus:border-amber-500 focus:ring-amber-200"
-                                    : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200"
+                                    : "border-[var(--border-subtle)] focus:border-[var(--accent)] focus:ring-[var(--accent)]"
                               }`}
                             />
                             {sanitizedKeys[key] && (
@@ -677,7 +677,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={handleRedownload}
                       disabled={downloadDisabled}
-                      className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {downloading ? (
                         <>
@@ -750,7 +750,7 @@ export default function ProjectDetailPage() {
                 <button
                   type="button"
                   onClick={() => setResetOpen(true)}
-                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 transition-colors"
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-amber-300 bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 transition-colors"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   {tD("resetBtn")}
@@ -766,7 +766,7 @@ export default function ProjectDetailPage() {
                 <button
                   type="button"
                   onClick={() => setDeleteOpen(true)}
-                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-red-300 bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   {tD("deleteBtn")}
@@ -812,7 +812,7 @@ interface ConfigBadgeProps {
 function ConfigBadge({ icon: Icon, label, value }: ConfigBadgeProps) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
       <div className="min-w-0">
         <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
         <p className="truncate text-xs font-medium text-[var(--text-primary)]">{value}</p>
@@ -842,7 +842,7 @@ function CheckItem({ ok, label, description }: CheckItemProps) {
   return (
     <div className="flex items-start gap-3">
       {ok === null ? (
-        <div className="mt-0.5 h-4 w-4 shrink-0 animate-pulse rounded-full bg-zinc-200" />
+        <div className="mt-0.5 h-4 w-4 shrink-0 animate-pulse rounded-full bg-[var(--border-subtle)]" />
       ) : ok ? (
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
       ) : (
@@ -864,13 +864,13 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
     <div
       className={
         compact
-          ? "rounded-xl border border-[var(--border-subtle)] bg-zinc-50 p-5"
+          ? "rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-5"
           : "mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
       }
     >
       <div className={compact ? "mb-3 flex items-center justify-between" : "mb-5 flex items-center justify-between"}>
         <div className="flex items-center gap-2">
-          <Zap className={compact ? "h-3.5 w-3.5 text-zinc-700" : "h-4 w-4 text-zinc-700"} />
+          <Zap className={compact ? "h-3.5 w-3.5 text-[var(--text-secondary)]" : "h-4 w-4 text-[var(--text-secondary)]"} />
           <h2 className={compact ? "text-sm font-semibold text-[var(--text-primary)]" : "text-lg font-semibold text-[var(--text-primary)]"}>
             {t("cardTitle")} {compact && <span className="ml-1 text-[11px] font-normal text-[var(--text-muted)]">{t("compactNote")}</span>}
           </h2>
@@ -910,7 +910,7 @@ function LinearPreflightCard({ projectId, status, isFetching, onRefresh, compact
         {credentialsReady ? (
           <a
             href={`/projects/${projectId}/ai-team`}
-            className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
           >
             <Zap className="h-4 w-4" />
             {t("startAiTeamBtn")}

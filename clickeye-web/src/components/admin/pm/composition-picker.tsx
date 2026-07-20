@@ -151,9 +151,9 @@ export function CompositionPicker({
               <div className={[
                 "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
                 isChecked
-                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]"
                   : "border-[var(--border-medium)] bg-transparent",
-                alreadyAdded ? "border-zinc-300 bg-zinc-100" : "",
+                alreadyAdded ? "border-[var(--border-medium)] bg-[var(--bg-base)]" : "",
               ].join(" ")}>
                 {(isChecked || alreadyAdded) && <Check className="h-2.5 w-2.5" />}
               </div>
@@ -197,7 +197,7 @@ export function CompositionPicker({
             type="button"
             onClick={handleConfirm}
             disabled={selected.size === 0}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
+            className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90 disabled:opacity-40"
           >
             추가 ({selected.size})
           </button>

@@ -94,7 +94,7 @@ export function ReviewDiffViewer({ round }: ReviewDiffViewerProps) {
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               초안 ({round.main_ai_role})
             </p>
-            <pre className="max-h-48 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
+            <pre className="max-h-48 overflow-auto rounded-lg bg-[var(--bg-hover)] p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
               {round.draft_content}
             </pre>
           </div>
@@ -110,7 +110,7 @@ export function ReviewDiffViewer({ round }: ReviewDiffViewerProps) {
                   </span>
                 )}
               </p>
-              <pre className="max-h-48 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
+              <pre className="max-h-48 overflow-auto rounded-lg bg-[var(--bg-hover)] p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
                 {round.review_content}
               </pre>
             </div>

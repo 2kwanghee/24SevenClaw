@@ -18,7 +18,7 @@ export function EstimatedWeeksBadge({ min, max }: EstimatedWeeksBadgeProps) {
   const unit = t("weeksUnit");
   const text = min === max ? `${min}${unit}` : `${min ?? "?"}~${max ?? "?"}${unit}`;
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
+    <span className="inline-flex items-center gap-1 rounded-md bg-[var(--accent-soft)] px-2 py-1 text-[11px] font-medium text-[var(--accent)]">
       <Clock className="h-3 w-3" />
       {text}
     </span>
@@ -81,7 +81,7 @@ export function MaintenanceBadge({ level }: MaintenanceBadgeProps) {
       ? "bg-green-50 text-green-700"
       : level === "high"
         ? "bg-red-50 text-red-700"
-        : "bg-zinc-100 text-zinc-700";
+        : "bg-[var(--bg-hover)] text-[var(--text-secondary)]";
   return (
     <span
       className={cn(
@@ -120,18 +120,18 @@ export function ScoreBar({ label, score, variant = "complexity" }: ScoreBarProps
         ? "bg-violet-500"
         : clamped >= 5
           ? "bg-sky-500"
-          : "bg-zinc-400";
+          : "bg-[var(--text-muted)]";
   return (
     <div className="flex items-center gap-2">
-      <Icon className="h-3 w-3 shrink-0 text-zinc-500" />
-      <span className="w-[60px] shrink-0 text-[11px] text-zinc-600">{label}</span>
-      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+      <Icon className="h-3 w-3 shrink-0 text-[var(--text-muted)]" />
+      <span className="w-[60px] shrink-0 text-[11px] text-[var(--text-secondary)]">{label}</span>
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--bg-hover)]">
         <div
           className={cn("absolute left-0 top-0 h-full rounded-full", barColor)}
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="w-7 shrink-0 text-right text-[11px] font-medium text-zinc-700">
+      <span className="w-7 shrink-0 text-right text-[11px] font-medium text-[var(--text-secondary)]">
         {clamped}/10
       </span>
     </div>

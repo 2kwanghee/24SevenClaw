@@ -40,7 +40,7 @@ export function TagInput({ label, values, onChange, placeholder }: TagInputProps
       </div>
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+          className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           placeholder={placeholder ?? "입력 후 Enter"}
           value={input}
           onChange={(e) => setInput(e.target.value)}

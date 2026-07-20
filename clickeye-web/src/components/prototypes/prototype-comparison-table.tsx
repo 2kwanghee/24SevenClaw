@@ -73,7 +73,7 @@ export function PrototypeComparisonTable({
 
   if (prototypes.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-zinc-500">
+      <p className="py-12 text-center text-sm text-[var(--text-muted)]">
         {tStep3("noComparison")}
       </p>
     );
@@ -90,7 +90,7 @@ export function PrototypeComparisonTable({
   function highlight<T>(values: T[], idx: number, isBest: boolean): string {
     const allSame = values.every((v) => JSON.stringify(v) === JSON.stringify(values[0]));
     if (allSame) return "";
-    if (isBest) return "bg-yellow-50 font-semibold text-zinc-900";
+    if (isBest) return "bg-[var(--accent-soft)] font-semibold text-[var(--accent)]";
     return "";
   }
 
@@ -98,11 +98,11 @@ export function PrototypeComparisonTable({
   const personsUnit = tM("personsUnit");
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
       <table className="w-full min-w-[680px] text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 bg-zinc-50">
-            <th className="px-3 py-2.5 text-left text-xs font-medium text-zinc-600 sticky left-0 bg-zinc-50">
+          <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+            <th className="px-3 py-2.5 text-left text-xs font-medium text-[var(--text-secondary)] sticky left-0 bg-[var(--bg-surface)]">
               {t("metric")}
             </th>
             {prototypes.map((p) => {
@@ -123,7 +123,7 @@ export function PrototypeComparisonTable({
                     {selected && (
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                     )}
-                    <span className="font-semibold text-zinc-900">{p.name}</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{p.name}</span>
                     {p.isRecommended && (
                       <span className="inline-flex items-center gap-0.5 rounded border border-yellow-300 bg-yellow-50 px-1.5 py-0.5 text-[10px] font-medium text-yellow-700">
                         <Star className="h-2.5 w-2.5" />
@@ -136,14 +136,14 @@ export function PrototypeComparisonTable({
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-100">
+        <tbody className="divide-y divide-[var(--border-subtle)]">
           {/* 아키텍처 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.architecture")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.architecturePattern ?? "—"}
               </td>
             ))}
@@ -151,14 +151,14 @@ export function PrototypeComparisonTable({
 
           {/* 개발 기간 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.devDuration")}
             </td>
             {prototypes.map((p, i) => (
               <td
                 key={p.id}
                 className={cn(
-                  "px-3 py-2 text-xs text-zinc-800",
+                  "px-3 py-2 text-xs text-[var(--text-primary)]",
                   highlight(
                     prototypes.map((x) => x.estimatedWeeksMin),
                     i,
@@ -174,14 +174,14 @@ export function PrototypeComparisonTable({
 
           {/* 팀 규모 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.teamSize")}
             </td>
             {prototypes.map((p, i) => (
               <td
                 key={p.id}
                 className={cn(
-                  "px-3 py-2 text-xs text-zinc-800",
+                  "px-3 py-2 text-xs text-[var(--text-primary)]",
                   highlight(
                     prototypes.map((x) => x.teamSizeMin),
                     i,
@@ -192,7 +192,7 @@ export function PrototypeComparisonTable({
                 {bestTeam === i && <StarIcon />}{" "}
                 {rangeLabel(p.teamSizeMin, p.teamSizeMax, personsUnit)}
                 {p.teamRoles && p.teamRoles.length > 0 && (
-                  <span className="ml-1 text-[10px] text-zinc-500">
+                  <span className="ml-1 text-[10px] text-[var(--text-muted)]">
                     ({p.teamRoles.join("/")})
                   </span>
                 )}
@@ -202,14 +202,14 @@ export function PrototypeComparisonTable({
 
           {/* 월 운영비 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.monthlyCost")}
             </td>
             {prototypes.map((p, i) => (
               <td
                 key={p.id}
                 className={cn(
-                  "px-3 py-2 text-xs text-zinc-800",
+                  "px-3 py-2 text-xs text-[var(--text-primary)]",
                   highlight(
                     prototypes.map((x) => x.monthlyCostMinUsd),
                     i,
@@ -225,14 +225,14 @@ export function PrototypeComparisonTable({
 
           {/* 복잡도 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.complexity")}
             </td>
             {prototypes.map((p, i) => (
               <td
                 key={p.id}
                 className={cn(
-                  "px-3 py-2 text-xs text-zinc-800",
+                  "px-3 py-2 text-xs text-[var(--text-primary)]",
                   highlight(
                     prototypes.map((x) => x.complexityScore),
                     i,
@@ -248,14 +248,14 @@ export function PrototypeComparisonTable({
 
           {/* 확장성 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.scalability")}
             </td>
             {prototypes.map((p, i) => (
               <td
                 key={p.id}
                 className={cn(
-                  "px-3 py-2 text-xs text-zinc-800",
+                  "px-3 py-2 text-xs text-[var(--text-primary)]",
                   highlight(
                     prototypes.map((x) => x.scalabilityScore),
                     i,
@@ -271,11 +271,11 @@ export function PrototypeComparisonTable({
 
           {/* 유지보수 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.maintenance")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.maintenanceDifficulty === "low"
                   ? t("maintenance.low")
                   : p.maintenanceDifficulty === "high"
@@ -289,17 +289,17 @@ export function PrototypeComparisonTable({
 
           {/* 기술 스택 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.techStack")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.techStack && p.techStack.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {p.techStack.map((tStack) => (
                       <span
                         key={tStack}
-                        className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px]"
+                        className="rounded border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-1.5 py-0.5 text-[10px]"
                       >
                         {tStack}
                       </span>
@@ -314,11 +314,11 @@ export function PrototypeComparisonTable({
 
           {/* 필요 역량 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.skillRequirements")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.skillRequirements && p.skillRequirements.length > 0
                   ? p.skillRequirements.join(", ")
                   : "—"}
@@ -328,11 +328,11 @@ export function PrototypeComparisonTable({
 
           {/* AI 매칭 근거 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.companyFit")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs leading-relaxed text-violet-800">
+              <td key={p.id} className="px-3 py-2 text-xs leading-relaxed text-[var(--accent)]">
                 {p.matchReasoning ?? "—"}
               </td>
             ))}
@@ -340,11 +340,11 @@ export function PrototypeComparisonTable({
 
           {/* 장점 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.pros")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.pros && p.pros.length > 0 ? (
                   <ul className="space-y-0.5 list-disc pl-3.5">
                     {p.pros.map((v, i) => (
@@ -360,11 +360,11 @@ export function PrototypeComparisonTable({
 
           {/* 단점 */}
           <tr>
-            <td className="px-3 py-2 text-xs text-zinc-500 sticky left-0 bg-white">
+            <td className="px-3 py-2 text-xs text-[var(--text-muted)] sticky left-0 bg-[var(--bg-surface)]">
               {t("rows.cons")}
             </td>
             {prototypes.map((p) => (
-              <td key={p.id} className="px-3 py-2 text-xs text-zinc-800">
+              <td key={p.id} className="px-3 py-2 text-xs text-[var(--text-primary)]">
                 {p.cons && p.cons.length > 0 ? (
                   <ul className="space-y-0.5 list-disc pl-3.5">
                     {p.cons.map((v, i) => (

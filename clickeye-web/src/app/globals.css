@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4 class-based dark strategy: `.dark` on <html> (managed by next-themes). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Tailwind v4 uses OKLCH colors. The default `zinc` palette carries a
  * blue-purple hue (~264°) that causes text like `text-zinc-500` to render
@@ -18,6 +21,14 @@
   --color-zinc-800: oklch(0.274 0 0);
   --color-zinc-900: oklch(0.210 0 0);
   --color-zinc-950: oklch(0.145 0 0);
+
+  /*
+   * Font families. Inter carries 영문/숫자; it has no 한글 glyphs so the
+   * browser auto-falls back to Pretendard for Korean. font-mono utility
+   * (63곳) resolves to JetBrains Mono for 코드·IP·수치.
+   */
+  --font-sans: var(--font-inter), var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
 }
 
 /* ===== Design Tokens — Light ===== */
@@ -51,10 +62,55 @@
   /* Logo */
   --logo-bg: #18181b;
   --logo-text: #fafafa;
+
+  /* Brand accent — deep cyan (정의만; 화면 교체는 단계 2) */
+  --accent: #0e7490;
+  --accent-soft: #d7eef2;
+  --accent-fg: #ffffff;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
+}
+
+/* ===== Design Tokens — Dark (cool / 시안 편향 뉴트럴) ===== */
+.dark {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-base: #0b1416;
+  --bg-surface: #101a1d;
+  --bg-header: rgba(16, 26, 29, 0.85);
+  --bg-elevated: #162226;
+  --bg-hover: #1b292d;
+  --bg-hover-danger: #2a1416;
+
+  /* Text */
+  --text-primary: #e8eef0;
+  --text-secondary: #9fb2b7;
+  --text-muted: #64777c;
+
+  /* Borders */
+  --border-subtle: #22333a;
+  --border-medium: #2f444c;
+
+  /* Nav */
+  --nav-active-bg: #1b292d;
+  --nav-active-text: #e8eef0;
+  --nav-active-icon: #e8eef0;
+
+  /* Accent (ink) */
+  --accent-bg: #1b292d;
+  --accent-text: #e8eef0;
+
+  /* Logo */
+  --logo-bg: #e8eef0;
+  --logo-text: #0b1416;
+
+  /* Brand accent — deep cyan (dark) */
+  --accent: #22b8cf;
+  --accent-soft: #0c2a30;
+  --accent-fg: #06171b;
 }
 
 body {
@@ -69,8 +125,8 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
-  -webkit-text-fill-color: #09090b;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-surface) inset;
+  -webkit-text-fill-color: var(--text-primary);
   transition: background-color 9999s ease-in-out 0s;
 }
 

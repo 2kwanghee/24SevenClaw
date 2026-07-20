@@ -1,14 +1,31 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
+// 영문·숫자 본문
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
   display: "swap",
+});
+
+// 코드·IP·수치 (monospace)
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
+
+// 한글 본문 (variable 폰트)
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  display: "swap",
+  weight: "45 920",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +42,11 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={`${inter.variable} ${pretendard.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen antialiased" suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>{children}</Providers>

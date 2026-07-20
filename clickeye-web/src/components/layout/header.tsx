@@ -7,6 +7,7 @@ import { LogOut, Bell, HelpCircle, BookOpen, RotateCcw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { LocaleToggle } from "@/components/common/locale-toggle";
+import { ThemeSwitcher } from "@/components/common/theme-switcher";
 
 function HelpDropdown() {
   const router = useRouter();
@@ -89,6 +90,9 @@ export function Header() {
       <div className="flex items-center gap-4">
         {/* 언어 토글 (사용자 향 페이지 한정 — /admin/* 내부에서 자체 미노출) */}
         <LocaleToggle />
+
+        {/* 테마 토글 (라이트/다크) */}
+        <ThemeSwitcher />
 
         {/* 알림 */}
         <button

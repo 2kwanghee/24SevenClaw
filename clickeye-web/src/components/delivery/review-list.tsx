@@ -57,7 +57,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold">
-            <span className="font-mono text-cyan-700 dark:text-cyan-400">
+            <span className="font-mono text-[var(--accent)]">
               {identifier}
             </span>
             {subtask?.linear_identifier && subtask.title && (
@@ -89,7 +89,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
           <button
             type="button"
             onClick={() => setDiffOpen(true)}
-            className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             diff 보기
           </button>
@@ -105,7 +105,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
                 }
                 disabled={merge.isPending || mock}
                 title={mock ? "목업 모드에서는 비활성" : undefined}
-                className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[11.5px] font-semibold text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--accent-fg)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
               >
                 {merge.isPending && (
                   <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
@@ -117,7 +117,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
                 onClick={() => setShowReject((v) => !v)}
                 disabled={reject.isPending || mock}
                 title={mock ? "목업 모드에서는 비활성" : undefined}
-                className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover-danger)] hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-50"
+                className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover-danger)] hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
               >
                 거절
               </button>

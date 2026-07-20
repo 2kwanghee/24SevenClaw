@@ -36,7 +36,7 @@ function tagToForm(tag: PrototypeTag | null): TagFormState {
   };
 }
 
-const INPUT = "w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none";
+const INPUT = "w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none";
 
 function TagEditorDrawer({ tag, open, onClose }: { tag: PrototypeTag | null; open: boolean; onClose: () => void }) {
   const [form, setForm] = useState<TagFormState>(tagToForm(null));
@@ -103,7 +103,7 @@ function TagEditorDrawer({ tag, open, onClose }: { tag: PrototypeTag | null; ope
           </label>
           <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
             <button type="button" onClick={onClose} className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">취소</button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90 disabled:opacity-50">
               {isSubmitting && <Loader2 size={12} className="animate-spin" />} 저장
             </button>
           </div>
@@ -133,7 +133,7 @@ export function PrototypeTagsTable() {
     <>
       <div className="flex justify-end mb-4">
         <button type="button" onClick={() => { setEditTag(null); setDrawerOpen(true); }}
-          className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800">
+          className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90">
           <Plus size={12} /> 새 태그
         </button>
       </div>
@@ -169,7 +169,7 @@ export function PrototypeTagsTable() {
                   </td>
                   <td className="px-4 py-3 text-[var(--text-secondary)] text-center">{tag.sort_order}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${tag.is_active ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-[var(--text-muted)]"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${tag.is_active ? "bg-emerald-50 text-emerald-700" : "bg-[var(--bg-base)] text-[var(--text-muted)]"}`}>
                       {tag.is_active ? "활성" : "비활성"}
                     </span>
                   </td>

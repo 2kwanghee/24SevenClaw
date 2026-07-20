@@ -165,7 +165,7 @@ function CreateContractDialog({
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: default-settings"
               />
             </div>
@@ -180,7 +180,7 @@ function CreateContractDialog({
                   id="contract_type"
                   value={formData.contract_type}
                   onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 >
                   {TYPE_OPTIONS.map((type) => (
                     <option key={type} value={type}>
@@ -198,7 +198,7 @@ function CreateContractDialog({
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                   placeholder="central"
                 />
               </div>
@@ -215,7 +215,7 @@ function CreateContractDialog({
                   type="text"
                   value={formData.version}
                   onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                   placeholder="1.0.0"
                 />
               </div>
@@ -225,7 +225,7 @@ function CreateContractDialog({
                     type="checkbox"
                     checked={formData.is_locked}
                     onChange={(e) => setFormData({ ...formData, is_locked: e.target.checked })}
-                    className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-surface)] text-zinc-900 focus:ring-zinc-400/30"
+                    className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
                   잠금 상태
                 </label>
@@ -242,7 +242,7 @@ function CreateContractDialog({
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="계약 설명"
               />
             </div>
@@ -257,7 +257,7 @@ function CreateContractDialog({
                 type="text"
                 value={overridesText}
                 onChange={(e) => setOverridesText(e.target.value)}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: timeout, retry_count"
               />
             </div>
@@ -273,7 +273,7 @@ function CreateContractDialog({
                 onChange={(e) => setContentText(e.target.value)}
                 rows={4}
                 spellCheck={false}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder='{ "key": "value" }'
               />
             </div>
@@ -299,7 +299,7 @@ function CreateContractDialog({
               type="button"
               onClick={handleSubmit}
               disabled={createContract.isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
               {createContract.isPending ? "생성 중..." : "생성"}
@@ -370,7 +370,7 @@ function ContractsContent() {
             <button
               type="button"
               onClick={() => setFilterOpen(!filterOpen)}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)]"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]"
             >
               <Filter className="h-4 w-4" />
               {typeFilter ? TYPE_LABELS[typeFilter] ?? typeFilter : "모든 타입"}
@@ -422,7 +422,7 @@ function ContractsContent() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             새 계약
@@ -492,7 +492,7 @@ function ContractsContent() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
           >
             <Plus className="h-3.5 w-3.5" />
             첫 계약 생성
@@ -508,7 +508,7 @@ function ContractsContent() {
             disabled={currentPage <= 1}
             onClick={() => updateParams({ page: String(currentPage - 1) })}
             aria-label="이전 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -518,7 +518,7 @@ function ContractsContent() {
             disabled={!hasMore}
             onClick={() => updateParams({ page: String(currentPage + 1) })}
             aria-label="다음 페이지"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

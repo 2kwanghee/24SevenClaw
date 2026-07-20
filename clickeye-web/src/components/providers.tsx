@@ -3,6 +3,7 @@
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider, signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
+import { ThemeProvider, useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 
@@ -28,6 +29,14 @@ function SessionGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** next-themes 값을 sonner Toaster 테마로 반영 */
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+  const theme = resolvedTheme === "dark" ? "dark" : "light";
+
+  return <Toaster position="bottom-right" theme={theme} richColors />;
+}
+
 function QueryProvider({ children }: { children: React.ReactNode }) {
   const t = useTranslations("toast.generic");
   const [queryClient] = useState(
@@ -50,11 +59,7 @@ function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <Toaster
-        position="bottom-right"
-        theme="light"
-        richColors
-      />
+      <ThemedToaster />
     </QueryClientProvider>
   );
 }
@@ -65,12 +70,19 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <SessionProvider refetchInterval={4 * 60} refetchOnWindowFocus={true}>
-      <SessionGuard>
-        <ZodLocaleProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ZodLocaleProvider>
-      </SessionGuard>
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <SessionProvider refetchInterval={4 * 60} refetchOnWindowFocus={true}>
+        <SessionGuard>
+          <ZodLocaleProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </ZodLocaleProvider>
+        </SessionGuard>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

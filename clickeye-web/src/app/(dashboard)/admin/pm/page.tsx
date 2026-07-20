@@ -102,7 +102,7 @@ function PMListPage() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
           PM 생성
@@ -117,7 +117,7 @@ function PMListPage() {
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1">이름 *</label>
               <input
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: Alex Chen"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
@@ -126,7 +126,7 @@ function PMListPage() {
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1">Slug *</label>
               <input
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: alex-chen"
                 value={createForm.slug}
                 onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
@@ -135,7 +135,7 @@ function PMListPage() {
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1">직함</label>
               <input
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: Senior PM"
                 value={createForm.title ?? ""}
                 onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
@@ -144,7 +144,7 @@ function PMListPage() {
             <div>
               <label className="block text-xs text-[var(--text-muted)] mb-1">도메인</label>
               <input
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: saas, fintech"
                 value={createForm.domain ?? ""}
                 onChange={(e) => setCreateForm({ ...createForm, domain: e.target.value })}
@@ -154,7 +154,7 @@ function PMListPage() {
           <div>
             <label className="block text-xs text-[var(--text-muted)] mb-1">한 줄 설명</label>
             <input
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
               placeholder="PM에 대한 간략한 설명"
               value={createForm.description ?? ""}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
@@ -165,7 +165,7 @@ function PMListPage() {
               type="button"
               onClick={handleCreate}
               disabled={createMutation.isPending}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
             >
               {createMutation.isPending ? "생성 중..." : "생성"}
             </button>

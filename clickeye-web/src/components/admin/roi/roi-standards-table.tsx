@@ -128,7 +128,7 @@ export function RoiStandardsTable({ category }: Props) {
       <div className="mb-3 flex justify-end">
         <button
           onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800"
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90"
         >
           <Plus className="h-3.5 w-3.5" />
           항목 추가
@@ -137,7 +137,7 @@ export function RoiStandardsTable({ category }: Props) {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" />
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
@@ -165,7 +165,7 @@ export function RoiStandardsTable({ category }: Props) {
                       className={`rounded-md px-2 py-0.5 text-xs font-medium ${
                         item.is_active
                           ? "bg-emerald-50 text-emerald-700"
-                          : "bg-zinc-100 text-zinc-400"
+                          : "bg-[var(--bg-base)] text-[var(--text-muted)]"
                       }`}
                     >
                       {item.is_active ? "활성" : "비활성"}
@@ -240,7 +240,7 @@ export function RoiStandardsTable({ category }: Props) {
                   value={editor.key}
                   onChange={(e) => setEditor((p) => p && { ...p, key: e.target.value })}
                   disabled={!!editor.id}
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-zinc-300 disabled:opacity-50"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] disabled:opacity-50"
                   placeholder="예: pm, saas, high"
                 />
               </div>
@@ -249,7 +249,7 @@ export function RoiStandardsTable({ category }: Props) {
                 <input
                   value={editor.label}
                   onChange={(e) => setEditor((p) => p && { ...p, label: e.target.value })}
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-zinc-300"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                   placeholder="예: 프로젝트 매니저"
                 />
               </div>
@@ -263,7 +263,7 @@ export function RoiStandardsTable({ category }: Props) {
                     type="number"
                     value={editor.value_numeric}
                     onChange={(e) => setEditor((p) => p && { ...p, value_numeric: e.target.value })}
-                    className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-zinc-300"
+                    className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                     placeholder="예: 900000"
                   />
                 </div>
@@ -284,7 +284,7 @@ export function RoiStandardsTable({ category }: Props) {
                               p ? { ...p, value_json: { ...p.value_json, [k]: e.target.value } } : null
                             )
                           }
-                          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-zinc-300"
+                          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                         />
                       </div>
                     ))}
@@ -297,7 +297,7 @@ export function RoiStandardsTable({ category }: Props) {
                   type="checkbox"
                   checked={editor.is_active}
                   onChange={(e) => setEditor((p) => p && { ...p, is_active: e.target.checked })}
-                  className="h-4 w-4 rounded border-zinc-300"
+                  className="h-4 w-4 rounded border-[var(--border-medium)]"
                 />
                 <span className="text-sm text-[var(--text-secondary)]">활성</span>
               </label>
@@ -313,7 +313,7 @@ export function RoiStandardsTable({ category }: Props) {
               <button
                 onClick={handleSave}
                 disabled={isPending || !editor.key || !editor.label}
-                className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 저장

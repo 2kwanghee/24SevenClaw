@@ -20,7 +20,7 @@ export default function DeliveryListPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-fg)]">
           <Boxes className="h-5 w-5" aria-hidden="true" />
         </div>
         <div>
@@ -39,7 +39,7 @@ export default function DeliveryListPage() {
       {/* 로딩 */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" aria-hidden="true" />
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" aria-hidden="true" />
         </div>
       )}
 
@@ -54,15 +54,15 @@ export default function DeliveryListPage() {
       {/* 빈 상태 */}
       {!isLoading && !isError && engagements.length === 0 && (
         <div className="flex flex-col items-center gap-4 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-            <Boxes className="h-7 w-7 text-zinc-400" aria-hidden="true" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+            <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             아직 등록된 수주건이 없습니다
           </p>
           <Link
             href="/projects"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
           >
             프로젝트에서 시작하기
           </Link>
@@ -76,10 +76,10 @@ export default function DeliveryListPage() {
             <Link
               key={engagement.id}
               href={`/delivery/${engagement.id}`}
-              className="group flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(20,24,33,0.05)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+              className="group flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(20,24,33,0.05)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                <Boxes className="h-4.5 w-4.5 text-zinc-500 dark:text-zinc-400" aria-hidden="true" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+                <Boxes className="h-4.5 w-4.5 text-[var(--text-muted)]" aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function DeliveryListPage() {
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                       engagement.status === "active"
                         ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                        : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
                     }`}
                   >
                     {engagement.status === "active" ? "진행 중" : "보관됨"}

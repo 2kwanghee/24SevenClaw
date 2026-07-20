@@ -15,7 +15,9 @@
       "close": "閉じる",
       "languageToggle": "言語を変更",
       "notifications": "通知",
-      "help": "ヘルプ"
+      "help": "ヘルプ",
+      "themeDark": "ダークモードに切り替え",
+      "themeLight": "ライトモードに切り替え"
     },
     "header": {
       "viewGuide": "ガイドを見る",
@@ -1159,7 +1161,7 @@
   "auth": {
     "login": {
       "title": "おかえりなさい",
-      "subtitle": "サインインしてAIエージェントを管理しましょう",
+      "subtitle": "コンソールにログインしてデリバリーを管制しましょう",
       "registeredSuccess": "登録が完了しました。サインインしてください。",
       "credentialsError": "メールアドレスまたはパスワードが正しくありません",
       "orContinueWithEmail": "またはメールで続行",
@@ -1173,8 +1175,8 @@
       "signupLink": "サインアップ"
     },
     "register": {
-      "title": "始めましょう",
-      "subtitle": "無料アカウントを作成して、AIエージェントの力を体験しましょう",
+      "title": "チームアカウントを作成",
+      "subtitle": "アカウントを作成して、最初の案件の並列デリバリーを始めましょう。",
       "genericError": "サインアップ中にエラーが発生しました",
       "orContinueWithEmail": "またはメールでサインアップ",
       "emailLabel": "メールアドレス",
@@ -1200,24 +1202,25 @@
       "loginLink": "サインイン"
     },
     "layout": {
-      "tabLogin": "サインイン",
-      "tabRegister": "サインアップ",
-      "heroTitleLine1": "AIがコードを書く",
-      "heroTitleLine2": "新しい開発体験",
-      "heroDescLine1": "チケットの割り当てからコードレビュー、PR作成まで。",
-      "heroDescLine2": "決して眠らないAI開発エージェントに出会いましょう。",
+      "tabLogin": "ログイン",
+      "tabRegister": "新規登録",
+      "eyebrow": "SIデリバリー管制プレーン",
+      "heroTitleLine1": "実行はAIへ、",
+      "heroTitleLine2": "管制はチームへ。",
+      "heroDescLine1": "受注案件をLinearのイシューに分解し、AIランナーが並列で開発します。",
+      "heroDescLine2": "ガバナンスゲートとコスト台帳が品質とマージンを守ります。",
       "features": {
-        "orchestration": {
-          "title": "AIエージェントのオーケストレーション",
-          "desc": "Claude を活用した自律型開発エージェント"
+        "console": {
+          "title": "デリバリーコンソール",
+          "desc": "進行中のすべての案件を1画面で"
         },
-        "security": {
-          "title": "エンタープライズセキュリティ",
-          "desc": "隔離された実行環境とライセンス管理"
+        "governance": {
+          "title": "ガバナンスゲート",
+          "desc": "検証とリスク分類で安全な自動マージ"
         },
-        "automation": {
-          "title": "自動化されたワークフロー",
-          "desc": "チケットからPRまでのエンドツーエンド自動化"
+        "hybrid": {
+          "title": "ハイブリッド実行",
+          "desc": "ローカルセッション優先・クラウドにフォールバック"
         }
       },
       "copyright": "© 2026 ClickEye. All rights reserved."
@@ -1261,141 +1264,102 @@
   },
   "home": {
     "nav": {
-      "features": "機能",
-      "howItWorks": "仕組み",
-      "platforms": "プラットフォーム",
-      "login": "サインイン",
-      "ctaStart": "設計を始める"
+      "process": "デリバリーの流れ",
+      "capabilities": "機能",
+      "login": "ログイン",
+      "ctaRegister": "チーム作成"
     },
     "hero": {
-      "badge": "Webファーストの AI ソリューションビルダー",
-      "titleLine1": "自分で設計し、",
-      "titleLine2": "1つのZIPで始める、",
-      "titleLine3": "AI開発",
-      "descLine1": "ブラウザでエージェント、スキル、パイプラインを選ぶと、",
-      "descLine2": "Claude Code / Gemini CLI / Cursor / Codex 向けのプロジェクトを自動生成します。",
-      "primaryCta": "設計を始める",
-      "secondaryCta": "仕組みを見る",
-      "wizardSteps": {
-        "company": "会社",
-        "solution": "ソリューション",
-        "agent": "エージェント",
-        "skill": "スキル",
-        "pipeline": "パイプライン",
-        "platform": "プラットフォーム",
-        "preview": "プレビュー"
-      },
-      "agentSelectPrompt": "プロジェクトに投入するAIエージェントを選択してください",
-      "agentRequired": "必須",
-      "recommendationNote": "ソリューションタイプに基づいた推薦が適用されました",
-      "demoAgents": {
-        "harness": "ハーネスエンジニア",
-        "backend": "シニアバックエンド",
-        "frontend": "フロントエンドスペシャリスト",
-        "uiux": "UI/UX デザイナー",
-        "devops": "DevOps",
-        "fullstack": "フルスタック"
+      "badge": "AIが実行するSIデリバリー管制プレーン",
+      "titleLine1": "受注から納品まで、",
+      "titleLine2": "ひとつの管制プレーンで。",
+      "desc": "受注案件をLinearのイシューに分解し、AIランナーが並列で開発。ガバナンスゲートとコスト台帳が品質とマージンを守ります。チームは実行ではなく管制に集中できます。",
+      "primaryCta": "コンソールを開く",
+      "secondaryCta": "チームアカウントを作成",
+      "board": {
+        "caption": "delivery-console",
+        "live": "3件 進行中",
+        "laneLabel": "案件",
+        "note": "サンプル — 実際のデリバリーデータで表示されます",
+        "stages": {
+          "intake": "インテーク",
+          "plan": "計画",
+          "build": "実装",
+          "review": "レビュー",
+          "merge": "マージ"
+        },
+        "roles": {
+          "architect": "アーキテクト",
+          "backend": "バックエンド",
+          "frontend": "フロントエンド",
+          "reviewer": "レビュアー",
+          "intake": "インテーク"
+        },
+        "engagements": {
+          "eng1": "フィンテックのオンボーディング刷新",
+          "eng2": "物流TMSのリプラットフォーム",
+          "eng3": "コマース検索の高度化"
+        }
       }
     },
-    "features": {
-      "sectionTitle": "なぜ ClickEye なのか？",
-      "sectionDescription": "AI開発自動化プラットフォーム — Webで設計し、ZIPで出荷",
-      "wizard": {
-        "title": "7ステップのウィザード",
-        "desc": "会社情報からプラットフォーム選択まで、ブラウザで7ステップでAIソリューションを設計。1行のコードも書かずに始められます。"
+    "process": {
+      "eyebrow": "デリバリーの流れ",
+      "sectionTitle": "受注案件が管制プレーンを流れる仕組み",
+      "sectionDescription": "4つの段階でつながる実際のデリバリーパイプラインです。",
+      "intake": {
+        "title": "受注インテーク",
+        "desc": "案件を登録すると範囲がLinearのイシューに分解され、担当ロールが割り当てられます。"
       },
-      "catalog": {
-        "title": "自動推薦カタログ",
-        "desc": "ソリューションタイプを選ぶと、エージェント、スキル、パイプラインを自動的に推薦 — ハーネス、TDD、AIレビューなどの実績あるパイプラインを含みます。"
+      "delivery": {
+        "title": "AI並列デリバリー",
+        "desc": "ハイブリッドランナーはローカルのサブスクリプションセッションを優先し、必要に応じてクラウドにフォールバックしながら複数のイシューを同時に実装します。"
       },
-      "security": {
-        "title": "BYOK セキュリティモデル",
-        "desc": "APIキーは ZIP内の .env ファイルにのみ存在します。キーをサーバーに保存しないゼロトラスト設計です。"
+      "governance": {
+        "title": "ガバナンスゲート",
+        "desc": "契約・チケット・プランを検証しリスクを分類。安全な変更だけを自動でマージします。"
       },
-      "platform": {
-        "title": "マルチプラットフォーム対応",
-        "desc": "Claude Code、Gemini CLI、Cursor、Codex。どのAIコーディングツールを使っても、同じウィザードが同じ品質のプロジェクトを生成します。"
+      "control": {
+        "title": "管制とコスト",
+        "desc": "パイプライン・レビュー・トークン使用量をリアルタイムで監視し、コスト台帳でプロジェクト別のマージンを追跡します。"
       }
     },
-    "metrics": {
-      "badge": "実際の顧客の指標",
-      "sectionTitle": "数字で実証",
-      "sectionDescription": "ClickEye を利用するチームの実際の開発指標",
-      "automation": {
-        "label": "平均自動化率",
-        "desc": "サブタスクの87%をAIが処理"
+    "capabilities": {
+      "eyebrow": "プラットフォーム機能",
+      "sectionTitle": "複数のSIプロジェクトを同時に回す管制ツール",
+      "sectionDescription": "実行は自動化し、コントロールはチームに。",
+      "console": {
+        "title": "デリバリーコンソール",
+        "desc": "進行中のすべての案件のパイプライン段階とイシュー状況を1画面で管制します。"
       },
-      "review": {
-        "label": "レビュー承認率",
-        "desc": "修正なしで初回レビューで承認"
+      "governance": {
+        "title": "ガバナンスSSOT",
+        "desc": "検証・リスク分類ルールを単一ソースで管理し、すべてのマージに同じ基準を適用します。"
       },
-      "speed": {
-        "label": "開発の高速化",
-        "desc": "手動と比べて平均3.5倍高速"
+      "cost": {
+        "title": "コストの可視化",
+        "desc": "イシューごとのトークンと実行コストを集計し、プロジェクトのマージンをリアルタイムで可視化します。"
+      },
+      "temporal": {
+        "title": "Temporalオーケストレーション",
+        "desc": "長時間のデリバリーワークフローを耐久性高く調整し、失敗地点から安全に再開します。"
+      },
+      "hybrid": {
+        "title": "ハイブリッド実行",
+        "desc": "ローカルのサブスクリプションセッションを優先し、負荷が高まればクラウドランナーへ自動分散します。"
+      },
+      "linear": {
+        "title": "Linear連携",
+        "desc": "案件をイシューに分解し、状態の変化に応じてランナーを自動で起動します。"
       }
-    },
-    "howItWorks": {
-      "sectionTitle": "どのように動作しますか？",
-      "sectionDescription": "3つのステップでAI開発環境を完成させます",
-      "design": {
-        "title": "Webで設計",
-        "desc": "サインイン後、7ステップのウィザードで会社情報、ソリューションタイプ、エージェント、スキル、パイプライン、プラットフォームを選択。ソリューションタイプに基づいて推薦が適用されます。"
-      },
-      "download": {
-        "title": "ZIPをダウンロード",
-        "desc": "設定が完了したら、ファイルをプレビューしてプロジェクトのZIPをダウンロード — CLAUDE.md、エージェントガイド、.env、すべての設定を含みます。"
-      },
-      "run": {
-        "title": "ローカルで実行",
-        "desc": "解凍してAIコーディングツールを起動。claude、gemini、cursor — どのツールもプロジェクトガイドを読み込み、すぐに開発を開始します。"
-      },
-      "terminal": {
-        "loadingClaudeMd": "CLAUDE.md を読み込み中...",
-        "harnessActivated": "ハーネスエンジニアリングの4段階パイプラインが有効化されました",
-        "starting": "プロジェクト開発を開始"
-      }
-    },
-    "platforms": {
-      "sectionTitle": "対応プラットフォーム",
-      "sectionDescription": "どのAIコーディングツールを使っても、ClickEye がそれに合った構成を生成します",
-      "claudeCode": {
-        "name": "Claude Code",
-        "desc": "Anthropic のターミナルAIエージェント"
-      },
-      "geminiCli": {
-        "name": "Gemini CLI",
-        "desc": "Google のターミナルAIエージェント"
-      },
-      "cursor": {
-        "name": "Cursor",
-        "desc": "AIネイティブな IDE"
-      },
-      "codex": {
-        "name": "Codex",
-        "desc": "OpenAI のターミナルAIエージェント"
-      }
-    },
-    "earlyAccess": {
-      "sectionTitle": "今なら無料",
-      "sectionDescLine1": "アーリーアクセス期間中は、すべての機能を無料でご利用いただけます。",
-      "sectionDescLine2": "必要なのは、お使いのAIプラットフォームのAPIキーだけです。",
-      "planName": "アーリーアクセス",
-      "freeBadge": "無料",
-      "features": {
-        "unlimitedWizard": "7ステップウィザード無制限",
-        "catalog": "すべてのエージェント・スキルカタログ",
-        "platforms": "4つのAIプラットフォームに対応",
-        "downloads": "ZIPダウンロード無制限"
-      },
-      "cta": "無料で始める",
-      "byokNote": "BYOK — 自分のキーを持ち込む。APIキーをサーバーに保存することは決してありません。"
     },
     "finalCta": {
-      "title": "7ステップでAI開発",
-      "description": "ブラウザで設計し、ZIPで始める。APIキーはあなたのマシンに留まります。",
-      "button": "設計を始める"
+      "title": "実行はAIへ、管制はチームへ。",
+      "description": "いまコンソールを開いて最初の案件を登録し、並列デリバリーを始めましょう。",
+      "primary": "コンソールを開く",
+      "secondary": "チームアカウントを作成"
     },
     "footer": {
+      "tagline": "AIが実行するSIデリバリー管制プレーン",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
   }

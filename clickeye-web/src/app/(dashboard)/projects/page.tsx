@@ -98,7 +98,7 @@ function ProjectsContent() {
         </div>
         <Link
           href="/solutions/new"
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800"
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-fg)] transition-all hover:opacity-90"
           aria-label={t("wizardBannerBtnAria")}
         >
           {t("wizardBannerBtn")}
@@ -122,7 +122,7 @@ function ProjectsContent() {
           </div>
           <Link
             href="/solutions/modernize/new"
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-zinc-900 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50"
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--accent)] transition-all hover:bg-[var(--accent-soft)]"
             aria-label={t("modernizeBannerBtnAria")}
           >
             {t("modernizeBannerBtn")}
@@ -150,7 +150,7 @@ function ProjectsContent() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             aria-label={t("searchAria")}
-            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-300"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
           />
         </div>
 
@@ -170,7 +170,7 @@ function ProjectsContent() {
               aria-pressed={statusFilter === option.value}
               className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 statusFilter === option.value
-                  ? "bg-zinc-900 text-white shadow-sm"
+                  ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
@@ -203,7 +203,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage - 1) })
             }
             aria-label={t("prevPageAria")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -218,8 +218,8 @@ function ProjectsContent() {
                 aria-current={page === currentPage ? "page" : undefined}
                 className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors ${
                   page === currentPage
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-zinc-400 hover:text-[var(--text-primary)]"
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                    : "border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-medium)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {page}
@@ -234,7 +234,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage + 1) })
             }
             aria-label={t("nextPageAria")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

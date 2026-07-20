@@ -10,15 +10,15 @@ import type { SubTaskResponse, SubTaskRole } from "@/lib/api-client";
 const ROLE_META: Record<SubTaskRole, { label: string; cls: string }> = {
   architect: {
     label: "아키텍트",
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
   },
   frontend: {
     label: "프론트엔드",
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
   },
   backend: {
     label: "백엔드",
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
   },
   qa: {
     label: "QA",
@@ -30,11 +30,11 @@ const ROLE_META: Record<SubTaskRole, { label: string; cls: string }> = {
   },
   devops: {
     label: "DevOps",
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
   },
   reviewer: {
     label: "리뷰어",
-    cls: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300",
+    cls: "bg-[var(--accent-soft)] text-[var(--accent)]",
   },
 };
 
@@ -58,7 +58,7 @@ export function IssueCard({
 
   const role = ROLE_META[subtask.assigned_role] ?? {
     label: subtask.assigned_role,
-    cls: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
   };
   const identifier = subtask.linear_identifier ?? `#${orderNum}`;
 
@@ -67,10 +67,10 @@ export function IssueCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex flex-col gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 text-left transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+        className="flex flex-col gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 text-left transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       >
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] font-bold text-cyan-700 dark:text-cyan-400">
+          <span className="font-mono text-[11px] font-bold text-[var(--accent)]">
             {identifier}
           </span>
         </div>

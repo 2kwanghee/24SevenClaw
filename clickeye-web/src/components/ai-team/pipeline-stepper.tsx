@@ -46,8 +46,8 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
                     isDone
                       ? "bg-emerald-50 text-emerald-700"
                       : isCurrent
-                        ? "bg-zinc-900 text-white ring-2 ring-zinc-400"
-                        : "bg-zinc-100 text-[var(--text-muted)]"
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] ring-2 ring-[var(--accent-soft)]"
+                        : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
                   }`}
                 >
                   {isDone ? (
@@ -77,7 +77,7 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
                       ? "bg-emerald-200"
                       : isUpcoming
                         ? "bg-[var(--border-subtle)]"
-                        : "bg-zinc-300"
+                        : "bg-[var(--border-medium)]"
                   }`}
                 />
               )}
@@ -96,9 +96,9 @@ export function PipelineStepper({ currentPhase }: PipelineStepperProps) {
             {currentIndex + 1} / {PHASES.length}
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-zinc-100">
+        <div className="h-1.5 rounded-full bg-[var(--bg-hover)]">
           <div
-            className="h-full rounded-full bg-zinc-900 transition-all"
+            className="h-full rounded-full bg-[var(--accent)] transition-all"
             style={{
               width: `${((currentIndex + 1) / PHASES.length) * 100}%`,
             }}

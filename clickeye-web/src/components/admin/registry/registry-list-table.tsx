@@ -60,7 +60,7 @@ function BodyMdModal({ content, onClose }: BodyMdModalProps) {
           ✕
         </button>
         <h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">body_md</h3>
-        <pre className="max-h-[60vh] overflow-auto rounded-lg bg-zinc-50 p-4 font-mono text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
+        <pre className="max-h-[60vh] overflow-auto rounded-lg bg-[var(--bg-base)] p-4 font-mono text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
           {content || "(비어 있음)"}
         </pre>
       </div>
@@ -127,7 +127,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
         <button
           type="button"
           onClick={openAdd}
-          className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
           {TYPE_LABELS[type]} 추가

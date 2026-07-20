@@ -57,8 +57,8 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
   if (subtasks.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] py-16">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-          <Inbox className="h-6 w-6 text-zinc-400" aria-hidden="true" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+          <Inbox className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />
         </div>
         <p className="text-sm text-[var(--text-muted)]">아직 이슈가 없습니다</p>
       </div>
@@ -81,7 +81,7 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
               type="button"
               onClick={() => pushToLinear.mutate({ sessionId })}
               disabled={pushToLinear.isPending}
-              className="mb-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-300 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-50 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300"
+              className="mb-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--accent)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
             >
               {pushToLinear.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

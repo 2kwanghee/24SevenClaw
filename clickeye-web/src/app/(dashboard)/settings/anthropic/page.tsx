@@ -74,23 +74,23 @@ export default function AnthropicSettingsPage() {
           <h2 id="oauth-browser-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             {t("oauthSection")}
           </h2>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 space-y-4">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-zinc-500" />
+              <Info className="h-4 w-4 text-[var(--text-muted)]" />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("oauthNoRegistrationTitle")}</h3>
             </div>
             <p className="text-xs text-[var(--text-muted)]">{t("oauthNoRegistrationDesc")}</p>
             <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-zinc-400">•</span>
+                <span className="mt-0.5 text-[var(--text-muted)]">•</span>
                 <span>{t("oauthBullet1")}</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-zinc-400">•</span>
+                <span className="mt-0.5 text-[var(--text-muted)]">•</span>
                 <span>{t("oauthBullet2")}</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-0.5 text-zinc-400">•</span>
+                <span className="mt-0.5 text-[var(--text-muted)]">•</span>
                 <span>{t("oauthBullet3")}</span>
               </li>
             </ul>

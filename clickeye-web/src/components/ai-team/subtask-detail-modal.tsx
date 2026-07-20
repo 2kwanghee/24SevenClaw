@@ -23,7 +23,7 @@ import { useApproveSubtask, useResetSubtaskToWait, useSyncLinearStates } from "@
 import type { LinearTeamState, SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
-  architect: { label: "아키텍트", icon: <Cpu className="h-3.5 w-3.5" />, color: "text-zinc-700", bg: "bg-zinc-100" },
+  architect: { label: "아키텍트", icon: <Cpu className="h-3.5 w-3.5" />, color: "text-[var(--text-secondary)]", bg: "bg-[var(--bg-hover)]" },
   frontend:  { label: "프론트엔드", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-cyan-700", bg: "bg-cyan-50" },
   backend:   { label: "백엔드", icon: <Server className="h-3.5 w-3.5" />, color: "text-blue-700", bg: "bg-blue-50" },
   qa:        { label: "QA", icon: <TestTube2 className="h-3.5 w-3.5" />, color: "text-emerald-700", bg: "bg-emerald-50" },
@@ -80,7 +80,7 @@ export function SubTaskDetailModal({
     label: subtask.assigned_role,
     icon: <Bot className="h-3.5 w-3.5" />,
     color: "text-[var(--text-muted)]",
-    bg: "bg-zinc-100",
+    bg: "bg-[var(--bg-hover)]",
   };
 
   const approveMutation = useApproveSubtask();
@@ -124,11 +124,11 @@ export function SubTaskDetailModal({
       <div className="px-6 py-4">
         {/* 메타 행 */}
         <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="rounded bg-zinc-100 px-2 py-0.5 font-medium text-zinc-600">
+          <span className="rounded bg-[var(--bg-hover)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
             {orderNum} / {total}
           </span>
           {subtask.linear_identifier && (
-            <span className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-zinc-500">
+            <span className="rounded bg-[var(--bg-hover)] px-2 py-0.5 font-mono text-[var(--text-muted)]">
               {subtask.linear_identifier}
             </span>
           )}

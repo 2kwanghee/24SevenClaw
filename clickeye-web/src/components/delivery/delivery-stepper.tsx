@@ -52,8 +52,8 @@ export function DeliveryStepper({ currentPhase }: DeliveryStepperProps) {
                   isDone
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
                     : isCurrent
-                      ? "bg-zinc-900 text-white ring-4 ring-cyan-100 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-cyan-950"
-                      : "border border-[var(--border-subtle)] bg-zinc-100 text-[var(--text-muted)] dark:bg-zinc-800"
+                      ? "bg-[var(--accent)] text-[var(--accent-fg)] ring-4 ring-[var(--accent-soft)]"
+                      : "border border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]"
                 }`}
                 aria-hidden="true"
               >
@@ -62,7 +62,7 @@ export function DeliveryStepper({ currentPhase }: DeliveryStepperProps) {
               <span
                 className={`whitespace-nowrap text-[13px] font-semibold ${
                   isCurrent
-                    ? "text-cyan-700 dark:text-cyan-400"
+                    ? "text-[var(--accent)]"
                     : isDone
                       ? "text-[var(--text-primary)]"
                       : "text-[var(--text-muted)]"

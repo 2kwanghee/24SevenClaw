@@ -52,7 +52,7 @@ export function PrototypeCatalogTable() {
         <button
           type="button"
           onClick={openCreate}
-          className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-800"
+          className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90"
         >
           <Plus size={12} />
           새 항목
@@ -103,7 +103,7 @@ export function PrototypeCatalogTable() {
                     <td className="px-4 py-3 font-mono text-[var(--text-secondary)]">{item.slug}</td>
                     <td className="px-4 py-3">
                       {item.primary_tag && (
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 text-xs">
+                        <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-[var(--text-secondary)] text-xs">
                           {item.primary_tag}
                         </span>
                       )}
@@ -116,7 +116,7 @@ export function PrototypeCatalogTable() {
                       <span className={`rounded-full px-2 py-0.5 text-xs ${
                         item.is_active
                           ? "bg-emerald-50 text-emerald-700"
-                          : "bg-zinc-100 text-[var(--text-muted)]"
+                          : "bg-[var(--bg-base)] text-[var(--text-muted)]"
                       }`}>
                         {item.is_active ? "활성" : "비활성"}
                       </span>

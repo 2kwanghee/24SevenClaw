@@ -15,7 +15,9 @@
       "close": "Tutup",
       "languageToggle": "Ubah bahasa",
       "notifications": "Notifikasi",
-      "help": "Bantuan"
+      "help": "Bantuan",
+      "themeDark": "Beralih ke mode gelap",
+      "themeLight": "Beralih ke mode terang"
     },
     "header": {
       "viewGuide": "Lihat panduan",
@@ -1159,7 +1161,7 @@
   "auth": {
     "login": {
       "title": "Selamat datang kembali",
-      "subtitle": "Masuk untuk mengelola AI agent Anda",
+      "subtitle": "Masuk ke konsol untuk mengelola delivery Anda",
       "registeredSuccess": "Pendaftaran selesai. Silakan masuk.",
       "credentialsError": "Email atau kata sandi salah",
       "orContinueWithEmail": "Atau lanjutkan dengan email",
@@ -1173,8 +1175,8 @@
       "signupLink": "Daftar"
     },
     "register": {
-      "title": "Mulai",
-      "subtitle": "Buat akun gratis dan rasakan kekuatan AI agent",
+      "title": "Buat akun tim",
+      "subtitle": "Buat akun dan mulai delivery paralel pada engagement pertama Anda.",
       "genericError": "Terjadi kesalahan saat pendaftaran",
       "orContinueWithEmail": "Atau daftar dengan email",
       "emailLabel": "Email",
@@ -1202,22 +1204,23 @@
     "layout": {
       "tabLogin": "Masuk",
       "tabRegister": "Daftar",
-      "heroTitleLine1": "Pengalaman pengembangan baru",
-      "heroTitleLine2": "tempat AI menulis kode",
-      "heroDescLine1": "Dari penugasan tiket hingga ulasan kode dan pembuatan PR.",
-      "heroDescLine2": "Temui AI agent pengembangan yang tidak pernah tidur.",
+      "eyebrow": "Control plane delivery SI",
+      "heroTitleLine1": "Eksekusi untuk AI,",
+      "heroTitleLine2": "kendali untuk tim Anda.",
+      "heroDescLine1": "Pecah setiap engagement menjadi issue Linear dan biarkan runner AI membangunnya paralel.",
+      "heroDescLine2": "Gate tata kelola dan buku besar biaya menjaga kualitas dan margin.",
       "features": {
-        "orchestration": {
-          "title": "Orkestrasi AI agent",
-          "desc": "Agent pengembangan otonom bertenaga Claude"
+        "console": {
+          "title": "Konsol delivery",
+          "desc": "Semua engagement aktif dalam satu layar"
         },
-        "security": {
-          "title": "Keamanan enterprise",
-          "desc": "Lingkungan eksekusi terisolasi dan manajemen lisensi"
+        "governance": {
+          "title": "Gate tata kelola",
+          "desc": "Auto-merge aman lewat validasi dan klasifikasi risiko"
         },
-        "automation": {
-          "title": "Alur kerja otomatis",
-          "desc": "Otomatisasi end-to-end dari tiket hingga PR"
+        "hybrid": {
+          "title": "Eksekusi hibrida",
+          "desc": "Sesi langganan lokal dulu, fallback ke cloud"
         }
       },
       "copyright": "© 2026 ClickEye. All rights reserved."
@@ -1261,141 +1264,102 @@
   },
   "home": {
     "nav": {
-      "features": "Fitur",
-      "howItWorks": "Cara kerja",
-      "platforms": "Platform",
+      "process": "Alur delivery",
+      "capabilities": "Kapabilitas",
       "login": "Masuk",
-      "ctaStart": "Mulai merancang"
+      "ctaRegister": "Buat tim"
     },
     "hero": {
-      "badge": "Pembuat solusi AI web-first",
-      "titleLine1": "Rancang sendiri,",
-      "titleLine2": "mulai dengan satu ZIP,",
-      "titleLine3": "pengembangan AI",
-      "descLine1": "Pilih agent, skill, dan pipeline di browser, dan kami",
-      "descLine2": "menghasilkan proyek untuk Claude Code / Gemini CLI / Cursor / Codex secara otomatis.",
-      "primaryCta": "Mulai merancang",
-      "secondaryCta": "Lihat cara kerjanya",
-      "wizardSteps": {
-        "company": "Perusahaan",
-        "solution": "Solusi",
-        "agent": "Agent",
-        "skill": "Skill",
-        "pipeline": "Pipeline",
-        "platform": "Platform",
-        "preview": "Pratinjau"
-      },
-      "agentSelectPrompt": "Pilih AI agent untuk diterapkan pada proyek Anda",
-      "agentRequired": "Wajib",
-      "recommendationNote": "Rekomendasi berdasarkan tipe solusi Anda telah diterapkan",
-      "demoAgents": {
-        "harness": "Insinyur harness",
-        "backend": "Backend senior",
-        "frontend": "Spesialis frontend",
-        "uiux": "Desainer UI/UX",
-        "devops": "DevOps",
-        "fullstack": "Fullstack"
+      "badge": "Control plane delivery SI yang dijalankan AI",
+      "titleLine1": "Dari kontrak hingga serah terima,",
+      "titleLine2": "dalam satu control plane.",
+      "desc": "Pecah setiap engagement menjadi issue Linear, biarkan runner AI membangunnya secara paralel, dan jaga kualitas serta margin dengan gate tata kelola dan buku besar biaya. Tim fokus pada kendali, bukan eksekusi.",
+      "primaryCta": "Buka konsol",
+      "secondaryCta": "Buat akun tim",
+      "board": {
+        "caption": "delivery-console",
+        "live": "3 aktif",
+        "laneLabel": "Engagement",
+        "note": "Contoh — akan terisi dengan data delivery Anda",
+        "stages": {
+          "intake": "Intake",
+          "plan": "Perencanaan",
+          "build": "Build",
+          "review": "Review",
+          "merge": "Merge"
+        },
+        "roles": {
+          "architect": "Arsitek",
+          "backend": "Backend",
+          "frontend": "Frontend",
+          "reviewer": "Reviewer",
+          "intake": "Intake"
+        },
+        "engagements": {
+          "eng1": "Pembaruan onboarding fintech",
+          "eng2": "Replatform TMS logistik",
+          "eng3": "Peningkatan pencarian commerce"
+        }
       }
     },
-    "features": {
-      "sectionTitle": "Mengapa ClickEye?",
-      "sectionDescription": "Platform otomatisasi pengembangan AI — rancang di web, kirim sebagai ZIP",
-      "wizard": {
-        "title": "Wizard 7 langkah",
-        "desc": "Rancang solusi AI dalam 7 langkah di browser Anda, dari info perusahaan hingga pemilihan platform. Mulai tanpa menulis satu baris kode pun."
+    "process": {
+      "eyebrow": "Alur delivery",
+      "sectionTitle": "Bagaimana satu engagement mengalir di control plane",
+      "sectionDescription": "Pipeline delivery nyata dalam empat tahap yang terhubung.",
+      "intake": {
+        "title": "Intake kontrak",
+        "desc": "Daftarkan engagement dan lingkupnya dipecah menjadi issue Linear dengan peran yang ditugaskan."
       },
-      "catalog": {
-        "title": "Katalog rekomendasi otomatis",
-        "desc": "Pilih tipe solusi dan kami merekomendasikan agent, skill, dan pipeline secara otomatis — termasuk pipeline teruji seperti Harness, TDD, dan ulasan AI."
+      "delivery": {
+        "title": "Delivery paralel AI",
+        "desc": "Runner hibrida mengutamakan sesi langganan lokal dan beralih ke cloud saat perlu, membangun banyak issue sekaligus."
       },
-      "security": {
-        "title": "Model keamanan BYOK",
-        "desc": "API key hanya ada di file .env dalam ZIP. Desain Zero-Trust yang tidak pernah menyimpan key di server."
+      "governance": {
+        "title": "Gate tata kelola",
+        "desc": "Kontrak, tiket, dan rencana divalidasi serta diklasifikasi risikonya sehingga hanya perubahan aman yang di-merge otomatis."
       },
-      "platform": {
-        "title": "Dukungan multi-platform",
-        "desc": "Claude Code, Gemini CLI, Cursor, Codex. Apa pun alat pengkodean AI yang Anda gunakan, wizard yang sama menghasilkan proyek dengan kualitas yang sama."
+      "control": {
+        "title": "Kendali & biaya",
+        "desc": "Pantau pipeline, review, dan penggunaan token secara real time, serta lacak margin per proyek lewat buku besar biaya."
       }
     },
-    "metrics": {
-      "badge": "Metrik pelanggan nyata",
-      "sectionTitle": "Terbukti dari angka",
-      "sectionDescription": "Metrik pengembangan aktual dari tim yang menggunakan ClickEye",
-      "automation": {
-        "label": "Rata-rata tingkat otomatisasi",
-        "desc": "87% subtugas ditangani oleh AI"
+    "capabilities": {
+      "eyebrow": "Kapabilitas platform",
+      "sectionTitle": "Perkakas kendali untuk menjalankan banyak proyek SI sekaligus",
+      "sectionDescription": "Otomatiskan eksekusi, pertahankan kendali di tangan tim.",
+      "console": {
+        "title": "Konsol delivery",
+        "desc": "Pantau tahap pipeline dan status issue setiap engagement aktif dalam satu layar."
       },
-      "review": {
-        "label": "Tingkat penerimaan ulasan",
-        "desc": "Disetujui pada ulasan pertama tanpa perubahan"
+      "governance": {
+        "title": "SSOT tata kelola",
+        "desc": "Kelola aturan validasi dan klasifikasi risiko dari satu sumber agar setiap merge memenuhi standar yang sama."
       },
-      "speed": {
-        "label": "Pengembangan lebih cepat",
-        "desc": "Rata-rata 3,5x lebih cepat dari cara manual"
+      "cost": {
+        "title": "Visibilitas biaya",
+        "desc": "Agregasi token dan biaya eksekusi per issue untuk menampilkan margin proyek secara real time."
+      },
+      "temporal": {
+        "title": "Orkestrasi Temporal",
+        "desc": "Orkestrasi workflow delivery jangka panjang secara tahan lama dan lanjutkan dengan aman dari titik gagal."
+      },
+      "hybrid": {
+        "title": "Eksekusi hibrida",
+        "desc": "Utamakan sesi langganan lokal dan distribusikan otomatis ke runner cloud saat beban tinggi."
+      },
+      "linear": {
+        "title": "Integrasi Linear",
+        "desc": "Pecah engagement menjadi issue dan jalankan runner otomatis saat status berubah."
       }
-    },
-    "howItWorks": {
-      "sectionTitle": "Bagaimana cara kerjanya?",
-      "sectionDescription": "Lengkapi lingkungan pengembangan AI Anda dalam tiga langkah",
-      "design": {
-        "title": "Rancang di web",
-        "desc": "Setelah masuk, gunakan wizard 7 langkah untuk memilih info perusahaan, tipe solusi, agent, skill, pipeline, dan platform. Rekomendasi diterapkan berdasarkan tipe solusi Anda."
-      },
-      "download": {
-        "title": "Unduh ZIP",
-        "desc": "Setelah dikonfigurasi, pratinjau file dan unduh ZIP proyek — termasuk CLAUDE.md, panduan agent, .env, dan setiap pengaturan."
-      },
-      "run": {
-        "title": "Jalankan secara lokal",
-        "desc": "Ekstrak dan luncurkan alat pengkodean AI Anda. claude, gemini, cursor — setiap alat membaca panduan proyek dan langsung mulai mengembangkan."
-      },
-      "terminal": {
-        "loadingClaudeMd": "Membaca CLAUDE.md...",
-        "harnessActivated": "Pipeline 4 tahap harness engineering diaktifkan",
-        "starting": "Memulai pengembangan proyek"
-      }
-    },
-    "platforms": {
-      "sectionTitle": "Platform yang didukung",
-      "sectionDescription": "Apa pun alat pengkodean AI yang Anda gunakan, ClickEye menghasilkan pengaturan yang tepat untuknya",
-      "claudeCode": {
-        "name": "Claude Code",
-        "desc": "AI agent terminal Anthropic"
-      },
-      "geminiCli": {
-        "name": "Gemini CLI",
-        "desc": "AI agent terminal Google"
-      },
-      "cursor": {
-        "name": "Cursor",
-        "desc": "IDE AI-native"
-      },
-      "codex": {
-        "name": "Codex",
-        "desc": "AI agent terminal OpenAI"
-      }
-    },
-    "earlyAccess": {
-      "sectionTitle": "Sekarang gratis",
-      "sectionDescLine1": "Gunakan setiap fitur secara gratis selama periode akses awal.",
-      "sectionDescLine2": "Yang Anda perlukan hanyalah API key platform AI Anda.",
-      "planName": "Early Access",
-      "freeBadge": "Gratis",
-      "features": {
-        "unlimitedWizard": "Wizard 7 langkah tanpa batas",
-        "catalog": "Semua katalog agent & skill",
-        "platforms": "4 platform AI didukung",
-        "downloads": "Unduhan ZIP tanpa batas"
-      },
-      "cta": "Mulai gratis",
-      "byokNote": "BYOK — Bring Your Own Key. Kami tidak pernah menyimpan API key di server kami."
     },
     "finalCta": {
-      "title": "Pengembangan AI dalam 7 langkah",
-      "description": "Rancang di browser, mulai dengan ZIP. API key Anda tetap di mesin Anda.",
-      "button": "Mulai merancang"
+      "title": "Eksekusi untuk AI, kendali untuk tim Anda.",
+      "description": "Buka konsol, daftarkan engagement pertama Anda, dan mulai delivery paralel.",
+      "primary": "Buka konsol",
+      "secondary": "Buat akun tim"
     },
     "footer": {
+      "tagline": "Control plane delivery SI yang dijalankan AI",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
   }

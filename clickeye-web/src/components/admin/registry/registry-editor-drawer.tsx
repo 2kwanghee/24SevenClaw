@@ -206,7 +206,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
               disabled={isEdit}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none disabled:opacity-50"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
               placeholder="예: claude-code"
             />
           </div>
@@ -215,7 +215,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
             <input
               value={form.version}
               onChange={(e) => setForm({ ...form, version: e.target.value })}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
               placeholder="0.1.0"
             />
           </div>
@@ -224,7 +224,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
             <input
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
               placeholder="예: ai, automation"
             />
           </div>
@@ -240,7 +240,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="예: Claude Code 에이전트"
               />
             </div>
@@ -250,7 +250,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
               <input
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="한 줄 설명"
               />
             </div>
@@ -264,7 +264,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
                 rows={12}
                 value={form.body_md}
                 onChange={(e) => setForm({ ...form, body_md: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-zinc-50 px-3 py-2 font-mono text-sm text-[var(--text-secondary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 font-mono text-sm text-[var(--text-secondary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder={"# 마크다운 형식으로 작성\n## 기능\n- 기능 1\n- 기능 2"}
               />
             </div>
@@ -282,7 +282,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
               <input
                 value={form.name_en}
                 onChange={(e) => setForm({ ...form, name_en: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="e.g. Claude Code Agent"
               />
             </div>
@@ -295,7 +295,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
               <input
                 value={form.description_en}
                 onChange={(e) => setForm({ ...form, description_en: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder="e.g. One-line description in English"
               />
             </div>
@@ -310,7 +310,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
                 rows={12}
                 value={form.body_md_en}
                 onChange={(e) => setForm({ ...form, body_md_en: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-zinc-50 px-3 py-2 font-mono text-sm text-[var(--text-secondary)] focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 font-mono text-sm text-[var(--text-secondary)] focus:border-[var(--accent)] focus:outline-none"
                 placeholder={"# English description\n## Features\n- Feature 1\n- Feature 2"}
               />
             </div>
@@ -360,7 +360,7 @@ function DrawerForm({ type, item, onClose }: DrawerFormProps) {
           type="button"
           onClick={handleSubmit}
           disabled={isPending || !form.name || (!isEdit && !form.slug)}
-          className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
         >
           <Check className="h-4 w-4" />
           {isPending ? (isEdit ? "저장 중..." : "추가 중...") : isEdit ? "저장" : "추가"}

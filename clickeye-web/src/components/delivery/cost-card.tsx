@@ -33,12 +33,12 @@ export function CostCard() {
           </div>
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center gap-2.5">
-              <div className="h-2 w-2 rounded-sm bg-cyan-200 dark:bg-cyan-900" />
+              <div className="h-2 w-2 rounded-sm bg-[var(--accent)]" />
               <div className="h-2.5 w-20 rounded bg-[var(--bg-hover)]" />
               <div className="ml-auto h-1.5 flex-1 rounded bg-[var(--bg-hover)]" />
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="h-2 w-2 rounded-sm bg-slate-300 dark:bg-slate-700" />
+              <div className="h-2 w-2 rounded-sm bg-[var(--text-muted)]" />
               <div className="h-2.5 w-16 rounded bg-[var(--bg-hover)]" />
               <div className="ml-auto h-1.5 flex-1 rounded bg-[var(--bg-hover)]" />
             </div>

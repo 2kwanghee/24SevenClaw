@@ -154,9 +154,9 @@ export default function DeliveryEngagementPage() {
               key={s.id}
               type="button"
               onClick={() => setSelectedSessionId(s.id)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
                 s.id === activeSessionId
-                  ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
                   : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               }`}
             >
@@ -191,15 +191,15 @@ export default function DeliveryEngagementPage() {
       {/* 세션 없음 */}
       {sessions && sessions.items.length === 0 && !sessionsLoading && (
         <div className="flex flex-col items-center gap-4 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-            <Boxes className="h-7 w-7 text-zinc-400" aria-hidden="true" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+            <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             이 수주건에는 아직 작업 세션이 없습니다
           </p>
           <Link
             href={`/projects/${projectId}/ai-team`}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
           >
             작업 세션 만들러 가기
           </Link>
