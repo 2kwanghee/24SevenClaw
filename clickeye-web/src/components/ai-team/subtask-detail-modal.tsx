@@ -1,10 +1,14 @@
 "use client";
 
 import {
+  AlertTriangle,
   Bot,
   Code2,
   Cpu,
+  ExternalLink,
   Eye,
+  Loader2,
+  RotateCcw,
   Server,
   Shield,
   TestTube2,
@@ -15,7 +19,8 @@ import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 
 import { BaseModal } from "@/components/common/base-modal";
-import type { SubTaskResponse } from "@/lib/api-client";
+import { useApproveSubtask, useResetSubtaskToWait, useSyncLinearStates } from "@/hooks/use-orchestrator";
+import type { LinearTeamState, SubTaskResponse } from "@/lib/api-client";
 
 const ROLE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
   architect: { label: "아키텍트", icon: <Cpu className="h-3.5 w-3.5" />, color: "text-zinc-700", bg: "bg-zinc-100" },
@@ -55,6 +60,10 @@ interface SubTaskDetailModalProps {
   dependencyMap: Map<string, SubTaskResponse>;
   open: boolean;
   onClose: () => void;
+  sessionId?: string;
+  teamStates?: LinearTeamState[];
+  /** 목업 모드 — true면 승인/리셋 등 실제 변경 액션을 비활성화한다. 기본 false. */
+  mock?: boolean;
 }
 
 export function SubTaskDetailModal({
@@ -64,6 +73,8 @@ export function SubTaskDetailModal({
   dependencyMap,
   open,
   onClose,
+  sessionId,
+  mock = false,
 }: SubTaskDetailModalProps) {
   const role = ROLE_CONFIG[subtask.assigned_role] ?? {
     label: subtask.assigned_role,
@@ -71,6 +82,26 @@ export function SubTaskDetailModal({
     color: "text-[var(--text-muted)]",
     bg: "bg-zinc-100",
   };
+
+  const approveMutation = useApproveSubtask();
+  const resetMutation = useResetSubtaskToWait();
+  const syncLinearStates = useSyncLinearStates(sessionId ?? "");
+
+  const isLinearUnregistered = !subtask.linear_issue_id;
+  const canApprove = !!sessionId && (
+    (!!subtask.linear_issue_id && subtask.linear_state === "Backlog") ||
+    (isLinearUnregistered && subtask.status === "pending")
+  );
+  const canReset =
+    !!subtask.linear_issue_id &&
+    !!sessionId &&
+    ["Todo", "Backlog"].includes(subtask.linear_state ?? "");
+
+  const unapprovedDeps = subtask.depends_on.filter((depTitle) => {
+    const dep = dependencyMap.get(depTitle);
+    return dep ? dep.status !== "approved" : true;
+  });
+  const hasUnresolvedDeps = unapprovedDeps.length > 0;
 
   return (
     <BaseModal
@@ -147,6 +178,57 @@ export function SubTaskDetailModal({
           </div>
         ) : (
           <p className="text-sm text-[var(--text-muted)]">상세 설명이 없습니다.</p>
+        )}
+
+        {/* 액션 푸터 — sessionId가 주어질 때만(딜리버리 콘솔) 렌더, ai-team은 읽기 전용 */}
+        {sessionId && (canApprove || canReset) && (
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-[var(--border-subtle)] pt-4">
+            {canReset && (
+              <button
+                type="button"
+                disabled={resetMutation.isPending || mock}
+                title={mock ? "목업 모드에서는 비활성" : undefined}
+                onClick={() => resetMutation.mutate({ sessionId, subtaskId: subtask.id })}
+                className="flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+              >
+                {resetMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                대기로 복귀
+              </button>
+            )}
+            {canApprove && (
+              <button
+                type="button"
+                disabled={approveMutation.isPending || mock}
+                title={mock ? "목업 모드에서는 비활성" : undefined}
+                onClick={() =>
+                  approveMutation.mutate(
+                    { sessionId, subtaskId: subtask.id },
+                    {
+                      onSuccess: () => {
+                        if (sessionId && !isLinearUnregistered && !syncLinearStates.isPending) {
+                          syncLinearStates.mutate();
+                        }
+                      },
+                    },
+                  )
+                }
+                className="flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:opacity-50"
+              >
+                {approveMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : hasUnresolvedDeps ? (
+                  <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                {isLinearUnregistered ? "승인" : "큐 등록"}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </BaseModal>
