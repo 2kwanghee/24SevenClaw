@@ -145,8 +145,8 @@ class ReviewPipelineService:
 
         # diff 자동 생성
         review_round.diff_summary = self._generate_diff(  # type: ignore[assignment]  # TODO: 타입 정합
-            review_round.draft_content,
-            data.review_content,  # type: ignore[arg-type]  # TODO: 타입 정합
+            review_round.draft_content,  # type: ignore[arg-type]  # TODO: 타입 정합
+            data.review_content,
         )
 
         # 이벤트 기록
@@ -179,7 +179,7 @@ class ReviewPipelineService:
         # diff가 아직 없으면 생성
         if not review_round.diff_summary:
             review_round.diff_summary = self._generate_diff(  # type: ignore[assignment]  # TODO: 타입 정합
-                review_round.draft_content,
+                review_round.draft_content,  # type: ignore[arg-type]  # TODO: 타입 정합
                 review_round.review_content,  # type: ignore[arg-type]  # TODO: 타입 정합
             )
             await self.db.commit()
