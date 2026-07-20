@@ -32,9 +32,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     # ENUM 타입 명시 생성(컬럼은 create_type=False 로 재사용).
     op.execute("CREATE TYPE llm_provider AS ENUM ('anthropic', 'openai')")
-    op.execute(
-        "CREATE TYPE llm_key_source AS ENUM ('subscription_seat', 'org_api_key')"
-    )
+    op.execute("CREATE TYPE llm_key_source AS ENUM ('subscription_seat', 'org_api_key')")
     op.execute("CREATE TYPE llm_usage_status AS ENUM ('success', 'error')")
 
     op.create_table(
@@ -45,9 +43,7 @@ def upgrade() -> None:
         sa.Column("task_id", sa.String(length=128), nullable=True),
         sa.Column(
             "provider",
-            postgresql.ENUM(
-                "anthropic", "openai", name="llm_provider", create_type=False
-            ),
+            postgresql.ENUM("anthropic", "openai", name="llm_provider", create_type=False),
             nullable=False,
         ),
         sa.Column(
@@ -68,9 +64,7 @@ def upgrade() -> None:
         sa.Column("meta", postgresql.JSONB(), nullable=True),
         sa.Column(
             "status",
-            postgresql.ENUM(
-                "success", "error", name="llm_usage_status", create_type=False
-            ),
+            postgresql.ENUM("success", "error", name="llm_usage_status", create_type=False),
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),

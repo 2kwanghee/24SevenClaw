@@ -18,5 +18,3 @@ class VariantCountUpdateRequest(BaseModel):
 class AppSettingUpdateRequest(BaseModel):
     value: Any
     description: str | None = None
-
-

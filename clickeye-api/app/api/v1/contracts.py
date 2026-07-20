@@ -109,14 +109,14 @@ async def update_contract(
 ) -> CentralContractResponse:
     service = ContractService(db)
     contract = await service.update_contract(
-        contract_id, data, actor_id=user.id  # type: ignore[arg-type]
+        contract_id,
+        data,
+        actor_id=user.id,  # type: ignore[arg-type]
     )
     return CentralContractResponse.model_validate(contract)
 
 
-@router.delete(
-    "/{contract_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_contract(
     contract_id: UUID,
     user: User = Depends(require_permission("contract:manage")),
@@ -135,9 +135,7 @@ project_contracts_router = APIRouter(
 )
 
 
-@project_contracts_router.get(
-    "/", response_model=CustomerContractOverrideListResponse
-)
+@project_contracts_router.get("/", response_model=CustomerContractOverrideListResponse)
 async def list_project_overrides(
     project_id: UUID,
     offset: int = Query(0, ge=0),
@@ -146,13 +144,9 @@ async def list_project_overrides(
     db: AsyncSession = Depends(get_db),
 ) -> CustomerContractOverrideListResponse:
     service = ContractService(db)
-    overrides, total = await service.get_project_overrides(
-        project_id, offset=offset, limit=limit
-    )
+    overrides, total = await service.get_project_overrides(project_id, offset=offset, limit=limit)
     return CustomerContractOverrideListResponse(
-        items=[
-            CustomerContractOverrideResponse.model_validate(o) for o in overrides
-        ],
+        items=[CustomerContractOverrideResponse.model_validate(o) for o in overrides],
         total=total,
     )
 
@@ -170,14 +164,14 @@ async def apply_contract_to_project(
 ) -> CustomerContractOverrideResponse:
     service = ContractService(db)
     override = await service.apply_contract_to_project(
-        project_id, data, actor_id=user.id  # type: ignore[arg-type]
+        project_id,
+        data,
+        actor_id=user.id,  # type: ignore[arg-type]
     )
     return CustomerContractOverrideResponse.model_validate(override)
 
 
-@project_contracts_router.patch(
-    "/{override_id}", response_model=CustomerContractOverrideResponse
-)
+@project_contracts_router.patch("/{override_id}", response_model=CustomerContractOverrideResponse)
 async def update_override(
     project_id: UUID,
     override_id: UUID,
@@ -187,7 +181,10 @@ async def update_override(
 ) -> CustomerContractOverrideResponse:
     service = ContractService(db)
     override = await service.update_customer_override(
-        project_id, override_id, data, actor_id=user.id  # type: ignore[arg-type]
+        project_id,
+        override_id,
+        data,
+        actor_id=user.id,  # type: ignore[arg-type]
     )
     return CustomerContractOverrideResponse.model_validate(override)
 
@@ -208,6 +205,7 @@ async def sync_contracts(
 ) -> ContractSyncResponse:
     service = ContractService(db)
     synced_count, agent_ids = await service.sync_contracts_to_agent(
-        project_id, actor_id=user.id  # type: ignore[arg-type]
+        project_id,
+        actor_id=user.id,  # type: ignore[arg-type]
     )
     return ContractSyncResponse(synced_count=synced_count, agent_ids=agent_ids)

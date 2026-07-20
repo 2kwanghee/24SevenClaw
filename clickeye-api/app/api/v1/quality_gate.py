@@ -66,9 +66,7 @@ async def list_runs(
 ) -> QualityGateRunListResponse:
     """세션의 품질 검증 실행 목록을 조회한다."""
     service = QualityGateService(db)
-    runs, total = await service.list_runs(
-        session_id=session_id, offset=offset, limit=limit
-    )
+    runs, total = await service.list_runs(session_id=session_id, offset=offset, limit=limit)
     return QualityGateRunListResponse(
         items=[QualityGateRunResponse.model_validate(r) for r in runs],
         total=total,

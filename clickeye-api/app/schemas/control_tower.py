@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -35,7 +36,7 @@ class CustomerDetail(BaseModel):
     main_product: str | None
     business_type: str | None
     company_description: str | None
-    features: dict
+    features: dict[str, Any]
     created_at: datetime | None
     updated_at: datetime | None
 

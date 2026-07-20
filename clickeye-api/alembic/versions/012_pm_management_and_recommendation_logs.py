@@ -82,9 +82,7 @@ def upgrade() -> None:
         sa.Column("final_ranking", sa.JSON(), nullable=False, server_default="[]"),
         sa.Column("selected_pm_id", sa.Uuid(), nullable=True),
         sa.Column("latency_ms", sa.Integer(), nullable=True),
-        sa.Column(
-            "is_fallback", sa.Boolean(), nullable=False, server_default="false"
-        ),
+        sa.Column("is_fallback", sa.Boolean(), nullable=False, server_default="false"),
         sa.ForeignKeyConstraint(
             ["session_id"],
             ["prototype_sessions.id"],

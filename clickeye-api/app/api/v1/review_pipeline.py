@@ -84,9 +84,7 @@ async def _resolve_linear_credentials(db: AsyncSession, session_id: UUID) -> _Li
         )
 
     user_result = await db.execute(
-        sa_select(UserLinearCredentials).where(
-            UserLinearCredentials.user_id == session.created_by
-        )
+        sa_select(UserLinearCredentials).where(UserLinearCredentials.user_id == session.created_by)
     )
     user_creds = user_result.scalar_one_or_none()
     if user_creds is None:
@@ -119,9 +117,7 @@ async def _maybe_complete_bootstrap(
     from app.models.orchestrator import SubTask as _SubTask  # noqa: PLC0415
     from app.models.project import Project  # noqa: PLC0415
 
-    all_st_result = await db.execute(
-        sa_select(_SubTask).where(_SubTask.session_id == session_id)
-    )
+    all_st_result = await db.execute(sa_select(_SubTask).where(_SubTask.session_id == session_id))
     all_sts = all_st_result.scalars().all()
     if not all_sts or any(s.status != "approved" for s in all_sts):
         return
@@ -133,9 +129,7 @@ async def _maybe_complete_bootstrap(
     if sess is None:
         return
 
-    proj_result = await db.execute(
-        sa_select(Project).where(Project.id == sess.project_id)
-    )
+    proj_result = await db.execute(sa_select(Project).where(Project.id == sess.project_id))
     proj = proj_result.scalar_one_or_none()
     if proj is None or proj.bootstrap_status != "pending_review":
         return
@@ -290,9 +284,7 @@ async def generate_drafts(
 
     # 서브태스크 조회
     result = await db.execute(
-        select(SubTask)
-        .where(SubTask.session_id == session_id)
-        .order_by(SubTask.order_index)
+        select(SubTask).where(SubTask.session_id == session_id).order_by(SubTask.order_index)
     )
     subtasks = list(result.scalars().all())
 
@@ -301,6 +293,7 @@ async def generate_drafts(
 
     # drafting 단계로 전이
     from app.schemas.orchestrator import PhaseTransitionRequest  # noqa: PLC0415
+
     await orch_service.transition(
         session_id=session_id,
         data=PhaseTransitionRequest(target_phase="drafting", message="AI 초안 생성 시작"),
@@ -434,16 +427,15 @@ async def push_to_linear(
         if user_creds is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
+                detail="Linear 자격증명이 설정되지 않았습니다. "
+                "설정 → Linear에서 API 키와 Team ID를 입력하세요.",
             )
         api_key = decrypt(str(user_creds.encrypted_api_key))
         team_id = str(user_creds.team_id)
 
     # 서브태스크 조회
     subtask_result = await db.execute(
-        sa_select(SubTask)
-        .where(SubTask.session_id == session_id)
-        .order_by(SubTask.order_index)
+        sa_select(SubTask).where(SubTask.session_id == session_id).order_by(SubTask.order_index)
     )
     subtasks = subtask_result.scalars().all()
     if not subtasks:
@@ -475,11 +467,12 @@ async def push_to_linear(
     # 생성된 Linear 이슈 정보를 subtask 행에 저장
     from datetime import UTC
     from datetime import datetime as dt
+
     for subtask, issue in zip(subtasks, created, strict=False):
-        subtask.linear_identifier = issue.get("identifier") or None
-        subtask.linear_issue_id = issue.get("id") or None
-        subtask.linear_state = "Backlog" if initial_state_id else None
-        subtask.updated_at = dt.now(UTC)
+        subtask.linear_identifier = issue.get("identifier") or None  # type: ignore[assignment]  # TODO: 타입 정합
+        subtask.linear_issue_id = issue.get("id") or None  # type: ignore[assignment]  # TODO: 타입 정합
+        subtask.linear_state = "Backlog" if initial_state_id else None  # type: ignore[assignment]  # TODO: 타입 정합
+        subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
     await db.commit()
 
     return PushToLinearResponse(
@@ -506,9 +499,7 @@ async def list_review_rounds(
 ) -> ReviewRoundListResponse:
     """세션의 교차 리뷰 라운드 목록을 조회한다."""
     service = ReviewPipelineService(db)
-    rounds, total = await service.list_rounds(
-        session_id=session_id, offset=offset, limit=limit
-    )
+    rounds, total = await service.list_rounds(session_id=session_id, offset=offset, limit=limit)
     return ReviewRoundListResponse(
         items=[ReviewRoundResponse.model_validate(r) for r in rounds],
         total=total,
@@ -684,7 +675,9 @@ async def approve_subtask(
     )
     subtask = st_result.scalar_one_or_none()
     if subtask is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="서브태스크를 찾을 수 없습니다"
+        )
 
     if not subtask.linear_issue_id:
         # Linear 자격증명이 있으면 즉시 이슈 생성, 없으면 단순 승인
@@ -696,7 +689,8 @@ async def approve_subtask(
             await _maybe_complete_bootstrap(db, session_id, background_tasks)
             return ApproveSubtaskResponse(
                 subtask_id=subtask.id,
-                message="승인됨 (Linear 미연결 — 설정에서 Linear API 키를 등록하면 자동으로 이슈가 생성됩니다)",
+                message="승인됨 (Linear 미연결 — 설정에서 Linear API 키를 "
+                "등록하면 자동으로 이슈가 생성됩니다)",
             )
 
         # Linear 이슈 자동 생성
@@ -708,7 +702,9 @@ async def approve_subtask(
             sa_select(OrchestratorSession).where(OrchestratorSession.id == session_id)
         )
         sess_for_desc = sess_for_desc_result.scalar_one_or_none()
-        session_description = str(sess_for_desc.description) if sess_for_desc and sess_for_desc.description else None
+        session_description = (
+            str(sess_for_desc.description) if sess_for_desc and sess_for_desc.description else None
+        )
 
         backlog_state_id = get_initial_state_id(creds.api_key, creds.team_id)
         hint = LinearSyncHintSubtask(
@@ -755,7 +751,8 @@ async def approve_subtask(
     if resolved is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
+            detail="Linear 자격증명이 설정되지 않았습니다. "
+            "설정 → Linear에서 API 키와 Team ID를 입력하세요.",
         )
     api_key = resolved.api_key
     team_id = resolved.team_id
@@ -776,8 +773,8 @@ async def approve_subtask(
         )
 
     # DB 상태 갱신
-    subtask.linear_state = "Todo"
-    subtask.updated_at = dt.now(UTC)
+    subtask.linear_state = "Todo"  # type: ignore[assignment]  # TODO: 타입 정합
+    subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
     await db.commit()
 
     return ApproveSubtaskResponse(
@@ -876,8 +873,8 @@ async def reset_subtask_to_wait(
         )
 
     previous_state = current_state
-    subtask.linear_state = "Backlog"
-    subtask.updated_at = dt.now(UTC)
+    subtask.linear_state = "Backlog"  # type: ignore[assignment]  # TODO: 타입 정합
+    subtask.updated_at = dt.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
     await db.commit()
 
     return ResetToWaitResponse(
@@ -954,7 +951,8 @@ async def sync_linear_states(
         if user_creds is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Linear 자격증명이 설정되지 않았습니다. 설정 → Linear에서 API 키와 Team ID를 입력하세요.",
+                detail="Linear 자격증명이 설정되지 않았습니다. "
+                "설정 → Linear에서 API 키와 Team ID를 입력하세요.",
             )
         api_key = decrypt(str(user_creds.encrypted_api_key))
         team_id = str(user_creds.team_id)
@@ -972,14 +970,16 @@ async def sync_linear_states(
         if new_state is None:
             continue
         if subtask.linear_state != new_state:
-            changed.append(SyncedSubtask(
-                subtask_id=subtask.id,
-                linear_identifier=identifier,
-                previous_state=subtask.linear_state,
-                current_state=new_state,
-            ))
-            subtask.linear_state = new_state
-            subtask.updated_at = now
+            changed.append(
+                SyncedSubtask(
+                    subtask_id=subtask.id,
+                    linear_identifier=identifier,
+                    previous_state=subtask.linear_state,
+                    current_state=new_state,
+                )
+            )
+            subtask.linear_state = new_state  # type: ignore[assignment]  # TODO: 타입 정합
+            subtask.updated_at = now  # type: ignore[assignment]  # TODO: 타입 정합
 
     if changed:
         await db.commit()
@@ -1044,8 +1044,5 @@ async def get_linear_team_states(
 
     raw = get_team_states(api_key, team_id)
     raw.sort(key=lambda n: n.get("position", 0))
-    states = [
-        LinearTeamState(name=n["name"], type=n["type"], color=n["color"])
-        for n in raw
-    ]
+    states = [LinearTeamState(name=n["name"], type=n["type"], color=n["color"]) for n in raw]
     return LinearTeamStatesResponse(states=states)

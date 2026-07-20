@@ -32,9 +32,7 @@ TestSession = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_com
 @event.listens_for(test_engine.sync_engine, "connect")
 def _register_sqlite_functions(dbapi_connection, connection_record):  # type: ignore[no-untyped-def]
     dbapi_connection.create_function("gen_random_uuid", 0, lambda: str(uuid.uuid4()))
-    dbapi_connection.create_function(
-        "now", 0, lambda: datetime.now(UTC).isoformat()
-    )
+    dbapi_connection.create_function("now", 0, lambda: datetime.now(UTC).isoformat())
 
 
 # PostgreSQL '::json'/'::jsonb' 캐스트는 SQLite 가 파싱 못함(unrecognized token).

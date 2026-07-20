@@ -61,6 +61,10 @@ line-length = 100
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 ignore = ["B008"]  # FastAPI Depends() 패턴 허용
 
+[tool.ruff.lint.per-file-ignores]
+# 마이그레이션은 생성물·데이터라 line-length/네이밍 강제 제외 (관례)
+"alembic/versions/*" = ["E501", "N806"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

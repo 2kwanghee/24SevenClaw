@@ -172,9 +172,7 @@ async def test_oauth_new_user_signup(client: AsyncClient) -> None:
     assert data["token_type"] == "bearer"
 
     # 해당 토큰으로 /me 접근 가능 확인
-    me_resp = await client.get(
-        ME_URL, headers={"Authorization": f"Bearer {data['access_token']}"}
-    )
+    me_resp = await client.get(ME_URL, headers={"Authorization": f"Bearer {data['access_token']}"})
     assert me_resp.status_code == 200
     assert me_resp.json()["email"] == OAUTH_NEW_USER["email"]
 

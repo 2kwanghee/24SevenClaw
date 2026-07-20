@@ -110,9 +110,13 @@ class CatalogService:
 
     async def get_agents_by_slugs(self, db: AsyncSession, slugs: list[str]) -> list[dict[str, Any]]:
         """ZIP 생성 엔진용 — slug 목록 + required 에이전트를 반환."""
-        stmt = select(Agent).where(
-            (Agent.slug.in_(slugs)) | (Agent.required == True)  # noqa: E712
-        ).order_by(Agent.name.asc())
+        stmt = (
+            select(Agent)
+            .where(
+                (Agent.slug.in_(slugs)) | (Agent.required == True)  # noqa: E712
+            )
+            .order_by(Agent.name.asc())
+        )
         result = await db.execute(stmt)
         agents = result.scalars().all()
         # body_md 포함 반환

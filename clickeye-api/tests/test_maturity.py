@@ -143,9 +143,7 @@ async def test_assess_intermediate_level(
 
 
 @pytest.mark.asyncio
-async def test_assess_empty_answers(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_assess_empty_answers(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """빈 응답은 422 유효성 실패."""
     resp = await client.post(
         "/api/v1/maturity/assess",
@@ -242,9 +240,7 @@ async def test_scoring_level_boundaries() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_my_assessment_empty(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_my_assessment_empty(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """평가 기록 없을 때 404."""
     resp = await client.get("/api/v1/maturity/me", headers=auth_headers)
     assert resp.status_code == 404

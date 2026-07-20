@@ -53,9 +53,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["owner_id"], ["users.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["owner_id"], ["users.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_projects_owner_id", "projects", ["owner_id"])
     op.create_index("ix_projects_slug", "projects", ["slug"])
@@ -74,9 +72,7 @@ def upgrade() -> None:
         sa.Column("plan", sa.String(50), server_default="basic", nullable=False),
         sa.Column("status", sa.String(20), server_default="active", nullable=False),
         sa.Column("max_agents", sa.Integer(), server_default="1", nullable=False),
-        sa.Column(
-            "expires_at", postgresql.TIMESTAMP(timezone=True), nullable=True
-        ),
+        sa.Column("expires_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column(
             "created_at",
             postgresql.TIMESTAMP(timezone=True),
@@ -91,9 +87,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("license_key"),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_licenses_project_id", "licenses", ["project_id"])
     op.create_index("ix_licenses_license_key", "licenses", ["license_key"])
@@ -113,9 +107,7 @@ def upgrade() -> None:
         sa.Column("version", sa.String(50), server_default="0.1.0", nullable=False),
         sa.Column("image_url", sa.String(500), nullable=True),
         sa.Column("category", sa.String(50), nullable=True),
-        sa.Column(
-            "is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "config_schema",
             postgresql.JSONB(),
@@ -154,9 +146,7 @@ def upgrade() -> None:
         sa.Column("version", sa.String(50), server_default="0.1.0", nullable=False),
         sa.Column("image_url", sa.String(500), nullable=True),
         sa.Column("category", sa.String(50), nullable=True),
-        sa.Column(
-            "is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "config_schema",
             postgresql.JSONB(),
@@ -195,9 +185,7 @@ def upgrade() -> None:
         sa.Column("version", sa.String(50), server_default="0.1.0", nullable=False),
         sa.Column("image_url", sa.String(500), nullable=True),
         sa.Column("category", sa.String(50), nullable=True),
-        sa.Column(
-            "is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_public", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "config_schema",
             postgresql.JSONB(),
@@ -241,9 +229,7 @@ def upgrade() -> None:
             server_default=sa.text("'{}'::jsonb"),
             nullable=False,
         ),
-        sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.Column(
             "created_at",
             postgresql.TIMESTAMP(timezone=True),
@@ -257,18 +243,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["agent_id"], ["agents.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["skill_id"], ["skills.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["mcp_server_id"], ["mcp_servers.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["agent_id"], ["agents.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["skill_id"], ["skills.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["mcp_server_id"], ["mcp_servers.id"], ondelete="SET NULL"),
     )
     op.create_index("ix_project_configs_project_id", "project_configs", ["project_id"])
 
@@ -286,12 +264,8 @@ def upgrade() -> None:
         sa.Column("agent_token", sa.String(255), nullable=False),
         sa.Column("hostname", sa.String(255), nullable=True),
         sa.Column("ip_address", sa.String(45), nullable=True),
-        sa.Column(
-            "status", sa.String(20), server_default="disconnected", nullable=False
-        ),
-        sa.Column(
-            "last_heartbeat_at", postgresql.TIMESTAMP(timezone=True), nullable=True
-        ),
+        sa.Column("status", sa.String(20), server_default="disconnected", nullable=False),
+        sa.Column("last_heartbeat_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("metadata", postgresql.JSONB(), nullable=True),
         sa.Column("connected_at", postgresql.TIMESTAMP(timezone=True), nullable=True),
         sa.Column(
@@ -308,22 +282,12 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("agent_token"),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"], ["licenses.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["license_id"], ["licenses.id"], ondelete="CASCADE"),
     )
-    op.create_index(
-        "ix_agent_connections_project_id", "agent_connections", ["project_id"]
-    )
-    op.create_index(
-        "ix_agent_connections_license_id", "agent_connections", ["license_id"]
-    )
-    op.create_index(
-        "ix_agent_connections_agent_token", "agent_connections", ["agent_token"]
-    )
+    op.create_index("ix_agent_connections_project_id", "agent_connections", ["project_id"])
+    op.create_index("ix_agent_connections_license_id", "agent_connections", ["license_id"])
+    op.create_index("ix_agent_connections_agent_token", "agent_connections", ["agent_token"])
 
     # --- tickets ---
     op.create_table(
@@ -354,12 +318,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["creator_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["creator_id"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index("ix_tickets_project_id", "tickets", ["project_id"])
     op.create_index("ix_tickets_creator_id", "tickets", ["creator_id"])
@@ -387,9 +347,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["ticket_id"], ["tickets.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["ticket_id"], ["tickets.id"], ondelete="CASCADE"),
     )
     op.create_index("ix_ticket_events_ticket_id", "ticket_events", ["ticket_id"])
 

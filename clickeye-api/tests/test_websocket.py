@@ -1,6 +1,5 @@
 """Agent WebSocket 엔드포인트 통합 테스트."""
 
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -11,10 +10,13 @@ from app.main import app
 async def test_ws_connect_and_receive(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """WebSocket 연결 후 메시지 수신 테스트."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac, ac.stream(
-        "GET",
-        "/ws/agent?agent_id=test-agent-1",
-    ) as _resp:
+    async with (
+        AsyncClient(transport=transport, base_url="http://test") as ac,
+        ac.stream(
+            "GET",
+            "/ws/agent?agent_id=test-agent-1",
+        ) as _resp,
+    ):
         # WebSocket은 httpx에서 직접 테스트 불가 — starlette testclient 사용
         pass
 

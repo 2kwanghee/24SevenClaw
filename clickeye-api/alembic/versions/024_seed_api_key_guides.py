@@ -11,15 +11,15 @@ Create Date: 2026-04-23 00:00:00.000000
 
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "024"
-down_revision: Union[str, None] = "023"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "023"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 _GUIDES_DIR = Path(__file__).parent.parent.parent / "app" / "data" / "api-key-guides"
 

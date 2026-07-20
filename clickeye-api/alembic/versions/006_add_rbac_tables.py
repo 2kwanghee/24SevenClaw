@@ -57,9 +57,7 @@ def upgrade() -> None:
         sa.Column("is_active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["organization_id"], ["organizations.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["invited_by"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index(
@@ -96,9 +94,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["actor_id"], ["users.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(
-            ["target_user_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["target_user_id"], ["users.id"], ondelete="SET NULL"),
     )
 
 

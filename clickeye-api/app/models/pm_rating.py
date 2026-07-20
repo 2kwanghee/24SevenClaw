@@ -13,9 +13,7 @@ class PMRating(Base):
     pm_id = Column(
         Uuid, ForeignKey("pm_profiles.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     session_id = Column(
         Uuid,
         ForeignKey("prototype_sessions.id", ondelete="CASCADE"),

@@ -4,6 +4,7 @@ Revision ID: 96e8e503b069
 Revises: 875c7436fc10
 Create Date: 2026-06-05 17:44:43.958970
 """
+
 import uuid
 from collections.abc import Sequence
 
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic
-revision: str = '96e8e503b069'
-down_revision: str | None = '875c7436fc10'
+revision: str = "96e8e503b069"
+down_revision: str | None = "875c7436fc10"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -22,18 +23,18 @@ _SEED_ORDER_BASE = 100
 
 # domain → 역할별 에이전트 slug (공개 카탈로그 내, harness 는 공통/필수)
 _AGENTS: dict[str, list[str]] = {
-    "fintech":     ["harness", "backend", "security", "architect", "qa"],
-    "ecommerce":   ["harness", "backend", "frontend", "architect", "qa"],
-    "ai":          ["harness", "backend", "architect", "deep-thinker", "qa"],
-    "healthcare":  ["harness", "backend", "security", "frontend", "qa"],
+    "fintech": ["harness", "backend", "security", "architect", "qa"],
+    "ecommerce": ["harness", "backend", "frontend", "architect", "qa"],
+    "ai": ["harness", "backend", "architect", "deep-thinker", "qa"],
+    "healthcare": ["harness", "backend", "security", "frontend", "qa"],
     "marketplace": ["harness", "backend", "frontend", "architect", "qa"],
-    "internal":    ["harness", "backend", "frontend", "devops", "qa"],
-    "saas":        ["harness", "frontend", "devops", "pm-agent", "qa"],
-    "realtime":    ["harness", "backend", "architect", "devops", "qa"],
-    "logistics":   ["harness", "backend", "architect", "devops", "qa"],
-    "mobile":      ["harness", "frontend", "backend", "uiux", "qa"],
-    "analytics":   ["harness", "backend", "architect", "frontend", "qa"],
-    "game":        ["harness", "backend", "frontend", "architect", "qa"],
+    "internal": ["harness", "backend", "frontend", "devops", "qa"],
+    "saas": ["harness", "frontend", "devops", "pm-agent", "qa"],
+    "realtime": ["harness", "backend", "architect", "devops", "qa"],
+    "logistics": ["harness", "backend", "architect", "devops", "qa"],
+    "mobile": ["harness", "frontend", "backend", "uiux", "qa"],
+    "analytics": ["harness", "backend", "architect", "frontend", "qa"],
+    "game": ["harness", "backend", "frontend", "architect", "qa"],
 }
 _DEFAULT_AGENTS = ["harness", "backend", "architect", "qa"]
 

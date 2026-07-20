@@ -18,9 +18,7 @@ class Organization(UUIDPKMixin, TimestampMixin, Base):
     # 컨트롤 타워: 자사(internal) vs 고객사(customer) 구분
     org_type = Column(String(20), nullable=False, default="customer", server_default="customer")
     # 담당 PM (ClickEye 내부 직원)
-    account_manager_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
+    account_manager_id = Column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     # 고객사 운영 상태: active | paused | archived
     customer_status = Column(String(20), nullable=False, default="active", server_default="active")
     # 조직별 기능 플래그 JSONB — 예: {"live_preview_enabled": true}

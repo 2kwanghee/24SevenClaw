@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
 
@@ -64,7 +64,14 @@ _UPDATES = [
         "slug": "shield",
         "name": "보안 PM",
         "tech_stack_tags": ["Python", "TypeScript", "OAuth2", "JWT", "OWASP"],
-        "industry_tags": ["fintech", "금융/핀테크", "healthcare", "헬스케어", "enterprise", "엔터프라이즈"],
+        "industry_tags": [
+            "fintech",
+            "금융/핀테크",
+            "healthcare",
+            "헬스케어",
+            "enterprise",
+            "엔터프라이즈",
+        ],
     },
     {
         "slug": "spark",
@@ -286,7 +293,7 @@ _NEW_PMS = [
 
 def upgrade() -> None:
     conn = op.get_bind()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # 1. 기존 PM 이름·태그 업데이트
     for pm in _UPDATES:
@@ -389,7 +396,7 @@ def downgrade() -> None:
         )
 
     # 기존 PM 이름 원복
-    _ORIGINALS = {
+    _originals = {
         "atlas": "Atlas",
         "bridge": "Bridge",
         "forge": "Forge",
@@ -399,7 +406,7 @@ def downgrade() -> None:
         "shield": "Shield",
         "spark": "Spark",
     }
-    for slug, original_name in _ORIGINALS.items():
+    for slug, original_name in _originals.items():
         conn.execute(
             sa.text("UPDATE pm_profiles SET name = :name WHERE slug = :slug"),
             {"slug": slug, "name": original_name},

@@ -31,11 +31,7 @@ async def list_recommendation_logs(
     if is_fallback is not None:
         conditions.append(PMRecommendationLog.is_fallback == is_fallback)
 
-    count_stmt = (
-        select(func.count())
-        .select_from(PMRecommendationLog)
-        .where(*conditions)
-    )
+    count_stmt = select(func.count()).select_from(PMRecommendationLog).where(*conditions)
     total_result = await db.execute(count_stmt)
     total = int(total_result.scalar_one())
 

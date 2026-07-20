@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import time
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -50,7 +51,7 @@ def _encode_state(user_id: UUID) -> str:
         "exp": now + _STATE_JWT_EXPIRY_SECONDS,
         "purpose": "github_app_install",
     }
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return cast(str, jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm))
 
 
 def _decode_state(state: str) -> UUID:

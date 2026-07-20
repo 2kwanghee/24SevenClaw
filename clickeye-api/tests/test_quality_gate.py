@@ -17,9 +17,7 @@ async def project_id(client: AsyncClient, auth_headers: dict[str, str]) -> str:
 
 
 @pytest.fixture
-async def session_id(
-    client: AsyncClient, auth_headers: dict[str, str], project_id: str
-) -> str:
+async def session_id(client: AsyncClient, auth_headers: dict[str, str], project_id: str) -> str:
     """오케스트레이션 세션을 validating 단계까지 전이."""
     # 세션 생성
     resp = await client.post(
@@ -55,9 +53,7 @@ async def session_id(
 
 
 @pytest.fixture
-async def run_id(
-    client: AsyncClient, auth_headers: dict[str, str], session_id: str
-) -> str:
+async def run_id(client: AsyncClient, auth_headers: dict[str, str], session_id: str) -> str:
     """검증 실행 생성 후 ID 반환."""
     resp = await client.post(
         f"/api/v1/quality-gate/sessions/{session_id}/runs",
@@ -111,9 +107,7 @@ async def test_create_run_wrong_phase(
 
 
 @pytest.mark.asyncio
-async def test_create_run_no_auth(
-    client: AsyncClient, session_id: str
-) -> None:
+async def test_create_run_no_auth(client: AsyncClient, session_id: str) -> None:
     """인증 없이 실행 생성 → 401/403."""
     resp = await client.post(
         f"/api/v1/quality-gate/sessions/{session_id}/runs",
@@ -126,9 +120,7 @@ async def test_create_run_no_auth(
 
 
 @pytest.mark.asyncio
-async def test_submit_check(
-    client: AsyncClient, auth_headers: dict[str, str], run_id: str
-) -> None:
+async def test_submit_check(client: AsyncClient, auth_headers: dict[str, str], run_id: str) -> None:
     """QA 에이전트 검사 결과 제출 → running 상태."""
     resp = await client.post(
         f"/api/v1/quality-gate/runs/{run_id}/checks",
@@ -401,9 +393,7 @@ async def test_auto_transition_rejected(
 
 
 @pytest.mark.asyncio
-async def test_get_report(
-    client: AsyncClient, auth_headers: dict[str, str], run_id: str
-) -> None:
+async def test_get_report(client: AsyncClient, auth_headers: dict[str, str], run_id: str) -> None:
     """검증 리포트 조회."""
     # 검사 제출
     for category, score in [("code_quality", 85), ("security", 90)]:
@@ -460,9 +450,7 @@ async def test_list_runs(
 
 
 @pytest.mark.asyncio
-async def test_get_run(
-    client: AsyncClient, auth_headers: dict[str, str], run_id: str
-) -> None:
+async def test_get_run(client: AsyncClient, auth_headers: dict[str, str], run_id: str) -> None:
     """실행 상세 조회."""
     resp = await client.get(
         f"/api/v1/quality-gate/runs/{run_id}",
@@ -473,9 +461,7 @@ async def test_get_run(
 
 
 @pytest.mark.asyncio
-async def test_get_run_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_run_not_found(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """존재하지 않는 실행 → 404."""
     resp = await client.get(
         "/api/v1/quality-gate/runs/00000000-0000-0000-0000-000000000000",
@@ -488,9 +474,7 @@ async def test_get_run_not_found(
 
 
 @pytest.mark.asyncio
-async def test_events(
-    client: AsyncClient, auth_headers: dict[str, str], run_id: str
-) -> None:
+async def test_events(client: AsyncClient, auth_headers: dict[str, str], run_id: str) -> None:
     """이벤트 이력 조회 — 생성 이벤트."""
     resp = await client.get(
         f"/api/v1/quality-gate/runs/{run_id}/events",

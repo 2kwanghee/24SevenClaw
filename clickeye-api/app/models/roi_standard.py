@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from enum import Enum as PyEnum
+from enum import StrEnum
 
 from sqlalchemy import (
     Boolean,
@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from app.database import Base
 
 
-class RoiCategory(str, PyEnum):
+class RoiCategory(StrEnum):
     role_rate = "role_rate"
     solution_effort = "solution_effort"
     complexity_multiplier = "complexity_multiplier"
@@ -31,7 +31,9 @@ class RoiStandard(Base):
     __tablename__ = "roi_standards"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
-    category = Column(Enum(RoiCategory, name="roi_category"), nullable=False, index=True)
+    category: "Column[RoiCategory]" = Column(
+        Enum(RoiCategory, name="roi_category"), nullable=False, index=True
+    )
     key = Column(String(64), nullable=False)
     label = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
@@ -48,6 +50,4 @@ class RoiStandard(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (
-        UniqueConstraint("category", "key", name="uq_roi_standard_cat_key"),
-    )
+    __table_args__ = (UniqueConstraint("category", "key", name="uq_roi_standard_cat_key"),)

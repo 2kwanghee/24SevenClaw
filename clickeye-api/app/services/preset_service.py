@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -27,11 +28,9 @@ class PresetService:
         conditions = [Preset.is_active.is_(True)]
 
         if maturity_level:
-            conditions.append(Preset.maturity_level == maturity_level)
+            conditions.append(Preset.maturity_level == maturity_level)  # type: ignore[arg-type]  # TODO: 타입 정합
 
-        count_stmt = (
-            select(func.count()).select_from(Preset).where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(Preset).where(*conditions)
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
 
@@ -62,12 +61,10 @@ class PresetService:
 
     async def apply_preset(
         self, project_id: UUID, preset_id: UUID, owner_id: UUID
-    ) -> dict:
+    ) -> dict[str, Any]:
         """프리셋을 프로젝트에 적용하여 settings에 기본 구성을 저장한다."""
         # 프로젝트 소유권 확인
-        proj_stmt = select(Project).where(
-            Project.id == project_id, Project.owner_id == owner_id
-        )
+        proj_stmt = select(Project).where(Project.id == project_id, Project.owner_id == owner_id)
         proj_result = await self.db.execute(proj_stmt)
         project = proj_result.scalar_one_or_none()
         if project is None:

@@ -1,4 +1,5 @@
 """통합 서비스 API — Linear/Notion API 키 유효성 검증 및 초기 태스크 등록."""
+
 from __future__ import annotations
 
 import asyncio
@@ -42,9 +43,7 @@ async def get_project_linear_status(
     from app.models.project_linear_credentials import ProjectLinearCredentials
 
     result = await db.execute(
-        select(ProjectLinearCredentials).where(
-            ProjectLinearCredentials.project_id == project_id
-        )
+        select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
     )
     creds = result.scalar_one_or_none()
     if creds is None:
@@ -65,6 +64,7 @@ async def get_project_linear_status(
         team_id=str(creds.team_id),
         api_key_masked=masked,
     )
+
 
 _executor = ThreadPoolExecutor(max_workers=4)
 

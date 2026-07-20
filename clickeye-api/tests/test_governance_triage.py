@@ -51,8 +51,13 @@ def test_request_defaults_backward_compatible():
 
 def test_response_accepts_triage_keys():
     resp = GovernanceEvaluateResponse(
-        governance="on", verdict="pass", tier="LOW", merge_decision="direct",
-        triage="review", risk_score=0.45, triage_reasons=["x"],
+        governance="on",
+        verdict="pass",
+        tier="LOW",
+        merge_decision="direct",
+        triage="review",
+        risk_score=0.45,
+        triage_reasons=["x"],
         budget={"status": "review", "reasons": ["y"]},
     )
     assert resp.triage == "review" and resp.risk_score == 0.45

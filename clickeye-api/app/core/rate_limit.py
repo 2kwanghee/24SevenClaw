@@ -94,9 +94,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             response = await call_next(request)
             response.headers["X-RateLimit-Limit"] = str(max_requests)
-            response.headers["X-RateLimit-Remaining"] = str(
-                max(0, max_requests - current)
-            )
+            response.headers["X-RateLimit-Remaining"] = str(max(0, max_requests - current))
             response.headers["X-RateLimit-Reset"] = str(ttl)
             return response
 

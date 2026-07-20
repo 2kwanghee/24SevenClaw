@@ -5,24 +5,37 @@ Revises: 027
 Create Date: 2026-04-27 00:00:00.000000
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
+
 revision: str = "028"
-down_revision: Union[str, None] = "027"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "027"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE TYPE roi_category AS ENUM ('role_rate', 'solution_effort', 'complexity_multiplier')")
+    op.execute(
+        "CREATE TYPE roi_category AS ENUM ('role_rate', 'solution_effort', 'complexity_multiplier')"
+    )
     op.create_table(
         "roi_standards",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("category", postgresql.ENUM("role_rate", "solution_effort", "complexity_multiplier", name="roi_category", create_type=False), nullable=False),
+        sa.Column(
+            "category",
+            postgresql.ENUM(
+                "role_rate",
+                "solution_effort",
+                "complexity_multiplier",
+                name="roi_category",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
         sa.Column("key", sa.String(64), nullable=False),
         sa.Column("label", sa.String(100), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),

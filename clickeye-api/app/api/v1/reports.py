@@ -28,7 +28,8 @@ async def get_project_report(
     """프로젝트 리포트를 집계하여 반환한다."""
     service = ReportService(db)
     return await service.generate_project_report(
-        project_id=project_id, owner_id=user.id  # type: ignore[arg-type]
+        project_id=project_id,
+        owner_id=user.id,  # type: ignore[arg-type]
     )
 
 
@@ -44,7 +45,8 @@ async def get_project_kpi(
     """프로젝트 KPI 메트릭을 집계하여 반환한다."""
     service = ReportService(db)
     return await service.generate_project_kpi(
-        project_id=project_id, owner_id=user.id  # type: ignore[arg-type]
+        project_id=project_id,
+        owner_id=user.id,  # type: ignore[arg-type]
     )
 
 

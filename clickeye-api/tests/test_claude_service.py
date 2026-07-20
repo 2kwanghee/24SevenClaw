@@ -127,9 +127,7 @@ class TestAnalyzeSolution:
             mock_client.messages.create = AsyncMock(return_value=msg)
             mock_get_client.return_value = mock_client
 
-            result = await service.analyze_solution(
-                "SaaS 서비스 설명", {}
-            )
+            result = await service.analyze_solution("SaaS 서비스 설명", {})
 
         # 폴백은 규칙 기반으로 solution_type 추출
         assert result["solution_type"] == "saas"
@@ -138,8 +136,14 @@ class TestAnalyzeSolution:
     @pytest.mark.asyncio
     async def test_passes_correct_context(self, service: ClaudeService) -> None:
         """org_context가 user_content에 포함되는지 확인한다."""
-        expected = {"solution_type": "fullstack", "features": [], "tech_stack": {},
-                    "complexity": "low", "target_users": "", "key_requirements": []}
+        expected = {
+            "solution_type": "fullstack",
+            "features": [],
+            "tech_stack": {},
+            "complexity": "low",
+            "target_users": "",
+            "key_requirements": [],
+        }
 
         captured_kwargs: dict[str, Any] = {}
 
@@ -204,8 +208,13 @@ class TestGenerateUiStructure:
     @pytest.mark.asyncio
     async def test_variant_index_included_in_prompt(self, service: ClaudeService) -> None:
         """variant_index가 요청 메시지에 포함되는지 확인한다."""
-        expected = {"menu_structure": {}, "pages": [], "color_palette": {},
-                    "typography": {}, "design_style": "corporate"}
+        expected = {
+            "menu_structure": {},
+            "pages": [],
+            "color_palette": {},
+            "typography": {},
+            "design_style": "corporate",
+        }
         captured_kwargs: dict[str, Any] = {}
 
         async def capture_create(**kwargs: Any) -> Any:
@@ -252,9 +261,7 @@ class TestRecommendPm:
             "reasoning": "SaaS 도메인 전문가로 요구사항에 적합합니다.",
             "key_strengths": ["SaaS 경험", "product 역량"],
             "potential_gaps": ["모바일 경험 부족"],
-            "alternatives": [
-                {"pm_id": "pm-002", "match_score": 72, "reasoning": "백엔드 강점"}
-            ],
+            "alternatives": [{"pm_id": "pm-002", "match_score": 72, "reasoning": "백엔드 강점"}],
         }
 
         with patch.object(service, "_get_client") as mock_get_client:
@@ -293,8 +300,6 @@ class TestRecommendPm:
             mock_client.messages.create = AsyncMock(return_value=msg)
             mock_get_client.return_value = mock_client
 
-            result = await service.recommend_pm(
-                {}, "saas", [{"id": "pm-001"}]
-            )
+            result = await service.recommend_pm({}, "saas", [{"id": "pm-001"}])
 
         assert result["recommended_pm_id"] is None

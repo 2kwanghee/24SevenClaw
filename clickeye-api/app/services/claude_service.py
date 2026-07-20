@@ -441,9 +441,7 @@ class ClaudeService:
         """
         if isinstance(exc, RuntimeError):
             return True
-        if isinstance(
-            exc, anthropic.AuthenticationError | anthropic.PermissionDeniedError
-        ):
+        if isinstance(exc, anthropic.AuthenticationError | anthropic.PermissionDeniedError):
             return True
         if isinstance(exc, anthropic.BadRequestError):
             return "credit balance" in str(exc).lower()
@@ -737,8 +735,7 @@ class ClaudeService:
         raw = await self._create_message(
             max_tokens=2048,
             system=(
-                _language_directive(locale)
-                + _get_system_prompt("generate_ui_structure", locale)
+                _language_directive(locale) + _get_system_prompt("generate_ui_structure", locale)
             ),
             messages=[{"role": "user", "content": user_content}],
         )
@@ -921,13 +918,17 @@ class ClaudeService:
             if depends_on:
                 md_parts.append("\n**Depends on**: " + ", ".join(str(d) for d in depends_on))
             if ac_list:
-                md_parts.append("\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list))  # noqa: E501
+                md_parts.append(
+                    "\n**Acceptance Criteria**:\n" + "\n".join(f"- {c}" for c in ac_list)
+                )  # noqa: E501
 
-            result.append({
-                "assigned_role": str(item.get("assigned_role", item.get("role", "architect"))),
-                "title": str(item.get("title", ""))[:500],
-                "description": "\n".join(md_parts)[:2000],
-            })
+            result.append(
+                {
+                    "assigned_role": str(item.get("assigned_role", item.get("role", "architect"))),
+                    "title": str(item.get("title", ""))[:500],
+                    "description": "\n".join(md_parts)[:2000],
+                }
+            )
         return result
 
     async def generate_draft(

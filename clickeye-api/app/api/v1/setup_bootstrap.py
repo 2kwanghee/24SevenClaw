@@ -1,9 +1,10 @@
 """부트스트랩 엔드포인트 — 로컬 ZIP 셋업 시 요구사항 조회 및 결과 등록."""
+
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -25,6 +26,7 @@ _VALID_ROLES = {"backend", "frontend", "qa", "architect", "designer", "devops", 
 
 
 # ── 의존성: setup_token 검증 ───────────────────────────────────────────────────
+
 
 async def _verify_setup_token(
     project_id: UUID,
@@ -51,6 +53,7 @@ async def _verify_setup_token(
 
 
 # ── 스키마 ────────────────────────────────────────────────────────────────────
+
 
 class RequirementsResponse(BaseModel):
     requirements_text: str | None
@@ -103,6 +106,7 @@ class LinearPushedItem(BaseModel):
 
 # ── 엔드포인트 ────────────────────────────────────────────────────────────────
 
+
 @router.get("/{project_id}/setup/requirements", response_model=RequirementsResponse)
 async def get_requirements(
     auth: tuple[Project, UUID] = Depends(_verify_setup_token),
@@ -113,9 +117,7 @@ async def get_requirements(
 
     has_linear = False
     result = await db.execute(
-        select(ProjectLinearCredentials).where(
-            ProjectLinearCredentials.project_id == project.id
-        )
+        select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project.id)
     )
     if result.scalar_one_or_none() is not None:
         has_linear = True
@@ -145,9 +147,10 @@ async def orchestrator_bootstrap(
 
     if project.bootstrap_status == "completed":
         existing = await db.execute(
-            select(OrchestratorSession).where(
-                OrchestratorSession.project_id == project.id
-            ).order_by(OrchestratorSession.created_at.asc()).limit(1)
+            select(OrchestratorSession)
+            .where(OrchestratorSession.project_id == project.id)
+            .order_by(OrchestratorSession.created_at.asc())
+            .limit(1)
         )
         sess = existing.scalar_one_or_none()
         if sess is not None:
@@ -236,9 +239,10 @@ async def get_approved_subtasks(
     project, _ = auth
 
     result = await db.execute(
-        select(OrchestratorSession).where(
-            OrchestratorSession.project_id == project.id
-        ).order_by(OrchestratorSession.created_at.asc()).limit(1)
+        select(OrchestratorSession)
+        .where(OrchestratorSession.project_id == project.id)
+        .order_by(OrchestratorSession.created_at.asc())
+        .limit(1)
     )
     session = result.scalar_one_or_none()
     if session is None:
@@ -248,11 +252,13 @@ async def get_approved_subtasks(
         )
 
     subtasks_result = await db.execute(
-        select(SubTask).where(
+        select(SubTask)
+        .where(
             SubTask.session_id == session.id,
             SubTask.status == "approved",
             SubTask.linear_issue_id.is_(None),
-        ).order_by(SubTask.order_index)
+        )
+        .order_by(SubTask.order_index)
     )
     subtasks = subtasks_result.scalars().all()
 
@@ -276,7 +282,7 @@ async def report_linear_pushed(
     background_tasks: BackgroundTasks,
     auth: tuple[Project, UUID] = Depends(_verify_setup_token),
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """로컬에서 Linear 이슈를 생성한 결과를 수신해 SubTask를 업데이트한다.
 
     모든 approved SubTask에 linear_issue_id가 채워지면 bootstrap_status='completed'로 전환.
@@ -312,9 +318,9 @@ async def report_linear_pushed(
     skip_linear_check = len(body) == 0 and updated == 0
 
     all_subtasks_result = await db.execute(
-        select(SubTask).join(
-            OrchestratorSession, SubTask.session_id == OrchestratorSession.id
-        ).where(
+        select(SubTask)
+        .join(OrchestratorSession, SubTask.session_id == OrchestratorSession.id)
+        .where(
             OrchestratorSession.project_id == project.id,
             SubTask.status == "approved",
             SubTask.linear_issue_id.is_(None),
@@ -329,16 +335,17 @@ async def report_linear_pushed(
         project.setup_token_hash = None  # type: ignore[assignment]
 
         session_result = await db.execute(
-            select(OrchestratorSession).where(
-                OrchestratorSession.project_id == project.id
-            ).order_by(OrchestratorSession.created_at.asc()).limit(1)
+            select(OrchestratorSession)
+            .where(OrchestratorSession.project_id == project.id)
+            .order_by(OrchestratorSession.created_at.asc())
+            .limit(1)
         )
         session = session_result.scalar_one_or_none()
         if session is not None:
             session.phase = "approved"  # type: ignore[assignment]
             await db.commit()
             # approved → transitioning → completed 자동 전이
-            background_tasks.add_task(_auto_complete_pipeline, session.id)
+            background_tasks.add_task(_auto_complete_pipeline, session.id)  # type: ignore[arg-type]  # TODO: 타입 정합
             return {"updated": updated, "remaining_unregistered": len(remaining)}
 
     await db.commit()

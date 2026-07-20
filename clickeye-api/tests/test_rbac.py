@@ -44,9 +44,7 @@ async def _create_org(db: AsyncSession) -> str:
 
 
 @pytest.mark.asyncio
-async def test_get_permissions_member(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
+async def test_get_permissions_member(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     resp = await client.get("/api/v1/rbac/permissions", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
@@ -62,9 +60,7 @@ async def test_get_permissions_unauthenticated(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_permissions_superadmin(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_get_permissions_superadmin(client: AsyncClient, db_session: AsyncSession) -> None:
     headers, uid = await _register_and_login(client, "super@test.com")
     await _set_role(db_session, uid, "superadmin")
     resp = await client.get("/api/v1/rbac/permissions", headers=headers)
@@ -83,9 +79,7 @@ async def test_list_users_forbidden_for_member(
 
 
 @pytest.mark.asyncio
-async def test_list_users_success_for_admin(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_list_users_success_for_admin(client: AsyncClient, db_session: AsyncSession) -> None:
     headers, uid = await _register_and_login(client, "admin@test.com")
     await _set_role(db_session, uid, "admin")
     resp = await client.get("/api/v1/admin/users", headers=headers)
@@ -100,9 +94,7 @@ async def test_list_users_unauthenticated(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_role_success(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_update_role_success(client: AsyncClient, db_session: AsyncSession) -> None:
     sa_headers, _ = await _register_and_login(client, "sa@test.com")
     await _set_role(db_session, _, "superadmin")
     _, target_id = await _register_and_login(client, "target@test.com")
@@ -133,9 +125,7 @@ async def test_update_role_forbidden_for_admin(
 
 
 @pytest.mark.asyncio
-async def test_update_role_invalid(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_update_role_invalid(client: AsyncClient, db_session: AsyncSession) -> None:
     sa_headers, _ = await _register_and_login(client, "sa2@test.com")
     await _set_role(db_session, _, "superadmin")
     _, target_id = await _register_and_login(client, "target3@test.com")
@@ -149,9 +139,7 @@ async def test_update_role_invalid(
 
 
 @pytest.mark.asyncio
-async def test_org_members_crud(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_org_members_crud(client: AsyncClient, db_session: AsyncSession) -> None:
     headers, admin_id = await _register_and_login(client, "orgadmin@test.com")
     await _set_role(db_session, admin_id, "admin")
     _, member_id = await _register_and_login(client, "orgmember@test.com")
@@ -180,9 +168,7 @@ async def test_org_members_crud(
 
 
 @pytest.mark.asyncio
-async def test_org_member_duplicate(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_org_member_duplicate(client: AsyncClient, db_session: AsyncSession) -> None:
     headers, admin_id = await _register_and_login(client, "dup_admin@test.com")
     await _set_role(db_session, admin_id, "admin")
     _, member_id = await _register_and_login(client, "dup_member@test.com")
@@ -214,9 +200,7 @@ async def test_org_members_forbidden_for_member(
 
 
 @pytest.mark.asyncio
-async def test_audit_log_success(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_audit_log_success(client: AsyncClient, db_session: AsyncSession) -> None:
     sa_headers, sa_id = await _register_and_login(client, "audit_sa@test.com")
     await _set_role(db_session, sa_id, "superadmin")
     _, target_id = await _register_and_login(client, "audit_target@test.com")

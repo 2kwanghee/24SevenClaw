@@ -83,7 +83,7 @@ def _parse_skill_md(path: Path) -> dict[str, object] | None:
         print(f"[WARN] YAML 파싱 오류, 건너뜀: {path} ({e})", file=sys.stderr)
         return None
 
-    body = raw[m.end():]
+    body = raw[m.end() :]
     slug = path.parent.name
 
     description = str(front.get("description") or "")

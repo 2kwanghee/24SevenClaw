@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -21,7 +22,7 @@ class ControlTowerService:
         limit: int = 20,
         search: str | None = None,
         status_filter: str | None = None,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """고객사 목록 + 집계 (프로젝트 수, 활성 세션 수)."""
         conditions = [Organization.org_type == "customer"]
         if status_filter:
@@ -33,8 +34,11 @@ class ControlTowerService:
         total = (await self.db.execute(count_stmt)).scalar_one()
 
         orgs_result = await self.db.execute(
-            select(Organization).where(*conditions).order_by(Organization.created_at.desc())
-            .offset(offset).limit(limit)
+            select(Organization)
+            .where(*conditions)
+            .order_by(Organization.created_at.desc())
+            .offset(offset)
+            .limit(limit)
         )
         orgs = list(orgs_result.scalars().all())
 
@@ -43,7 +47,9 @@ class ControlTowerService:
             # 프로젝트 수
             proj_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(Project).where(
+                    select(func.count())
+                    .select_from(Project)
+                    .where(
                         Project.organization_id == org.id,
                         Project.status != "deleted",
                     )
@@ -53,7 +59,8 @@ class ControlTowerService:
             # 활성 세션 수 (project → session 조인)
             active_session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession)
+                    select(func.count())
+                    .select_from(OrchestratorSession)
                     .join(Project, OrchestratorSession.project_id == Project.id)
                     .where(
                         Project.organization_id == org.id,
@@ -66,23 +73,25 @@ class ControlTowerService:
             if org.account_manager_id:
                 mgr = await self.db.get(User, org.account_manager_id)
                 if mgr:
-                    manager_name = mgr.display_name or mgr.email
+                    manager_name = mgr.display_name or mgr.email  # type: ignore[assignment]  # TODO: 타입 정합
 
-            items.append({
-                "id": org.id,
-                "company_name": org.company_name,
-                "org_type": org.org_type,
-                "customer_status": org.customer_status,
-                "account_manager_id": org.account_manager_id,
-                "account_manager_name": manager_name,
-                "project_count": proj_count,
-                "active_session_count": active_session_count,
-                "created_at": org.created_at,
-            })
+            items.append(
+                {
+                    "id": org.id,
+                    "company_name": org.company_name,
+                    "org_type": org.org_type,
+                    "customer_status": org.customer_status,
+                    "account_manager_id": org.account_manager_id,
+                    "account_manager_name": manager_name,
+                    "project_count": proj_count,
+                    "active_session_count": active_session_count,
+                    "created_at": org.created_at,
+                }
+            )
 
         return items, int(total)
 
-    async def get_customer(self, org_id: UUID) -> dict:
+    async def get_customer(self, org_id: UUID) -> dict[str, Any]:
         """고객사 상세."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -92,7 +101,7 @@ class ControlTowerService:
         if org.account_manager_id:
             mgr = await self.db.get(User, org.account_manager_id)
             if mgr:
-                manager_name = mgr.display_name or mgr.email
+                manager_name = mgr.display_name or mgr.email  # type: ignore[assignment]  # TODO: 타입 정합
 
         return {
             "id": org.id,
@@ -116,7 +125,7 @@ class ControlTowerService:
         org_id: UUID,
         offset: int = 0,
         limit: int = 20,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """고객사의 프로젝트 목록."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -128,15 +137,15 @@ class ControlTowerService:
         ]
 
         total = (
-            await self.db.execute(
-                select(func.count()).select_from(Project).where(*conditions)
-            )
+            await self.db.execute(select(func.count()).select_from(Project).where(*conditions))
         ).scalar_one()
 
         projects_result = await self.db.execute(
-            select(Project).where(*conditions)
+            select(Project)
+            .where(*conditions)
             .order_by(Project.created_at.desc())
-            .offset(offset).limit(limit)
+            .offset(offset)
+            .limit(limit)
         )
         projects = list(projects_result.scalars().all())
 
@@ -147,39 +156,43 @@ class ControlTowerService:
 
             session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession).where(
-                        OrchestratorSession.project_id == proj.id
-                    )
+                    select(func.count())
+                    .select_from(OrchestratorSession)
+                    .where(OrchestratorSession.project_id == proj.id)
                 )
             ).scalar_one()
 
             active_session_count = (
                 await self.db.execute(
-                    select(func.count()).select_from(OrchestratorSession).where(
+                    select(func.count())
+                    .select_from(OrchestratorSession)
+                    .where(
                         OrchestratorSession.project_id == proj.id,
                         OrchestratorSession.phase.notin_(["completed", "cancelled"]),
                     )
                 )
             ).scalar_one()
 
-            items.append({
-                "id": proj.id,
-                "name": proj.name,
-                "slug": proj.slug,
-                "status": proj.status,
-                "project_type": proj.project_type,
-                "owner_id": proj.owner_id,
-                "owner_name": owner_name,
-                "organization_id": proj.organization_id,
-                "session_count": session_count,
-                "active_session_count": active_session_count,
-                "created_at": proj.created_at,
-                "updated_at": proj.updated_at,
-            })
+            items.append(
+                {
+                    "id": proj.id,
+                    "name": proj.name,
+                    "slug": proj.slug,
+                    "status": proj.status,
+                    "project_type": proj.project_type,
+                    "owner_id": proj.owner_id,
+                    "owner_name": owner_name,
+                    "organization_id": proj.organization_id,
+                    "session_count": session_count,
+                    "active_session_count": active_session_count,
+                    "created_at": proj.created_at,
+                    "updated_at": proj.updated_at,
+                }
+            )
 
         return items, int(total)
 
-    async def get_project_overview(self, project_id: UUID) -> dict:
+    async def get_project_overview(self, project_id: UUID) -> dict[str, Any]:
         """프로젝트 종합 정보."""
         proj = await self.db.get(Project, project_id)
         if proj is None or proj.status == "deleted":
@@ -190,15 +203,17 @@ class ControlTowerService:
 
         session_count = (
             await self.db.execute(
-                select(func.count()).select_from(OrchestratorSession).where(
-                    OrchestratorSession.project_id == project_id
-                )
+                select(func.count())
+                .select_from(OrchestratorSession)
+                .where(OrchestratorSession.project_id == project_id)
             )
         ).scalar_one()
 
         active_session_count = (
             await self.db.execute(
-                select(func.count()).select_from(OrchestratorSession).where(
+                select(func.count())
+                .select_from(OrchestratorSession)
+                .where(
                     OrchestratorSession.project_id == project_id,
                     OrchestratorSession.phase.notin_(["completed", "cancelled"]),
                 )
@@ -220,7 +235,7 @@ class ControlTowerService:
             "updated_at": proj.updated_at,
         }
 
-    async def set_customer_status(self, org_id: UUID, new_status: str) -> dict:
+    async def set_customer_status(self, org_id: UUID, new_status: str) -> dict[str, Any]:
         """고객사 상태 변경 (active | paused | archived)."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -232,20 +247,20 @@ class ControlTowerService:
         await self.db.refresh(org)
         return await self.get_customer(org_id)
 
-    async def set_org_feature(self, org_id: UUID, feature_name: str, value: bool) -> dict:
+    async def set_org_feature(self, org_id: UUID, feature_name: str, value: bool) -> dict[str, Any]:
         """조직 기능 플래그 설정."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
             raise AppError("CUSTOMER_NOT_FOUND", "고객사를 찾을 수 없습니다", 404)
 
-        current: dict = dict(org.features or {})
+        current: dict[str, Any] = dict(org.features or {})
         current[feature_name] = value
         org.features = current  # type: ignore[assignment]
         org.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
         return await self.get_customer(org_id)
 
-    async def transfer_project(self, project_id: UUID, to_org_id: UUID) -> dict:
+    async def transfer_project(self, project_id: UUID, to_org_id: UUID) -> dict[str, Any]:
         """프로젝트를 다른 고객사로 이동."""
         proj = await self.db.get(Project, project_id)
         if proj is None or proj.status == "deleted":

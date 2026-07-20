@@ -20,7 +20,7 @@ class PMComposition(Base):
     pm_id = Column(
         Uuid, ForeignKey("pm_profiles.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    component_type = Column(String(100), nullable=False)   # "agent" | "skill" | "tool"
+    component_type = Column(String(100), nullable=False)  # "agent" | "skill" | "tool"
     component_slug = Column(String(100), nullable=False)
     component_name = Column(String(200), nullable=False)
     config = Column(JSON, nullable=False, default=dict)

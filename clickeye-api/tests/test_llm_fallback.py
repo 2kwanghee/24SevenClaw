@@ -61,8 +61,9 @@ async def test_auth_error_falls_back_to_openai(service: ClaudeService) -> None:
         return_value=_openai_completion('{"ok": true}')
     )
 
-    with patch.object(service, "_get_client", return_value=anthropic_client), patch.object(
-        service, "_get_openai_client", return_value=openai_client
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        patch.object(service, "_get_openai_client", return_value=openai_client),
     ):
         result = await service._create_message(
             max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
@@ -83,12 +84,11 @@ async def test_credit_error_falls_back_to_openai(service: ClaudeService) -> None
     anthropic_client = AsyncMock()
     anthropic_client.messages.create = AsyncMock(side_effect=err)
     openai_client = MagicMock()
-    openai_client.chat.completions.create = AsyncMock(
-        return_value=_openai_completion("drafted")
-    )
+    openai_client.chat.completions.create = AsyncMock(return_value=_openai_completion("drafted"))
 
-    with patch.object(service, "_get_client", return_value=anthropic_client), patch.object(
-        service, "_get_openai_client", return_value=openai_client
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        patch.object(service, "_get_openai_client", return_value=openai_client),
     ):
         result = await service._create_message(
             max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
@@ -101,9 +101,7 @@ async def test_credit_error_falls_back_to_openai(service: ClaudeService) -> None
 async def test_no_anthropic_key_uses_openai(service: ClaudeService) -> None:
     service._api_key = ""  # _get_client가 RuntimeError → 폴백
     openai_client = MagicMock()
-    openai_client.chat.completions.create = AsyncMock(
-        return_value=_openai_completion("ok")
-    )
+    openai_client.chat.completions.create = AsyncMock(return_value=_openai_completion("ok"))
 
     with patch.object(service, "_get_openai_client", return_value=openai_client):
         result = await service._create_message(
@@ -126,8 +124,9 @@ async def test_anthropic_success_does_not_call_openai(service: ClaudeService) ->
     openai_client = MagicMock()
     openai_client.chat.completions.create = AsyncMock()
 
-    with patch.object(service, "_get_client", return_value=anthropic_client), patch.object(
-        service, "_get_openai_client", return_value=openai_client
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        patch.object(service, "_get_openai_client", return_value=openai_client),
     ):
         result = await service._create_message(
             max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
@@ -143,9 +142,10 @@ async def test_rate_limit_does_not_fall_back(service: ClaudeService) -> None:
     anthropic_client = AsyncMock()
     anthropic_client.messages.create = AsyncMock(side_effect=err)
 
-    with patch.object(service, "_get_client", return_value=anthropic_client), patch.object(
-        service, "_get_openai_client"
-    ) as get_openai:
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        patch.object(service, "_get_openai_client") as get_openai,
+    ):
         with pytest.raises(anthropic.RateLimitError):
             await service._create_message(
                 max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
@@ -160,9 +160,10 @@ async def test_no_fallback_when_openai_key_missing(service: ClaudeService) -> No
     anthropic_client = AsyncMock()
     anthropic_client.messages.create = AsyncMock(side_effect=err)
 
-    with patch.object(
-        service, "_get_client", return_value=anthropic_client
-    ), pytest.raises(anthropic.AuthenticationError):
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        pytest.raises(anthropic.AuthenticationError),
+    ):
         await service._create_message(
             max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
         )
@@ -174,9 +175,10 @@ async def test_bad_request_non_credit_reraises(service: ClaudeService) -> None:
     anthropic_client = AsyncMock()
     anthropic_client.messages.create = AsyncMock(side_effect=err)
 
-    with patch.object(service, "_get_client", return_value=anthropic_client), patch.object(
-        service, "_get_openai_client"
-    ) as get_openai:
+    with (
+        patch.object(service, "_get_client", return_value=anthropic_client),
+        patch.object(service, "_get_openai_client") as get_openai,
+    ):
         with pytest.raises(anthropic.BadRequestError):
             await service._create_message(
                 max_tokens=100, system="sys", messages=[{"role": "user", "content": "hi"}]
@@ -206,9 +208,7 @@ def test_anthropic_to_openai_messages_flattens_and_drops_cache_control() -> None
 
 
 def test_anthropic_to_openai_messages_plain_strings() -> None:
-    out = ClaudeService._anthropic_to_openai_messages(
-        "S", [{"role": "user", "content": "hello"}]
-    )
+    out = ClaudeService._anthropic_to_openai_messages("S", [{"role": "user", "content": "hello"}])
     assert out == [
         {"role": "system", "content": "S"},
         {"role": "user", "content": "hello"},

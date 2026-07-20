@@ -103,9 +103,7 @@ async def _get_or_create_profile(
     return profile.id, True
 
 
-async def _get_or_create_composition(
-    db: AsyncSession, pm_id: UUID, comp: dict[str, Any]
-) -> bool:
+async def _get_or_create_composition(db: AsyncSession, pm_id: UUID, comp: dict[str, Any]) -> bool:
     """PM 컴포지션을 조회하거나 생성한다. 신규 생성 여부 반환."""
     comp_type: str = comp["component_type"]
     comp_slug: str = comp["component_slug"]
@@ -120,7 +118,9 @@ async def _get_or_create_composition(
     if row.scalar_one_or_none() is not None:
         logger.debug(
             "건너뜀(기존): pm_compositions pm_id=%s type=%s slug=%s",
-            pm_id, comp_type, comp_slug,
+            pm_id,
+            comp_type,
+            comp_slug,
         )
         return False
 
@@ -134,9 +134,7 @@ async def _get_or_create_composition(
         is_required=comp.get("is_required", False),
     )
     db.add(composition)
-    logger.info(
-        "생성: PMComposition pm_id=%s type=%s slug=%s", pm_id, comp_type, comp_slug
-    )
+    logger.info("생성: PMComposition pm_id=%s type=%s slug=%s", pm_id, comp_type, comp_slug)
     return True
 
 
@@ -198,9 +196,7 @@ async def seed_pm_data(
     # v3.0: 각 항목이 {supported_platforms: [...], components: [...]}
     # v2.0 (레거시): 각 항목이 flat list
     compositions_map: dict[str, Any] = (
-        _load_json(compositions_path)["compositions"]
-        if compositions_path.exists()
-        else {}
+        _load_json(compositions_path)["compositions"] if compositions_path.exists() else {}
     )
 
     pm_ids: list[UUID] = []

@@ -1,4 +1,5 @@
 """부트스트랩 setup_token 발급/검증 서비스."""
+
 from __future__ import annotations
 
 import hashlib
@@ -77,9 +78,7 @@ async def issue_for_project(
 
     token, token_hash = issue(project_id, user_id)
     await db.execute(
-        update(Project)
-        .where(Project.id == project_id)
-        .values(setup_token_hash=token_hash)
+        update(Project).where(Project.id == project_id).values(setup_token_hash=token_hash)
     )
     await db.commit()
     return token

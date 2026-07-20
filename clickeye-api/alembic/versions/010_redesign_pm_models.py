@@ -96,9 +96,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "pm_metrics",
-        sa.Column(
-            "avg_completion_days", sa.Float(), nullable=False, server_default="0.0"
-        ),
+        sa.Column("avg_completion_days", sa.Float(), nullable=False, server_default="0.0"),
     )
     op.create_foreign_key(
         "fk_pm_metrics_pm_id",
@@ -178,11 +176,15 @@ def downgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["project_id"], ["projects.id"], name="fk_pm_ratings_project_id",
+            ["project_id"],
+            ["projects.id"],
+            name="fk_pm_ratings_project_id",
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], name="fk_pm_ratings_user_id",
+            ["user_id"],
+            ["users.id"],
+            name="fk_pm_ratings_user_id",
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
@@ -221,9 +223,7 @@ def downgrade() -> None:
         ["id"],
         ondelete="CASCADE",
     )
-    op.create_unique_constraint(
-        "uq_pm_metrics_pm_profile_id", "pm_metrics", ["pm_profile_id"]
-    )
+    op.create_unique_constraint("uq_pm_metrics_pm_profile_id", "pm_metrics", ["pm_profile_id"])
     op.create_index("ix_pm_metrics_pm_profile_id", "pm_metrics", ["pm_profile_id"])
 
     # --- pm_compositions 복원 ---
@@ -254,12 +254,8 @@ def downgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        "ix_pm_compositions_prototype_id", "pm_compositions", ["prototype_id"]
-    )
-    op.create_index(
-        "ix_pm_compositions_pm_profile_id", "pm_compositions", ["pm_profile_id"]
-    )
+    op.create_index("ix_pm_compositions_prototype_id", "pm_compositions", ["prototype_id"])
+    op.create_index("ix_pm_compositions_pm_profile_id", "pm_compositions", ["pm_profile_id"])
 
     # --- pm_profiles 컬럼 복원 ---
     op.drop_index("ix_pm_profiles_slug", table_name="pm_profiles")

@@ -28,12 +28,15 @@ MEMBER_USER = {
 
 async def _register_and_login(client: AsyncClient, payload: dict) -> str:
     await client.post(REGISTER_URL, json=payload)
-    resp = await client.post(LOGIN_URL, json={"email": payload["email"], "password": payload["password"]})
+    resp = await client.post(
+        LOGIN_URL, json={"email": payload["email"], "password": payload["password"]}
+    )
     return resp.json()["access_token"]
 
 
 async def _make_admin(db: AsyncSession, email: str) -> None:
     from sqlalchemy import select
+
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one()
     user.system_role = "admin"  # type: ignore[assignment]
@@ -53,7 +56,9 @@ async def _seed_customer(db: AsyncSession, name: str = "테스트 고객사") ->
     return org
 
 
-async def _seed_project(db: AsyncSession, owner_id: uuid.UUID, org_id: uuid.UUID, name: str = "NMS") -> Project:
+async def _seed_project(
+    db: AsyncSession, owner_id: uuid.UUID, org_id: uuid.UUID, name: str = "NMS"
+) -> Project:
     proj = Project(
         id=uuid.uuid4(),
         owner_id=owner_id,
@@ -70,6 +75,7 @@ async def _seed_project(db: AsyncSession, owner_id: uuid.UUID, org_id: uuid.UUID
 
 
 # ─── 비관리자 접근 거부 ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_control_tower_requires_admin(client: AsyncClient) -> None:
@@ -90,6 +96,7 @@ async def test_control_tower_requires_auth(client: AsyncClient) -> None:
 
 
 # ─── 관리자 — 고객사 목록 ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_list_customers_empty(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -128,6 +135,7 @@ async def test_list_customers(client: AsyncClient, db_session: AsyncSession) -> 
 
 # ─── 관리자 — 고객사 상세 ─────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_customer_detail(client: AsyncClient, db_session: AsyncSession) -> None:
     """고객사 상세 조회."""
@@ -161,6 +169,7 @@ async def test_get_customer_not_found(client: AsyncClient, db_session: AsyncSess
 
 # ─── 관리자 — 고객사 프로젝트 목록 ──────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_list_customer_projects(client: AsyncClient, db_session: AsyncSession) -> None:
     """고객사의 프로젝트 목록 조회."""
@@ -168,7 +177,10 @@ async def test_list_customer_projects(client: AsyncClient, db_session: AsyncSess
     await _make_admin(db_session, ADMIN_USER["email"])
 
     from sqlalchemy import select
-    admin = (await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))).scalar_one()
+
+    admin = (
+        await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))
+    ).scalar_one()
     org = await _seed_customer(db_session)
     await _seed_project(db_session, admin.id, org.id, "NMS 프로젝트")
 
@@ -183,6 +195,7 @@ async def test_list_customer_projects(client: AsyncClient, db_session: AsyncSess
 
 
 # ─── 관리자 — 고객사 상태 변경 ───────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_set_customer_status(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -217,6 +230,7 @@ async def test_set_customer_status_invalid(client: AsyncClient, db_session: Asyn
 
 # ─── 관리자 — 프로젝트 이동 ──────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_transfer_project(client: AsyncClient, db_session: AsyncSession) -> None:
     """프로젝트를 다른 고객사로 이동."""
@@ -224,7 +238,10 @@ async def test_transfer_project(client: AsyncClient, db_session: AsyncSession) -
     await _make_admin(db_session, ADMIN_USER["email"])
 
     from sqlalchemy import select
-    admin = (await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))).scalar_one()
+
+    admin = (
+        await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))
+    ).scalar_one()
     org_a = await _seed_customer(db_session, "A 고객사")
     org_b = await _seed_customer(db_session, "B 고객사")
     proj = await _seed_project(db_session, admin.id, org_a.id)
@@ -240,6 +257,7 @@ async def test_transfer_project(client: AsyncClient, db_session: AsyncSession) -
 
 # ─── 프로젝트 개요 ───────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_get_project_overview(client: AsyncClient, db_session: AsyncSession) -> None:
     """프로젝트 종합 정보 조회."""
@@ -247,7 +265,10 @@ async def test_get_project_overview(client: AsyncClient, db_session: AsyncSessio
     await _make_admin(db_session, ADMIN_USER["email"])
 
     from sqlalchemy import select
-    admin = (await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))).scalar_one()
+
+    admin = (
+        await db_session.execute(select(User).where(User.email == ADMIN_USER["email"]))
+    ).scalar_one()
     org = await _seed_customer(db_session)
     proj = await _seed_project(db_session, admin.id, org.id)
 

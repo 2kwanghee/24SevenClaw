@@ -6,6 +6,7 @@
 """
 
 from datetime import timedelta
+from typing import Any, cast
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
@@ -40,7 +41,7 @@ class ShadowDeliveryWorkflow:
     """
 
     @workflow.run
-    async def run(self, payload: dict) -> dict:
+    async def run(self, payload: dict[str, Any]) -> dict[str, Any]:
         decision = await workflow.execute_activity(
             evaluate_governance_activity,
             payload,
@@ -57,4 +58,4 @@ class ShadowDeliveryWorkflow:
             decision.get("verdict"),
             decision.get("failures"),
         )
-        return decision
+        return cast("dict[str, Any]", decision)

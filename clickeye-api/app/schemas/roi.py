@@ -9,8 +9,8 @@ from pydantic import BaseModel, Field
 
 from app.models.roi_standard import RoiCategory
 
-
 # ─── Admin: ROI 표준 단가 CRUD ───
+
 
 class RoiStandardCreate(BaseModel):
     category: RoiCategory
@@ -58,6 +58,7 @@ class RoiStandardListResponse(BaseModel):
 
 
 # ─── Calculate: ROI 산출 ───
+
 
 class RoiCalculateRequest(BaseModel):
     solution_type: str = Field(..., description="솔루션 타입 (saas, rest-api, fullstack, ...)")

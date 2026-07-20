@@ -93,9 +93,7 @@ def downgrade() -> None:
     op.drop_index("ix_projects_organization_id", table_name="projects")
     op.drop_column("projects", "organization_id")
 
-    op.drop_constraint(
-        "fk_organizations_account_manager", "organizations", type_="foreignkey"
-    )
+    op.drop_constraint("fk_organizations_account_manager", "organizations", type_="foreignkey")
     op.drop_column("organizations", "customer_status")
     op.drop_column("organizations", "account_manager_id")
     op.drop_column("organizations", "org_type")

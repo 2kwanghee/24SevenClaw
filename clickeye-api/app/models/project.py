@@ -7,9 +7,7 @@ from app.models.mixins import TimestampMixin, UUIDPKMixin
 class Project(UUIDPKMixin, TimestampMixin, Base):
     __tablename__ = "projects"
 
-    owner_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    owner_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(200), nullable=False)
     slug = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)

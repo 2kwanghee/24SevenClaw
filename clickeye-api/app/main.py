@@ -60,9 +60,7 @@ async def _reset_stale_queued_issues() -> None:
             async with async_session() as db:
                 # 세션 → 프로젝트 자격증명 조회
                 sess_result = await db.execute(
-                    select(OrchestratorSession).where(
-                        OrchestratorSession.id == subtask.session_id
-                    )
+                    select(OrchestratorSession).where(OrchestratorSession.id == subtask.session_id)
                 )
                 session = sess_result.scalar_one_or_none()
                 if session is None:
@@ -93,16 +91,14 @@ async def _reset_stale_queued_issues() -> None:
 
                 # Linear 실제 상태 먼저 확인 — 이미 전진했으면 DB만 갱신하고 복귀하지 않음
                 # UUID(linear_issue_id)로 조회 → {identifier: state} 맵 반환
-                real_states = fetch_issue_states(
-                    api_key, team_id, [str(subtask.linear_issue_id)]
-                )
+                real_states = fetch_issue_states(api_key, team_id, [str(subtask.linear_issue_id)])
                 real_state = real_states.get(str(subtask.linear_identifier))
 
                 if real_state and real_state not in _STALE_STATES:
                     subtask_fresh = await db.get(SubTask, subtask.id)
                     if subtask_fresh:
-                        subtask_fresh.linear_state = real_state
-                        subtask_fresh.updated_at = datetime.now(UTC)
+                        subtask_fresh.linear_state = real_state  # type: ignore[assignment]  # TODO: 타입 정합
+                        subtask_fresh.updated_at = datetime.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
                         await db.commit()
                     _bg_logger.info(
                         "DB 동기화 (파이프라인 전진): %s (%s → %s)",
@@ -120,8 +116,8 @@ async def _reset_stale_queued_issues() -> None:
                 if ok:
                     subtask_fresh = await db.get(SubTask, subtask.id)
                     if subtask_fresh:
-                        subtask_fresh.linear_state = "Backlog"
-                        subtask_fresh.updated_at = datetime.now(UTC)
+                        subtask_fresh.linear_state = "Backlog"  # type: ignore[assignment]  # TODO: 타입 정합
+                        subtask_fresh.updated_at = datetime.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
                         await db.commit()
                     _bg_logger.info(
                         "자동 복귀: %s (%s → Backlog)",

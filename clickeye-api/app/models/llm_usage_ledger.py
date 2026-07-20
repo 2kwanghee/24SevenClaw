@@ -44,15 +44,11 @@ class LlmUsageLedger(Base):
     __tablename__ = "llm_usage_ledger"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
-    created_at = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
-    )
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
     # 파이프라인 태스크/프로젝트 상관관계 (nullable — in-API 호출은 프로젝트 없이 발생 가능)
     project_id = Column(Uuid, nullable=True, index=True)
     task_id = Column(String(128), nullable=True)  # Runner 프로토콜 상관관계
-    provider: Column[LlmProvider] = Column(
-        Enum(LlmProvider, name="llm_provider"), nullable=False
-    )
+    provider: Column[LlmProvider] = Column(Enum(LlmProvider, name="llm_provider"), nullable=False)
     key_source: Column[LlmKeySource] = Column(
         Enum(LlmKeySource, name="llm_key_source"), nullable=False
     )

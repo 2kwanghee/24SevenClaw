@@ -83,7 +83,9 @@ async def update_project(
 ) -> ProjectResponse:
     service = ProjectService(db)
     project = await service.update(
-        project_id=project_id, owner_id=user.id, data=data  # type: ignore[arg-type]
+        project_id=project_id,
+        owner_id=user.id,  # type: ignore[arg-type]  # TODO: 타입 정합
+        data=data,
     )
     return ProjectResponse.model_validate(project)
 
@@ -135,4 +137,3 @@ async def preview_project(
     await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
     return await generate_preview(data, db=db)
-

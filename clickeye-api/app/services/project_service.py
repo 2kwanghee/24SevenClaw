@@ -71,7 +71,7 @@ def annotate_key_status(
 ) -> ProjectResponse:
     """ProjectResponse에 key status 필드를 채운다."""
     auth_method: str = (
-        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")
+        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")  # type: ignore[call-overload]  # TODO: 타입 정합
         if project.wizard_data
         else "api_key"
     )
@@ -81,7 +81,7 @@ def annotate_key_status(
         anthropic_creds_updated_at,
         auth_method=auth_method,
     )
-    resp.linear_key_status = _compute_key_status(
+    resp.linear_key_status = _compute_key_status(  # type: ignore[assignment]  # TODO: 타입 정합
         project.last_zip_downloaded_at,  # type: ignore[arg-type]
         project.last_env_downloaded_at,  # type: ignore[arg-type]
         linear_creds_updated_at,
@@ -105,17 +105,13 @@ class ProjectService(BaseService):
         anthropic_ts = anthropic_result.scalar_one_or_none()
 
         linear_result = await self.db.execute(
-            select(UserLinearCredentials.updated_at).where(
-                UserLinearCredentials.user_id == user_id
-            )
+            select(UserLinearCredentials.updated_at).where(UserLinearCredentials.user_id == user_id)
         )
         linear_ts = linear_result.scalar_one_or_none()
 
         return anthropic_ts, linear_ts
 
-    async def get_project_linear_creds_timestamp(
-        self, project_id: UUID
-    ) -> datetime | None:
+    async def get_project_linear_creds_timestamp(self, project_id: UUID) -> datetime | None:
         """프로젝트별 Linear 자격증명의 updated_at 반환."""
         result = await self.db.execute(
             select(ProjectLinearCredentials.updated_at).where(
@@ -133,9 +129,7 @@ class ProjectService(BaseService):
         base_slug = slug
         counter = 1
         while True:
-            stmt = select(Project).where(
-                Project.owner_id == owner_id, Project.slug == slug
-            )
+            stmt = select(Project).where(Project.owner_id == owner_id, Project.slug == slug)
             result = await self.db.execute(stmt)
             if result.scalar_one_or_none() is None:
                 break
@@ -184,11 +178,7 @@ class ProjectService(BaseService):
             conditions.append(Project.name.ilike(f"%{search}%"))
 
         # 총 개수
-        count_stmt = (
-            select(func.count())
-            .select_from(Project)
-            .where(*conditions)
-        )
+        count_stmt = select(func.count()).select_from(Project).where(*conditions)
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
 
@@ -204,9 +194,7 @@ class ProjectService(BaseService):
         projects = list(result.scalars().all())
         return projects, int(total)
 
-    async def update(
-        self, project_id: UUID, owner_id: UUID, data: ProjectUpdate
-    ) -> Project:
+    async def update(self, project_id: UUID, owner_id: UUID, data: ProjectUpdate) -> Project:
         project = await self.get_by_id(project_id, owner_id)
 
         update_data = data.model_dump(exclude_unset=True)
@@ -252,14 +240,16 @@ class ProjectService(BaseService):
         # 2. 자식 row 삭제 (라이선스 제외 — 별도 처리)
         counts: dict[str, int] = {}
         child_models = (
-            AgentConnection, Artifact, OrchestratorSession,
-            ProjectConfig, Ticket, CustomerContractOverride,
+            AgentConnection,
+            Artifact,
+            OrchestratorSession,
+            ProjectConfig,
+            Ticket,
+            CustomerContractOverride,
         )
         for model in child_models:
-            result = await self.db.execute(
-                delete(model).where(model.project_id == project_id)  # type: ignore[attr-defined]
-            )
-            counts[model.__tablename__] = result.rowcount  # type: ignore[union-attr]
+            result = await self.db.execute(delete(model).where(model.project_id == project_id))
+            counts[model.__tablename__] = result.rowcount  # type: ignore[attr-defined]  # TODO: 타입 정합
 
         # 3. 라이선스 재발급 (없으면 스킵)
         new_key: str | None = None
@@ -273,13 +263,15 @@ class ProjectService(BaseService):
             await self.db.delete(old_license)
             await self.db.flush()
             new_key = secrets.token_urlsafe(32)
-            self.db.add(License(
-                project_id=project_id,
-                license_key=new_key,
-                plan=plan,
-                max_agents=max_agents,
-                expires_at=expires_at,
-            ))
+            self.db.add(
+                License(
+                    project_id=project_id,
+                    license_key=new_key,
+                    plan=plan,
+                    max_agents=max_agents,
+                    expires_at=expires_at,
+                )
+            )
         counts["licenses"] = 1 if old_license is not None else 0
 
         # 4. 프로젝트 컬럼 리셋

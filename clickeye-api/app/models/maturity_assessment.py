@@ -10,9 +10,7 @@ class MaturityAssessment(Base):
     __tablename__ = "maturity_assessments"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    user_id = Column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     organization_id = Column(
         Uuid, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True
     )

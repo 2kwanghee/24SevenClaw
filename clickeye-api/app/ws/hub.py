@@ -93,15 +93,13 @@ class AgentHub:
 
     def list_connections(self) -> list[dict[str, Any]]:
         """연결된 모든 Agent 정보를 반환한다."""
-        return [
-            {"agent_id": aid, **info}
-            for aid, info in self._agent_info.items()
-        ]
+        return [{"agent_id": aid, **info} for aid, info in self._agent_info.items()]
 
     async def disconnect_project(self, project_id: UUID) -> int:
         """특정 프로젝트에 속한 모든 WS 연결을 강제 해제한다."""
         target_ids = [
-            aid for aid, info in self._agent_info.items()
+            aid
+            for aid, info in self._agent_info.items()
             if info.get("project_id") == str(project_id)
         ]
         for agent_id in target_ids:

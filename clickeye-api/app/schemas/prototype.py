@@ -18,9 +18,7 @@ class PrototypeSessionCreate(BaseModel):
     company_size: str | None = Field(
         None, description="회사 규모 (startup/small/medium/mid-large/enterprise)"
     )
-    business_type: str | None = Field(
-        None, description="비즈니스 유형 (b2b/b2c/b2b2c/internal)"
-    )
+    business_type: str | None = Field(None, description="비즈니스 유형 (b2b/b2c/b2b2c/internal)")
     main_product: str | None = Field(None, description="주력 제품/서비스")
     company_description: str | None = Field(None, description="회사 설명 (자연어)")
 

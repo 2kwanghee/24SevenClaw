@@ -11,6 +11,7 @@ P1 섀도우 범위: governance 결정을 **미러링**할 뿐 머지/커밋/PR/
 """
 
 import logging
+from typing import Any
 
 from temporalio import activity
 
@@ -18,7 +19,7 @@ logger = logging.getLogger("temporal.activities")
 
 
 @activity.defn
-async def evaluate_governance_activity(payload: dict) -> dict:
+async def evaluate_governance_activity(payload: dict[str, Any]) -> dict[str, Any]:
     """governance 커널을 호출해 거버넌스 결정 dict 를 반환한다.
 
     payload 키:

@@ -77,9 +77,7 @@ async def test_full_user_project_flow(client: AsyncClient) -> None:
     assert updated["description"] == "수정된 설명"
 
     # --- 8. 프로젝트 삭제 ---
-    delete_resp = await client.delete(
-        f"/api/v1/projects/{project_id}", headers=headers
-    )
+    delete_resp = await client.delete(f"/api/v1/projects/{project_id}", headers=headers)
     assert delete_resp.status_code == 204
 
     # --- 9. 삭제 확인 ---
@@ -145,9 +143,7 @@ async def test_cross_user_isolation(client: AsyncClient) -> None:
     project_id = create_resp.json()["id"]
 
     # 유저 B가 A의 프로젝트 조회 시 404
-    get_resp = await client.get(
-        f"/api/v1/projects/{project_id}", headers=headers_b
-    )
+    get_resp = await client.get(f"/api/v1/projects/{project_id}", headers=headers_b)
     assert get_resp.status_code == 404
 
     # 유저 B의 프로젝트 목록에 A의 프로젝트 없음

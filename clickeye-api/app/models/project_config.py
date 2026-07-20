@@ -14,15 +14,9 @@ class ProjectConfig(Base):
         Uuid, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     config_type = Column(String(20), nullable=False)  # "agent", "skill", "mcp"
-    agent_id = Column(
-        Uuid, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
-    )
-    skill_id = Column(
-        Uuid, ForeignKey("skills.id", ondelete="SET NULL"), nullable=True
-    )
-    mcp_server_id = Column(
-        Uuid, ForeignKey("mcp_servers.id", ondelete="SET NULL"), nullable=True
-    )
+    agent_id = Column(Uuid, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)
+    skill_id = Column(Uuid, ForeignKey("skills.id", ondelete="SET NULL"), nullable=True)
+    mcp_server_id = Column(Uuid, ForeignKey("mcp_servers.id", ondelete="SET NULL"), nullable=True)
     config = Column(JSON, nullable=False, default=dict)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
