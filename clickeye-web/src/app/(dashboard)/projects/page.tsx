@@ -1,16 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
 import { useProjects } from "@/hooks/use-projects";
-import { isModernizeEnabled } from "@/lib/feature-flags";
 
 const PAGE_SIZE = 10;
 
@@ -85,52 +83,6 @@ function ProjectsContent() {
 
   return (
     <div>
-      {/* 새 솔루션 위저드 CTA 배너 */}
-      <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-            <Sparkles className="h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("wizardBannerTitle")}</p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("wizardBannerDesc")}</p>
-          </div>
-        </div>
-        <Link
-          href="/solutions/new"
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-fg)] transition-all hover:opacity-90"
-          aria-label={t("wizardBannerBtnAria")}
-        >
-          {t("wizardBannerBtn")}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </div>
-
-      {/* Modernize 진입 카드 (FEATURE_MODERNIZE_ENABLED=true 인 베타 사용자만 노출) */}
-      {isModernizeEnabled() && (
-        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-              <GitBranch className="h-5 w-5 text-amber-700" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                {t("modernizeBannerTitle")} <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">BETA</span>
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("modernizeBannerDesc")}</p>
-            </div>
-          </div>
-          <Link
-            href="/solutions/modernize/new"
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--accent)] transition-all hover:bg-[var(--accent-soft)]"
-            aria-label={t("modernizeBannerBtnAria")}
-          >
-            {t("modernizeBannerBtn")}
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-      )}
-
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

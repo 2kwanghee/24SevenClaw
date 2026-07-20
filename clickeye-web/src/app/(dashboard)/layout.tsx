@@ -45,9 +45,8 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { href: "/solutions/new", labelKey: "items.newSolution", icon: Sparkles, activePrefix: "/solutions", dataTour: "new-solution-link" },
-  { href: "/projects", labelKey: "items.projects", icon: FolderKanban, dataTour: "projects-link" },
   { href: "/delivery", labelKey: "items.delivery", icon: Boxes, activePrefix: "/delivery" },
+  { href: "/projects", labelKey: "items.projects", icon: FolderKanban, dataTour: "projects-link" },
   { href: "/guide", labelKey: "items.guide", icon: BookOpen },
 ];
 
