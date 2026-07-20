@@ -41,8 +41,27 @@ def test_extract_issue_key_from_branch():
     assert g.extract_issue_key("ralph/24S-7") == "24S-7"
 
 
+def test_extract_issue_key_descriptive_branch_finds_key():
+    # 서술형 브랜치명에 키 병기 → 어디서든 탐색해 추출
+    assert g.extract_issue_key("feature/web/CE-302-delivery-console") == "CE-302"
+    assert g.extract_issue_key("fix/api/24S-142-something") == "24S-142"
+    assert g.extract_issue_key("chore/governance/CE-302-branch-ticket-ref") == "CE-302"
+
+
+def test_extract_issue_key_slash_without_key_returns_last_segment():
+    # 슬래시는 있으나 키 없음 → 마지막 세그먼트 반환(check_ticket_ref에서 형식 불량 차단)
+    key = g.extract_issue_key("feature/web/no-ticket-here")
+    assert key == "no-ticket-here"
+    assert g.check_ticket_ref(key)["status"] == "fail"
+
+
 def test_extract_issue_key_no_slash_returns_none():
     assert g.extract_issue_key("main") is None
+
+
+def test_check_ticket_ref_pass_on_descriptive_branch():
+    key = g.extract_issue_key("feature/web/CE-302-delivery-console")
+    assert g.check_ticket_ref(key)["status"] == "pass"
 
 
 # ── contract-drift ──

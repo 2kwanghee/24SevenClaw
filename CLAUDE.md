@@ -172,7 +172,7 @@ AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는
 - **신규 문서 최소화**: 신규 생성보다 기존 문서 갱신 우선. 새 문서는 매니페스트 등재 필수.
 
 ## Conventions
-- **브랜치**: `feature/{module}/{description}`, `fix/{module}/{description}`
+- **브랜치**: `{type}/{module}/{TICKET-KEY}-{description}` (Linear 키 병기 필수 — 거버넌스 ticket-ref 통과). 예: `feature/web/CE-302-delivery-console`, `fix/api/24S-142-auth-bug`. 게이트가 브랜치 어디서든 `^[A-Z0-9]+-\d+$` 키를 탐색하므로 서술적 이름과 병용 가능
 - **커밋**: `[module] 작업 내용` (예: `[api] 인증 엔드포인트 구현`)
 - **PR**: 모듈별 독립 PR, cross-module 변경 시 contracts 먼저
 - **테스트**: 새 기능은 반드시 테스트 동반, 커버리지 ≥70%
