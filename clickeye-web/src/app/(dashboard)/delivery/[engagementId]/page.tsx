@@ -20,8 +20,11 @@ import {
   useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
 import { useProject } from "@/hooks/use-projects";
+import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
 import { useMockMode } from "@/stores/mock-mode-store";
+import { useRBACStore } from "@/stores/rbac-store";
 import {
+  mockLedgerSummary,
   mockProject,
   mockReviewRounds,
   mockSessions,
@@ -110,6 +113,26 @@ export default function DeliveryEngagementPage() {
   const summaryLoading = mock ? false : summaryLoadingRaw;
   const summaryError = mock ? false : summaryErrorRaw;
   const reviewError = mock ? false : reviewErrorRaw;
+
+  // D. 비용 카드 — LLM 원장은 settings:manage 권한 전용.
+  const rbacLoaded = useRBACStore((s) => s.loaded);
+  const canViewLedger = useRBACStore((s) => s.hasPermission("settings:manage"));
+  const ledgerRestricted = !mock && rbacLoaded && !canViewLedger;
+  const ledgerEnabled = !mock && rbacLoaded && canViewLedger;
+
+  const {
+    data: ledgerData,
+    isLoading: ledgerFetchingRaw,
+    isError: ledgerErrorRaw,
+  } = useLlmLedgerSummary(ledgerEnabled ? projectId : "");
+
+  const ledgerSummary = mock ? mockLedgerSummary : (ledgerData ?? null);
+  const ledgerLoading = mock
+    ? false
+    : ledgerRestricted
+      ? false
+      : !rbacLoaded || ledgerFetchingRaw;
+  const ledgerError = mock ? false : ledgerErrorRaw;
 
   const subtasks = summary?.subtasks ?? [];
   const reviewRounds = reviewData?.items ?? [];
@@ -249,7 +272,12 @@ export default function DeliveryEngagementPage() {
 
             {/* 우측 레일: D 비용 + F 거버넌스 */}
             <aside className="flex flex-col gap-4">
-              <CostCard />
+              <CostCard
+                summary={ledgerSummary}
+                isLoading={ledgerLoading}
+                isError={ledgerError}
+                restricted={ledgerRestricted}
+              />
               <GovernancePolicyPanel />
             </aside>
           </div>

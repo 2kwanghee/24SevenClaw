@@ -5,6 +5,7 @@
  */
 import type {
   LinearTeamState,
+  LlmProjectUsageSummary,
   OrchestratorSessionListResponse,
   OrchestratorSessionResponse,
   ProjectResponse,
@@ -210,6 +211,30 @@ export const mockTeamStates: LinearTeamState[] = [
   { name: "In Review", type: "started", color: "#5e6ad2" },
   { name: "Done", type: "completed", color: "#4cb782" },
 ];
+
+// --- LLM 사용량 원장 집계 (비용 카드 D) ---
+// 정직성: 구독 시트는 정액이라 cost=null(미산정), 조직 API 키만 종량 과금.
+
+export const mockLedgerSummary: LlmProjectUsageSummary = {
+  project_id: mockProject.id,
+  total_input_tokens: 2_640_000,
+  total_output_tokens: 1_640_000,
+  total_cost: "11.94",
+  by_key_source: [
+    {
+      key_source: "subscription_seat",
+      input_tokens: 2_420_000,
+      output_tokens: 1_480_000,
+      cost: null,
+    },
+    {
+      key_source: "org_api_key",
+      input_tokens: 220_000,
+      output_tokens: 160_000,
+      cost: "11.94",
+    },
+  ],
+};
 
 // --- 리뷰 라운드 ---
 

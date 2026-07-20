@@ -1794,6 +1794,68 @@ export const orchestrator = {
     ),
 };
 
+// --- LLM 사용량 원장 (admin/settings:manage 전용) ---
+// Decimal은 JSON에서 string 또는 number로 직렬화될 수 있으므로 방어적으로 둔다.
+
+export interface LlmKeySourceTotals {
+  key_source: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number | string | null;
+}
+
+export interface LlmProjectUsageSummary {
+  project_id: string | null;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number | string | null;
+  by_key_source: LlmKeySourceTotals[];
+}
+
+export interface LlmUsageEntryResponse {
+  id: string;
+  created_at: string | null;
+  project_id: string | null;
+  task_id: string | null;
+  provider: string;
+  key_source: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number | string | null;
+  request_kind: string;
+  status: string;
+  meta: Record<string, unknown> | null;
+}
+
+export interface LlmUsageListResponse {
+  items: LlmUsageEntryResponse[];
+  total: number;
+}
+
+export const llmLedger = {
+  summary: (token: string, projectId: string) =>
+    authRequest<LlmProjectUsageSummary>(
+      `/api/v1/llm-ledger/summary?project_id=${encodeURIComponent(projectId)}`,
+      token,
+    ),
+
+  list: (
+    token: string,
+    params: { projectId?: string; limit?: number; offset?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params.projectId) query.set("project_id", params.projectId);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return authRequest<LlmUsageListResponse>(
+      `/api/v1/llm-ledger${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+};
+
 // --- Linear Credentials ---
 
 export interface LinearCredentialsSave {
