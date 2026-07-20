@@ -35,6 +35,30 @@ def is_enabled(key: str) -> bool:
     return val.strip().lower() not in _FALSEY
 
 
+# ⚠️ is_opt_in 은 is_enabled 와 **의도적으로 반대(divergence)** 다.
+#   is_enabled  → 미설정/빈값 = True  (기존 게이트 항목은 기본 on)
+#   is_opt_in   → 미설정/그 외 = False, 명시적 opt-in 값만 True (신규 트리아지는 기본 off)
+# 트리아지 토글에는 반드시 is_opt_in 을 써야 회귀 0(기본 off)이 보장된다. 실수로
+# is_enabled 를 쓰면 기본 on 이 되어 오늘의 ON dict 를 오염(신규 키 유입)시킨다.
+_TRUTHY = {"1", "true", "on", "yes"}
+
+
+def is_opt_in(key: str) -> bool:
+    """명시적 opt-in 값(1/true/on/yes, 소문자)만 True. 미설정/그 외는 False."""
+    return os.environ.get(key, "").strip().lower() in _TRUTHY
+
+
+def _env_float(key: str, default: float) -> float:
+    """FLOWOPS_GOVERNANCE_* float 임계값 읽기. 미설정/파싱불가면 default(결정적)."""
+    raw = os.environ.get(key, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
 # ── 정책 상수 ──────────────────────────────────────────────────────────────
 # API 계약면: 여기가 바뀌면 OpenAPI 스펙이 따라 갱신되어야 한다.
 CONTRACT_SURFACE_PREFIXES = (
@@ -211,6 +235,175 @@ def classify_risk(files: list[str]) -> dict:
     return {"tier": tier, "reasons": sorted(set(reasons))[:10]}
 
 
+# ── 트리아지(3단 주의-라우터) ────────────────────────────────────────────────
+# 항목 G(P2). 순수·결정적(시각/네트워크 없음). 기본 off(is_opt_in)이며 report-only 는
+# 코어 서브셋 {merge_decision,tier,verdict,failures} 를 절대 바꾸지 않는다(순수 관측).
+# 임계 env 는 전부 FLOWOPS_GOVERNANCE_ 접두 → 테스트 픽스처가 자동 클리어(회귀 격리).
+TRIAGE_SCORE_REVIEW_DEFAULT = 0.40  # risk_score 이 값 이상 → review 밴드
+TRIAGE_SCORE_BLOCK_DEFAULT = 0.80   # risk_score 이 값 이상 → block 밴드
+# risk_score 구성 가중치(포화·결정적). 표면 최소화를 위해 env 노출 없이 상수 고정.
+_RISK_FILE_SCALE = 40.0      # 변경 파일 수 정규화 분모
+_RISK_FILE_CAP = 0.30        # 파일 수 기여 상한
+_RISK_HIGH_WEIGHT = 0.40     # tier=HIGH 기여
+_RISK_COVERAGE_FLOOR = 0.70  # 커버리지 이 미만이면 패널티
+_RISK_COVERAGE_PENALTY = 0.20
+_RISK_DIFF_LINES_THRESHOLD = 400
+_RISK_DIFF_LINES_PENALTY = 0.20
+
+_STATUS_ORDER = {"skip": 0, "ok": 1, "review": 2, "block": 3}
+_BAND_ORDER = {"auto": 0, "review": 1, "block": 2}
+
+
+def _is_num(x: object) -> bool:
+    """실수/정수만 True(bool 제외). JSON 주입값의 안전한 수치 판정."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _worse_status(a: str, b: str) -> str:
+    return a if _STATUS_ORDER.get(a, 0) >= _STATUS_ORDER.get(b, 0) else b
+
+
+def _worse_band(a: str, b: str) -> str:
+    return a if _BAND_ORDER.get(a, 0) >= _BAND_ORDER.get(b, 0) else b
+
+
+def compute_risk_score(
+    files: list[str],
+    tier: str,
+    metrics: dict | None = None,
+) -> tuple[float, list[str]]:
+    """주의(위험) 점수 [0,1] 산출. 순수·결정적.
+
+    축: 변경 파일 수(포화) + tier=HIGH 가산. metrics(coverage/diff_lines)는 optional
+    주입이며 없으면 무패널티(하위호환). 부동소수 오차 방지 위해 round(3).
+    """
+    reasons: list[str] = []
+    score = 0.0
+    n = len(files or [])
+    if n:
+        contrib = min(n / _RISK_FILE_SCALE, _RISK_FILE_CAP)
+        score += contrib
+        reasons.append(f"changed_files={n} (+{round(contrib, 3)})")
+    if tier == "HIGH":
+        score += _RISK_HIGH_WEIGHT
+        reasons.append(f"tier=HIGH (+{_RISK_HIGH_WEIGHT})")
+    if metrics:
+        cov = metrics.get("coverage")
+        if _is_num(cov) and cov < _RISK_COVERAGE_FLOOR:
+            score += _RISK_COVERAGE_PENALTY
+            reasons.append(f"coverage={cov}<{_RISK_COVERAGE_FLOOR} (+{_RISK_COVERAGE_PENALTY})")
+        dl = metrics.get("diff_lines")
+        if _is_num(dl) and dl > _RISK_DIFF_LINES_THRESHOLD:
+            score += _RISK_DIFF_LINES_PENALTY
+            reasons.append(
+                f"diff_lines={dl}>{_RISK_DIFF_LINES_THRESHOLD} (+{_RISK_DIFF_LINES_PENALTY})"
+            )
+    return round(min(score, 1.0), 3), reasons
+
+
+def assess_budget(usage: dict | None) -> dict:
+    """예산(누적 토큰/비용) 상태. usage 없으면 skip(비블로킹).
+
+    usage 계약(FastAPI 가 원장 요약을 float 로 정규화해 주입):
+      {"cost": float|None, "tokens": int}
+    한도/경고 임계는 env(FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_*). <=0(미설정)이면 해당 축 비활성.
+    """
+    if not usage:
+        return {"status": "skip", "reasons": ["usage 없음 → 예산 skip(비블로킹)"]}
+
+    reasons: list[str] = []
+    status = "ok"
+    cost = usage.get("cost")
+    tokens = usage.get("tokens")
+
+    cost_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_LIMIT", 0.0)
+    cost_warn = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_WARN", 0.0)
+    token_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_LIMIT", 0.0)
+    token_warn = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_WARN", 0.0)
+
+    if _is_num(cost):
+        if cost_limit > 0 and cost >= cost_limit:
+            status = _worse_status(status, "block")
+            reasons.append(f"cost={cost}>=limit {cost_limit}")
+        elif cost_warn > 0 and cost >= cost_warn:
+            status = _worse_status(status, "review")
+            reasons.append(f"cost={cost}>=warn {cost_warn}")
+    if _is_num(tokens):
+        if token_limit > 0 and tokens >= token_limit:
+            status = _worse_status(status, "block")
+            reasons.append(f"tokens={tokens}>=limit {token_limit}")
+        elif token_warn > 0 and tokens >= token_warn:
+            status = _worse_status(status, "review")
+            reasons.append(f"tokens={tokens}>=warn {token_warn}")
+
+    if not reasons:
+        reasons.append("예산 여유(임계 미설정/미도달)")
+    return {"status": status, "reasons": reasons}
+
+
+def assess_rate(usage: dict | None) -> dict:
+    """레이트(TPM/RPM) 상태 — **전방 훅(forward hook)**.
+
+    원장에 윈도우 카운터가 없어(실측은 CE-297 대기) usage 에 rpm/tpm 키가 없으면
+    skip(비블로킹)한다. 카운터가 주입되면 임계로 판정. 현재 파이프라인/로컬은 항상 skip.
+    TODO(CE-297): 슬라이딩 윈도우 카운터가 생기면 usage 에 rpm/tpm 을 주입.
+    """
+    if not usage:
+        return {"status": "skip", "reasons": ["usage 없음 → 레이트 skip"]}
+    rpm = usage.get("rpm")
+    tpm = usage.get("tpm")
+    if rpm is None and tpm is None:
+        return {
+            "status": "skip",
+            "reasons": ["레이트 윈도우 카운터 부재(CE-297 대기) → skip(전방 훅)"],
+        }
+    reasons: list[str] = []
+    status = "ok"
+    rpm_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_RATE_RPM_LIMIT", 0.0)
+    tpm_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_RATE_TPM_LIMIT", 0.0)
+    if _is_num(rpm) and rpm_limit > 0 and rpm >= rpm_limit:
+        status = _worse_status(status, "block")
+        reasons.append(f"rpm={rpm}>=limit {rpm_limit}")
+    if _is_num(tpm) and tpm_limit > 0 and tpm >= tpm_limit:
+        status = _worse_status(status, "block")
+        reasons.append(f"tpm={tpm}>=limit {tpm_limit}")
+    if not reasons:
+        reasons.append("레이트 여유")
+    return {"status": status, "reasons": reasons}
+
+
+def triage_band(score: float, budget: dict, rate: dict) -> tuple[str, list[str]]:
+    """3단 밴드 결정: auto|review|block. 축 = risk_score + budget + rate.
+
+    밴드 강도 auto<review<block. 어느 축이든 block 이면 block, review 면 최소 review.
+    """
+    reasons: list[str] = []
+    review_th = _env_float(
+        "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW", TRIAGE_SCORE_REVIEW_DEFAULT
+    )
+    block_th = _env_float(
+        "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK", TRIAGE_SCORE_BLOCK_DEFAULT
+    )
+
+    band = "auto"
+    if score >= block_th:
+        band = _worse_band(band, "block")
+        reasons.append(f"risk_score {score}>=block {block_th}")
+    elif score >= review_th:
+        band = _worse_band(band, "review")
+        reasons.append(f"risk_score {score}>=review {review_th}")
+
+    for axis, res in (("budget", budget), ("rate", rate)):
+        st = res.get("status")
+        if st == "block":
+            band = _worse_band(band, "block")
+            reasons.append(f"{axis}=block")
+        elif st == "review":
+            band = _worse_band(band, "review")
+            reasons.append(f"{axis}=review")
+    return band, reasons
+
+
 # ── 종합 ───────────────────────────────────────────────────────────────────
 def evaluate(
     base: str,
@@ -219,6 +412,8 @@ def evaluate(
     *,
     project_dir: str | None = None,
     plan_text: str | None = None,
+    usage: dict | None = None,
+    metrics: dict | None = None,
 ) -> dict:
     issue_key = extract_issue_key(head)
 
@@ -269,7 +464,7 @@ def evaluate(
     else:
         verdict, merge_decision = "pass", "direct"
 
-    return {
+    result = {
         "governance": "on",
         "issue_key": issue_key,
         "tier": tier,
@@ -281,3 +476,30 @@ def evaluate(
         "merge_decision": merge_decision,
         "changed_files": len(files),
     }
+
+    # ── 트리아지 오버레이(항목 G, opt-in) ────────────────────────────────────
+    # 기본 off(is_opt_in). off 면 위 base result 를 그대로 반환 → 오늘의 ON dict 와
+    # 바이트 동일(신규 키 0). 마스터 off 는 위에서 이미 단락되어 여기 도달하지 않는다.
+    if is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE"):
+        score, score_reasons = compute_risk_score(files, tier, metrics)
+        budget = assess_budget(usage)
+        rate = assess_rate(usage)
+        band, band_reasons = triage_band(score, budget, rate)
+        # 관측 키 추가(코어 서브셋은 report-only 에서 불변 — 순수 관측).
+        result["triage"] = band
+        result["risk_score"] = score
+        result["budget"] = budget
+        result["triage_reasons"] = score_reasons + band_reasons + rate["reasons"]
+        # 집행(강등)은 별도 opt-in 일 때만. 강등만(승격/새 값 없음).
+        # report-only(비enforce)는 failures 포함 코어 서브셋 불변 — 아래 블록에 도달 안 함.
+        if is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"):
+            if band == "block":
+                result["verdict"] = "fail"
+                result["merge_decision"] = "block"
+                # 소비자(파이프라인)가 차단 사유를 볼 수 있도록 failures 에 1건 합성 추가.
+                summary = "; ".join(band_reasons) or band
+                result["failures"] = result["failures"] + [f"triage_block: {summary}"]
+            elif band == "review" and result["merge_decision"] == "direct":
+                result["merge_decision"] = "pr"
+
+    return result

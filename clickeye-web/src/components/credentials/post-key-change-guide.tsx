@@ -1,26 +1,22 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
-import { Check, Copy, Download, KeyRound, RefreshCw, X } from "lucide-react";
-import { apiClient, ApiClientError, type ProjectResponse } from "@/lib/api-client";
+import { Check, Copy, KeyRound, X } from "lucide-react";
+import { type ProjectResponse } from "@/lib/api-client";
 
 interface PostKeyChangeGuideProps {
   open: boolean;
   onClose: () => void;
   channel: "anthropic" | "linear";
   staleProjects: ProjectResponse[];
-  token: string;
 }
 
 const STEPS = [
   {
-    label: "1. .env 다운로드 또는 ZIP 전체 재다운로드",
-    detail: "아래 프로젝트별 버튼을 클릭하세요.",
+    label: "1. 로컬 프로젝트 루트의 .env 파일을 엽니다",
   },
   {
-    label: "2. 다운로드한 .env 파일을 프로젝트 루트에 덮어쓰기",
-    code: "cp ~/Downloads/.env /path/to/project/.env",
+    label: "2. 변경된 키 값을 새 값으로 덮어씁니다",
   },
   {
     label: "3. 갱신 스크립트 실행",
@@ -52,68 +48,11 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ProjectEnvRow({ project, token }: { project: ProjectResponse; token: string }) {
-  const [envLoading, setEnvLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleDownloadEnv = useCallback(async () => {
-    setEnvLoading(true);
-    setError(null);
-    try {
-      const blob = await apiClient.projects.downloadEnv(token, project.id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = ".env";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.detail : ".env 다운로드에 실패했습니다");
-    } finally {
-      setEnvLoading(false);
-    }
-  }, [token, project.id]);
-
-  return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{project.name}</p>
-          {error && <p className="text-xs text-red-600 mt-0.5">{error}</p>}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleDownloadEnv}
-            disabled={envLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
-          >
-            {envLoading ? (
-              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Download className="h-3.5 w-3.5" />
-            )}
-            .env 다운로드
-          </button>
-          <Link
-            href={`/projects/${project.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-opacity"
-          >
-            ZIP 재다운로드
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PostKeyChangeGuide({
   open,
   onClose,
   channel,
   staleProjects,
-  token,
 }: PostKeyChangeGuideProps) {
   if (!open) return null;
 
@@ -154,7 +93,12 @@ export function PostKeyChangeGuide({
               </p>
               <div className="space-y-2">
                 {staleProjects.map((p) => (
-                  <ProjectEnvRow key={p.id} project={p} token={token} />
+                  <div
+                    key={p.id}
+                    className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-4 py-3"
+                  >
+                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">{p.name}</p>
+                  </div>
                 ))}
               </div>
             </div>

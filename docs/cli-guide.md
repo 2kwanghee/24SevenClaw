@@ -1,7 +1,7 @@
 ---
 title: CLI 상세 가이드
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-06-15
 related:
   - clickeye-cli

@@ -56,14 +56,19 @@ from governance.core import (  # noqa: E402,F401
     HIGH_PREFIXES,
     ISSUE_KEY_RE,
     OPENAPI_SPEC,
+    assess_budget,
+    assess_rate,
     check_contract_drift,
     check_plan_trace,
     check_ticket_ref,
     classify_risk,
+    compute_risk_score,
     evaluate,
     extract_issue_key,
     get_changed_files,
     is_enabled,
+    is_opt_in,
+    triage_band,
 )
 
 

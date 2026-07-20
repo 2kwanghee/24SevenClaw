@@ -308,54 +308,6 @@ export const apiClient = {
         { method: "POST", body: JSON.stringify(data) },
       ),
 
-    /** 프로젝트 생성 전 드래프트 ZIP 다운로드 */
-    generateZipDraft: async (
-      token: string,
-      data: GenerateRequest,
-    ): Promise<Blob> => {
-      const url = `${API_URL}/api/v1/projects/draft/generate`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...localeHeaders(),
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({
-          detail: "ZIP 생성 중 오류가 발생했습니다",
-        }));
-        throw new ApiClientError(res.status, extractDetail(body.detail));
-      }
-      return res.blob();
-    },
-
-    generateZip: async (
-      token: string,
-      projectId: string,
-      data: GenerateRequest,
-    ): Promise<Blob> => {
-      const url = `${API_URL}/api/v1/projects/${projectId}/generate`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...localeHeaders(),
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({
-          detail: "ZIP 생성 중 오류가 발생했습니다",
-        }));
-        throw new ApiClientError(res.status, extractDetail(body.detail));
-      }
-      return res.blob();
-    },
-
     saveConfig: (
       token: string,
       projectId: string,
@@ -383,44 +335,6 @@ export const apiClient = {
         `/api/v1/reports/project/${projectId}`,
         token,
       ),
-
-    redownload: async (
-      token: string,
-      projectId: string,
-      data: RedownloadRequest,
-    ): Promise<Blob> => {
-      const url = `${API_URL}/api/v1/projects/${projectId}/redownload`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({
-          detail: "재다운로드 중 오류가 발생했습니다",
-        }));
-        throw new ApiClientError(res.status, extractDetail(body.detail));
-      }
-      return res.blob();
-    },
-
-    downloadEnv: async (token: string, projectId: string): Promise<Blob> => {
-      const url = `${API_URL}/api/v1/projects/${projectId}/env`;
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({
-          detail: ".env 다운로드 중 오류가 발생했습니다",
-        }));
-        throw new ApiClientError(res.status, extractDetail(body.detail));
-      }
-      return res.blob();
-    },
 
     reset: async (
       token: string,
@@ -846,81 +760,6 @@ export interface GenerateStartResponse {
   session_id: string;
 }
 
-export const prototypeSessions = {
-  create: (token: string, data: PrototypeSessionCreateRequest) =>
-    authRequest<PrototypeSessionResponse>("/api/v1/prototype-sessions/", token, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  list: (token: string, params?: { offset?: number; limit?: number }) => {
-    const query = new URLSearchParams();
-    if (params?.offset !== undefined) query.set("offset", String(params.offset));
-    if (params?.limit !== undefined) query.set("limit", String(params.limit));
-    const qs = query.toString();
-    return authRequest<PrototypeSessionResponse[]>(
-      `/api/v1/prototype-sessions${qs ? `?${qs}` : ""}`,
-      token,
-    );
-  },
-
-  get: (token: string, sessionId: string) =>
-    authRequest<PrototypeSessionResponse>(
-      `/api/v1/prototype-sessions/${sessionId}`,
-      token,
-    ),
-
-  update: (token: string, sessionId: string, data: PrototypeSessionUpdateRequest) =>
-    authRequest<PrototypeSessionResponse>(
-      `/api/v1/prototype-sessions/${sessionId}`,
-      token,
-      { method: "PATCH", body: JSON.stringify(data) },
-    ),
-
-  getStatus: (token: string, sessionId: string) =>
-    authRequest<PrototypeSessionStatusResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/status`,
-      token,
-    ),
-
-  getPrototypes: (token: string, sessionId: string) =>
-    authRequest<PrototypeListResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/prototypes`,
-      token,
-    ),
-
-  generatePrototypes: (token: string, sessionId: string) =>
-    authRequest<GenerateStartResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/prototypes/generate`,
-      token,
-      { method: "POST" },
-    ),
-
-  recommendPMs: (token: string, sessionId: string) =>
-    authRequest<SessionRecommendPMsResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/recommend-pms`,
-      token,
-      { method: "POST" },
-    ),
-
-  finalize: (token: string, sessionId: string, data: FinalizeRequest) =>
-    authRequest<FinalizeResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/finalize`,
-      token,
-      { method: "POST", body: JSON.stringify(data) },
-    ),
-
-  delete: (token: string, sessionId: string) =>
-    authRequest<void>(`/api/v1/prototype-sessions/${sessionId}`, token, {
-      method: "DELETE",
-    }),
-
-  recommendComponents: (token: string, sessionId: string) =>
-    authRequest<RecommendComponentsResponse>(
-      `/api/v1/prototype-sessions/${sessionId}/recommend-components`,
-      token,
-    ),
-};
 
 /** GET /prototype-sessions/{id}/recommend-components 응답 */
 export interface RecommendComponentsResponse {
@@ -1794,6 +1633,68 @@ export const orchestrator = {
     ),
 };
 
+// --- LLM 사용량 원장 (admin/settings:manage 전용) ---
+// Decimal은 JSON에서 string 또는 number로 직렬화될 수 있으므로 방어적으로 둔다.
+
+export interface LlmKeySourceTotals {
+  key_source: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number | string | null;
+}
+
+export interface LlmProjectUsageSummary {
+  project_id: string | null;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: number | string | null;
+  by_key_source: LlmKeySourceTotals[];
+}
+
+export interface LlmUsageEntryResponse {
+  id: string;
+  created_at: string | null;
+  project_id: string | null;
+  task_id: string | null;
+  provider: string;
+  key_source: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cost: number | string | null;
+  request_kind: string;
+  status: string;
+  meta: Record<string, unknown> | null;
+}
+
+export interface LlmUsageListResponse {
+  items: LlmUsageEntryResponse[];
+  total: number;
+}
+
+export const llmLedger = {
+  summary: (token: string, projectId: string) =>
+    authRequest<LlmProjectUsageSummary>(
+      `/api/v1/llm-ledger/summary?project_id=${encodeURIComponent(projectId)}`,
+      token,
+    ),
+
+  list: (
+    token: string,
+    params: { projectId?: string; limit?: number; offset?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params.projectId) query.set("project_id", params.projectId);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return authRequest<LlmUsageListResponse>(
+      `/api/v1/llm-ledger${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+};
+
 // --- Linear Credentials ---
 
 export interface LinearCredentialsSave {
@@ -2490,207 +2391,6 @@ export const roi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-};
-
-// ---------------------------------------------------------------------------
-// Wizard Preview
-// ---------------------------------------------------------------------------
-
-export interface WizardPreviewRequest {
-  step: string;
-  data: Record<string, unknown>;
-}
-
-export interface WizardPreviewResponse {
-  step: string;
-  result: Record<string, unknown> | null;
-  supported: boolean;
-}
-
-export const wizardPreview = {
-  fetch: (token: string, data: WizardPreviewRequest) =>
-    authRequest<WizardPreviewResponse>("/api/v1/wizard/preview", token, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-};
-
-// ============================================================================
-// ClickEye Modernize (MVP-2-A) — GitHub App 기반 기존 코드 현대화 파이프라인
-// ============================================================================
-
-export interface ModernizeInstallUrlResponse {
-  install_url: string;
-  state: string;
-}
-
-export interface ModernizeInstallationItem {
-  id: string;
-  installation_id: number;
-  account_login: string;
-  account_type: string;
-  repository_selection: string;
-  installed_at: string;
-  suspended_at: string | null;
-  repo_count: number;
-}
-
-export interface ModernizeRepoItem {
-  gh_repo_id: number;
-  full_name: string;
-  default_branch: string;
-  private: boolean;
-  language_primary: string | null;
-  pushed_at: string | null;
-}
-
-export interface ModernizeSessionCreate {
-  installation_pk: string;
-  repo_full_name: string;
-  branch?: string;
-  scenario: "versionup" | "refactor" | "language_migrate";
-  goals_text?: string;
-  target_stack?: Record<string, unknown>;
-}
-
-export interface ModernizeSessionResponse {
-  id: string;
-  repo_full_name: string;
-  repo_branch: string;
-  commit_sha: string | null;
-  scenario: string;
-  status:
-    | "pending"
-    | "cloning"
-    | "analyzing"
-    | "recommending"
-    | "ready"
-    | "finalized"
-    | "failed";
-  progress_pct: number;
-  error: Record<string, unknown> | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface CodebaseAnalysisResponse {
-  session_id: string;
-  loc_total: number | null;
-  file_count: number | null;
-  lang_distribution: Record<string, number>;
-  manifests: Record<string, unknown>[];
-  outdated_packages: Record<string, unknown>[];
-  framework_signals: Record<string, unknown>;
-  risk_flags: string[];
-  llm_summary_md: string | null;
-  tokens_used: number | null;
-  analyzed_at: string | null;
-}
-
-export interface ModernizeRecommendationResponse {
-  id: string;
-  idx: number;
-  category: string;
-  target_path: string | null;
-  before: Record<string, unknown> | null;
-  after: Record<string, unknown> | null;
-  title: string;
-  rationale_md: string | null;
-  effort: "S" | "M" | "L";
-  risk: "low" | "med" | "high";
-  priority: number;
-  prompt_md: string | null;
-  linear_issue_id: string | null;
-  linear_identifier: string | null;
-  selected: boolean;
-}
-
-export interface ModernizeRecommendationUpdate {
-  selected?: boolean;
-  priority?: number;
-  prompt_md?: string;
-}
-
-export const modernize = {
-  /** GitHub App 설치 URL + CSRF state (M3 endpoint). flag OFF 시 404, settings 미설정 시 503 */
-  installUrl: (token: string) =>
-    authRequest<ModernizeInstallUrlResponse>(
-      "/api/v1/integrations/github/app/install-url",
-      token,
-    ),
-  /** 현재 사용자의 활성 installation 목록 */
-  listInstallations: (token: string) =>
-    authRequest<ModernizeInstallationItem[]>(
-      "/api/v1/modernize/installations",
-      token,
-    ),
-  /** 특정 installation 의 repo 목록 (24h 캐시). refresh=true 면 즉시 GitHub API 호출 */
-  listRepos: (token: string, installationPk: string, refresh = false) =>
-    authRequest<ModernizeRepoItem[]>(
-      `/api/v1/modernize/installations/${installationPk}/repos?refresh=${refresh}`,
-      token,
-    ),
-  /** ModernizeSession 생성 + 백그라운드 7-step pipeline 시작 */
-  createSession: (token: string, data: ModernizeSessionCreate) =>
-    authRequest<ModernizeSessionResponse>("/api/v1/modernize/sessions", token, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  /** 세션 상태/진행률 폴링 */
-  getSession: (token: string, sessionId: string) =>
-    authRequest<ModernizeSessionResponse>(
-      `/api/v1/modernize/sessions/${sessionId}`,
-      token,
-    ),
-  /** 분석 완료 후 결과 조회 (status='ready' 또는 'finalized' 일 때) */
-  getAnalysis: (token: string, sessionId: string) =>
-    authRequest<CodebaseAnalysisResponse>(
-      `/api/v1/modernize/sessions/${sessionId}/analysis`,
-      token,
-    ),
-  /** 권장안 목록 (priority asc 정렬) */
-  listRecommendations: (token: string, sessionId: string) =>
-    authRequest<ModernizeRecommendationResponse[]>(
-      `/api/v1/modernize/sessions/${sessionId}/recommendations`,
-      token,
-    ),
-  /** 권장안 편집 — selected / priority / prompt_md 만 변경 */
-  updateRecommendation: (
-    token: string,
-    sessionId: string,
-    recId: string,
-    data: ModernizeRecommendationUpdate,
-  ) =>
-    authRequest<ModernizeRecommendationResponse>(
-      `/api/v1/modernize/sessions/${sessionId}/recommendations/${recId}`,
-      token,
-      { method: "PATCH", body: JSON.stringify(data) },
-    ),
-  /** finalize — Linear 등록 + ZIP URL 응답 + 세션 상태 'finalized' */
-  finalizeSession: (
-    token: string,
-    sessionId: string,
-    data: { create_linear_issues?: boolean; project_id?: string } = {},
-  ) =>
-    authRequest<{
-      session_id: string;
-      status: string;
-      linear_parent_url: string | null;
-      linear_parent_identifier: string | null;
-      linear_child_count: number;
-      linear_errors: string[];
-      zip_url: string;
-      selected_recommendation_count: number;
-    }>(`/api/v1/modernize/sessions/${sessionId}/finalize`, token, {
-      method: "POST",
-      body: JSON.stringify({
-        create_linear_issues: data.create_linear_issues ?? true,
-        project_id: data.project_id,
-      }),
-    }),
-  /** ZIP 다운로드 URL (브라우저가 직접 GET) */
-  zipDownloadUrl: (sessionId: string) =>
-    `/api/v1/modernize/sessions/${sessionId}/zip`,
 };
 
 export { ApiClientError, NetworkError };

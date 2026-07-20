@@ -166,7 +166,7 @@ export function SessionCreateModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="구현할 기능을 설명하세요..."
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
               <div>
@@ -179,7 +179,7 @@ export function SessionCreateModal({
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   placeholder="작업의 배경, 요구사항, 제약조건 등..."
-                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
             </div>
@@ -196,7 +196,7 @@ export function SessionCreateModal({
                 type="button"
                 onClick={handleCreate}
                 disabled={!title.trim() || create.isPending}
-                className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {create.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -212,7 +212,7 @@ export function SessionCreateModal({
         {/* Step: Decomposing */}
         {step === "decomposing" && (
           <div className="flex flex-col items-center gap-3 py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--text-muted)]" />
             <p className="text-sm text-[var(--text-secondary)]">요구사항 분석 후 서브태스크 생성 중...</p>
             <p className="text-xs text-[var(--text-muted)]">
               AI가 요구사항을 분석하고 서브태스크를 생성하고 있습니다
@@ -232,23 +232,23 @@ export function SessionCreateModal({
 
             {/* 분석 요약 카드 */}
             {analysisResult && (
-              <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs">
+              <div className="mb-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2.5 text-xs">
                 <div className="mb-1.5 flex items-center gap-2">
-                  <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
-                  <span className="font-medium text-zinc-700">요구사항 분석 결과</span>
-                  <span className="ml-auto rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                  <span className="font-medium text-[var(--text-secondary)]">요구사항 분석 결과</span>
+                  <span className="ml-auto rounded-full bg-[var(--border-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
                     {analysisResult.primary_tag}
                   </span>
                   {analysisResult.complexity && (
-                    <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                    <span className="rounded-full bg-[var(--border-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
                       {analysisResult.complexity}
                     </span>
                   )}
                 </div>
                 {analysisResult.features && analysisResult.features.length > 0 && (
                   <div className="mb-1">
-                    <span className="text-zinc-500">주요 기능: </span>
-                    <span className="text-zinc-700">
+                    <span className="text-[var(--text-muted)]">주요 기능: </span>
+                    <span className="text-[var(--text-secondary)]">
                       {analysisResult.features.slice(0, 5).join(", ")}
                       {analysisResult.features.length > 5 && ` 외 ${analysisResult.features.length - 5}개`}
                     </span>
@@ -257,7 +257,7 @@ export function SessionCreateModal({
                 {analysisResult.key_requirements && analysisResult.key_requirements.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {analysisResult.key_requirements.slice(0, 3).map((req, i) => (
-                      <li key={i} className="flex items-start gap-1 text-zinc-600">
+                      <li key={i} className="flex items-start gap-1 text-[var(--text-secondary)]">
                         <span className="mt-0.5 shrink-0">•</span>
                         <span>{req}</span>
                       </li>
@@ -279,7 +279,7 @@ export function SessionCreateModal({
                   key={st.id}
                   className="flex items-start gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-3"
                 >
-                  <span className="mt-0.5 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-700">
+                  <span className="mt-0.5 shrink-0 rounded bg-[var(--bg-elevated)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
                     {ROLE_LABELS[st.assigned_role] ?? st.assigned_role}
                   </span>
                   <div className="min-w-0">
@@ -306,7 +306,7 @@ export function SessionCreateModal({
                 type="button"
                 onClick={handleAssign}
                 disabled={assign.isPending}
-                className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {assign.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -322,7 +322,7 @@ export function SessionCreateModal({
         {/* Step: Assigning */}
         {step === "assigning" && (
           <div className="flex flex-col items-center gap-3 py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--text-muted)]" />
             <p className="text-sm text-[var(--text-secondary)]">AI 팀을 배정하는 중...</p>
           </div>
         )}
@@ -415,7 +415,7 @@ export function SessionCreateModal({
               <button
                 type="button"
                 onClick={handleDone}
-                className="rounded-lg bg-zinc-900 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+                className="rounded-lg bg-[var(--accent)] px-6 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90"
               >
                 대시보드로 이동
               </button>

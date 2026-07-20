@@ -34,7 +34,7 @@ interface CompositionChipProps {
 }
 
 function CompositionChip({ item, onDelete, isDeleting }: CompositionChipProps) {
-  const colorClass = TYPE_COLORS[item.component_type as ComponentType] ?? "border-zinc-200 bg-zinc-50 text-zinc-700";
+  const colorClass = TYPE_COLORS[item.component_type as ComponentType] ?? "border-[var(--border-subtle)] bg-[var(--bg-base)] text-[var(--text-secondary)]";
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${colorClass}`}>
       <span className="font-mono opacity-60">{item.component_slug}</span>

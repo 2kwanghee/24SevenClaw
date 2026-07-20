@@ -85,5 +85,4 @@ Claude 응답 포함 전체 추천 API 평균 레이턴시가 10초를 초과하
 
 ## 관련 문서
 
-- [PM 추천 엔진 동작 방식](../solutions/wizard/step-04-pm-recommend.md) — 70/30 하이브리드 점수 및 폴백 정책
 - [PM 관리](./pm-management.md) — PM 프로필 CRUD 및 Claude 품질 향상 권장 작업

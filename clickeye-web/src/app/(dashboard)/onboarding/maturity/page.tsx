@@ -46,7 +46,7 @@ export default function MaturityAssessmentPage() {
           <p className="text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
           <button
             type="button"
-            onClick={() => router.push("/solutions/new")}
+            onClick={() => router.push("/delivery")}
             className="mt-2 flex items-center gap-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]"
           >
             {t("skipBtn")}
@@ -74,7 +74,7 @@ export default function MaturityAssessmentPage() {
           <p className="text-sm text-[var(--text-muted)]">{t("questionsError")}</p>
           <button
             type="button"
-            onClick={() => router.push("/solutions/new")}
+            onClick={() => router.push("/delivery")}
             className="mt-4 text-sm text-zinc-700 hover:text-[var(--text-primary)]"
           >
             {t("goToWizard")}

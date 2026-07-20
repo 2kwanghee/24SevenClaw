@@ -28,8 +28,8 @@ const ROLE_CONFIG: Record<
   architect: {
     label: "아키텍트",
     icon: <Cpu className="h-3.5 w-3.5" />,
-    color: "text-zinc-700",
-    bg: "bg-zinc-100",
+    color: "text-[var(--text-secondary)]",
+    bg: "bg-[var(--bg-hover)]",
   },
   frontend: {
     label: "프론트엔드",
@@ -73,7 +73,7 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; cls: string }
 > = {
-  pending: { label: "대기", cls: "bg-zinc-100 text-zinc-600" },
+  pending: { label: "대기", cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]" },
   in_progress: { label: "진행 중", cls: "bg-blue-50 text-blue-700" },
   completed: { label: "완료", cls: "bg-emerald-50 text-emerald-700" },
   failed: { label: "실패", cls: "bg-red-50 text-red-700" },
@@ -82,14 +82,14 @@ const STATUS_CONFIG: Record<
 
 const LINEAR_TYPE_CLS: Record<string, string> = {
   triage:    "bg-amber-50 text-amber-700 border border-amber-200",
-  backlog:   "bg-zinc-100 text-zinc-500 border border-zinc-200",
-  unstarted: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  backlog:   "bg-[var(--bg-hover)] text-[var(--text-muted)] border border-[var(--border-subtle)]",
+  unstarted: "bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)]",
   started:   "bg-blue-50 text-blue-700 border border-blue-200",
   completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
 
-const LINEAR_TYPE_FALLBACK = "bg-zinc-100 text-zinc-600 border border-zinc-200";
+const LINEAR_TYPE_FALLBACK = "bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)]";
 
 function getLinearStateCls(stateName: string, teamStates: LinearTeamState[]): string {
   const matched = teamStates.find((s) => s.name === stateName);
@@ -129,7 +129,7 @@ export function SubTaskCard({
     label: subtask.assigned_role,
     icon: <Bot className="h-3.5 w-3.5" />,
     color: "text-[var(--text-muted)]",
-    bg: "bg-zinc-100",
+    bg: "bg-[var(--bg-hover)]",
   };
   const status = STATUS_CONFIG[subtask.status] ?? STATUS_CONFIG.pending;
   const linearStateName = subtask.linear_state ?? null;
@@ -176,7 +176,7 @@ export function SubTaskCard({
               {role.icon}
               {role.label}
             </div>
-            <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            <span className="shrink-0 rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
               {orderNum}/{total}
             </span>
             {isNextRecommended && (

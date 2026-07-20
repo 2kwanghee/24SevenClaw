@@ -1,0 +1,12 @@
+{
+  "currency": "USD",
+  "unit": "per_1m_tokens",
+  "last_updated": "2026-07-15",
+  "note": "조직키(org_api_key) 호출 비용 산정용 토큰 단가. 구독시트(subscription_seat)는 산정하지 않음. 미등재 모델은 cost None + 경고 로그(오산정 방지). 값 갱신 시 last_updated 동반 갱신.",
+  "models": {
+    "claude-sonnet-4-6": {"input": 3, "output": 15},
+    "claude-sonnet-5": {"input": 3, "output": 15},
+    "claude-opus-4-8": {"input": 5, "output": 25},
+    "claude-haiku-4-5": {"input": 1, "output": 5}
+  }
+}

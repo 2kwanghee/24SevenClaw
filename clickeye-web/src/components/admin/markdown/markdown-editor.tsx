@@ -20,7 +20,7 @@ export function MarkdownEditor({ value, onChange, rows = 28 }: MarkdownEditorPro
         <textarea data-gramm="false" data-gramm_editor="false"
           spellCheck={false}
           style={{ height: `${rows * 1.5}rem` }}
-          className="w-full flex-1 resize-none bg-zinc-50 px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:outline-none"
+          className="w-full flex-1 resize-none bg-[var(--bg-base)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] focus:outline-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -35,7 +35,7 @@ export function MarkdownEditor({ value, onChange, rows = 28 }: MarkdownEditorPro
           style={{ height: `${rows * 1.5}rem` }}
           className="overflow-y-auto bg-[var(--bg-surface)] px-5 py-4"
         >
-          <div className="prose prose-sm max-w-none prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-code:text-violet-600 prose-pre:bg-zinc-50 prose-a:text-violet-600 prose-strong:text-[var(--text-primary)] prose-li:text-[var(--text-secondary)]">
+          <div className="prose prose-sm max-w-none prose-headings:text-[var(--text-primary)] prose-p:text-[var(--text-secondary)] prose-code:text-[var(--accent)] prose-pre:bg-[var(--bg-base)] prose-a:text-[var(--accent)] prose-strong:text-[var(--text-primary)] prose-li:text-[var(--text-secondary)]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {value || "*내용을 입력하면 여기에 미리보기가 표시됩니다.*"}
             </ReactMarkdown>

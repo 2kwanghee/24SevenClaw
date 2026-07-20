@@ -1,7 +1,7 @@
 ---
 title: 개발 파이프라인 동작 원리
 category: product
-status: current
+status: needs-revision
 last_updated: 2026-06-12
 related:
   - scripts/auto_dev_pipeline.sh

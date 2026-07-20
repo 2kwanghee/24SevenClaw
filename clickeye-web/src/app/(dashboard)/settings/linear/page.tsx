@@ -48,7 +48,7 @@ function GuideBlock({ title, children, defaultOpen = false }: GuideBlockProps) {
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
         <span className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
-          <Info className="h-3.5 w-3.5 text-zinc-700" />
+          <Info className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
           {title}
         </span>
         {open ? (
@@ -68,7 +68,7 @@ function GuideBlock({ title, children, defaultOpen = false }: GuideBlockProps) {
 
 function CodeLine({ children }: { children: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-zinc-50 px-3 py-2 font-mono text-[11px] text-[var(--text-secondary)]">
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 font-mono text-[11px] text-[var(--text-secondary)]">
       <Terminal className="h-3 w-3 shrink-0 text-[var(--text-muted)]" />
       {children}
     </div>
@@ -84,14 +84,14 @@ function TunnelGuide() {
       <p className="leading-relaxed">{t("tunnelDesc")}</p>
       <ol className="space-y-2.5 list-none">
         <li className="flex gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">1</span>
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-base)] text-[10px] font-semibold text-[var(--text-secondary)]">1</span>
           <div>
             <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep1Title")}</p>
             <CodeLine>bash start.sh</CodeLine>
           </div>
         </li>
         <li className="flex gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">2</span>
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-base)] text-[10px] font-semibold text-[var(--text-secondary)]">2</span>
           <div>
             <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep2Title")}</p>
             <CodeLine>{"cat .run/tunnel.url"}</CodeLine>
@@ -99,7 +99,7 @@ function TunnelGuide() {
           </div>
         </li>
         <li className="flex gap-2.5">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-700">3</span>
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--bg-base)] text-[10px] font-semibold text-[var(--text-secondary)]">3</span>
           <div>
             <p className="font-medium text-[var(--text-secondary)] mb-1">{t("tunnelStep3Title")}</p>
             <CodeLine>bash start.sh</CodeLine>
@@ -136,9 +136,9 @@ function WebhookSecretGuide() {
         <CodeLine>{"openssl rand -hex 32"}</CodeLine>
         <p className="text-[var(--text-muted)]">{t("webhookPasteDesc")}</p>
       </div>
-      <div className="flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
-        <Shield className="h-3.5 w-3.5 shrink-0 mt-0.5 text-violet-700" />
-        <p className="text-violet-700">{t("webhookNote")}</p>
+      <div className="flex items-start gap-2 rounded-lg border border-[var(--accent-soft)] bg-[var(--accent-soft)] px-3 py-2">
+        <Shield className="h-3.5 w-3.5 shrink-0 mt-0.5 text-[var(--accent)]" />
+        <p className="text-[var(--accent)]">{t("webhookNote")}</p>
       </div>
     </GuideBlock>
   );
@@ -251,7 +251,7 @@ export default function LinearSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-700" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-secondary)]" />
       </div>
     );
   }
@@ -263,7 +263,6 @@ export default function LinearSettingsPage() {
       onClose={() => setGuideOpen(false)}
       channel="linear"
       staleProjects={staleProjects}
-      token={token}
     />
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
@@ -273,10 +272,10 @@ export default function LinearSettingsPage() {
 
       {/* 저장된 자격증명 요약 */}
       {saved && (
-        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+        <div className="rounded-2xl border border-[var(--accent-soft)] bg-[var(--accent-soft)] p-5">
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircle2 className="h-4 w-4 text-violet-600" />
-            <h2 className="text-sm font-semibold text-violet-700">{t("savedTitle")}</h2>
+            <CheckCircle2 className="h-4 w-4 text-[var(--accent)]" />
+            <h2 className="text-sm font-semibold text-[var(--accent)]">{t("savedTitle")}</h2>
           </div>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
@@ -335,8 +334,8 @@ export default function LinearSettingsPage() {
               className={cn(
                 "w-full rounded-lg border bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:ring-1",
                 saved && !apiKey
-                  ? "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200"
-                  : "border-[var(--border-subtle)] focus:border-zinc-400 focus:ring-zinc-200",
+                  ? "border-[var(--border-subtle)] focus:border-[var(--accent)] focus:ring-[var(--accent)]"
+                  : "border-[var(--border-subtle)] focus:border-[var(--accent)] focus:ring-[var(--accent)]",
               )}
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
@@ -353,7 +352,7 @@ export default function LinearSettingsPage() {
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
               {t("teamIdHelp")}
@@ -364,7 +363,7 @@ export default function LinearSettingsPage() {
         {/* Webhook 설정 */}
         <div className="border-t border-[var(--border-subtle)] pt-5 space-y-4">
           <h3 className="text-xs font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
-            <Link2 className="h-3.5 w-3.5 text-zinc-700" />
+            <Link2 className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
             {t("webhookSectionTitle")}
             <span className="text-[var(--text-muted)] font-normal">{t("webhookSectionNote")}</span>
           </h3>
@@ -376,7 +375,7 @@ export default function LinearSettingsPage() {
               value={tunnelUrl}
               onChange={(e) => setTunnelUrl(e.target.value)}
               placeholder="https://xxxx.trycloudflare.com"
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
             />
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
               {t("tunnelUrlHelp")}
@@ -392,7 +391,7 @@ export default function LinearSettingsPage() {
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
               placeholder={saved?.webhook_secret_set ? t("webhookPlaceholderSet") : t("webhookPlaceholderUnset")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
             />
           </div>
 
@@ -417,7 +416,7 @@ export default function LinearSettingsPage() {
           <button
             onClick={handleSave}
             disabled={saving || !canSave}
-            className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             {saved ? t("updateBtn") : t("saveBtn")}

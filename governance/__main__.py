@@ -42,11 +42,24 @@ def main() -> int:
         default=None,
         help="plan-trace 검사에 사용할 plan 본문(원격 호출용, 파일 대신)",
     )
+    p.add_argument(
+        "--usage-json",
+        default=None,
+        help="트리아지 예산/레이트 주입용 usage dict(JSON). 예: '{\"cost\":1.2,\"tokens\":5000}'",
+    )
+    p.add_argument(
+        "--metrics-json",
+        default=None,
+        help="트리아지 risk_score 주입용 metrics dict(JSON). 예: '{\"coverage\":0.6,\"diff_lines\":500}'",
+    )
     args = p.parse_args()
 
     files = None
     if args.diff_files is not None:
         files = [f.strip() for f in re.split(r"[,\n]", args.diff_files) if f.strip()]
+
+    usage = json.loads(args.usage_json) if args.usage_json else None
+    metrics = json.loads(args.metrics_json) if args.metrics_json else None
 
     result = evaluate(
         args.base,
@@ -54,14 +67,19 @@ def main() -> int:
         files,
         project_dir=args.project_dir,
         plan_text=args.plan_text,
+        usage=usage,
+        metrics=metrics,
     )
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False))
     else:
+        triage_suffix = ""
+        if "triage" in result:
+            triage_suffix = f" triage={result['triage']} risk={result['risk_score']}"
         print(f"[governance:{result['governance']}] verdict={result['verdict']} "
               f"tier={result['tier']} merge={result['merge_decision']} "
-              f"key={result['issue_key']}")
+              f"key={result['issue_key']}{triage_suffix}")
         for f in result["failures"]:
             print(f"  ❌ {f}", file=sys.stderr)
         for w in result["warnings"]:

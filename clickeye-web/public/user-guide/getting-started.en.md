@@ -10,7 +10,7 @@ Welcome to ClickEye.
 
 ## Overview
 
-ClickEye is a platform for building AI agent development automation solutions. Design a solution in your browser using the 7-Step wizard, download it as a ZIP, and an AI agent automates development in your local environment.
+ClickEye is an AI agent-driven development automation delivery platform. Create a project in the web delivery console, and the AI Team decomposes tasks, drafts, and reviews the work to automate development.
 
 ## Platform Components
 
@@ -20,14 +20,14 @@ ClickEye is a platform for building AI agent development automation solutions. D
 
 ## Quick Start
 
-1. Click the **New Solution** button on the dashboard.
-2. Configure your project by following the 7-Step wizard.
-3. Download the ZIP and extract it in your local environment.
-4. Launch the AI agent platform you selected.
+1. Click the **New Project** button on the dashboard.
+2. Enter the project details to create it.
+3. Request your first task on the project's **AI Team** page.
+4. Review and approve the AI-generated draft.
 
 ## Next Steps
 
-- [Solution Design](/guide/solution-design) — A step-by-step wizard guide
+- [AI Team Management](/guide/ai-team-management) — Task requests, draft generation, and approval flow
 - [Agent Platform](/guide/agent-platform) — Features and setup for each platform
 - [CLI Guide](/guide/cli-guide) — Using the CLI tool
 

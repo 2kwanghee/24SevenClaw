@@ -1,16 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Search, ChevronLeft, ChevronRight, Sparkles, ArrowRight, GitBranch } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
 import { useProjects } from "@/hooks/use-projects";
-import { isModernizeEnabled } from "@/lib/feature-flags";
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +21,10 @@ function ProjectsContent() {
   const pathname = usePathname();
   const tT = useTranslations("toast.projects");
   const t = useTranslations("projects.page");
+  const tD = useTranslations("common.projectDialog");
+
+  // 프로젝트 생성 다이얼로그 open 상태
+  const [createOpen, setCreateOpen] = useState(false);
 
   // URL searchParams에서 상태 추출
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -85,58 +88,20 @@ function ProjectsContent() {
 
   return (
     <div>
-      {/* 새 솔루션 위저드 CTA 배너 */}
-      <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-            <Sparkles className="h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">{t("wizardBannerTitle")}</p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("wizardBannerDesc")}</p>
-          </div>
-        </div>
-        <Link
-          href="/solutions/new"
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800"
-          aria-label={t("wizardBannerBtnAria")}
-        >
-          {t("wizardBannerBtn")}
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </div>
-
-      {/* Modernize 진입 카드 (FEATURE_MODERNIZE_ENABLED=true 인 베타 사용자만 노출) */}
-      {isModernizeEnabled() && (
-        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-              <GitBranch className="h-5 w-5 text-amber-700" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
-                {t("modernizeBannerTitle")} <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">BETA</span>
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("modernizeBannerDesc")}</p>
-            </div>
-          </div>
-          <Link
-            href="/solutions/modernize/new"
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-zinc-900 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50"
-            aria-label={t("modernizeBannerBtnAria")}
-          >
-            {t("modernizeBannerBtn")}
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-      )}
-
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 self-start rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-fg)] shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] sm:self-auto"
+        >
+          <Plus className="h-4 w-4" />
+          {tD("newProject")}
+        </button>
       </div>
 
       {/* 검색 + 필터 */}
@@ -150,7 +115,7 @@ function ProjectsContent() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             aria-label={t("searchAria")}
-            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-300"
+            className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
           />
         </div>
 
@@ -170,7 +135,7 @@ function ProjectsContent() {
               aria-pressed={statusFilter === option.value}
               className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 statusFilter === option.value
-                  ? "bg-zinc-900 text-white shadow-sm"
+                  ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
@@ -191,7 +156,19 @@ function ProjectsContent() {
       )}
 
       {/* 목록 */}
-      {data && <ProjectList projects={data.items} />}
+      {data && (
+        <ProjectList
+          projects={data.items}
+          onCreate={() => setCreateOpen(true)}
+        />
+      )}
+
+      {/* 프로젝트 생성 다이얼로그 */}
+      <CreateProjectDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(project) => router.push(`/projects/${project.id}`)}
+      />
 
       {/* 페이지네이션 */}
       {data && data.total > PAGE_SIZE && (
@@ -203,7 +180,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage - 1) })
             }
             aria-label={t("prevPageAria")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -218,8 +195,8 @@ function ProjectsContent() {
                 aria-current={page === currentPage ? "page" : undefined}
                 className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium transition-colors ${
                   page === currentPage
-                    ? "bg-zinc-900 text-white shadow-sm"
-                    : "border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-zinc-400 hover:text-[var(--text-primary)]"
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                    : "border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-medium)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {page}
@@ -234,7 +211,7 @@ function ProjectsContent() {
               updateParams({ page: String(currentPage + 1) })
             }
             aria-label={t("nextPageAria")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-zinc-400 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] transition-colors hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

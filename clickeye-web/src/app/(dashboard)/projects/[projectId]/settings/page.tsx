@@ -26,7 +26,7 @@ export default function ProjectSettingsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-medium)] border-t-[var(--accent)]" />
         <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
       </div>
     );
@@ -38,7 +38,7 @@ export default function ProjectSettingsPage() {
         <p className="text-sm text-red-700">프로젝트를 찾을 수 없습니다.</p>
         <Link
           href="/projects"
-          className="mt-3 inline-block text-sm text-zinc-500 transition-colors hover:text-zinc-900 hover:underline"
+          className="mt-3 inline-block text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] hover:underline"
         >
           목록으로 돌아가기
         </Link>

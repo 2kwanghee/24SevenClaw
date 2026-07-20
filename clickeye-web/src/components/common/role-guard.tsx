@@ -37,7 +37,7 @@ export function RoleGuard({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border-medium)] border-t-[var(--text-primary)]" />
       </div>
     );
   }

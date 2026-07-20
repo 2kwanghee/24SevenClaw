@@ -15,7 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   active: "bg-green-100 text-green-700",
   paused: "bg-yellow-100 text-yellow-700",
-  archived: "bg-gray-100 text-gray-500",
+  archived: "bg-[var(--bg-base)] text-[var(--text-muted)]",
 };
 
 export default function ControlTowerPage() {
@@ -53,15 +53,15 @@ export default function ControlTowerPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6 text-indigo-600" />
+          <Building2 className="h-6 w-6 text-[var(--accent)]" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">컨트롤 타워</h1>
-            <p className="text-sm text-gray-500">고객사별 프로젝트 현황을 관리합니다</p>
+            <h1 className="text-xl font-semibold text-[var(--text-primary)]">컨트롤 타워</h1>
+            <p className="text-sm text-[var(--text-muted)]">고객사별 프로젝트 현황을 관리합니다</p>
           </div>
         </div>
         <button
           onClick={load}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
         >
           <RefreshCw className="h-4 w-4" />
           새로고침
@@ -71,19 +71,19 @@ export default function ControlTowerPage() {
       {/* 필터 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             placeholder="고객사 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-[var(--border-subtle)] py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         >
           <option value="">전체 상태</option>
           <option value="active">운영 중</option>
@@ -93,17 +93,17 @@ export default function ControlTowerPage() {
       </div>
 
       {/* 집계 */}
-      <p className="text-sm text-gray-500">총 {total}개 고객사</p>
+      <p className="text-sm text-[var(--text-muted)]">총 {total}개 고객사</p>
 
       {/* 고객사 카드 그리드 */}
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-xl bg-gray-100" />
+            <div key={i} className="h-36 animate-pulse rounded-xl bg-[var(--bg-base)]" />
           ))}
         </div>
       ) : customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-200 py-16 text-gray-400">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--border-subtle)] py-16 text-[var(--text-muted)]">
           <Building2 className="h-10 w-10" />
           <p className="text-sm">고객사가 없습니다</p>
         </div>
@@ -113,25 +113,25 @@ export default function ControlTowerPage() {
             <button
               key={c.id}
               onClick={() => router.push(`/admin/control-tower/customers/${c.id}`)}
-              className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+              className="flex flex-col gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 text-left shadow-sm transition hover:border-[var(--accent)] hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 flex-shrink-0 text-indigo-500" />
-                  <span className="font-medium text-gray-900 line-clamp-1">
+                  <Building2 className="h-5 w-5 flex-shrink-0 text-[var(--accent)]" />
+                  <span className="font-medium text-[var(--text-primary)] line-clamp-1">
                     {c.company_name}
                   </span>
                 </div>
                 <span
                   className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    STATUS_COLOR[c.customer_status] ?? "bg-gray-100 text-gray-500"
+                    STATUS_COLOR[c.customer_status] ?? "bg-[var(--bg-base)] text-[var(--text-muted)]"
                   }`}
                 >
                   {STATUS_LABEL[c.customer_status] ?? c.customer_status}
                 </span>
               </div>
 
-              <div className="flex gap-4 text-sm text-gray-500">
+              <div className="flex gap-4 text-sm text-[var(--text-muted)]">
                 <div className="flex items-center gap-1.5">
                   <Layers className="h-4 w-4" />
                   <span>프로젝트 {c.project_count}개</span>
@@ -143,7 +143,7 @@ export default function ControlTowerPage() {
               </div>
 
               {c.account_manager_name && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[var(--text-muted)]">
                   담당: {c.account_manager_name}
                 </p>
               )}

@@ -45,7 +45,7 @@ export default function ProjectInsightsPage() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-zinc-500" />
+              <BarChart3 className="h-4 w-4 text-[var(--text-muted)]" />
               <h1 className="text-lg font-bold text-[var(--text-primary)]">
                 {kpi?.project_name ?? report?.project_name ?? "프로젝트"} KPI 인사이트
               </h1>
@@ -73,7 +73,7 @@ export default function ProjectInsightsPage() {
       {/* 로딩 */}
       {isLoading && !kpi && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
         </div>
       )}
 

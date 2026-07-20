@@ -48,8 +48,8 @@ function OverrideCard({
   const { data: parentContract } = useContract(override.central_contract_id);
 
   const typeColor = parentContract
-    ? TYPE_COLORS[parentContract.contract_type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"
-    : "bg-zinc-100 text-zinc-600 border-zinc-200";
+    ? TYPE_COLORS[parentContract.contract_type] ?? "bg-[var(--bg-hover)] text-[var(--text-secondary)] border-[var(--border-subtle)]"
+    : "bg-[var(--bg-hover)] text-[var(--text-secondary)] border-[var(--border-subtle)]";
   const typeLabel = parentContract
     ? TYPE_LABELS[parentContract.contract_type] ?? parentContract.contract_type
     : "로딩 중...";
@@ -79,7 +79,7 @@ function OverrideCard({
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
               override.is_active
                 ? "bg-emerald-50 text-emerald-700"
-                : "bg-zinc-100 text-zinc-500"
+                : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
             }`}
           >
             {override.is_active ? "활성" : "비활성"}
@@ -118,7 +118,7 @@ function OverrideCard({
           onCancel={() => setEditing(false)}
         />
       ) : (
-        <pre className="max-h-40 overflow-auto rounded-lg border border-[var(--border-subtle)] bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-600">
+        <pre className="max-h-40 overflow-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
           {JSON.stringify(override.override_content, null, 2)}
         </pre>
       )}
@@ -195,13 +195,13 @@ function ApplyContractDialog({
                   onClick={() => setSelectedId(c.id)}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
                     selectedId === c.id
-                      ? "bg-zinc-900 text-white"
+                      ? "bg-[var(--accent)] text-[var(--accent-fg)]"
                       : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                   }`}
                 >
                   <div>
                     <p className="text-sm font-medium">{c.slug}</p>
-                    <p className={`text-xs ${selectedId === c.id ? "text-zinc-400" : "text-[var(--text-muted)]"}`}>
+                    <p className={`text-xs ${selectedId === c.id ? "text-[var(--accent-fg)]/70" : "text-[var(--text-muted)]"}`}>
                       {TYPE_LABELS[c.contract_type] ?? c.contract_type} · v{c.version}
                     </p>
                   </div>
@@ -231,7 +231,7 @@ function ApplyContractDialog({
               type="button"
               onClick={handleApply}
               disabled={!selectedId || applyContract.isPending}
-              className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
               {applyContract.isPending ? "적용 중..." : "적용"}
@@ -279,8 +279,8 @@ function ProjectContractsContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
-            <FileText className="h-5 w-5 text-zinc-700" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+            <FileText className="h-5 w-5 text-[var(--text-secondary)]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">프로젝트 계약</h1>
@@ -307,7 +307,7 @@ function ProjectContractsContent() {
           <button
             type="button"
             onClick={() => setApplyOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             계약 적용
@@ -321,7 +321,7 @@ function ProjectContractsContent() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-32 animate-pulse rounded-xl bg-zinc-100"
+              className="h-32 animate-pulse rounded-xl bg-[var(--bg-hover)]"
             />
           ))}
         </div>
@@ -353,14 +353,14 @@ function ProjectContractsContent() {
       {/* 빈 상태 */}
       {data?.items && data.items.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
-          <FileText className="h-12 w-12 text-zinc-400" />
+          <FileText className="h-12 w-12 text-[var(--text-muted)]" />
           <p className="text-sm text-[var(--text-muted)]">
             적용된 계약이 없습니다
           </p>
           <button
             type="button"
             onClick={() => setApplyOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
           >
             <Plus className="h-3.5 w-3.5" />
             첫 계약 적용
@@ -387,7 +387,7 @@ export default function ProjectContractsPage() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 animate-pulse rounded-xl bg-zinc-100"
+                className="h-32 animate-pulse rounded-xl bg-[var(--bg-hover)]"
               />
             ))}
           </div>

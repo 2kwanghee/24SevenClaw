@@ -18,6 +18,10 @@ from app.schemas.roi import (
 
 FORMULA_VERSION = "v1.0"
 
+# TODO(P3, 이월): 실마진 = ROI 추정(clickeye_cost) 대비 실제(LLM 원장 cost + 향후
+#   인건비/시간). project_id 로 llm_ledger 와 조인하되, 단위 통일(인건비 KRW vs
+#   토큰비) 설계가 선행되어야 함. 설계 노트: docs/si-factory-transition.md P3.
+
 # ClickEye 비용 계수 (baseline 대비 비율)
 CLICKEYE_COST_FACTOR = 0.15
 CLICKEYE_FLAT_SETUP_KRW = 2_000_000

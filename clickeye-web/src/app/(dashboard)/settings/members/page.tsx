@@ -20,7 +20,7 @@ const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 const ORG_ROLE_COLORS: Record<OrgRole, string> = {
   org_admin: "bg-violet-50 text-violet-700 border-violet-200",
   org_member: "bg-blue-50 text-blue-700 border-blue-200",
-  org_viewer: "bg-zinc-100 text-[var(--text-muted)] border-[var(--border-subtle)]",
+  org_viewer: "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-subtle)]",
 };
 
 interface InviteFormData {
@@ -73,7 +73,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+        className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90"
       >
         <UserPlus className="h-4 w-4" />
         {t("inviteBtn")}
@@ -98,7 +98,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           type="text"
           placeholder={t("userIdPlaceholder")}
           {...register("userId")}
-          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-zinc-400"
+          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)]"
         />
       </div>
 
@@ -113,7 +113,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
           id="role"
           value={selectedRole}
           onChange={(e) => setValue("role", e.target.value as OrgRole)}
-          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-zinc-400"
+          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           {(Object.entries(roleLabels) as [OrgRole, string][]).map(
             ([value, label]) => (
@@ -129,7 +129,7 @@ function InviteMemberForm({ orgId }: { orgId: string }) {
         <button
           type="submit"
           disabled={addMember.isPending}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
         >
           {addMember.isPending ? t("addingBtn") : t("addBtn")}
         </button>
@@ -183,7 +183,7 @@ function MemberRow({
   return (
     <tr className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
       <td className="px-4 py-3">
-        <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">
+        <code className="rounded bg-[var(--bg-base)] px-1.5 py-0.5 text-xs text-[var(--text-secondary)]">
           {member.user_id.slice(0, 8)}...
         </code>
       </td>
@@ -199,7 +199,7 @@ function MemberRow({
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             member.is_active
               ? "bg-emerald-50 text-emerald-700"
-              : "bg-zinc-100 text-[var(--text-muted)]"
+              : "bg-[var(--bg-base)] text-[var(--text-muted)]"
           }`}
         >
           {member.is_active ? t("statusActive") : t("statusInactive")}

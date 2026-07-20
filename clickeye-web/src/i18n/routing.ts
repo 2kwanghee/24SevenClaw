@@ -1,7 +1,7 @@
 export const locales = ["ko", "en", "id", "ja"] as const;
 export type Locale = (typeof locales)[number];
 
-export const defaultLocale: Locale = "en";
+export const defaultLocale: Locale = "ko";
 export const adminLocale: Locale = "ko";
 
 export const localeCookieName = "clickeye-locale";

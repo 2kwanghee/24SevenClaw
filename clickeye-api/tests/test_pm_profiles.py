@@ -2,9 +2,12 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.pm_profile import PMProfile
+from app.models.prototype_session import Prototype, PrototypeSession
+from app.models.user import User
 
 
 async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
@@ -56,9 +59,13 @@ async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
 
 
 async def _create_session_id(
-    client: AsyncClient, headers: dict[str, str]
+    client: AsyncClient, headers: dict[str, str], db: AsyncSession
 ) -> str:
-    """테스트용 조직 + 프로토타입 세션을 생성하고 session_id를 반환한다."""
+    """테스트용 조직(API) + PrototypeSession(DB 직접 시딩)을 생성하고 session_id를 반환한다.
+
+    위저드 프로토타입 세션 엔드포인트는 P3 에서 제거되었으므로, PM 평가/추천 회귀
+    커버리지 유지를 위해 보존 모델(PrototypeSession/Prototype)에 직접 시딩한다.
+    """
     org_resp = await client.post(
         "/api/v1/organizations/",
         json={"company_name": "PM 테스트 회사", "size": "11-50"},
@@ -66,49 +73,40 @@ async def _create_session_id(
     )
     org_id = org_resp.json()["id"]
 
-    session_resp = await client.post(
-        "/api/v1/prototype-sessions/",
-        json={
-            "organization_id": org_id,
-            "solution_prompt": "SaaS 구독 서비스를 만들고 싶습니다",
-        },
-        headers=headers,
+    user = (
+        await db.execute(select(User).where(User.email == "test@example.com"))
+    ).scalar_one()
+
+    session = PrototypeSession(
+        user_id=user.id,
+        organization_id=uuid.UUID(org_id),
+        solution_prompt="SaaS 구독 서비스를 만들고 싶습니다",
+        status="ready",
     )
-    return session_resp.json()["id"]
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    return str(session.id)
 
 
 async def _create_org_and_prototype(
-    client: AsyncClient, headers: dict[str, str]
+    client: AsyncClient, headers: dict[str, str], db: AsyncSession
 ) -> dict:
-    """테스트용 조직 + 세션 + 프로토타입을 생성하고 첫 프로토타입을 반환한다."""
-    org_resp = await client.post(
-        "/api/v1/organizations/",
-        json={"company_name": "PM 테스트 회사", "size": "11-50"},
-        headers=headers,
-    )
-    org_id = org_resp.json()["id"]
+    """테스트용 세션 + Prototype(DB 직접 시딩)을 생성하고 첫 프로토타입을 반환한다."""
+    session_id = await _create_session_id(client, headers, db)
 
-    session_resp = await client.post(
-        "/api/v1/prototype-sessions/",
-        json={
-            "organization_id": org_id,
-            "solution_prompt": "SaaS 구독 서비스를 만들고 싶습니다",
-        },
-        headers=headers,
+    proto = Prototype(
+        session_id=uuid.UUID(session_id),
+        variant_index=0,
+        title="프로토타입 A",
+        description="테스트 프로토타입",
+        design_pattern="dashboard",
+        status="ready",
     )
-    session_id = session_resp.json()["id"]
-
-    gen_resp = await client.post(
-        f"/api/v1/prototype-sessions/{session_id}/prototypes/generate",
-        headers=headers,
-    )
-    assert gen_resp.status_code == 202
-
-    proto_resp = await client.get(
-        f"/api/v1/prototype-sessions/{session_id}/prototypes",
-        headers=headers,
-    )
-    return proto_resp.json()["items"][0]
+    db.add(proto)
+    await db.commit()
+    await db.refresh(proto)
+    return {"id": str(proto.id)}
 
 
 @pytest.mark.asyncio
@@ -186,7 +184,7 @@ async def test_recommend_pms(
     db_session: AsyncSession,
 ) -> None:
     await _seed_pm_profiles(db_session)
-    prototype = await _create_org_and_prototype(client, auth_headers)
+    prototype = await _create_org_and_prototype(client, auth_headers, db_session)
 
     resp = await client.post(
         "/api/v1/pm-profiles/recommend",
@@ -222,7 +220,7 @@ async def test_rate_pm(
     pm_ids = await _seed_pm_profiles(db_session)
 
     # 세션 생성
-    session_id = await _create_session_id(client, auth_headers)
+    session_id = await _create_session_id(client, auth_headers, db_session)
 
     resp = await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
@@ -261,7 +259,7 @@ async def test_list_ratings(
     db_session: AsyncSession,
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
-    session_id = await _create_session_id(client, auth_headers)
+    session_id = await _create_session_id(client, auth_headers, db_session)
 
     # 평가 2개 등록
     for rating_val in (3, 5):
@@ -290,7 +288,7 @@ async def test_get_metrics(
     pm_ids = await _seed_pm_profiles(db_session)
 
     # 세션 생성 + 평가
-    session_id = await _create_session_id(client, auth_headers)
+    session_id = await _create_session_id(client, auth_headers, db_session)
 
     await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",

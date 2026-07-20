@@ -66,11 +66,11 @@ You need your Linear **Team ID**. Find it using one of these methods:
 
 ---
 
-## Step 4 — Select the Linear Skill in the Wizard (When Generating the ZIP)
+## Step 4 — Include the Linear Skill in Your Project
 
-If you select the **Linear** skill in Step 5 (Agents & Skills) of the 7-Step wizard, the ZIP will include the Linear integration scripts.
+When a project delivered from the delivery console includes the **Linear** skill, the Linear integration scripts are provided with it.
 
-After extracting the ZIP, the following values are needed in the `.env` file:
+The following values are needed in the project's `.env` file:
 
 ```bash
 LINEAR_API_KEY=lin_api_xxxxxxxxxxxx
@@ -188,5 +188,5 @@ Once all setup is complete, automatic development is triggered by the following 
 
 ## Related Guides
 
-- [7-Step Solution Wizard](/guide/wizard-7-step) — Selecting the Linear skill in the wizard
+- [Getting Started](/guide/getting-started) — The basic ClickEye delivery console flow
 - [AI Team Management](/guide/ai-team-management) — Generating AI drafts and checking Linear issues

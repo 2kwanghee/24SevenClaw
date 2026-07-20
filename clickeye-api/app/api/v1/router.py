@@ -25,7 +25,6 @@ from app.api.v1.presets import router as presets_router
 from app.api.v1.projects import router as projects_router
 from app.api.v1.prototype_catalog import router as prototype_catalog_router
 from app.api.v1.prototype_catalog_admin import router as prototype_catalog_admin_router
-from app.api.v1.prototype_sessions import router as prototype_sessions_router
 from app.api.v1.quality_gate import router as quality_gate_router
 from app.api.v1.rbac import router as rbac_router
 from app.api.v1.registry_admin import router as registry_admin_router
@@ -35,7 +34,6 @@ from app.api.v1.roi import router as roi_router
 from app.api.v1.roi_admin import router as roi_admin_router
 from app.api.v1.setup_bootstrap import router as setup_bootstrap_router
 from app.api.v1.system_features import router as system_features_router
-from app.api.v1.wizard_preview import router as wizard_preview_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(admin_recommendations_router)
@@ -57,7 +55,6 @@ api_v1_router.include_router(rbac_router)
 api_v1_router.include_router(quality_gate_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(review_pipeline_router)
-api_v1_router.include_router(prototype_sessions_router)
 api_v1_router.include_router(pm_profiles_router)
 api_v1_router.include_router(contracts_router)
 api_v1_router.include_router(project_contracts_router)
@@ -73,4 +70,3 @@ api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)
 api_v1_router.include_router(setup_bootstrap_router)
 api_v1_router.include_router(system_features_router)
-api_v1_router.include_router(wizard_preview_router)

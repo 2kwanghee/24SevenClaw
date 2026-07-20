@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections.abc import Awaitable, Callable
 from typing import Any
 from urllib.parse import quote
 
@@ -16,9 +17,16 @@ logger = structlog.get_logger()
 
 
 class CloudConnection:
-    def __init__(self, config: AgentSettings, dispatcher: Dispatcher):
+    def __init__(
+        self,
+        config: AgentSettings,
+        dispatcher: Dispatcher,
+        on_connect: Callable[[], Awaitable[None]] | None = None,
+    ):
         self.config = config
         self.dispatcher = dispatcher
+        # 연결(및 매 재연결) 성공 직후 실행되는 훅. 항목 F: agent.register 전송에 사용.
+        self.on_connect = on_connect
         self.ws: ClientConnection | None = None
         self._reconnect_delay = 1.0
 
@@ -33,6 +41,14 @@ class CloudConnection:
         self.ws = await websockets.connect(url)
         self._reconnect_delay = 1.0  # 성공 시 리셋
         logger.info("Cloud 연결 성공", url=self.config.cloud_ws_url)
+
+        # 연결 직후 등록 훅 실행(agent.register 전송). 훅 실패가 수신 루프를
+        # 막지 않도록 예외는 로깅만 하고 삼킨다.
+        if self.on_connect is not None:
+            try:
+                await self.on_connect()
+            except Exception:
+                logger.exception("on_connect 훅 실행 실패")
 
     async def send(self, message: dict[str, Any]) -> None:
         if self.ws is None:

@@ -20,7 +20,7 @@ const ROLE_COLORS: Record<SystemRole, string> = {
   superadmin: "bg-red-50 text-red-700 border-red-200",
   admin: "bg-violet-50 text-violet-700 border-violet-200",
   member: "bg-blue-50 text-blue-700 border-blue-200",
-  viewer: "bg-zinc-100 text-[var(--text-muted)] border-[var(--border-subtle)]",
+  viewer: "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-subtle)]",
 };
 
 function RoleBadge({ role }: { role: SystemRole }) {
@@ -80,7 +80,7 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
         type="button"
         onClick={handleToggle}
         disabled={updateRole.isPending}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-zinc-400 hover:bg-[var(--bg-hover)] disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] disabled:opacity-50"
       >
         {ROLE_LABELS[currentRole]}
         <ChevronDown className="h-3 w-3" />
@@ -126,7 +126,7 @@ function UserRow({ user }: { user: UserAdminResponse }) {
     <tr className="border-b border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-hover)]">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-sm font-medium text-zinc-700">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-base)] text-sm font-medium text-[var(--text-secondary)]">
             {initials}
           </div>
           <div>
@@ -145,7 +145,7 @@ function UserRow({ user }: { user: UserAdminResponse }) {
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             user.is_active
               ? "bg-emerald-50 text-emerald-700"
-              : "bg-zinc-100 text-[var(--text-muted)]"
+              : "bg-[var(--bg-base)] text-[var(--text-muted)]"
           }`}
         >
           {user.is_active ? "활성" : "비활성"}

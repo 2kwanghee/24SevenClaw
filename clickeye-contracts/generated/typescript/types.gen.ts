@@ -472,82 +472,47 @@ export type GenerateDraftsResponse = {
     linear_sync_hint: LinearSyncHint;
 };
 
-/**
- * ZIP 생성 요청 — 위저드 설정 + API 키.
- */
-export type GenerateRequest = {
-    organization?: {
+export type GovernanceEvaluateRequest = {
+    base?: string;
+    head: string;
+    files?: Array<string> | null;
+    plan_text?: string | null;
+    project_id?: string | null;
+    usage?: {
         [key: string]: unknown;
-    };
-    solution?: {
+    } | null;
+    metrics?: {
         [key: string]: unknown;
-    };
-    /**
-     * 선택된 에이전트 ID 목록
-     */
-    agents?: Array<string>;
-    /**
-     * 선택된 워크플로우 ID 목록
-     */
-    skills?: Array<string>;
-    /**
-     * 선택된 파이프라인 ID 목록
-     */
-    pipelines?: Array<string>;
-    /**
-     * 플랫폼 설정 (platformId 포함)
-     */
-    platform?: {
-        [key: string]: unknown;
-    };
-    /**
-     * 선택된 PM 프로필 slug — ZIP에 플랫폼별 PM 파일 주입
-     */
-    pm_slug?: string | null;
-    /**
-     * 환경 변수 맵 (키: 변수명, 값: API 키 등). 서버에 저장되지 않음.
-     */
-    env_vars?: {
-        [key: string]: string;
-    };
-    /**
-     * 선택된 훅 ID 목록
-     */
-    hook_ids?: Array<string>;
-    /**
-     * 선택된 MCP 서버 슬러그 목록
-     */
-    mcp_ids?: Array<string>;
-    /**
-     * 선택된 PM 프로필 ID — pm_slug보다 우선하여 DB에서 조회
-     */
-    pm_profile_id?: string | null;
-    /**
-     * 선택된 카탈로그 엔트리 slug — ZIP에 설계 철학 및 에이전트 컨텍스트 주입
-     */
-    catalog_entry_slug?: string | null;
-    /**
-     * 사용자 실행 환경 OS (현재 wsl2만 지원)
-     */
-    os_id?: 'wsl2';
-    /**
-     * Claude 인증 방식 — api_key(기본), oauth_browser(claude login)
-     */
-    auth_method?: 'api_key' | 'oauth_browser';
-    /**
-     * ZIP 생성 locale — 'ko'(기본) 또는 'en'. body_md_en 우선 사용
-     */
-    locale?: string;
+    } | null;
 };
 
 /**
- * 프로토타입 생성 시작 응답 (202 Accepted).
+ * evaluate() 반환 dict 형식화. 축약(off)/전체(on)/트리아지 스키마를 모두 수용.
  */
-export type GenerateStartResponse = {
-    task_id: string;
-    session_id: string;
-    status: string;
-    message: string;
+export type GovernanceEvaluateResponse = {
+    governance: string;
+    verdict: string;
+    tier: string;
+    merge_decision: string;
+    failures?: Array<string>;
+    warnings?: Array<string>;
+    issue_key?: string | null;
+    checks?: {
+        [key: string]: unknown;
+    };
+    risk_reasons?: Array<string>;
+    changed_files?: number | null;
+    triage?: string | null;
+    risk_score?: number | null;
+    triage_reasons?: Array<string> | null;
+    budget?: {
+        [key: string]: unknown;
+    } | null;
+    [key: string]: unknown | string | Array<string> | Array<string> | (string | null) | {
+        [key: string]: unknown;
+    } | Array<string> | (number | null) | (string | null) | (number | null) | (Array<string> | null) | ({
+        [key: string]: unknown;
+    } | null) | undefined;
 };
 
 export type HttpValidationError = {
@@ -745,6 +710,54 @@ export type LinearValidateRequest = {
      */
     team_id: string;
 };
+
+/**
+ * key_source(구독시트/조직키)별 토큰·비용 합계.
+ */
+export type LlmKeySourceTotals = {
+    key_source: string;
+    input_tokens: number;
+    output_tokens: number;
+    cost: string | null;
+};
+
+/**
+ * 프로젝트별 사용량 집계 — key_source 구분 회계 포함.
+ */
+export type LlmProjectUsageSummary = {
+    project_id: string | null;
+    total_input_tokens: number;
+    total_output_tokens: number;
+    total_cost: string | null;
+    by_key_source: Array<LlmKeySourceTotals>;
+};
+
+export type LlmProvider = 'anthropic' | 'openai';
+
+export type LlmUsageEntryResponse = {
+    id: string;
+    created_at: string | null;
+    project_id: string | null;
+    task_id: string | null;
+    provider: string;
+    key_source: string;
+    model: string;
+    input_tokens: number;
+    output_tokens: number;
+    cost: string | null;
+    request_kind: string;
+    status: string;
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+export type LlmUsageListResponse = {
+    items: Array<LlmUsageEntryResponse>;
+    total: number;
+};
+
+export type LlmUsageStatus = 'success' | 'error';
 
 export type McpServerCreate = {
     name: string;
@@ -1248,24 +1261,6 @@ export type PmRatingResponse = {
     created_at: string;
 };
 
-/**
- * PM 추천 단일 항목.
- */
-export type PmRecommendItemResponse = {
-    pm_id: string;
-    name: string;
-    slug: string;
-    avatar_url: string | null;
-    title: string | null;
-    domain: string | null;
-    match_score: number;
-    reasoning: string;
-    dimension_scores?: {
-        [key: string]: number;
-    };
-    match_reasons?: Array<string>;
-};
-
 export type PmRecommendListResponse = {
     items: Array<PmRecommendResponse>;
 };
@@ -1649,116 +1644,6 @@ export type PrototypeCatalogListResponse = {
     total: number;
 };
 
-export type PrototypeListResponse = {
-    items: Array<PrototypeResponse>;
-    total: number;
-};
-
-export type PrototypeResponse = {
-    id: string;
-    session_id: string;
-    variant_index: number;
-    title: string;
-    description: string | null;
-    design_pattern: string | null;
-    menu_structure: {
-        [key: string]: unknown;
-    } | null;
-    ui_structure: {
-        [key: string]: unknown;
-    } | null;
-    color_palette: {
-        [key: string]: unknown;
-    } | null;
-    thumbnail_url: string | null;
-    figma_file_key: string | null;
-    figma_embed_url: string | null;
-    status: string;
-    tech_stack_tags?: Array<string>;
-    architecture_pattern?: string | null;
-    variant_rationale?: string | null;
-    is_recommended?: boolean;
-    pros?: Array<string>;
-    cons?: Array<string>;
-    estimated_weeks_min?: number | null;
-    estimated_weeks_max?: number | null;
-    team_size_min?: number | null;
-    team_size_max?: number | null;
-    team_roles?: Array<string>;
-    complexity_score?: number | null;
-    scalability_score?: number | null;
-    monthly_cost_min_usd?: number | null;
-    monthly_cost_max_usd?: number | null;
-    maintenance_difficulty?: string | null;
-    skill_requirements?: Array<string>;
-    match_reasoning?: string | null;
-    created_at: string;
-    updated_at: string;
-};
-
-export type PrototypeSessionCreate = {
-    organization_id: string;
-    /**
-     * 솔루션을 설명하는 자연어 프롬프트
-     */
-    solution_prompt: string;
-    /**
-     * 사용자 선호 기술 스택
-     */
-    tech_stack?: Array<string>;
-    /**
-     * 업종 코드 (it, fintech, ecommerce, healthcare, ...)
-     */
-    industry?: string | null;
-    /**
-     * 회사 규모 (startup/small/medium/mid-large/enterprise)
-     */
-    company_size?: string | null;
-    /**
-     * 비즈니스 유형 (b2b/b2c/b2b2c/internal)
-     */
-    business_type?: string | null;
-    /**
-     * 주력 제품/서비스
-     */
-    main_product?: string | null;
-    /**
-     * 회사 설명 (자연어)
-     */
-    company_description?: string | null;
-};
-
-export type PrototypeSessionResponse = {
-    id: string;
-    organization_id: string;
-    user_id: string;
-    solution_prompt: string | null;
-    parsed_requirements: {
-        [key: string]: unknown;
-    } | null;
-    status: string;
-    selected_prototype_id: string | null;
-    selected_pm_id: string | null;
-    current_step: number;
-    created_at: string;
-    updated_at: string;
-};
-
-export type PrototypeSessionStatusResponse = {
-    id: string;
-    status: string;
-    created_at: string;
-};
-
-/**
- * PATCH /prototype-sessions/{id} 요청 스키마.
- */
-export type PrototypeSessionUpdate = {
-    selected_prototype_id?: string | null;
-    selected_pm_id?: string | null;
-    current_step?: number | null;
-};
-
 export type PrototypeTagCreate = {
     slug: string;
     label: string;
@@ -1901,45 +1786,6 @@ export type QualityMetrics = {
     avg_revision_count: number;
     review_rounds_total: number;
     review_completion_rate: number;
-};
-
-/**
- * GET /prototype-sessions/{id}/recommend-components 응답.
- */
-export type RecommendComponentsResponse = {
-    /**
-     * 추천 에이전트 ID 목록
-     */
-    agents?: Array<string>;
-    /**
-     * 추천 스킬 ID 목록
-     */
-    skills?: Array<string>;
-    /**
-     * 제외 에이전트 ID 목록
-     */
-    excluded_agents?: Array<string>;
-    catalog_entry_slug?: string | null;
-    reasoning?: string | null;
-};
-
-/**
- * POST /prototype-sessions/{id}/recommend-pms 응답.
- */
-export type RecommendPmsResponse = {
-    items: Array<PmRecommendItemResponse>;
-};
-
-/**
- * 재다운로드 요청 — 저장된 설정 기반, env_vars만 전달.
- */
-export type RedownloadRequest = {
-    /**
-     * 환경 변수 맵. 서버에 저장되지 않음.
-     */
-    env_vars?: {
-        [key: string]: string;
-    };
 };
 
 export type RefreshTokenRequest = {
@@ -2454,133 +2300,14 @@ export type WeeklyThroughput = {
     completed_count: number;
 };
 
-/**
- * 위저드 설정 조회 응답.
- */
-export type WizardConfigResponse = {
-    project_id: string;
-    wizard_data: WizardData | null;
-    updated_at: string;
-};
-
-/**
- * 위저드 설정 저장 요청.
- */
-export type WizardConfigSave = {
-    wizard_data: WizardData;
-};
-
-/**
- * 위저드 7단계 결과 데이터.
- */
-export type WizardData = {
-    organization?: {
-        [key: string]: unknown;
-    };
-    solution?: {
-        [key: string]: unknown;
-    };
-    agents?: Array<{
-        [key: string]: unknown;
-    }>;
-    skills?: Array<{
-        [key: string]: unknown;
-    }>;
-    pipelines?: Array<{
-        [key: string]: unknown;
-    }>;
-    platform?: {
-        [key: string]: unknown;
-    };
-};
-
-export type WizardPreviewRequest = {
-    step: string;
-    data: {
-        [key: string]: unknown;
-    };
-};
-
-export type WizardPreviewResponse = {
-    step: string;
-    result?: {
-        [key: string]: unknown;
-    } | null;
-    supported: boolean;
-};
-
 export type AppSchemasControlTowerProjectListResponse = {
     items: Array<ProjectOverview>;
     total: number;
 };
 
-/**
- * `POST /sessions/{id}/finalize` 요청 body.
- */
-export type AppSchemasModernizeFinalizeRequest = {
-    create_linear_issues?: boolean;
-    /**
-     * ProjectLinearCredentials 우선 사용 시
-     */
-    project_id?: string | null;
-};
-
-/**
- * finalize 응답.
- */
-export type AppSchemasModernizeFinalizeResponse = {
-    session_id: string;
-    status: string;
-    linear_parent_url?: string | null;
-    linear_parent_identifier?: string | null;
-    linear_child_count?: number;
-    linear_errors?: Array<string>;
-    zip_url: string;
-    selected_recommendation_count?: number;
-};
-
 export type AppSchemasProjectProjectListResponse = {
     items: Array<ProjectResponse>;
     total: number;
-};
-
-/**
- * POST /prototype-sessions/{id}/finalize 요청 스키마.
- */
-export type AppSchemasPrototypeFinalizeRequest = {
-    project_name: string;
-    description?: string | null;
-    /**
-     * Linear API 키 (선택)
-     */
-    linear_api_key?: string | null;
-    /**
-     * Linear 팀 UUID (선택)
-     */
-    linear_team_id?: string | null;
-    /**
-     * Notion API 키 (선택)
-     */
-    notion_api_key?: string | null;
-    /**
-     * Notion 데이터베이스 UUID (선택)
-     */
-    notion_database_id?: string | null;
-    /**
-     * 선택된 훅 ID 목록
-     */
-    hook_ids?: Array<string>;
-};
-
-/**
- * POST /prototype-sessions/{id}/finalize 응답.
- */
-export type AppSchemasPrototypeFinalizeResponse = {
-    project_id: string;
-    project_name: string;
-    session_id: string;
-    message: string;
-    initial_task_url?: string | null;
 };
 
 export type ListRecommendationLogsApiV1AdminPmRecommendationsGetData = {
@@ -2678,6 +2405,64 @@ export type UpdateRagTopKApiV1AdminSettingsPrototypeRagTopKPutResponses = {
 };
 
 export type UpdateRagTopKApiV1AdminSettingsPrototypeRagTopKPutResponse = UpdateRagTopKApiV1AdminSettingsPrototypeRagTopKPutResponses[keyof UpdateRagTopKApiV1AdminSettingsPrototypeRagTopKPutResponses];
+
+export type ListUsageApiV1LlmLedgerGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        project_id?: string | null;
+        provider?: LlmProvider | null;
+        status?: LlmUsageStatus | null;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/v1/llm-ledger';
+};
+
+export type ListUsageApiV1LlmLedgerGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListUsageApiV1LlmLedgerGetError = ListUsageApiV1LlmLedgerGetErrors[keyof ListUsageApiV1LlmLedgerGetErrors];
+
+export type ListUsageApiV1LlmLedgerGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmUsageListResponse;
+};
+
+export type ListUsageApiV1LlmLedgerGetResponse = ListUsageApiV1LlmLedgerGetResponses[keyof ListUsageApiV1LlmLedgerGetResponses];
+
+export type ProjectSummaryApiV1LlmLedgerSummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        project_id?: string | null;
+    };
+    url: '/api/v1/llm-ledger/summary';
+};
+
+export type ProjectSummaryApiV1LlmLedgerSummaryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProjectSummaryApiV1LlmLedgerSummaryGetError = ProjectSummaryApiV1LlmLedgerSummaryGetErrors[keyof ProjectSummaryApiV1LlmLedgerSummaryGetErrors];
+
+export type ProjectSummaryApiV1LlmLedgerSummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LlmProjectUsageSummary;
+};
+
+export type ProjectSummaryApiV1LlmLedgerSummaryGetResponse = ProjectSummaryApiV1LlmLedgerSummaryGetResponses[keyof ProjectSummaryApiV1LlmLedgerSummaryGetResponses];
 
 export type ListAgentsApiV1AdminRegistryAgentsGetData = {
     body?: never;
@@ -4059,158 +3844,6 @@ export type PreviewProjectApiV1ProjectsProjectIdPreviewPostResponses = {
 };
 
 export type PreviewProjectApiV1ProjectsProjectIdPreviewPostResponse = PreviewProjectApiV1ProjectsProjectIdPreviewPostResponses[keyof PreviewProjectApiV1ProjectsProjectIdPreviewPostResponses];
-
-export type GenerateDraftApiV1ProjectsDraftGeneratePostData = {
-    body: GenerateRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/projects/draft/generate';
-};
-
-export type GenerateDraftApiV1ProjectsDraftGeneratePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GenerateDraftApiV1ProjectsDraftGeneratePostError = GenerateDraftApiV1ProjectsDraftGeneratePostErrors[keyof GenerateDraftApiV1ProjectsDraftGeneratePostErrors];
-
-export type GenerateDraftApiV1ProjectsDraftGeneratePostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GenerateProjectApiV1ProjectsProjectIdGeneratePostData = {
-    body: GenerateRequest;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}/generate';
-};
-
-export type GenerateProjectApiV1ProjectsProjectIdGeneratePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GenerateProjectApiV1ProjectsProjectIdGeneratePostError = GenerateProjectApiV1ProjectsProjectIdGeneratePostErrors[keyof GenerateProjectApiV1ProjectsProjectIdGeneratePostErrors];
-
-export type GenerateProjectApiV1ProjectsProjectIdGeneratePostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type RedownloadProjectApiV1ProjectsProjectIdRedownloadPostData = {
-    body: RedownloadRequest;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}/redownload';
-};
-
-export type RedownloadProjectApiV1ProjectsProjectIdRedownloadPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RedownloadProjectApiV1ProjectsProjectIdRedownloadPostError = RedownloadProjectApiV1ProjectsProjectIdRedownloadPostErrors[keyof RedownloadProjectApiV1ProjectsProjectIdRedownloadPostErrors];
-
-export type RedownloadProjectApiV1ProjectsProjectIdRedownloadPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type DownloadProjectEnvApiV1ProjectsProjectIdEnvGetData = {
-    body?: never;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}/env';
-};
-
-export type DownloadProjectEnvApiV1ProjectsProjectIdEnvGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DownloadProjectEnvApiV1ProjectsProjectIdEnvGetError = DownloadProjectEnvApiV1ProjectsProjectIdEnvGetErrors[keyof DownloadProjectEnvApiV1ProjectsProjectIdEnvGetErrors];
-
-export type DownloadProjectEnvApiV1ProjectsProjectIdEnvGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GetWizardConfigApiV1ProjectsProjectIdConfigGetData = {
-    body?: never;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}/config';
-};
-
-export type GetWizardConfigApiV1ProjectsProjectIdConfigGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetWizardConfigApiV1ProjectsProjectIdConfigGetError = GetWizardConfigApiV1ProjectsProjectIdConfigGetErrors[keyof GetWizardConfigApiV1ProjectsProjectIdConfigGetErrors];
-
-export type GetWizardConfigApiV1ProjectsProjectIdConfigGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: WizardConfigResponse;
-};
-
-export type GetWizardConfigApiV1ProjectsProjectIdConfigGetResponse = GetWizardConfigApiV1ProjectsProjectIdConfigGetResponses[keyof GetWizardConfigApiV1ProjectsProjectIdConfigGetResponses];
-
-export type SaveWizardConfigApiV1ProjectsProjectIdConfigPostData = {
-    body: WizardConfigSave;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/api/v1/projects/{project_id}/config';
-};
-
-export type SaveWizardConfigApiV1ProjectsProjectIdConfigPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type SaveWizardConfigApiV1ProjectsProjectIdConfigPostError = SaveWizardConfigApiV1ProjectsProjectIdConfigPostErrors[keyof SaveWizardConfigApiV1ProjectsProjectIdConfigPostErrors];
-
-export type SaveWizardConfigApiV1ProjectsProjectIdConfigPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: WizardConfigResponse;
-};
-
-export type SaveWizardConfigApiV1ProjectsProjectIdConfigPostResponse = SaveWizardConfigApiV1ProjectsProjectIdConfigPostResponses[keyof SaveWizardConfigApiV1ProjectsProjectIdConfigPostResponses];
 
 export type ListArtifactsApiV1ArtifactsProjectsProjectIdArtifactsGetData = {
     body?: never;
@@ -5849,302 +5482,6 @@ export type GetLinearTeamStatesApiV1OrchestratorSessionsSessionIdLinearTeamState
 
 export type GetLinearTeamStatesApiV1OrchestratorSessionsSessionIdLinearTeamStatesGetResponse = GetLinearTeamStatesApiV1OrchestratorSessionsSessionIdLinearTeamStatesGetResponses[keyof GetLinearTeamStatesApiV1OrchestratorSessionsSessionIdLinearTeamStatesGetResponses];
 
-export type ListSessionsApiV1PrototypeSessionsGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        offset?: number;
-        limit?: number;
-    };
-    url: '/api/v1/prototype-sessions/';
-};
-
-export type ListSessionsApiV1PrototypeSessionsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListSessionsApiV1PrototypeSessionsGetError = ListSessionsApiV1PrototypeSessionsGetErrors[keyof ListSessionsApiV1PrototypeSessionsGetErrors];
-
-export type ListSessionsApiV1PrototypeSessionsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: Array<PrototypeSessionResponse>;
-};
-
-export type ListSessionsApiV1PrototypeSessionsGetResponse = ListSessionsApiV1PrototypeSessionsGetResponses[keyof ListSessionsApiV1PrototypeSessionsGetResponses];
-
-export type CreateSessionApiV1PrototypeSessionsPostData = {
-    body: PrototypeSessionCreate;
-    path?: never;
-    query?: never;
-    url: '/api/v1/prototype-sessions/';
-};
-
-export type CreateSessionApiV1PrototypeSessionsPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreateSessionApiV1PrototypeSessionsPostError = CreateSessionApiV1PrototypeSessionsPostErrors[keyof CreateSessionApiV1PrototypeSessionsPostErrors];
-
-export type CreateSessionApiV1PrototypeSessionsPostResponses = {
-    /**
-     * Successful Response
-     */
-    201: PrototypeSessionResponse;
-};
-
-export type CreateSessionApiV1PrototypeSessionsPostResponse = CreateSessionApiV1PrototypeSessionsPostResponses[keyof CreateSessionApiV1PrototypeSessionsPostResponses];
-
-export type DeleteSessionApiV1PrototypeSessionsSessionIdDeleteData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}';
-};
-
-export type DeleteSessionApiV1PrototypeSessionsSessionIdDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteSessionApiV1PrototypeSessionsSessionIdDeleteError = DeleteSessionApiV1PrototypeSessionsSessionIdDeleteErrors[keyof DeleteSessionApiV1PrototypeSessionsSessionIdDeleteErrors];
-
-export type DeleteSessionApiV1PrototypeSessionsSessionIdDeleteResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type DeleteSessionApiV1PrototypeSessionsSessionIdDeleteResponse = DeleteSessionApiV1PrototypeSessionsSessionIdDeleteResponses[keyof DeleteSessionApiV1PrototypeSessionsSessionIdDeleteResponses];
-
-export type GetSessionApiV1PrototypeSessionsSessionIdGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}';
-};
-
-export type GetSessionApiV1PrototypeSessionsSessionIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetSessionApiV1PrototypeSessionsSessionIdGetError = GetSessionApiV1PrototypeSessionsSessionIdGetErrors[keyof GetSessionApiV1PrototypeSessionsSessionIdGetErrors];
-
-export type GetSessionApiV1PrototypeSessionsSessionIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: PrototypeSessionResponse;
-};
-
-export type GetSessionApiV1PrototypeSessionsSessionIdGetResponse = GetSessionApiV1PrototypeSessionsSessionIdGetResponses[keyof GetSessionApiV1PrototypeSessionsSessionIdGetResponses];
-
-export type UpdateSessionApiV1PrototypeSessionsSessionIdPatchData = {
-    body: PrototypeSessionUpdate;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}';
-};
-
-export type UpdateSessionApiV1PrototypeSessionsSessionIdPatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdateSessionApiV1PrototypeSessionsSessionIdPatchError = UpdateSessionApiV1PrototypeSessionsSessionIdPatchErrors[keyof UpdateSessionApiV1PrototypeSessionsSessionIdPatchErrors];
-
-export type UpdateSessionApiV1PrototypeSessionsSessionIdPatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: PrototypeSessionResponse;
-};
-
-export type UpdateSessionApiV1PrototypeSessionsSessionIdPatchResponse = UpdateSessionApiV1PrototypeSessionsSessionIdPatchResponses[keyof UpdateSessionApiV1PrototypeSessionsSessionIdPatchResponses];
-
-export type GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/status';
-};
-
-export type GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetError = GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetErrors[keyof GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetErrors];
-
-export type GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: PrototypeSessionStatusResponse;
-};
-
-export type GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetResponse = GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetResponses[keyof GetSessionStatusApiV1PrototypeSessionsSessionIdStatusGetResponses];
-
-export type ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/prototypes';
-};
-
-export type ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetError = ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetErrors[keyof ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetErrors];
-
-export type ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: PrototypeListResponse;
-};
-
-export type ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetResponse = ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetResponses[keyof ListPrototypesApiV1PrototypeSessionsSessionIdPrototypesGetResponses];
-
-export type GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/prototypes/generate';
-};
-
-export type GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostError = GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostErrors[keyof GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostErrors];
-
-export type GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostResponses = {
-    /**
-     * Successful Response
-     */
-    202: GenerateStartResponse;
-};
-
-export type GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostResponse = GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostResponses[keyof GeneratePrototypesApiV1PrototypeSessionsSessionIdPrototypesGeneratePostResponses];
-
-export type RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/recommend-components';
-};
-
-export type RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetError = RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetErrors[keyof RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetErrors];
-
-export type RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: RecommendComponentsResponse;
-};
-
-export type RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetResponse = RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetResponses[keyof RecommendComponentsApiV1PrototypeSessionsSessionIdRecommendComponentsGetResponses];
-
-export type RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/recommend-pms';
-};
-
-export type RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostError = RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostErrors[keyof RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostErrors];
-
-export type RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: RecommendPmsResponse;
-};
-
-export type RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostResponse = RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostResponses[keyof RecommendPmsApiV1PrototypeSessionsSessionIdRecommendPmsPostResponses];
-
-export type FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostData = {
-    body: AppSchemasPrototypeFinalizeRequest;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/prototype-sessions/{session_id}/finalize';
-};
-
-export type FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostError = FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostErrors[keyof FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostErrors];
-
-export type FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostResponses = {
-    /**
-     * Successful Response
-     */
-    201: AppSchemasPrototypeFinalizeResponse;
-};
-
-export type FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostResponse = FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostResponses[keyof FinalizeSessionApiV1PrototypeSessionsSessionIdFinalizePostResponses];
-
 export type ListProfilesApiV1PmProfilesGetData = {
     body?: never;
     path?: never;
@@ -7154,6 +6491,34 @@ export type GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses = {
 
 export type GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponse = GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses[keyof GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses];
 
+export type EvaluateGovernanceApiV1GovernanceEvaluatePostData = {
+    body: GovernanceEvaluateRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/governance/evaluate';
+};
+
+export type EvaluateGovernanceApiV1GovernanceEvaluatePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type EvaluateGovernanceApiV1GovernanceEvaluatePostError = EvaluateGovernanceApiV1GovernanceEvaluatePostErrors[keyof EvaluateGovernanceApiV1GovernanceEvaluatePostErrors];
+
+export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: GovernanceEvaluateResponse;
+};
+
+export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponse = EvaluateGovernanceApiV1GovernanceEvaluatePostResponses[keyof EvaluateGovernanceApiV1GovernanceEvaluatePostResponses];
+
 export type ListInstallationsApiV1ModernizeInstallationsGetData = {
     body?: never;
     path?: never;
@@ -7333,33 +6698,6 @@ export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRe
 
 export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponse = UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponses[keyof UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponses];
 
-export type FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostData = {
-    body: AppSchemasModernizeFinalizeRequest;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/finalize';
-};
-
-export type FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostError = FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostErrors[keyof FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostErrors];
-
-export type FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostResponses = {
-    /**
-     * Successful Response
-     */
-    200: AppSchemasModernizeFinalizeResponse;
-};
-
-export type FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostResponse = FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostResponses[keyof FinalizeSessionApiV1ModernizeSessionsSessionIdFinalizePostResponses];
-
 export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostData = {
     body?: never;
     path: {
@@ -7413,31 +6751,6 @@ export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses = {
 };
 
 export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponse = GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses[keyof GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses];
-
-export type DownloadZipApiV1ModernizeSessionsSessionIdZipGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/zip';
-};
-
-export type DownloadZipApiV1ModernizeSessionsSessionIdZipGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DownloadZipApiV1ModernizeSessionsSessionIdZipGetError = DownloadZipApiV1ModernizeSessionsSessionIdZipGetErrors[keyof DownloadZipApiV1ModernizeSessionsSessionIdZipGetErrors];
-
-export type DownloadZipApiV1ModernizeSessionsSessionIdZipGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
 
 export type ListCustomersApiV1ControlTowerCustomersGetData = {
     body?: never;
@@ -7918,31 +7231,6 @@ export type GetSystemFeaturesApiV1SystemFeaturesGetResponses = {
 };
 
 export type GetSystemFeaturesApiV1SystemFeaturesGetResponse = GetSystemFeaturesApiV1SystemFeaturesGetResponses[keyof GetSystemFeaturesApiV1SystemFeaturesGetResponses];
-
-export type WizardPreviewApiV1WizardPreviewPostData = {
-    body: WizardPreviewRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/wizard/preview';
-};
-
-export type WizardPreviewApiV1WizardPreviewPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type WizardPreviewApiV1WizardPreviewPostError = WizardPreviewApiV1WizardPreviewPostErrors[keyof WizardPreviewApiV1WizardPreviewPostErrors];
-
-export type WizardPreviewApiV1WizardPreviewPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: WizardPreviewResponse;
-};
-
-export type WizardPreviewApiV1WizardPreviewPostResponse = WizardPreviewApiV1WizardPreviewPostResponses[keyof WizardPreviewApiV1WizardPreviewPostResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});

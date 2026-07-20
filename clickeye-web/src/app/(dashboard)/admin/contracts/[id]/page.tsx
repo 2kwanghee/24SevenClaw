@@ -103,7 +103,7 @@ function EditForm({
             id="edit-type"
             value={formData.contract_type ?? ""}
             onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           >
             {TYPE_OPTIONS.map((type) => (
               <option key={type} value={type}>
@@ -121,7 +121,7 @@ function EditForm({
             type="text"
             value={formData.source ?? ""}
             onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
@@ -133,7 +133,7 @@ function EditForm({
             type="text"
             value={formData.version ?? ""}
             onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
       </div>
@@ -149,7 +149,7 @@ function EditForm({
             type="text"
             value={formData.description ?? ""}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div className="flex items-end">
@@ -158,7 +158,7 @@ function EditForm({
               type="checkbox"
               checked={formData.is_locked ?? false}
               onChange={(e) => setFormData({ ...formData, is_locked: e.target.checked })}
-              className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-surface)] text-zinc-900 focus:ring-zinc-400/30"
+              className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--accent)] focus:ring-[var(--accent)]"
             />
             잠금 상태
           </label>
@@ -175,7 +175,7 @@ function EditForm({
           type="text"
           value={overridesText}
           onChange={(e) => setOverridesText(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+          className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
 
@@ -190,7 +190,7 @@ function EditForm({
           onChange={(e) => setContentText(e.target.value)}
           rows={12}
           spellCheck={false}
-          className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 font-mono text-xs leading-relaxed text-[var(--text-secondary)] focus:border-zinc-400 focus:outline-none"
+          className="w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 font-mono text-xs leading-relaxed text-[var(--text-secondary)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
 
@@ -216,7 +216,7 @@ function EditForm({
           type="button"
           onClick={handleSave}
           disabled={updateContract.isPending}
-          className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {updateContract.isPending ? "저장 중..." : "저장"}
@@ -237,7 +237,7 @@ function ContractDetailContent() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-medium)] border-t-[var(--accent)]" />
         <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
       </div>
     );
@@ -333,7 +333,7 @@ export default function AdminContractDetailPage() {
       <Suspense
         fallback={
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-medium)] border-t-[var(--accent)]" />
             <p className="mt-4 text-sm text-[var(--text-muted)]">불러오는 중...</p>
           </div>
         }

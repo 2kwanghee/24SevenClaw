@@ -13,7 +13,8 @@ import asyncio
 import logging
 
 from app.config import settings
-from app.temporal.workflows import HealthCheckWorkflow
+from app.temporal.activities import evaluate_governance_activity
+from app.temporal.workflows import HealthCheckWorkflow, ShadowDeliveryWorkflow
 
 logger = logging.getLogger("temporal.worker")
 
@@ -45,7 +46,8 @@ async def run_worker() -> None:
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[HealthCheckWorkflow],
+        workflows=[HealthCheckWorkflow, ShadowDeliveryWorkflow],
+        activities=[evaluate_governance_activity],
     )
     # blocking: 종료 시그널을 받을 때까지 태스크 큐를 폴링한다.
     await worker.run()

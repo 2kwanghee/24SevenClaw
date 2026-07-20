@@ -66,11 +66,11 @@ Linear의 **팀 ID**가 필요합니다. 다음 방법으로 확인하세요:
 
 ---
 
-## Step 4 — 위저드에서 Linear 스킬 선택 (ZIP 생성 시)
+## Step 4 — 프로젝트에 Linear 스킬 포함
 
-7-Step 위저드 Step 5(에이전트 & 스킬)에서 **Linear** 스킬을 선택하면 ZIP에 Linear 연동 스크립트가 포함됩니다.
+딜리버리 콘솔에서 프로젝트에 **Linear** 스킬을 포함해 배포하면 Linear 연동 스크립트가 함께 제공됩니다.
 
-ZIP 압축 해제 후 `.env` 파일에 다음 값이 필요합니다:
+프로젝트의 `.env` 파일에 다음 값이 필요합니다:
 
 ```bash
 LINEAR_API_KEY=lin_api_xxxxxxxxxxxx
@@ -188,5 +188,5 @@ curl http://localhost:9876/health
 
 ## 관련 가이드
 
-- [7-Step 솔루션 위저드](/guide/wizard-7-step) — 위저드에서 Linear 스킬 선택하기
+- [시작하기](/guide/getting-started) — ClickEye 딜리버리 콘솔 기본 흐름
 - [AI Team 관리](/guide/ai-team-management) — AI 초안 생성 및 Linear 이슈 확인

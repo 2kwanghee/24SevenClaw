@@ -15,7 +15,9 @@
       "close": "Close",
       "languageToggle": "Change language",
       "notifications": "Notifications",
-      "help": "Help"
+      "help": "Help",
+      "themeDark": "Switch to dark mode",
+      "themeLight": "Switch to light mode"
     },
     "header": {
       "viewGuide": "View guide",
@@ -130,724 +132,6 @@
       "ragTopKSaveSuccess": "RAG top-k saved"
     }
   },
-  "wizard": {
-    "step4": {
-      "pmRecommend": {
-        "analyzing": "Analyzing the best PM for your prototype",
-        "complete": "PM recommendation analysis complete!",
-        "progressLabel": "PM recommendation progress",
-        "cardsLabel": "PM recommendation status",
-        "nextHint": "Click the Next button below to select a PM.",
-        "failTitle": "PM recommendation analysis failed",
-        "failDesc": "A temporary error occurred. Please try again.",
-        "retry": "Try again",
-        "matchReasons": "Match reasons",
-        "analysisComplete": "PM \"{name}\" analysis complete"
-      },
-      "pmSelect": {
-        "loadingTitle": "Analyzing PM recommendations...",
-        "loadingDesc": "Searching for PM profiles optimized for your prototype",
-        "loadingStep1": "Analyzing prototype requirements...",
-        "loadingStep2": "Matching PM profiles...",
-        "loadingStep3": "Finalizing optimal PM selection...",
-        "emptyState": "No recommended PM profiles available",
-        "recommendBanner": "AI has recommended the best PM based on your selected prototype. Higher match rates indicate better project success probability.",
-        "compositionLabel": "Selected PM composition",
-        "listAriaLoading": "Loading PM profiles",
-        "listAriaLabel": "PM profile list"
-      },
-      "pmComposition": {
-        "noSelection": "No PM selected.",
-        "backToSelection": "Back to PM selection",
-        "loadingItems": "Loading composition elements...",
-        "errorTitle": "Failed to load composition",
-        "retry": "Try again",
-        "nextHint": "This PM's default team (agents, skills, MCP, hooks) will be automatically selected in the next agent configuration step. PM team items are locked and cannot be removed, but you can freely add more items.",
-        "reselectBtn": "Reselect PM",
-        "listAriaLabel": "PM composition list",
-        "itemRequired": "Required",
-        "itemOptional": "Optional",
-        "matchRate": "{score}% match",
-        "agents": "AI Agents",
-        "skills": "Skills",
-        "hooks": "Hooks",
-        "mcpServers": "MCP Servers",
-        "plugins": "Plugins"
-      }
-    },
-    "step5": {
-      "agents": {
-        "pmLockBanner": "{pmName}'s default team items have been automatically applied. Locked items cannot be removed, but you can freely add additional items.",
-        "catalogRecBanner": "Agents and skills have been recommended based on your selected prototype catalog. Adjust as needed.",
-        "defaultBanner": "Review the agent configuration for your selected prototype and adjust as needed.",
-        "pmTeamBadge": "PM Team",
-        "pmTeamTitle": "{pmName} PM default team item",
-        "sectionAgents": "AI Agents",
-        "agentsLoadError": "Failed to load agents.",
-        "sectionSkills": "Integration Skills",
-        "ticketSource": "Ticket Source",
-        "ticketRequired": "Required",
-        "ticketSelectOne": "Select 1",
-        "ticketDesc": "Select the platform to manage issues/tickets.",
-        "skillsLoadError": "Failed to load skills.",
-        "ticketLockedByPm": "{pmName} has locked {label}. Other ticket sources cannot be selected.",
-        "ticketRequiredAlert": "Please select 1 ticket source (Linear or Notion)",
-        "additionalSkills": "Additional Skills",
-        "optional": "(Optional)",
-        "mcpSection": "MCP Servers",
-        "mcpLoadError": "Failed to load MCP servers.",
-        "hooksSection": "Hooks",
-        "hooksLoadError": "Failed to load hooks.",
-        "recommendedBadge": "Recommended",
-        "defaultPmName": "the selected PM"
-      },
-      "platform": {
-        "description": "Select the Agent platform to run your generated solution.",
-        "notSupportedByPm": "Not supported by PM",
-        "recommended": "Recommended",
-        "comingSoon": "Coming soon",
-        "comingSoonNote": "Gemini CLI, Cursor, and Codex support will be available in future updates.",
-        "claudeCodeDesc": "AI coding agent based on Anthropic Claude",
-        "geminiCliDesc": "CLI agent based on Google Gemini",
-        "cursorDesc": "AI-first code editor",
-        "codexDesc": "Agent based on OpenAI Codex"
-      },
-      "os": {
-        "description": "Select the OS environment to unzip and run the project. A launcher script for your selected environment will be included.",
-        "recommended": "Recommended",
-        "comingSoon": "Coming soon",
-        "wslNotInstalled": "Don't have WSL2 installed?",
-        "wslGuideDesc": "WSL2 is Microsoft's official feature for running a Linux environment on Windows.",
-        "wslStep1": "Run in PowerShell (as Administrator):",
-        "wslStep2": "After restarting your PC, open the Ubuntu app",
-        "wslStep3": "Set username and password, then you're done",
-        "wslGuideLink": "Open official installation guide →",
-        "wsl2Desc": "Windows Subsystem for Linux 2 — Claude Code officially recommended environment",
-        "windowsDesc": "Direct execution via PowerShell / cmd",
-        "macosDesc": "zsh / bash terminal",
-        "linuxDesc": "Ubuntu, Debian, Fedora, etc."
-      }
-    },
-    "step6": {
-      "env": {
-        "authTitle": "Claude Authentication",
-        "authApiKeyLabel": "API Key",
-        "authApiKeyDesc": "Enter the sk-ant-... key issued from Anthropic Console directly.",
-        "authOAuthLabel": "Browser OAuth (claude login)",
-        "authOAuthDesc": "For Claude Pro/Max subscribers only. When you run bash start.sh, claude login will proceed automatically.",
-        "oauthNote": "ANTHROPIC_API_KEY will not be included in .env. Browser login will start automatically when you run bash start.sh.",
-        "requiredKeysTitle": "Required API Keys",
-        "requiredKeysSummary": "({satisfied}/{total} configured)",
-        "guideLink": "Issuance Guide",
-        "statusSet": "Set",
-        "statusDeferred": "Enter later",
-        "statusRequired": "Required",
-        "editBtn": "Edit",
-        "enterBtn": "Enter",
-        "laterBtn": "Later",
-        "cancelBtn": "Cancel",
-        "saveBtn": "Save",
-        "nonAsciiWarning": "Non-ASCII characters (Korean, emoji, etc.) are automatically removed. Enter only English letters and numbers.",
-        "apiKeyNeeded": "API Key Required",
-        "setupGuideBtn": "Setup Guide",
-        "missingKeysAlert": "{count} required key(s) not yet configured. Enter values or mark as \"Enter later\".",
-        "deferredKeysNote": "{count} key(s) to enter later — you can add them in the final confirmation step.",
-        "trackingTitle": "Real-time Tracking Method",
-        "trackingOptional": "(Optional)",
-        "trackingDesc": "Select how to automatically trigger local Claude when Linear issue status changes.",
-        "cfTitle": "Cloudflare Tunnel",
-        "cfDesc": "Free · Static URL (Recommended)",
-        "ngrokTitle": "ngrok",
-        "ngrokDesc": "Paid fixed / Free temporary URL",
-        "pollingTitle": "30s Polling",
-        "pollingDesc": "No webhook needed · 30s delay",
-        "ngrokToken": "ngrok Auth Token",
-        "ngrokTokenLink": "(Get from ngrok.com)",
-        "cfNote": "Run bash scripts/setup-tunnel.sh after unzipping to auto-install cloudflared.",
-        "pollingNote": "Run python3 scripts/linear_watcher.py to poll Linear every 30 seconds. No webhook server needed.",
-        "securityNote": "The keys entered are saved in .env in the ZIP file. Do not share the ZIP file. Refer to the docs/api-keys/ folder in the ZIP if unsure.",
-        "securityNoteOAuth": "In browser OAuth mode, the Anthropic key is not included in .env. claude login will start automatically when you run bash start.sh.",
-        "extraVarsTitle": "Additional Environment Variables",
-        "emptyValue": "(empty)",
-        "addVarTitle": "Add Environment Variable",
-        "addVarOptional": "(Optional)",
-        "addVarValuePlaceholder": "Value (can enter later · letters/numbers)",
-        "anthropicKeyLabel": "Anthropic API key",
-        "anthropicKeyDesc": "Authentication key required to call Claude AI models",
-        "validating": "Validating..."
-      },
-      "roi": {
-        "title": "ROI Comparison",
-        "desc": "Compare the cost of building the same solution with traditional staffing vs. ClickEye.",
-        "baselineCard": "Traditional Staffing",
-        "clickeyeCard": "With ClickEye",
-        "timeSuffix": "estimated",
-        "savingsLabel": "Estimated Savings",
-        "savingsRateLabel": "Savings Rate",
-        "traditionalLabel": "Traditional",
-        "calcFailed": "Failed to calculate ROI",
-        "breakdownTitle": "Role Breakdown",
-        "resetBtn": "Reset to Standard",
-        "perDay": " KRW/day",
-        "adjustedBadge": "Adjusted",
-        "rateNote": "* Adjusting rates does not change the administrator's standard values. Only applies to this session. Formula version: {version}",
-        "rolePm": "Project Manager",
-        "roleBe": "Backend Developer",
-        "roleFe": "Frontend Developer",
-        "roleQa": "QA Engineer",
-        "roleDesigner": "UI/UX Designer",
-        "daysUnit": " days"
-      }
-    },
-    "step7": {
-      "simpleConfirm": {
-        "sectionCompany": "Company Info",
-        "companyName": "Company name",
-        "businessType": "Business type",
-        "mainProduct": "Main product",
-        "businessTypeInternal": "Internal Tool",
-        "solutionTypeFullstack": "Fullstack",
-        "solutionTypeInternalTool": "Internal Tool",
-        "solutionTypeCustom": "Custom",
-        "sectionPrototype": "Solution Prototype",
-        "protoName": "Name",
-        "protoType": "Type",
-        "noPrototype": "No prototype selected",
-        "sectionPm": "PM",
-        "pmSelected": "PM selected (ID: {id}...)",
-        "noPm": "No PM selected",
-        "sectionAgents": "Agents & Skills",
-        "agentsLabel": "Agents",
-        "skillsLabel": "Skills",
-        "noAgents": "Not configured",
-        "noSkills": "None",
-        "sectionPlatform": "Platform",
-        "noPlatform": "Not configured",
-        "sectionEnv": "Environment Variables",
-        "envCount": "{count} configured",
-        "allConfirmed": "All settings confirmed",
-        "submitHint": "Creating a project will save your solution configuration"
-      },
-      "confirmation": {
-        "regionLabel": "Final confirmation",
-        "sectionCompany": "Company Info",
-        "reconfigBtn": "Reconfigure",
-        "companyName": "Company name",
-        "industry": "Industry",
-        "businessType": "Business type",
-        "mainProduct": "Main product",
-        "authMethod": "Claude authentication",
-        "authOAuth": "OAuth Browser Login",
-        "authApiKey": "API Key",
-        "sectionPrototype": "Solution Prototype",
-        "reselectBtn": "Reselect",
-        "noPrototype": "No prototype selected",
-        "sectionPm": "Project Manager",
-        "pmLoading": "Loading PM info...",
-        "noPm": "No PM selected",
-        "pmCompositionTitle": "PM Composition",
-        "sectionRoi": "ROI Comparison Summary",
-        "recalcBtn": "Recalculate",
-        "baselineCost": "Traditional staffing cost",
-        "clickeyeCost": "ClickEye introduction cost",
-        "savingsAmount": "Estimated savings",
-        "savingsRate": "Savings rate",
-        "formulaVersion": "Formula version:",
-        "deferredTitle": "Unset API Keys ({count})",
-        "deferredDesc": "These are keys you chose to enter later. Enter them now or edit the .env file directly after creating the project.",
-        "deferredSaveBtn": "Save",
-        "allConfirmed": "All settings confirmed",
-        "proceedHint": "Click \"Proceed\" to create your project",
-        "businessTypeInternal": "Internal Tool",
-        "industryIt": "IT/Software",
-        "industryFintech": "Fintech/Finance",
-        "industryEcommerce": "E-commerce",
-        "industryHealthcare": "Healthcare",
-        "industryEducation": "Education",
-        "industryManufacturing": "Manufacturing",
-        "industryLogistics": "Logistics",
-        "industryMarketing": "Marketing",
-        "industryGame": "Game",
-        "industryOther": "Other",
-        "solutionTypeFullstack": "Fullstack",
-        "solutionTypeInternalTool": "Internal Tool",
-        "solutionTypeCustom": "Custom",
-        "notSet": "Not set",
-        "validating": "Validating...",
-        "deferredPlaceholder": "Enter value (alphanumeric)",
-        "stepNavAriaLabel": "Go to {label} step",
-        "compositionAgents": "Agents",
-        "compositionSkills": "Skills",
-        "compositionMcp": "MCP",
-        "compositionHooks": "Hooks"
-      }
-    },
-    "pmCompositionView": {
-      "title": "{name} composition",
-      "loading": "Loading composition info...",
-      "empty": "No composition items.",
-      "agents": "AI Agents",
-      "skills": "Skills",
-      "mcpServers": "MCP Servers",
-      "hooks": "Hooks"
-    },
-    "metricBadges": {
-      "weeksUnit": "w",
-      "personsUnit": "",
-      "maintenance": {
-        "low": "Low maintenance",
-        "medium": "Medium maintenance",
-        "high": "High maintenance"
-      }
-    },
-    "comparisonTable": {
-      "metric": "Metric",
-      "recommended": "Recommended",
-      "rows": {
-        "architecture": "Architecture",
-        "devDuration": "Dev duration",
-        "teamSize": "Team size",
-        "monthlyCost": "Monthly cost",
-        "complexity": "Complexity (lower is simpler)",
-        "scalability": "Scalability (higher is better)",
-        "maintenance": "Maintenance difficulty",
-        "techStack": "Tech stack",
-        "skillRequirements": "Required skills",
-        "companyFit": "Company fit",
-        "pros": "Pros",
-        "cons": "Cons"
-      },
-      "maintenance": {
-        "low": "Low",
-        "medium": "Medium",
-        "high": "High"
-      }
-    },
-    "prototypeCard": {
-      "recommended": "Recommended",
-      "pros": "Pros",
-      "cons": "Cons",
-      "skillRequirements": "Required skills",
-      "aiMatchNote": "AI analysis text is currently shown in Korean. Backend i18n in progress.",
-      "solutionTypes": {
-        "saas": "SaaS",
-        "restApi": "REST API",
-        "fullstack": "Full-stack Web",
-        "internalTool": "Internal Tool",
-        "mvp": "MVP",
-        "custom": "Custom"
-      },
-      "complexityLabel": "Complexity",
-      "scalabilityLabel": "Scalability"
-    },
-    "step1": {
-      "companyName": {
-        "label": "Company name",
-        "placeholder": "e.g. Acme Corp",
-        "required": "Please enter a company name",
-        "max200": "Must be 200 characters or less"
-      },
-      "companySize": {
-        "label": "Company size",
-        "required": "Please select a company size",
-        "options": {
-          "startup": {
-            "label": "Startup",
-            "sub": "1–10"
-          },
-          "small": {
-            "label": "Small",
-            "sub": "11–50"
-          },
-          "medium": {
-            "label": "Medium",
-            "sub": "51–200"
-          },
-          "midLarge": {
-            "label": "Mid-large",
-            "sub": "201–1,000"
-          },
-          "enterprise": {
-            "label": "Enterprise",
-            "sub": "1,000+"
-          }
-        }
-      },
-      "industry": {
-        "label": "Industry",
-        "required": "Please select an industry",
-        "options": {
-          "it": "IT/Software",
-          "fintech": "Finance/Fintech",
-          "ecommerce": "Ecommerce/Retail",
-          "healthcare": "Healthcare/Medical",
-          "education": "Education/Edutech",
-          "manufacturing": "Manufacturing",
-          "logistics": "Logistics",
-          "marketing": "Marketing/Advertising",
-          "game": "Game/Entertainment",
-          "other": "Other"
-        }
-      },
-      "techStack": {
-        "label": "Tech stack",
-        "optional": "(optional, multiple)",
-        "selectedCount": "{count} selected",
-        "categories": {
-          "language": "Language",
-          "framework": "Framework / Library",
-          "database": "Database",
-          "cloud": "Cloud / Infrastructure"
-        }
-      },
-      "mainProduct": {
-        "label": "Main product/service",
-        "placeholder": "e.g. Enterprise HR platform",
-        "required": "Please describe your main product/service",
-        "max500": "Must be 500 characters or less"
-      },
-      "businessType": {
-        "label": "Business type",
-        "required": "Please select a business type",
-        "options": {
-          "b2b": {
-            "label": "B2B",
-            "description": "Business"
-          },
-          "b2c": {
-            "label": "B2C",
-            "description": "Consumer"
-          },
-          "b2b2c": {
-            "label": "B2B2C",
-            "description": "Hybrid model"
-          },
-          "internal": {
-            "label": "Internal tool",
-            "description": "In-house system"
-          }
-        }
-      },
-      "companyDescription": {
-        "label": "Company description",
-        "optional": "(optional)",
-        "placeholder": "Describe your company background, team structure, tech level, etc.",
-        "max1000": "Must be 1,000 characters or less"
-      },
-      "solutionRequest": {
-        "label": "Describe the solution you need",
-        "hint": "Write freely in natural language. AI will analyze and design the optimal solution.",
-        "placeholder": "e.g. We want to automate our customer data management currently handled in Excel. We need a CRM system for 10 sales team members, ideally integrated with Slack...",
-        "required": "Please enter at least 50 characters",
-        "max2000": "Must be 2,000 characters or less",
-        "minHint": "({remaining} more)"
-      },
-      "autoDecompose": {
-        "title": "ClickEye Auto Analysis",
-        "ariaLabel": "ClickEye Auto Analysis",
-        "description": "When ON, running <code>bash start.sh</code> after download will automatically analyze and decompose solution requirements to generate AI Team review cards. Turn OFF to design manually."
-      },
-      "prefillTargetUsers": "Target users",
-      "prefillFeatures": "Key features"
-    },
-    "step2": {
-      "starting": "Preparing...",
-      "completed": "Prototypes generated!",
-      "generating": "AI is designing solution prototypes",
-      "counterAriaLabel": "{ready} of {total} completed",
-      "progressAriaLabel": "Prototype generation progress",
-      "listAriaLabel": "Prototype generation status",
-      "cardGeneratingAriaLabel": "Generating prototype",
-      "cardReadyAriaLabel": "Prototype \"{name}\" ready",
-      "waitingHint": "This usually takes 30 seconds to 1 minute. Please wait.",
-      "doneHint": "Click the <strong>Next</strong> button below to review the prototypes.",
-      "disabled": {
-        "title": "Live preview unavailable",
-        "description": "The live preview feature is currently disabled.",
-        "contactAdmin": "Please contact an administrator to enable this feature."
-      },
-      "failed": {
-        "title": "Prototype generation failed",
-        "description": "A temporary error occurred. Please try again.",
-        "retry": "Try again"
-      }
-    },
-    "step3": {
-      "empty": {
-        "title": "No prototypes generated",
-        "description": "Please go back and review the information."
-      },
-      "noComparison": "No prototypes to compare.",
-      "aiHint": "AI-analyzed solution candidates. Select the most suitable direction.",
-      "viewCards": "Cards",
-      "viewCompare": "Compare",
-      "listAriaLabel": "Solution prototype list"
-    },
-    "shell": {
-      "header": {
-        "newTitle": "New solution",
-        "newSubtitle": "AI designs a solution tailored to your company",
-        "modernizeTitle": "Modernize existing code",
-        "modernizeSubtitle": "Connect a GitHub repo and AI will diagnose your code and auto-register modernization tasks"
-      },
-      "nav": {
-        "prev": "Back",
-        "next": "Next",
-        "proceed": "Proceed",
-        "creating": "Creating...",
-        "analyzing": "Analyzing...",
-        "prevAria": "Go to previous step",
-        "nextAria": "Go to next step ({label})",
-        "submitAria": "Create project",
-        "groupAria": "Wizard navigation",
-        "previewToggleAria": "Open live preview",
-        "previewToggleTitle": "Live preview",
-        "restartTourAria": "Replay wizard guide",
-        "solutionsLink": "Solutions",
-        "solutionsLinkAria": "Go to solutions list"
-      },
-      "stepper": {
-        "navAria": "Solution wizard progress",
-        "stepAria": "{label} ({current}/{total}) - {status}",
-        "statusCompleted": "completed",
-        "statusCurrent": "current step",
-        "statusUpcoming": "upcoming"
-      },
-      "steps": {
-        "company": {
-          "label": "Company info",
-          "description": "Enter company info and solution requirements"
-        },
-        "generation": {
-          "label": "Generation",
-          "description": "AI generates solution prototypes"
-        },
-        "prototypes": {
-          "label": "Prototypes",
-          "description": "Choose from AI-generated solution candidates"
-        },
-        "pm-recommendation": {
-          "label": "PM recommendation",
-          "description": "AI analyzes the optimal PM"
-        },
-        "pm-selection": {
-          "label": "PM selection",
-          "description": "Choose a project manager AI"
-        },
-        "pm-composition": {
-          "label": "PM composition",
-          "description": "Review the selected PM's components"
-        },
-        "agents": {
-          "label": "Agents",
-          "description": "Review the AI agent setup"
-        },
-        "platform": {
-          "label": "Platform",
-          "description": "Choose an agent platform"
-        },
-        "os": {
-          "label": "Runtime",
-          "description": "Choose the OS environment to run the solution"
-        },
-        "env": {
-          "label": "Env variables",
-          "description": "Enter API keys and environment variables"
-        },
-        "roi": {
-          "label": "ROI comparison",
-          "description": "Estimate the efficiency value of adopting ClickEye"
-        },
-        "confirm": {
-          "label": "Final review",
-          "description": "Review settings and create the project"
-        },
-        "repo-connect": {
-          "label": "Connect GitHub",
-          "description": "Connect the GitHub repo to import your existing codebase"
-        },
-        "repo-select": {
-          "label": "Select repository",
-          "description": "Select the repo and branch to analyze"
-        },
-        "diagnose": {
-          "label": "Code diagnosis",
-          "description": "AI analyzes the code"
-        },
-        "diagnosis-review": {
-          "label": "Diagnosis review",
-          "description": "Choose modernization scenarios and recommendations"
-        }
-      }
-    },
-    "preview": {
-      "title": "Live preview",
-      "closeAria": "Close preview",
-      "panelAria": "Solution setup progress summary",
-      "skeletonAria": "Loading preview",
-      "emptyStepSummary": "Complete this step to see a summary.",
-      "emptyBlueprint": "Enter solution requirements to see the AI blueprint.",
-      "emptyPanel": "As you progress through the wizard, your settings will appear here.",
-      "blueprint": {
-        "tooShort": "Enter a bit more detail to see the blueprint.",
-        "creditError": "Anthropic API credits are insufficient.",
-        "creditServerSuffix": " The shared server key has run out of credits.",
-        "creditUserSuffix": " Top up in Plans & Billing and try again.",
-        "registerKey": "Register my API key →",
-        "authError": "API key authentication failed.",
-        "authUserSuffix": " Check your key on the settings page.",
-        "authServerSuffix": " Check the ANTHROPIC_API_KEY setting.",
-        "resetKey": "Reset API key →",
-        "genericError": "A temporary error occurred. Please try again shortly.",
-        "complexityPrefix": "Complexity",
-        "features": "Key features",
-        "techStack": "Recommended tech stack",
-        "keyRequirements": "Key requirements",
-        "complexity": {
-          "low": "Low",
-          "medium": "Medium",
-          "high": "High"
-        }
-      },
-      "summary": {
-        "companyName": "Company",
-        "industry": "Industry",
-        "businessType": "Business type",
-        "companySize": "Size",
-        "agents": "Agents",
-        "skills": "Skills",
-        "hooks": "Hooks",
-        "platform": "Platform",
-        "os": "Runtime",
-        "authMethod": "Auth method",
-        "envVars": "Env variables",
-        "noPrototype": "No prototype selected.",
-        "noPm": "No PM selected.",
-        "noAgents": "No agents selected.",
-        "noPlatform": "No platform selected.",
-        "noOs": "No runtime selected.",
-        "noRoi": "ROI analysis not completed.",
-        "pmComposition": "PM components confirmed.",
-        "confirm": "All settings are complete.",
-        "matching": "{score}% match",
-        "countValue": "{count}",
-        "envCountValue": "{count} set",
-        "savings": "Savings",
-        "savingsRatio": "Savings rate",
-        "industryMap": {
-          "it": "IT / Software",
-          "fintech": "Finance / Fintech",
-          "ecommerce": "E-commerce / Retail",
-          "healthcare": "Healthcare / Medical",
-          "education": "Education / Edtech",
-          "manufacturing": "Manufacturing",
-          "logistics": "Logistics / Delivery",
-          "marketing": "Marketing / Advertising",
-          "game": "Games / Entertainment",
-          "other": "Other"
-        },
-        "businessTypeMap": {
-          "b2b": "B2B",
-          "b2c": "B2C",
-          "b2b2c": "B2B2C",
-          "internal": "Internal tool"
-        },
-        "companySizeMap": {
-          "startup": "Startup",
-          "small": "Small",
-          "medium": "Small-medium",
-          "mid-large": "Mid-large",
-          "enterprise": "Enterprise"
-        },
-        "authMethodMap": {
-          "api_key": "API key",
-          "oauth_browser": "OAuth browser"
-        },
-        "platformMap": {
-          "claude-code": "Claude Code",
-          "gemini-cli": "Gemini CLI",
-          "cursor": "Cursor",
-          "codex": "Codex"
-        },
-        "osMap": {
-          "wsl2": "WSL2"
-        }
-      }
-    },
-    "tour": {
-      "steps": {
-        "progress": {
-          "title": "Progress steps",
-          "content": "This wizard guides you through each step. Click a completed step to go back and edit anytime."
-        },
-        "input": {
-          "title": "Step-by-step input",
-          "content": "From company info to agent setup and environment variables, each step collects what AI needs to design your solution."
-        },
-        "navigation": {
-          "title": "Step navigation",
-          "content": "Go back to a previous step or move forward. Once all required fields are filled, the Next button is enabled."
-        }
-      },
-      "locale": {
-        "back": "Back",
-        "close": "Close",
-        "last": "Done",
-        "next": "Next",
-        "skip": "Skip"
-      }
-    },
-    "prototypePreview": {
-      "menuCount": "{count} menus",
-      "pageCount": "{count} pages",
-      "colorPalette": "Color palette",
-      "menuStructure": "Menu structure",
-      "pageLayout": "Page layout",
-      "moreCount": "+{count}"
-    },
-    "pmProfileCard": {
-      "match": "{score}% match",
-      "completedCount": "Completed",
-      "usageCount": "Usage",
-      "successRate": "Success rate",
-      "avgCompletionDays": "Avg. days",
-      "daysValue": "{days}d"
-    }
-  },
-  "setupGuide": {
-    "title": "Solution created!",
-    "subtitle": "Follow the steps below to set up your local development environment",
-    "stepsAriaLabel": "Setup procedure",
-    "integrationsTitle": "Integration Setup Guide",
-    "workflowTitle": "Post-Setup Workflow",
-    "workflowDesc1": "bash start.sh → Environment check · Background service start · Auto exit",
-    "workflowDesc2Wsl": "bash scripts/install-service.sh → Register systemd service (auto-recover after WSL2 restart)",
-    "workflowDesc3Wsl": "ClickEye Web → AI Team → Approve task (Todo)",
-    "workflowDesc3": "ClickEye Web → AI Team → Approve task (Todo)",
-    "workflowDesc4Wsl": "Local pipeline automatically calls Claude to write code",
-    "workflowDesc4": "Local pipeline automatically calls Claude to write code",
-    "workflowSlide": "Team sharing slide guide: docs/setup-guide.pptx in ZIP",
-    "goToProjectBtn": "Go to project page",
-    "projectPageHint": "Download ZIP and check integration status on the project page",
-    "step1Label": "Download ZIP",
-    "step1Desc": "Click the \"Download ZIP\" button on the project page",
-    "step1Link": "Open project page",
-    "step2Label": "Unzip",
-    "step2DescWsl": "Unzip to your desired folder in WSL2 Ubuntu terminal",
-    "step2Desc": "Unzip the ZIP file to your desired folder",
-    "step2CommandWsl": "unzip '<project>'.zip -d ~/projects/my-project && cd ~/projects/my-project",
-    "step2Command": "unzip '<project>'.zip -d my-project && cd my-project",
-    "step2NoteWsl": "Run from the WSL terminal instead of double-clicking the ZIP in Windows Explorer",
-    "step3Label": "Run Launcher Script",
-    "step3Desc": "Checks environment, starts services in the background, then exits automatically. The pipeline continues running even after closing the terminal.",
-    "step3Command": "bash start.sh",
-    "step4LabelWsl": "Register as Persistent Service (Recommended)",
-    "step4Label": "Verify Setup Complete",
-    "step4DescWsl": "Services will automatically recover after WSL2 shutdown or restart. Register as a systemd user service.",
-    "step4Desc": "Once ClickEye Web AI Team registers a task, the local pipeline will run automatically.",
-    "step4CommandWsl": "bash scripts/install-service.sh",
-    "step4NoteWsl": "Optional but recommended for stable operation"
-  },
   "onboarding": {
     "preset": {
       "title": "Quick Start",
@@ -918,43 +202,6 @@
       "configureManually": "Configure manually"
     }
   },
-  "solutions": {
-    "page": {
-      "title": "Solution Wizard",
-      "subtitle": "AI automatically designs solutions tailored to your company",
-      "newBtn": "New solution",
-      "newBtnAria": "Start new solution wizard",
-      "heroTitle": "Design AI solutions with a 7-step wizard",
-      "heroDesc": "Enter your company info and AI will generate a custom prototype, then guide you through PM recommendations, agent configuration, and platform selection.",
-      "heroLink": "Start now",
-      "recentSessions": "Recent Sessions",
-      "loadingAria": "Loading session list",
-      "emptyState": "No sessions yet",
-      "emptyStateHint": "Start a new solution wizard",
-      "startBtn": "Start new solution",
-      "loadError": "Unable to load session list.",
-      "recentSessionsListAria": "Recent solution session list",
-      "openSessionAria": "Open {name} session"
-    },
-    "status": {
-      "completed": "Completed",
-      "generating": "Generating",
-      "pending": "Pending",
-      "failed": "Failed"
-    },
-    "new": {
-      "resumeTitle": "You have sessions in progress",
-      "resumeDesc": "You can continue a previous wizard session or start a new one.",
-      "noRequest": "(No request)",
-      "sessionCompleted": "Prototype generated",
-      "sessionGenerating": "Generating",
-      "sessionPending": "Pending",
-      "startNew": "Start new",
-      "sessionDeleteAria": "Delete session",
-      "retry": "Retry",
-      "proceed": "Proceed as is"
-    }
-  },
   "projects": {
     "page": {
       "wizardBannerTitle": "New Solution Wizard",
@@ -984,8 +231,6 @@
       "staleKeyDesc": "Your local .env file needs to be updated. {keys} key(s) are outdated.",
       "staleKeyAnthropicLabel": "Anthropic",
       "staleKeyLinearLabel": "Linear",
-      "downloadEnv": "Download .env",
-      "downloadZip": "Re-download ZIP",
       "editTitle": "Edit project",
       "submitLabel": "Save",
       "editBtn": "Edit",
@@ -1005,14 +250,6 @@
       "labelPipelines": "Pipelines",
       "labelPlatform": "Platform",
       "noWizardData": "No wizard configuration available. Run the solution wizard again to regenerate the ZIP.",
-      "oauthNote": "OAuth browser auth mode. claude login will proceed automatically when you run bash start.sh.",
-      "envNote": "API keys are not stored on the server. They are written directly to the .env in the ZIP.",
-      "missingEnvAlert": "{count} required environment variable(s) ({labels}) must be entered to download the ZIP.",
-      "downloadBtn": "Download ZIP",
-      "downloading": "Downloading...",
-      "downloadHintMissing": "Enter environment variables to download",
-      "downloadHintReady": "ZIP will be generated with saved config + your API keys",
-      "sanitizedWarning": "Non-ASCII characters (Korean, emoji, etc.) are automatically removed. Enter only letters and numbers.",
       "dangerZoneTitle": "Danger Zone",
       "dangerZoneDesc": "Actions below cannot be undone. Proceed with caution.",
       "resetTitle": "Reset project",
@@ -1025,9 +262,7 @@
       "resetKeyUpdateNote": "Update LICENSE_KEY in your local .env file with the new key above.",
       "notSet": "Not set",
       "countItem": "{count} item(s)",
-      "redownloadError": "Failed to re-download",
       "editFail": "Failed to update.",
-      "validating": "Validating...",
       "solutionTypeFullstack": "Fullstack",
       "solutionTypeInternalTool": "Internal Tool",
       "solutionTypeCustom": "Custom",
@@ -1159,7 +394,7 @@
   "auth": {
     "login": {
       "title": "Welcome back",
-      "subtitle": "Sign in to manage your AI agents",
+      "subtitle": "Log in to the console to run your deliveries",
       "registeredSuccess": "Sign-up complete. Please sign in.",
       "credentialsError": "Incorrect email or password",
       "orContinueWithEmail": "Or continue with email",
@@ -1173,8 +408,8 @@
       "signupLink": "Sign up"
     },
     "register": {
-      "title": "Get started",
-      "subtitle": "Create a free account and experience the power of AI agents",
+      "title": "Create your team account",
+      "subtitle": "Create an account and start parallel delivery on your first engagement.",
       "genericError": "An error occurred during sign-up",
       "orContinueWithEmail": "Or sign up with email",
       "emailLabel": "Email",
@@ -1200,24 +435,25 @@
       "loginLink": "Sign in"
     },
     "layout": {
-      "tabLogin": "Sign in",
+      "tabLogin": "Log in",
       "tabRegister": "Sign up",
-      "heroTitleLine1": "A new development experience",
-      "heroTitleLine2": "where AI writes the code",
-      "heroDescLine1": "From ticket assignment to code review and PR creation.",
-      "heroDescLine2": "Meet the AI development agent that never sleeps.",
+      "eyebrow": "SI delivery control plane",
+      "heroTitleLine1": "Execution to the AI,",
+      "heroTitleLine2": "control to your team.",
+      "heroDescLine1": "Break each engagement into Linear issues and let AI runners build them in parallel.",
+      "heroDescLine2": "Governance gates and a cost ledger keep quality and margin in check.",
       "features": {
-        "orchestration": {
-          "title": "AI agent orchestration",
-          "desc": "Claude-powered autonomous development agents"
+        "console": {
+          "title": "Delivery console",
+          "desc": "Every active engagement on one screen"
         },
-        "security": {
-          "title": "Enterprise security",
-          "desc": "Isolated execution environments and license management"
+        "governance": {
+          "title": "Governance gate",
+          "desc": "Safe auto-merge via validation and risk classification"
         },
-        "automation": {
-          "title": "Automated workflows",
-          "desc": "End-to-end automation from ticket to PR"
+        "hybrid": {
+          "title": "Hybrid execution",
+          "desc": "Local subscription sessions first, cloud fallback"
         }
       },
       "copyright": "© 2026 ClickEye. All rights reserved."
@@ -1232,6 +468,7 @@
     "items": {
       "newSolution": "New solution",
       "projects": "Projects",
+      "delivery": "Delivery",
       "guide": "Guide"
     },
     "sections": {
@@ -1260,141 +497,102 @@
   },
   "home": {
     "nav": {
-      "features": "Features",
-      "howItWorks": "How it works",
-      "platforms": "Platforms",
-      "login": "Sign in",
-      "ctaStart": "Start designing"
+      "process": "Delivery flow",
+      "capabilities": "Capabilities",
+      "login": "Log in",
+      "ctaRegister": "Create team"
     },
     "hero": {
-      "badge": "Web-first AI solution builder",
-      "titleLine1": "Design it yourself,",
-      "titleLine2": "start with one ZIP,",
-      "titleLine3": "AI development",
-      "descLine1": "Pick agents, skills, and pipelines in the browser, and we",
-      "descLine2": "generate a project for Claude Code / Gemini CLI / Cursor / Codex automatically.",
-      "primaryCta": "Start designing",
-      "secondaryCta": "See how it works",
-      "wizardSteps": {
-        "company": "Company",
-        "solution": "Solution",
-        "agent": "Agents",
-        "skill": "Skills",
-        "pipeline": "Pipelines",
-        "platform": "Platform",
-        "preview": "Preview"
-      },
-      "agentSelectPrompt": "Pick the AI agents to deploy on your project",
-      "agentRequired": "Required",
-      "recommendationNote": "Recommendations based on your solution type have been applied",
-      "demoAgents": {
-        "harness": "Harness engineer",
-        "backend": "Senior backend",
-        "frontend": "Frontend specialist",
-        "uiux": "UI/UX designer",
-        "devops": "DevOps",
-        "fullstack": "Fullstack"
+      "badge": "AI-run SI delivery control plane",
+      "titleLine1": "From contract to delivery,",
+      "titleLine2": "in one control plane.",
+      "desc": "Break each engagement into Linear issues, let AI runners build them in parallel, and keep quality and margin in check with governance gates and a cost ledger. Your team focuses on control, not execution.",
+      "primaryCta": "Open console",
+      "secondaryCta": "Create team account",
+      "board": {
+        "caption": "delivery-console",
+        "live": "3 live",
+        "laneLabel": "Engagement",
+        "note": "Example — populated with your real delivery data",
+        "stages": {
+          "intake": "Intake",
+          "plan": "Plan",
+          "build": "Build",
+          "review": "Review",
+          "merge": "Merge"
+        },
+        "roles": {
+          "architect": "Architect",
+          "backend": "Backend",
+          "frontend": "Frontend",
+          "reviewer": "Reviewer",
+          "intake": "Intake"
+        },
+        "engagements": {
+          "eng1": "Fintech onboarding revamp",
+          "eng2": "Logistics TMS replatform",
+          "eng3": "Commerce search upgrade"
+        }
       }
     },
-    "features": {
-      "sectionTitle": "Why ClickEye?",
-      "sectionDescription": "An AI development automation platform — design on the web, ship as a ZIP",
-      "wizard": {
-        "title": "7-Step wizard",
-        "desc": "Design an AI solution in 7 steps in your browser, from company info to platform choice. Start without writing a line of code."
+    "process": {
+      "eyebrow": "Delivery flow",
+      "sectionTitle": "How one engagement flows through the control plane",
+      "sectionDescription": "A real delivery pipeline in four connected stages.",
+      "intake": {
+        "title": "Contract intake",
+        "desc": "Register an engagement and its scope is broken into Linear issues with roles assigned."
       },
-      "catalog": {
-        "title": "Auto-recommended catalog",
-        "desc": "Pick a solution type and we recommend agents, skills, and pipelines automatically — including proven pipelines like Harness, TDD, and AI review."
+      "delivery": {
+        "title": "AI parallel delivery",
+        "desc": "Hybrid runners prefer local subscription sessions and fall back to the cloud, building many issues at once."
       },
-      "security": {
-        "title": "BYOK security model",
-        "desc": "API keys live only in the ZIP's .env file. A Zero-Trust design that never stores keys on the server."
+      "governance": {
+        "title": "Governance gate",
+        "desc": "Contracts, tickets and plans are validated and risk-classified so only safe changes merge automatically."
       },
-      "platform": {
-        "title": "Multi-platform support",
-        "desc": "Claude Code, Gemini CLI, Cursor, Codex. Whichever AI coding tool you use, the same wizard generates a project of the same quality."
+      "control": {
+        "title": "Control & cost",
+        "desc": "Watch pipelines, reviews and token usage in real time, and track per-project margin with a cost ledger."
       }
     },
-    "metrics": {
-      "badge": "Real customer metrics",
-      "sectionTitle": "Proven by the numbers",
-      "sectionDescription": "Actual development metrics from teams using ClickEye",
-      "automation": {
-        "label": "Average automation rate",
-        "desc": "87% of subtasks handled by AI"
+    "capabilities": {
+      "eyebrow": "Platform capabilities",
+      "sectionTitle": "Control tooling for running many SI projects at once",
+      "sectionDescription": "Automate execution, keep control with the team.",
+      "console": {
+        "title": "Delivery console",
+        "desc": "Watch the pipeline stage and issue status of every active engagement on one screen."
       },
-      "review": {
-        "label": "Review acceptance rate",
-        "desc": "Approved on first review without edits"
+      "governance": {
+        "title": "Governance SSOT",
+        "desc": "Manage validation and risk rules from a single source so every merge meets the same bar."
       },
-      "speed": {
-        "label": "Faster development",
-        "desc": "3.5x faster than manual on average"
+      "cost": {
+        "title": "Cost visibility",
+        "desc": "Aggregate tokens and run cost per issue to surface project margin in real time."
+      },
+      "temporal": {
+        "title": "Temporal orchestration",
+        "desc": "Durably orchestrate long-running delivery workflows and resume safely from the point of failure."
+      },
+      "hybrid": {
+        "title": "Hybrid execution",
+        "desc": "Prefer local subscription sessions and auto-distribute to cloud runners under load."
+      },
+      "linear": {
+        "title": "Linear integration",
+        "desc": "Break engagements into issues and trigger runners automatically as statuses change."
       }
-    },
-    "howItWorks": {
-      "sectionTitle": "How does it work?",
-      "sectionDescription": "Complete your AI development environment in three steps",
-      "design": {
-        "title": "Design on the web",
-        "desc": "After signing in, use the 7-step wizard to pick company info, solution type, agents, skills, pipelines, and platforms. Recommendations are applied based on your solution type."
-      },
-      "download": {
-        "title": "Download the ZIP",
-        "desc": "Once configured, preview the files and download the project ZIP — including CLAUDE.md, agent guides, .env, and every setting."
-      },
-      "run": {
-        "title": "Run locally",
-        "desc": "Unzip and launch your AI coding tool. claude, gemini, cursor — every tool reads the project guide and starts developing right away."
-      },
-      "terminal": {
-        "loadingClaudeMd": "Reading CLAUDE.md...",
-        "harnessActivated": "Harness engineering 4-stage pipeline activated",
-        "starting": "Starting project development"
-      }
-    },
-    "platforms": {
-      "sectionTitle": "Supported platforms",
-      "sectionDescription": "Whichever AI coding tool you use, ClickEye generates the right setup for it",
-      "claudeCode": {
-        "name": "Claude Code",
-        "desc": "Anthropic terminal AI agent"
-      },
-      "geminiCli": {
-        "name": "Gemini CLI",
-        "desc": "Google terminal AI agent"
-      },
-      "cursor": {
-        "name": "Cursor",
-        "desc": "AI-native IDE"
-      },
-      "codex": {
-        "name": "Codex",
-        "desc": "OpenAI terminal AI agent"
-      }
-    },
-    "earlyAccess": {
-      "sectionTitle": "It's free right now",
-      "sectionDescLine1": "Use every feature for free during the early-access period.",
-      "sectionDescLine2": "All you need is your AI platform's API key.",
-      "planName": "Early Access",
-      "freeBadge": "Free",
-      "features": {
-        "unlimitedWizard": "Unlimited 7-step wizard",
-        "catalog": "All agent & skill catalogs",
-        "platforms": "4 AI platforms supported",
-        "downloads": "Unlimited ZIP downloads"
-      },
-      "cta": "Start free",
-      "byokNote": "BYOK — Bring Your Own Key. We never store API keys on our servers."
     },
     "finalCta": {
-      "title": "AI development in 7 steps",
-      "description": "Design in the browser, start with a ZIP. Your API keys stay on your machine.",
-      "button": "Start designing"
+      "title": "Execution to the AI, control to your team.",
+      "description": "Open the console, register your first engagement and start parallel delivery.",
+      "primary": "Open console",
+      "secondary": "Create team account"
     },
     "footer": {
+      "tagline": "AI-run SI delivery control plane",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
   }

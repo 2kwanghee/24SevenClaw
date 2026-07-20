@@ -1,7 +1,7 @@
 ---
 title: Linear 실시간 연동 가이드 (엔드유저 ZIP 플로우)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-06-15
 related:
   - scripts/start-webhook.sh

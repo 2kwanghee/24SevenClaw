@@ -56,6 +56,7 @@ version: ...       # 선택
 |------|------|--------|
 | [cli-guide.md](cli-guide.md) | `@clickeye/cli`(`ce`) 명령·카탈로그·프리셋 | current |
 | [pipeline-guide.md](pipeline-guide.md) | 자동화 파이프라인 v6 + 거버넌스 게이트 | current |
+| [si-factory-operating-guide.md](si-factory-operating-guide.md) | SI 팩토리 전략적 실행 가이드 (배포·토글·통제·선결조건) | current |
 | [aws-deployment-guide-ec2.md](aws-deployment-guide-ec2.md) | EC2 1대 docker-compose 배포(초보자용) | current |
 | [modernize-github-app-setup.md](modernize-github-app-setup.md) | Modernize용 GitHub App 등록 런북 | current |
 | [spec/run_guide.md](spec/run_guide.md) | 서비스 구동(API/web/webhook/ngrok/DB) | current |
@@ -86,7 +87,7 @@ version: ...       # 선택
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
 
-> 개별 페이지 스펙(33종: landing/auth/solutions/wizard 12단계/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
+> 개별 페이지 스펙(landing/auth/solutions/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
 
 ### archive (자동 생성, 매니페스트 관리 제외)
 - `WeeklyWorkReport/` — `weekly-report` 스킬 산출 주간 보고

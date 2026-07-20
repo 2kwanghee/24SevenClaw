@@ -248,7 +248,7 @@ export default function AITeamDashboardPage() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800"
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90"
           >
             <Plus className="h-3 w-3" />
             새 작업 요청
@@ -261,16 +261,12 @@ export default function AITeamDashboardPage() {
         <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
           <Terminal className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            셋업 대기 중 — 다운로드한 ZIP을 압축 해제 후{" "}
-            <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-xs dark:bg-blue-900">
-              bash start.sh
-            </code>
-            을 실행하면 요구사항이 자동으로 등록됩니다.
+            셋업 대기 중 — 딜리버리 환경이 준비되면 요구사항이 자동으로 등록됩니다.
           </span>
         </div>
       )}
       {bootstrapStatus === "running" && (
-        <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-300">
+        <div className="flex items-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 text-sm text-[var(--text-secondary)]">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
           <span>요구사항 분석 및 Linear 이슈 등록 진행 중입니다…</span>
         </div>
@@ -307,12 +303,12 @@ export default function AITeamDashboardPage() {
                 onClick={() => setSelectedSessionId(s.id)}
                 className={`rounded-lg py-1.5 pl-3 pr-2 text-xs font-medium transition-colors ${
                   s.id === activeSessionId
-                    ? "bg-zinc-900 text-white shadow-sm"
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
                     : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {s.title}
-                <span className="ml-1.5 rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-zinc-500">
+                <span className="ml-1.5 rounded bg-[var(--bg-hover)] px-1 py-0.5 text-[10px] text-[var(--text-muted)]">
                   {PHASE_LABELS[s.phase] ?? s.phase}
                 </span>
               </button>
@@ -322,7 +318,7 @@ export default function AITeamDashboardPage() {
                   e.stopPropagation();
                   setDeleteTarget({ id: s.id, title: s.title });
                 }}
-                className="ml-0.5 rounded p-0.5 text-zinc-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                className="ml-0.5 rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
                 aria-label={`${s.title} 삭제`}
               >
                 <X className="h-3 w-3" />
@@ -335,15 +331,15 @@ export default function AITeamDashboardPage() {
       {/* 로딩 */}
       {(sessionsLoading || (summaryLoading && !summary)) && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
         </div>
       )}
 
       {/* 세션 없음 */}
       {sessions && sessions.items.length === 0 && !sessionsLoading && (
         <div className="flex flex-col items-center gap-4 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100">
-            <Bot className="h-7 w-7 text-zinc-400" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+            <Bot className="h-7 w-7 text-[var(--text-muted)]" />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
             아직 생성된 작업이 없습니다
@@ -351,7 +347,7 @@ export default function AITeamDashboardPage() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             첫 작업 요청하기
@@ -404,7 +400,7 @@ export default function AITeamDashboardPage() {
                   type="button"
                   onClick={handleGenerateDrafts}
                   disabled={generateDrafts.isPending}
-                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
                 >
                   {generateDrafts.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -447,7 +443,7 @@ export default function AITeamDashboardPage() {
                   type="button"
                   onClick={handleApprove}
                   disabled={transition.isPending}
-                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
                 >
                   {transition.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -465,7 +461,7 @@ export default function AITeamDashboardPage() {
                 {phaseHistory.slice(-5).map((evt) => (
                   <span
                     key={evt.id}
-                    className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500"
+                    className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]"
                   >
                     {PHASE_LABELS[evt.new_phase] ?? evt.new_phase}
                     {evt.message ? ` — ${evt.message}` : ""}
@@ -496,7 +492,7 @@ export default function AITeamDashboardPage() {
                     프롬프트 템플릿
                   </h3>
                 </div>
-                <pre className="max-h-40 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs text-zinc-700 whitespace-pre-wrap">
+                <pre className="max-h-40 overflow-auto rounded-lg bg-[var(--bg-hover)] p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
                   {session.prompt_template}
                 </pre>
               </div>
@@ -552,12 +548,7 @@ export default function AITeamDashboardPage() {
                 자동으로 Claude에게 코드 작성을 지시합니다.
               </p>
               <p className="mt-1.5 text-[11px] text-emerald-600">
-                파이프라인이 실행 중이 아니라면 ZIP의{" "}
-                <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono">bash start.sh</code>
-                {" "}로 먼저 시작하세요.
-                안정적인 운영을 위해{" "}
-                <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono">bash scripts/install-service.sh</code>
-                {" "}로 systemd 서비스를 등록하는 것을 권장합니다.
+                파이프라인이 실행 중이 아니라면 딜리버리 파이프라인을 먼저 시작하세요.
               </p>
             </div>
           )}
@@ -582,7 +573,7 @@ export default function AITeamDashboardPage() {
               </div>
               <p className="mb-3 text-xs text-[var(--text-secondary)]">{linearHint.instructions}</p>
               {linearHint.session_description && (
-                <div className="mb-3 rounded-lg border border-violet-200 bg-white px-3 py-2">
+                <div className="mb-3 rounded-lg border border-violet-200 bg-[var(--bg-surface)] px-3 py-2">
                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
                     원본 요구사항
                   </p>
@@ -595,7 +586,7 @@ export default function AITeamDashboardPage() {
                 {linearHint.subtasks.map((st) => (
                   <div
                     key={st.title}
-                    className="rounded-lg border border-violet-200 bg-white px-3 py-2"
+                    className="rounded-lg border border-violet-200 bg-[var(--bg-surface)] px-3 py-2"
                   >
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
@@ -663,13 +654,13 @@ export default function AITeamDashboardPage() {
                 <>
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-100">
-                        <Bot className="h-3.5 w-3.5 text-zinc-700" />
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--bg-hover)]">
+                        <Bot className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
                       </div>
                       <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                         AI Team
                       </h2>
-                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                      <span className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
                         {subtasks.length}개 태스크
                       </span>
                       {subtasks.length > 0 && (

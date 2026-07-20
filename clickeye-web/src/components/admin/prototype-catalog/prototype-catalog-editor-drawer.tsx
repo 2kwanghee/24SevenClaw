@@ -192,7 +192,7 @@ export function PrototypeCatalogEditorDrawer({
               onClick={() => setTab(t.id)}
               className={`mr-4 py-3 text-xs font-medium border-b-2 transition-colors ${
                 tab === t.id
-                  ? "border-zinc-900 text-[var(--text-primary)]"
+                  ? "border-[var(--accent)] text-[var(--text-primary)]"
                   : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
@@ -227,7 +227,7 @@ export function PrototypeCatalogEditorDrawer({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-[var(--accent-fg)] hover:opacity-90 disabled:opacity-50"
             >
               {isSubmitting && <Loader2 size={12} className="animate-spin" />}
               저장
@@ -251,7 +251,7 @@ function Field({
   );
 }
 
-const INPUT = "w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-zinc-400 focus:outline-none";
+const INPUT = "w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none";
 const TEXTAREA = `${INPUT} resize-y min-h-[80px]`;
 
 type SetFn = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;

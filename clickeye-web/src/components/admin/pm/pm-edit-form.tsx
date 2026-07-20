@@ -63,7 +63,7 @@ function PMEnTranslationSection({ register, watch }: PMEnTranslationSectionProps
           <input
             {...register("name_en")}
             placeholder="e.g. Full-Stack PM"
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
@@ -74,7 +74,7 @@ function PMEnTranslationSection({ register, watch }: PMEnTranslationSectionProps
           <input
             {...register("title_en")}
             placeholder="e.g. Senior Product Manager"
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
@@ -85,7 +85,7 @@ function PMEnTranslationSection({ register, watch }: PMEnTranslationSectionProps
           <input
             {...register("description_en")}
             placeholder="e.g. Specializes in SaaS product strategy"
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
@@ -97,7 +97,7 @@ function PMEnTranslationSection({ register, watch }: PMEnTranslationSectionProps
             {...register("bio_long_en")}
             rows={5}
             placeholder="e.g. Experienced PM with 8+ years in SaaS..."
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
       </div>
@@ -287,7 +287,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           <button
             type="submit"
             disabled={updateMutation.isPending || !isDirty}
-            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-1.5 text-sm font-medium text-[var(--accent-fg)] transition-colors hover:opacity-90 disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
             {updateMutation.isPending ? "저장 중..." : "저장"}
@@ -302,7 +302,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
             <label className="block text-xs text-[var(--text-muted)] mb-1">이름 *</label>
             <input
               {...register("name")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
             {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
           </div>
@@ -310,7 +310,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
             <label className="block text-xs text-[var(--text-muted)] mb-1">슬러그 *</label>
             <input
               {...register("slug")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
             {errors.slug && <p className="mt-1 text-xs text-red-600">{errors.slug.message}</p>}
           </div>
@@ -318,7 +318,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
             <label className="block text-xs text-[var(--text-muted)] mb-1">직함</label>
             <input
               {...register("title")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
           </div>
           <div>
@@ -326,14 +326,14 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
             <input
               {...register("domain")}
               placeholder="예: saas, fintech"
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
           </div>
           <div>
             <label className="block text-xs text-[var(--text-muted)] mb-1">Avatar URL</label>
             <input
               {...register("avatar_url")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
             {errors.avatar_url && <p className="mt-1 text-xs text-red-600">{errors.avatar_url.message}</p>}
           </div>
@@ -344,14 +344,14 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
               {...register("years_experience")}
               min={0}
               max={50}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
           </div>
           <div>
             <label className="block text-xs text-[var(--text-muted)] mb-1">언어</label>
             <select
               {...register("language")}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
               <option value="ko">한국어</option>
               <option value="en">English</option>
@@ -408,7 +408,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
           <label className="block text-xs text-[var(--text-muted)] mb-1">한 줄 설명</label>
           <input
             {...register("description")}
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
@@ -419,7 +419,7 @@ function PMEditFormInner({ profileId }: PMEditFormInnerProps) {
             {...register("bio_long")}
             rows={6}
             placeholder="PM의 전문성, 경험, 스타일을 상세히 기술해 주세요."
-            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-zinc-400 focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             구체적이고 상세할수록 Claude 추천 품질이 높아집니다.
