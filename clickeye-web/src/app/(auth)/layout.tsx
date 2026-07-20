@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bot, Sparkles, Shield, Zap } from "lucide-react";
 
+import { LocaleToggle } from "@/components/common/locale-toggle";
+
 export default function AuthLayout({
   children,
 }: {
@@ -89,6 +91,11 @@ export default function AuthLayout({
 
       {/* 우측 폼 패널 */}
       <div className="relative flex w-full flex-col items-center justify-center bg-white px-6 py-12 lg:w-1/2">
+        {/* 언어 선택기 (로그인 전 화면에서도 노출) */}
+        <div className="absolute right-4 top-4 z-10">
+          <LocaleToggle />
+        </div>
+
         {/* 모바일 로고 */}
         <div className="mb-8 flex items-center gap-3 lg:hidden">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900">
