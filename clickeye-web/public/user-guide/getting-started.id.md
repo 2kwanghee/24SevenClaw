@@ -10,7 +10,7 @@ Selamat datang di ClickEye.
 
 ## Ikhtisar
 
-ClickEye adalah platform pembangun solusi otomatisasi pengembangan AI agent. Rancang solusi Anda melalui wizard 7-Step di browser, lalu unduh sebagai ZIP, dan AI agent akan mengotomatiskan pengembangan di lingkungan lokal Anda.
+ClickEye adalah platform delivery otomatisasi pengembangan berbasis AI agent. Buat proyek di konsol delivery web, lalu AI Team akan menguraikan tugas, menyusun draf, dan meninjau pekerjaan untuk mengotomatiskan pengembangan.
 
 ## Komponen Platform
 
@@ -20,14 +20,14 @@ ClickEye adalah platform pembangun solusi otomatisasi pengembangan AI agent. Ran
 
 ## Mulai Cepat
 
-1. Klik tombol **Solusi Baru** di dasbor.
-2. Konfigurasikan proyek Anda dengan mengikuti wizard 7-Step.
-3. Unduh ZIP dan ekstrak di lingkungan lokal Anda.
-4. Jalankan platform AI agent yang telah Anda pilih.
+1. Klik tombol **Proyek Baru** di dasbor.
+2. Masukkan detail proyek untuk membuatnya.
+3. Minta tugas pertama Anda di halaman **AI Team** proyek.
+4. Tinjau dan setujui draf yang dihasilkan AI.
 
 ## Langkah Berikutnya
 
-- [Perancangan Solusi](/guide/solution-design) — Panduan wizard langkah demi langkah
+- [Manajemen AI Team](/guide/ai-team-management) — Alur permintaan tugas, pembuatan draf, dan persetujuan
 - [Platform Agent](/guide/agent-platform) — Karakteristik dan konfigurasi tiap platform
 - [Penggunaan CLI](/guide/cli-guide) — Memanfaatkan alat CLI
 

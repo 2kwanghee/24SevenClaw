@@ -32,7 +32,7 @@ async function checkClaudeDir(targetDir: string): Promise<CheckResult> {
   return {
     label: ".claude/ 디렉토리 존재",
     passed: exists,
-    detail: exists ? undefined : "ce init을 먼저 실행하세요",
+    detail: exists ? undefined : "ClickEye 딜리버리 콘솔에서 배포된 프로젝트 디렉토리에서 실행하세요",
   };
 }
 
@@ -44,7 +44,7 @@ async function checkSettingsJson(targetDir: string): Promise<CheckResult> {
     return {
       label: "settings.json 존재",
       passed: false,
-      detail: "ce init을 먼저 실행하세요",
+      detail: "ClickEye 딜리버리 콘솔에서 배포된 프로젝트 디렉토리에서 실행하세요",
     };
   }
 
@@ -119,7 +119,7 @@ async function checkAgentReferences(
       {
         label: "CLAUDE.md 존재",
         passed: false,
-        detail: "ce init으로 생성하세요",
+        detail: "딜리버리 콘솔에서 배포된 프로젝트에 포함되어야 합니다",
       },
     ];
   }
@@ -179,7 +179,7 @@ async function checkClaudeMd(targetDir: string): Promise<CheckResult> {
   return {
     label: "CLAUDE.md 존재",
     passed: exists,
-    detail: exists ? undefined : "ce init으로 생성하세요",
+    detail: exists ? undefined : "딜리버리 콘솔에서 배포된 프로젝트에 포함되어야 합니다",
   };
 }
 

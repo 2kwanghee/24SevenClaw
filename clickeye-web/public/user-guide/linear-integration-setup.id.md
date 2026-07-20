@@ -66,11 +66,11 @@ Anda memerlukan **Team ID** Linear. Periksa dengan salah satu cara berikut:
 
 ---
 
-## Step 4 — Memilih Skill Linear di Wizard (Saat Membuat ZIP)
+## Step 4 — Menyertakan Skill Linear di Proyek
 
-Jika Anda memilih skill **Linear** pada Step 5 (Agent & Skill) wizard 7-Step, skrip integrasi Linear akan disertakan dalam ZIP.
+Jika proyek yang dikirim dari konsol delivery menyertakan skill **Linear**, skrip integrasi Linear akan disediakan bersamanya.
 
-Setelah mengekstrak ZIP, nilai-nilai berikut diperlukan dalam berkas `.env`:
+Nilai-nilai berikut diperlukan dalam berkas `.env` proyek:
 
 ```bash
 LINEAR_API_KEY=lin_api_xxxxxxxxxxxx
@@ -188,5 +188,5 @@ Setelah semua konfigurasi selesai, pengembangan otomatis akan terpicu dengan alu
 
 ## Panduan Terkait
 
-- [Wizard Solusi 7-Step](/guide/wizard-7-step) — Memilih skill Linear di wizard
+- [Memulai](/guide/getting-started) — Alur dasar konsol delivery ClickEye
 - [Pengelolaan AI Team](/guide/ai-team-management) — Menghasilkan draf AI dan memeriksa isu Linear

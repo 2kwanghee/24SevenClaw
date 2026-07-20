@@ -87,7 +87,7 @@ version: ...       # 선택
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
 
-> 개별 페이지 스펙(33종: landing/auth/solutions/wizard 12단계/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
+> 개별 페이지 스펙(landing/auth/solutions/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
 
 ### archive (자동 생성, 매니페스트 관리 제외)
 - `WeeklyWorkReport/` — `weekly-report` 스킬 산출 주간 보고

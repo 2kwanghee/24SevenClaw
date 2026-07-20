@@ -29,21 +29,7 @@ docs/pages/
 │
 ├── solutions/
 │   ├── list.md                     → /solutions
-│   ├── session.md                  → /solutions/[sessionId]
-│   └── wizard/
-│       ├── index.md                → /solutions/new (위저드 컨테이너)
-│       ├── step-01-company.md      → Step 0: 회사정보 + 솔루션요청
-│       ├── step-02-generation.md   → Step 1: 프로토타입 생성
-│       ├── step-03-prototype-select.md → Step 2: 프로토타입 선택
-│       ├── step-04-pm-recommend.md → Step 3: PM 추천
-│       ├── step-05-pm-select.md    → Step 4: PM 선택
-│       ├── step-06-pm-composition.md → Step 5: PM 구성확인
-│       ├── step-07-agents.md       → Step 6: 에이전트 선택
-│       ├── step-08-platform.md     → Step 7: 플랫폼 선택
-│       ├── step-09-os.md           → Step 8: 실행 환경(OS) 선택
-│       ├── step-10-env.md          → Step 9: 환경변수 입력
-│       ├── step-11-roi.md          → Step 10: ROI 비교
-│       └── step-12-confirmation.md → Step 11: 최종확인
+│   └── session.md                  → /solutions/[sessionId]
 │
 ├── projects/
 │   ├── list.md                     → /projects
@@ -85,7 +71,7 @@ docs/pages/
 
 ```
 예시:
-"docs/pages/solutions/wizard/step-05-pm-select.md 업데이트했어, 반영해줘"
+"docs/pages/projects/detail.md 업데이트했어, 반영해줘"
 ```
 
 ### 레이아웃/구조 변경 시
@@ -124,7 +110,5 @@ docs/pages/
 
 | MD 파일 | page.tsx | 주요 컴포넌트 | 스토어 |
 |---------|----------|--------------|--------|
-| `solutions/wizard/index.md` | `solutions/new/page.tsx` | `SolutionWizardLayout` | `useSolutionWizardStore` |
-| `solutions/wizard/step-05-pm-select.md` | — | `StepPMSelection` | `useSolutionWizardStore` |
 | `projects/list.md` | `projects/page.tsx` | `ProjectList`, `ProjectCard` | — |
 | `admin/users.md` | `admin/users/page.tsx` | `RoleGuard`, 사용자 테이블 | `useRBACStore` |
