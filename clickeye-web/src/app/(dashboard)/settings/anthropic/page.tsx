@@ -36,7 +36,6 @@ export default function AnthropicSettingsPage() {
         onClose={() => setGuideOpen(false)}
         channel="anthropic"
         staleProjects={staleProjects}
-        token={token}
       />
 
       <div className="mx-auto max-w-2xl space-y-8">

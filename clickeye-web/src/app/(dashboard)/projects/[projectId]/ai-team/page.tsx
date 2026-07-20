@@ -261,11 +261,7 @@ export default function AITeamDashboardPage() {
         <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
           <Terminal className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            셋업 대기 중 — 다운로드한 ZIP을 압축 해제 후{" "}
-            <code className="rounded bg-blue-100 px-1 py-0.5 font-mono text-xs dark:bg-blue-900">
-              bash start.sh
-            </code>
-            을 실행하면 요구사항이 자동으로 등록됩니다.
+            셋업 대기 중 — 딜리버리 환경이 준비되면 요구사항이 자동으로 등록됩니다.
           </span>
         </div>
       )}
@@ -552,12 +548,7 @@ export default function AITeamDashboardPage() {
                 자동으로 Claude에게 코드 작성을 지시합니다.
               </p>
               <p className="mt-1.5 text-[11px] text-emerald-600">
-                파이프라인이 실행 중이 아니라면 ZIP의{" "}
-                <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono">bash start.sh</code>
-                {" "}로 먼저 시작하세요.
-                안정적인 운영을 위해{" "}
-                <code className="rounded bg-emerald-100 px-1 py-0.5 font-mono">bash scripts/install-service.sh</code>
-                {" "}로 systemd 서비스를 등록하는 것을 권장합니다.
+                파이프라인이 실행 중이 아니라면 딜리버리 파이프라인을 먼저 시작하세요.
               </p>
             </div>
           )}

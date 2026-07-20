@@ -263,7 +263,6 @@ export default function LinearSettingsPage() {
       onClose={() => setGuideOpen(false)}
       channel="linear"
       staleProjects={staleProjects}
-      token={token}
     />
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
