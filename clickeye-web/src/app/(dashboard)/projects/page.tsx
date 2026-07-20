@@ -2,10 +2,11 @@
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectListSkeleton } from "@/components/projects/project-list-skeleton";
 import { useProjects } from "@/hooks/use-projects";
@@ -20,6 +21,10 @@ function ProjectsContent() {
   const pathname = usePathname();
   const tT = useTranslations("toast.projects");
   const t = useTranslations("projects.page");
+  const tD = useTranslations("common.projectDialog");
+
+  // 프로젝트 생성 다이얼로그 open 상태
+  const [createOpen, setCreateOpen] = useState(false);
 
   // URL searchParams에서 상태 추출
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
@@ -89,6 +94,14 @@ function ProjectsContent() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 self-start rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-fg)] shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] sm:self-auto"
+        >
+          <Plus className="h-4 w-4" />
+          {tD("newProject")}
+        </button>
       </div>
 
       {/* 검색 + 필터 */}
@@ -143,7 +156,19 @@ function ProjectsContent() {
       )}
 
       {/* 목록 */}
-      {data && <ProjectList projects={data.items} />}
+      {data && (
+        <ProjectList
+          projects={data.items}
+          onCreate={() => setCreateOpen(true)}
+        />
+      )}
+
+      {/* 프로젝트 생성 다이얼로그 */}
+      <CreateProjectDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(project) => router.push(`/projects/${project.id}`)}
+      />
 
       {/* 페이지네이션 */}
       {data && data.total > PAGE_SIZE && (

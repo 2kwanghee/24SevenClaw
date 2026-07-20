@@ -3,15 +3,18 @@
 import { X, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCreateProject } from "@/hooks/use-projects";
+import type { ProjectResponse } from "@/lib/api-client";
 
 import { ProjectForm } from "./project-form";
 
 interface CreateProjectDialogProps {
   open: boolean;
   onClose: () => void;
+  /** 생성 성공 시 호출 — 생성된 프로젝트를 상위로 전달(상세 이동 등). */
+  onCreated?: (project: ProjectResponse) => void;
 }
 
-export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps) {
+export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectDialogProps) {
   const createProject = useCreateProject();
   const tC = useTranslations("common");
   const tD = useTranslations("common.projectDialog");
@@ -55,7 +58,12 @@ export function CreateProjectDialog({ open, onClose }: CreateProjectDialogProps)
           onSubmit={(data) => {
             createProject.mutate(
               { name: data.name, description: data.description || undefined },
-              { onSuccess: onClose },
+              {
+                onSuccess: (project) => {
+                  onClose();
+                  onCreated?.(project);
+                },
+              },
             );
           }}
           isSubmitting={createProject.isPending}
