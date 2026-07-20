@@ -82,6 +82,9 @@ HIGH_PATH_PATTERNS = (
 )
 
 ISSUE_KEY_RE = re.compile(r"^[A-Z0-9]+-\d+$")
+# 브랜치 문자열 어디서든 Linear 이슈 키를 탐색(대문자/숫자 세그먼트-숫자).
+# lowercase 세그먼트(web/api 등)는 매치하지 않고, 24S-142 처럼 숫자로 시작하는 키도 매치.
+ISSUE_KEY_SEARCH_RE = re.compile(r"[A-Z0-9]+-\d+")
 
 
 # ── diff 수집 ──────────────────────────────────────────────────────────────
@@ -103,9 +106,16 @@ def get_changed_files(base: str, head: str, *, project_dir: str) -> list[str]:
 
 
 def extract_issue_key(head: str) -> str | None:
-    """브랜치 접미사에서 이슈 키. ralph/CE-123 → CE-123. 슬래시 없으면 None(skip 대상)."""
+    """브랜치에서 Linear 이슈 키(대문자/숫자-숫자)를 탐색.
+
+    ralph/CE-123·feature/web/CE-302-desc → CE-302. 슬래시 없으면 None(skip).
+    슬래시는 있으나 키가 없으면 마지막 세그먼트를 반환(형식 불량으로 차단됨).
+    """
     if "/" not in head:
         return None
+    m = ISSUE_KEY_SEARCH_RE.search(head)
+    if m:
+        return m.group(0)
     return head.rsplit("/", 1)[-1].strip() or None
 
 
