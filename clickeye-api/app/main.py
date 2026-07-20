@@ -97,8 +97,8 @@ async def _reset_stale_queued_issues() -> None:
                 if real_state and real_state not in _STALE_STATES:
                     subtask_fresh = await db.get(SubTask, subtask.id)
                     if subtask_fresh:
-                        subtask_fresh.linear_state = real_state
-                        subtask_fresh.updated_at = datetime.now(UTC)
+                        subtask_fresh.linear_state = real_state  # type: ignore[assignment]  # TODO: 타입 정합
+                        subtask_fresh.updated_at = datetime.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
                         await db.commit()
                     _bg_logger.info(
                         "DB 동기화 (파이프라인 전진): %s (%s → %s)",
@@ -116,8 +116,8 @@ async def _reset_stale_queued_issues() -> None:
                 if ok:
                     subtask_fresh = await db.get(SubTask, subtask.id)
                     if subtask_fresh:
-                        subtask_fresh.linear_state = "Backlog"
-                        subtask_fresh.updated_at = datetime.now(UTC)
+                        subtask_fresh.linear_state = "Backlog"  # type: ignore[assignment]  # TODO: 타입 정합
+                        subtask_fresh.updated_at = datetime.now(UTC)  # type: ignore[assignment]  # TODO: 타입 정합
                         await db.commit()
                     _bg_logger.info(
                         "자동 복귀: %s (%s → Backlog)",

@@ -31,7 +31,9 @@ class RoiStandard(Base):
     __tablename__ = "roi_standards"
 
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
-    category = Column(Enum(RoiCategory, name="roi_category"), nullable=False, index=True)
+    category: "Column[RoiCategory]" = Column(
+        Enum(RoiCategory, name="roi_category"), nullable=False, index=True
+    )
     key = Column(String(64), nullable=False)
     label = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)

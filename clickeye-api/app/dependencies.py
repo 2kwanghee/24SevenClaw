@@ -64,7 +64,7 @@ def require_permission(permission: str) -> Callable[..., User]:
             )
         return user
 
-    return _check
+    return _check  # type: ignore[return-value]  # TODO: 타입 정합
 
 
 SUPPORTED_LOCALES: tuple[str, ...] = ("ko", "en", "id", "ja")

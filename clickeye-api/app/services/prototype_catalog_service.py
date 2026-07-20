@@ -1,6 +1,7 @@
 """프로토타입 카탈로그 서비스 — CRUD + 태그 매칭."""
 
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -31,7 +32,7 @@ class PrototypeCatalogService:
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[PrototypeCatalogEntry], int]:
-        conditions: list = []
+        conditions: list[Any] = []
         if is_active is not None:
             conditions.append(PrototypeCatalogEntry.is_active == is_active)
         if primary_tag:
@@ -132,7 +133,7 @@ class PrototypeCatalogService:
     # ── PrototypeTag CRUD ─────────────────────────────────────────────────────
 
     async def list_tags(self, *, is_active: bool | None = None) -> tuple[list[PrototypeTag], int]:
-        conditions: list = []
+        conditions: list[Any] = []
         if is_active is not None:
             conditions.append(PrototypeTag.is_active == is_active)
 

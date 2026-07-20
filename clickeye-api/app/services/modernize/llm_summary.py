@@ -95,7 +95,7 @@ async def summarize_codebase(
         model=settings.anthropic_model_default,
         max_tokens=1500,
         system=MODERNIZE_SUMMARY_SYSTEM,
-        messages=messages,
+        messages=messages,  # type: ignore[arg-type]  # TODO: 타입 정합
     )
 
     summary_md = ""

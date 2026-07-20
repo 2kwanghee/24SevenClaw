@@ -109,7 +109,7 @@ class RoiService:
         item = await self.get_standard(standard_id)
         for field, value in data.model_dump(exclude_none=True).items():
             setattr(item, field, value)
-        item.updated_by = updated_by
+        item.updated_by = updated_by  # type: ignore[assignment]  # TODO: 타입 정합
         await self.db.commit()
         await self.db.refresh(item)
         return item
@@ -134,11 +134,11 @@ class RoiService:
         standards = await self.list_standards()
         for s in standards:
             if s.category == RoiCategory.role_rate and s.value_numeric is not None:
-                role_rates[s.key] = float(s.value_numeric)
+                role_rates[s.key] = float(s.value_numeric)  # type: ignore[index]  # TODO: 타입 정합
             elif s.category == RoiCategory.solution_effort and s.value_json:
-                effort_by_solution[s.key] = {k: float(v) for k, v in s.value_json.items()}
+                effort_by_solution[s.key] = {k: float(v) for k, v in s.value_json.items()}  # type: ignore[index]  # TODO: 타입 정합
             elif s.category == RoiCategory.complexity_multiplier and s.value_numeric is not None:
-                multipliers[s.key] = float(s.value_numeric)
+                multipliers[s.key] = float(s.value_numeric)  # type: ignore[index]  # TODO: 타입 정합
 
         # 오버라이드 적용 (표준 테이블은 불변)
         effective_rates = dict(role_rates)

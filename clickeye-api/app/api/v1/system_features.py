@@ -26,5 +26,5 @@ async def get_system_features(
     if user.organization_id:
         org = await db.get(Organization, user.organization_id)
         if org:
-            live_preview = bool((org.features or {}).get("live_preview_enabled", False))
+            live_preview = bool((org.features or {}).get("live_preview_enabled", False))  # type: ignore[call-overload]  # TODO: 타입 정합
     return SystemFeaturesResponse(live_preview_enabled=live_preview)

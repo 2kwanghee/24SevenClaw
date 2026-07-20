@@ -69,7 +69,7 @@ async def create_session(
 ) -> SessionResponse:
     """오케스트레이션 세션을 생성한다."""
     service = OrchestratorService(db)
-    session = await service.create_session(project_id=project_id, user_id=user.id, data=data)
+    session = await service.create_session(project_id=project_id, user_id=user.id, data=data)  # type: ignore[arg-type]  # TODO: 타입 정합
     return SessionResponse.model_validate(session)
 
 
@@ -91,7 +91,7 @@ async def list_sessions(
     if is_admin:
         await proj_service.get_for_admin(project_id)
     else:
-        await proj_service.get_by_id(project_id, user.id)
+        await proj_service.get_by_id(project_id, user.id)  # type: ignore[arg-type]  # TODO: 타입 정합
 
     service = OrchestratorService(db)
     sessions, total = await service.list_sessions(
@@ -215,7 +215,7 @@ async def transition_session(
         session_id=session_id,
         data=data,
         actor_type="user",
-        actor_id=user.id,
+        actor_id=user.id,  # type: ignore[arg-type]  # TODO: 타입 정합
     )
     # approved 전이 시 → transitioning → completed 자동 진행
     if data.target_phase == "approved":

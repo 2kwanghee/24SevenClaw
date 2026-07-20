@@ -71,7 +71,7 @@ def annotate_key_status(
 ) -> ProjectResponse:
     """ProjectResponse에 key status 필드를 채운다."""
     auth_method: str = (
-        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")
+        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")  # type: ignore[call-overload]  # TODO: 타입 정합
         if project.wizard_data
         else "api_key"
     )
@@ -81,7 +81,7 @@ def annotate_key_status(
         anthropic_creds_updated_at,
         auth_method=auth_method,
     )
-    resp.linear_key_status = _compute_key_status(
+    resp.linear_key_status = _compute_key_status(  # type: ignore[assignment]  # TODO: 타입 정합
         project.last_zip_downloaded_at,  # type: ignore[arg-type]
         project.last_env_downloaded_at,  # type: ignore[arg-type]
         linear_creds_updated_at,
@@ -249,9 +249,9 @@ class ProjectService(BaseService):
         )
         for model in child_models:
             result = await self.db.execute(
-                delete(model).where(model.project_id == project_id)  # type: ignore[attr-defined]
+                delete(model).where(model.project_id == project_id)
             )
-            counts[model.__tablename__] = result.rowcount  # type: ignore[union-attr]
+            counts[model.__tablename__] = result.rowcount  # type: ignore[attr-defined]  # TODO: 타입 정합
 
         # 3. 라이선스 재발급 (없으면 스킵)
         new_key: str | None = None

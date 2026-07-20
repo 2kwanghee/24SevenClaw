@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from uuid import UUID
 
 import anthropic
@@ -78,7 +79,7 @@ def _extract_keyword_matches(text: str, mapping: dict[str, str]) -> list[str]:
 
 
 def _map_analysis_to_suggestions(
-    analysis: dict,
+    analysis: dict[str, Any],
 ) -> tuple[list[str], list[str], list[str]]:
     """analyze_solution() 결과를 suggested_agents/skills/pipelines로 변환."""
     primary_tag = (analysis.get("primary_tag") or "fullstack").lower()

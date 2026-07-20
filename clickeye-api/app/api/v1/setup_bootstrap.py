@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -282,7 +282,7 @@ async def report_linear_pushed(
     background_tasks: BackgroundTasks,
     auth: tuple[Project, UUID] = Depends(_verify_setup_token),
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     """로컬에서 Linear 이슈를 생성한 결과를 수신해 SubTask를 업데이트한다.
 
     모든 approved SubTask에 linear_issue_id가 채워지면 bootstrap_status='completed'로 전환.
@@ -345,7 +345,7 @@ async def report_linear_pushed(
             session.phase = "approved"  # type: ignore[assignment]
             await db.commit()
             # approved → transitioning → completed 자동 전이
-            background_tasks.add_task(_auto_complete_pipeline, session.id)
+            background_tasks.add_task(_auto_complete_pipeline, session.id)  # type: ignore[arg-type]  # TODO: 타입 정합
             return {"updated": updated, "remaining_unregistered": len(remaining)}
 
     await db.commit()

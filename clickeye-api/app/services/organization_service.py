@@ -20,7 +20,7 @@ class OrganizationService:
         if user is None:
             raise AppError("USER_NOT_FOUND", "사용자를 찾을 수 없습니다", 404)
 
-        org_id = user.organization_id  # type: ignore[attr-defined]
+        org_id = user.organization_id
 
         if org_id is not None:
             # 기존 조직 수정
@@ -45,7 +45,7 @@ class OrganizationService:
             await self.db.flush()
 
             # User에 organization_id 연결
-            user.organization_id = org.id  # type: ignore[attr-defined]
+            user.organization_id = org.id
 
         await self.db.commit()
         await self.db.refresh(org)
@@ -57,7 +57,7 @@ class OrganizationService:
         if user is None:
             raise AppError("USER_NOT_FOUND", "사용자를 찾을 수 없습니다", 404)
 
-        org_id = user.organization_id  # type: ignore[attr-defined]
+        org_id = user.organization_id
         if org_id is None:
             raise AppError("ORGANIZATION_NOT_FOUND", "등록된 회사 정보가 없습니다", 404)
 

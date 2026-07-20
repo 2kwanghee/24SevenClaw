@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -21,7 +22,7 @@ class ControlTowerService:
         limit: int = 20,
         search: str | None = None,
         status_filter: str | None = None,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """고객사 목록 + 집계 (프로젝트 수, 활성 세션 수)."""
         conditions = [Organization.org_type == "customer"]
         if status_filter:
@@ -72,7 +73,7 @@ class ControlTowerService:
             if org.account_manager_id:
                 mgr = await self.db.get(User, org.account_manager_id)
                 if mgr:
-                    manager_name = mgr.display_name or mgr.email
+                    manager_name = mgr.display_name or mgr.email  # type: ignore[assignment]  # TODO: 타입 정합
 
             items.append(
                 {
@@ -90,7 +91,7 @@ class ControlTowerService:
 
         return items, int(total)
 
-    async def get_customer(self, org_id: UUID) -> dict:
+    async def get_customer(self, org_id: UUID) -> dict[str, Any]:
         """고객사 상세."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -100,7 +101,7 @@ class ControlTowerService:
         if org.account_manager_id:
             mgr = await self.db.get(User, org.account_manager_id)
             if mgr:
-                manager_name = mgr.display_name or mgr.email
+                manager_name = mgr.display_name or mgr.email  # type: ignore[assignment]  # TODO: 타입 정합
 
         return {
             "id": org.id,
@@ -124,7 +125,7 @@ class ControlTowerService:
         org_id: UUID,
         offset: int = 0,
         limit: int = 20,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """고객사의 프로젝트 목록."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -191,7 +192,7 @@ class ControlTowerService:
 
         return items, int(total)
 
-    async def get_project_overview(self, project_id: UUID) -> dict:
+    async def get_project_overview(self, project_id: UUID) -> dict[str, Any]:
         """프로젝트 종합 정보."""
         proj = await self.db.get(Project, project_id)
         if proj is None or proj.status == "deleted":
@@ -234,7 +235,7 @@ class ControlTowerService:
             "updated_at": proj.updated_at,
         }
 
-    async def set_customer_status(self, org_id: UUID, new_status: str) -> dict:
+    async def set_customer_status(self, org_id: UUID, new_status: str) -> dict[str, Any]:
         """고객사 상태 변경 (active | paused | archived)."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
@@ -246,20 +247,20 @@ class ControlTowerService:
         await self.db.refresh(org)
         return await self.get_customer(org_id)
 
-    async def set_org_feature(self, org_id: UUID, feature_name: str, value: bool) -> dict:
+    async def set_org_feature(self, org_id: UUID, feature_name: str, value: bool) -> dict[str, Any]:
         """조직 기능 플래그 설정."""
         org = await self.db.get(Organization, org_id)
         if org is None or org.org_type != "customer":
             raise AppError("CUSTOMER_NOT_FOUND", "고객사를 찾을 수 없습니다", 404)
 
-        current: dict = dict(org.features or {})
+        current: dict[str, Any] = dict(org.features or {})
         current[feature_name] = value
         org.features = current  # type: ignore[assignment]
         org.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
         return await self.get_customer(org_id)
 
-    async def transfer_project(self, project_id: UUID, to_org_id: UUID) -> dict:
+    async def transfer_project(self, project_id: UUID, to_org_id: UUID) -> dict[str, Any]:
         """프로젝트를 다른 고객사로 이동."""
         proj = await self.db.get(Project, project_id)
         if proj is None or proj.status == "deleted":

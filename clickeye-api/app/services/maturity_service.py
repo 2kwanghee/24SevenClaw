@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -98,7 +99,7 @@ class MaturityService:
         user_id: UUID,
         answers: dict[str, int],
         organization_id: UUID | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """성숙도 평가를 수행하고 결과를 저장한다."""
         questions = _load_questions()
         score = _calculate_score(answers, questions)

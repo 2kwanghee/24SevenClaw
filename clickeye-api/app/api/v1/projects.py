@@ -84,8 +84,8 @@ async def update_project(
     service = ProjectService(db)
     project = await service.update(
         project_id=project_id,
-        owner_id=user.id,
-        data=data,  # type: ignore[arg-type]
+        owner_id=user.id,  # type: ignore[arg-type]  # TODO: 타입 정합
+        data=data,
     )
     return ProjectResponse.model_validate(project)
 

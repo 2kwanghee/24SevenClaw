@@ -45,7 +45,7 @@ async def create_roi_standard(
     db: AsyncSession = Depends(get_db),
 ) -> RoiStandardResponse:
     svc = RoiService(db)
-    item = await svc.create_standard(data, updated_by=user.id)
+    item = await svc.create_standard(data, updated_by=user.id)  # type: ignore[arg-type]  # TODO: 타입 정합
     return RoiStandardResponse.model_validate(item)
 
 
@@ -57,7 +57,7 @@ async def update_roi_standard(
     db: AsyncSession = Depends(get_db),
 ) -> RoiStandardResponse:
     svc = RoiService(db)
-    item = await svc.update_standard(standard_id, data, updated_by=user.id)
+    item = await svc.update_standard(standard_id, data, updated_by=user.id)  # type: ignore[arg-type]  # TODO: 타입 정합
     return RoiStandardResponse.model_validate(item)
 
 

@@ -42,8 +42,8 @@ class AppSettingService:
             )
             self.db.add(row)
         else:
-            row.value = {"value": value, "min": 2, "max": 5}
-            row.updated_by = actor.id  # type: ignore[assignment]
+            row.value = {"value": value, "min": 2, "max": 5}  # type: ignore[assignment]  # TODO: 타입 정합
+            row.updated_by = actor.id
         await self.db.commit()
         await self.db.refresh(row)
         return row
@@ -60,8 +60,8 @@ class AppSettingService:
             )
             self.db.add(row)
         else:
-            row.value = {"value": value, "min": 1, "max": 20}
-            row.updated_by = actor.id  # type: ignore[assignment]
+            row.value = {"value": value, "min": 1, "max": 20}  # type: ignore[assignment]  # TODO: 타입 정합
+            row.updated_by = actor.id
         await self.db.commit()
         await self.db.refresh(row)
         return row

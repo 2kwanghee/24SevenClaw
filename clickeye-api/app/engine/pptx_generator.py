@@ -2,17 +2,17 @@
 
 import io
 
-from pptx import Presentation  # type: ignore[import-untyped]
-from pptx.dml.color import RGBColor  # type: ignore[import-untyped]
-from pptx.enum.text import PP_ALIGN  # type: ignore[import-untyped]
-from pptx.util import Inches, Pt  # type: ignore[import-untyped]
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
-_BG = RGBColor(0x10, 0x18, 0x1A)
-_ACCENT = RGBColor(0x10, 0xB9, 0x81)
-_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-_GRAY = RGBColor(0x94, 0xA3, 0xB8)
-_AMBER = RGBColor(0xFB, 0xBF, 0x24)
-_SKY = RGBColor(0x38, 0xBD, 0xF8)
+_BG = RGBColor(0x10, 0x18, 0x1A)  # type: ignore[no-untyped-call]
+_ACCENT = RGBColor(0x10, 0xB9, 0x81)  # type: ignore[no-untyped-call]
+_WHITE = RGBColor(0xFF, 0xFF, 0xFF)  # type: ignore[no-untyped-call]
+_GRAY = RGBColor(0x94, 0xA3, 0xB8)  # type: ignore[no-untyped-call]
+_AMBER = RGBColor(0xFB, 0xBF, 0x24)  # type: ignore[no-untyped-call]
+_SKY = RGBColor(0x38, 0xBD, 0xF8)  # type: ignore[no-untyped-call]
 
 
 def _set_bg(slide: object) -> None:

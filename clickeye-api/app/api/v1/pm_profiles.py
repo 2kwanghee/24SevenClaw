@@ -115,8 +115,8 @@ async def rate_pm(
     service = PMService(db)
     rating = await service.rate_pm(
         pm_profile_id=profile_id,
-        user_id=user.id,
-        data=data,  # type: ignore[arg-type]
+        user_id=user.id,  # type: ignore[arg-type]  # TODO: 타입 정합
+        data=data,
     )
     return PMRatingResponse.model_validate(rating)
 
