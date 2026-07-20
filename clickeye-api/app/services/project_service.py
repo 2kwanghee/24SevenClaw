@@ -248,9 +248,7 @@ class ProjectService(BaseService):
             CustomerContractOverride,
         )
         for model in child_models:
-            result = await self.db.execute(
-                delete(model).where(model.project_id == project_id)
-            )
+            result = await self.db.execute(delete(model).where(model.project_id == project_id))
             counts[model.__tablename__] = result.rowcount  # type: ignore[attr-defined]  # TODO: 타입 정합
 
         # 3. 라이선스 재발급 (없으면 스킵)
