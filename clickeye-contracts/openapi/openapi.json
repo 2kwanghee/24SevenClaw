@@ -226,6 +226,173 @@
         ]
       }
     },
+    "/api/v1/llm-ledger": {
+      "get": {
+        "tags": [
+          "admin-llm-ledger"
+        ],
+        "summary": "List Usage",
+        "description": "원장 목록 조회 (프로바이더/상태/프로젝트 필터).",
+        "operationId": "list_usage_api_v1_llm_ledger_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LlmProvider"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LlmUsageStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmUsageListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/llm-ledger/summary": {
+      "get": {
+        "tags": [
+          "admin-llm-ledger"
+        ],
+        "summary": "Project Summary",
+        "description": "프로젝트별 토큰/비용 집계 (key_source 구분).",
+        "operationId": "project_summary_api_v1_llm_ledger_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LlmProjectUsageSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/registry/agents": {
       "get": {
         "tags": [
@@ -3018,316 +3185,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PreviewResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/draft/generate": {
-      "post": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Generate Draft",
-        "description": "프로젝트 생성 전 드래프트 ZIP 다운로드 (project ID 불필요).",
-        "operationId": "generate_draft_api_v1_projects_draft_generate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/projects/{project_id}/generate": {
-      "post": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Generate Project",
-        "description": "위저드 설정 + API 키 기반 ZIP 파일 스트리밍 다운로드.",
-        "operationId": "generate_project_api_v1_projects__project_id__generate_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{project_id}/redownload": {
-      "post": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Redownload Project",
-        "description": "저장된 위저드 설정으로 ZIP 재생성. env_vars만 새로 전달.",
-        "operationId": "redownload_project_api_v1_projects__project_id__redownload_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RedownloadRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{project_id}/env": {
-      "get": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Download Project Env",
-        "description": "최신 자격증명이 적용된 .env 파일만 단독 다운로드 (ZIP 재다운로드 불필요).",
-        "operationId": "download_project_env_api_v1_projects__project_id__env_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{project_id}/config": {
-      "post": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Save Wizard Config",
-        "operationId": "save_wizard_config_api_v1_projects__project_id__config_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WizardConfigSave"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WizardConfigResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "projects"
-        ],
-        "summary": "Get Wizard Config",
-        "operationId": "get_wizard_config_api_v1_projects__project_id__config_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "project_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Project Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WizardConfigResponse"
                 }
               }
             }
@@ -6741,567 +6598,6 @@
         }
       }
     },
-    "/api/v1/prototype-sessions/": {
-      "post": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Create Session",
-        "description": "프로토타입 세션을 생성한다.",
-        "operationId": "create_session_api_v1_prototype_sessions__post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrototypeSessionCreate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrototypeSessionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "List Sessions",
-        "description": "사용자의 프로토타입 세션 목록을 반환한다.",
-        "operationId": "list_sessions_api_v1_prototype_sessions__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Offset"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "default": 20,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PrototypeSessionResponse"
-                  },
-                  "title": "Response List Sessions Api V1 Prototype Sessions  Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}": {
-      "get": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Get Session",
-        "description": "프로토타입 세션을 조회한다.",
-        "operationId": "get_session_api_v1_prototype_sessions__session_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrototypeSessionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Update Session",
-        "description": "세션의 선택 정보(프로토타입/PM/스텝)를 업데이트한다.",
-        "operationId": "update_session_api_v1_prototype_sessions__session_id__patch",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PrototypeSessionUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrototypeSessionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Delete Session",
-        "description": "프로토타입 세션을 삭제한다.",
-        "operationId": "delete_session_api_v1_prototype_sessions__session_id__delete",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/status": {
-      "get": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Get Session Status",
-        "description": "프로토타입 세션 상태를 조회한다.",
-        "operationId": "get_session_status_api_v1_prototype_sessions__session_id__status_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrototypeSessionStatusResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/prototypes": {
-      "get": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "List Prototypes",
-        "description": "세션의 프로토타입 목록을 반환한다.",
-        "operationId": "list_prototypes_api_v1_prototype_sessions__session_id__prototypes_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrototypeListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/prototypes/generate": {
-      "post": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Generate Prototypes",
-        "description": "프로토타입 생성을 시작한다 (비동기 백그라운드 처리).\n\n즉시 202 Accepted를 반환하고 백그라운드에서 생성을 진행한다.\n클라이언트는 GET /{session_id}/status 를 폴링하여 완료 여부를 확인한다.",
-        "operationId": "generate_prototypes_api_v1_prototype_sessions__session_id__prototypes_generate_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GenerateStartResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/recommend-components": {
-      "get": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Recommend Components",
-        "description": "선택된 프로토타입 기반으로 에이전트·스킬·카탈로그 slug를 추천한다.\n\n선택된 프로토타입이 없으면 409를 반환한다.\n위저드의 '에이전트 선택' 스텝에서 자동 pre-select에 사용한다.",
-        "operationId": "recommend_components_api_v1_prototype_sessions__session_id__recommend_components_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecommendComponentsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/recommend-pms": {
-      "post": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Recommend Pms",
-        "description": "세션의 선택된 프로토타입 기반으로 PM을 추천한다.\n\n선택된 프로토타입이 없으면 409를 반환한다.",
-        "operationId": "recommend_pms_api_v1_prototype_sessions__session_id__recommend_pms_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecommendPMsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/prototype-sessions/{session_id}/finalize": {
-      "post": {
-        "tags": [
-          "prototype-sessions"
-        ],
-        "summary": "Finalize Session",
-        "description": "세션을 확정하고 최종 프로젝트를 생성한다.\n\n선택된 프로토타입과 PM이 없으면 409를 반환한다.",
-        "operationId": "finalize_session_api_v1_prototype_sessions__session_id__finalize_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/app__schemas__prototype__FinalizeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app__schemas__prototype__FinalizeResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/pm-profiles/": {
       "get": {
         "tags": [
@@ -9346,6 +8642,66 @@
         }
       }
     },
+    "/api/v1/governance/evaluate": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Evaluate Governance",
+        "description": "변경 파일/브랜치를 커널로 평가하여 머지 판정(direct/pr/block)을 반환한다.\n\ndb 세션은 주입하되 실제 원장 조회는 트리아지 예산 opt-in + project_id 가 있을 때만\n수행된다(그 외엔 세션 미사용 → 연결도 없음). 현행 DB-less 계약과 하위호환.",
+        "operationId": "evaluate_governance_api_v1_governance_evaluate_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceEvaluateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceEvaluateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/modernize/installations": {
       "get": {
         "tags": [
@@ -9707,65 +9063,6 @@
         }
       }
     },
-    "/api/v1/modernize/sessions/{session_id}/finalize": {
-      "post": {
-        "tags": [
-          "modernize"
-        ],
-        "summary": "Finalize Session",
-        "description": "Linear 이슈 일괄 등록 + ZIP URL 응답 + 세션 상태 'finalized'.",
-        "operationId": "finalize_session_api_v1_modernize_sessions__session_id__finalize_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/app__schemas__modernize__FinalizeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app__schemas__modernize__FinalizeResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/modernize/sessions/{session_id}/plan/generate": {
       "post": {
         "tags": [
@@ -9848,53 +9145,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/ModernizePlanResponse"
                 }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/modernize/sessions/{session_id}/zip": {
-      "get": {
-        "tags": [
-          "modernize"
-        ],
-        "summary": "Download Zip",
-        "description": "Modernize ZIP 다운로드. finalize 후 또는 ready 상태에서 호출 가능.",
-        "operationId": "download_zip_api_v1_modernize_sessions__session_id__zip_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Session Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
@@ -10896,52 +10146,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemFeaturesResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/wizard/preview": {
-      "post": {
-        "tags": [
-          "wizard-preview"
-        ],
-        "summary": "Wizard Preview",
-        "operationId": "wizard_preview_api_v1_wizard_preview_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WizardPreviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WizardPreviewResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -13458,49 +12662,32 @@
         "title": "GenerateDraftsResponse",
         "description": "AI 초안 자동 생성 결과."
       },
-      "GenerateRequest": {
+      "GovernanceEvaluateRequest": {
         "properties": {
-          "organization": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Organization"
+          "base": {
+            "type": "string",
+            "title": "Base",
+            "default": "main"
           },
-          "solution": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Solution"
+          "head": {
+            "type": "string",
+            "title": "Head"
           },
-          "agents": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Agents",
-            "description": "선택된 에이전트 ID 목록"
+          "files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
           },
-          "skills": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Skills",
-            "description": "선택된 워크플로우 ID 목록"
-          },
-          "pipelines": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Pipelines",
-            "description": "선택된 파이프라인 ID 목록"
-          },
-          "platform": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Platform",
-            "description": "플랫폼 설정 (platformId 포함)"
-          },
-          "pm_slug": {
+          "plan_text": {
             "anyOf": [
               {
                 "type": "string"
@@ -13509,34 +12696,9 @@
                 "type": "null"
               }
             ],
-            "title": "Pm Slug",
-            "description": "선택된 PM 프로필 slug — ZIP에 플랫폼별 PM 파일 주입"
+            "title": "Plan Text"
           },
-          "env_vars": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Env Vars",
-            "description": "환경 변수 맵 (키: 변수명, 값: API 키 등). 서버에 저장되지 않음."
-          },
-          "hook_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Hook Ids",
-            "description": "선택된 훅 ID 목록"
-          },
-          "mcp_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Mcp Ids",
-            "description": "선택된 MCP 서버 슬러그 목록"
-          },
-          "pm_profile_id": {
+          "project_id": {
             "anyOf": [
               {
                 "type": "string",
@@ -13546,10 +12708,72 @@
                 "type": "null"
               }
             ],
-            "title": "Pm Profile Id",
-            "description": "선택된 PM 프로필 ID — pm_slug보다 우선하여 DB에서 조회"
+            "title": "Project Id"
           },
-          "catalog_entry_slug": {
+          "usage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "head"
+        ],
+        "title": "GovernanceEvaluateRequest"
+      },
+      "GovernanceEvaluateResponse": {
+        "properties": {
+          "governance": {
+            "type": "string",
+            "title": "Governance"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "merge_decision": {
+            "type": "string",
+            "title": "Merge Decision"
+          },
+          "failures": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failures"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "issue_key": {
             "anyOf": [
               {
                 "type": "string"
@@ -13558,68 +12782,90 @@
                 "type": "null"
               }
             ],
-            "title": "Catalog Entry Slug",
-            "description": "선택된 카탈로그 엔트리 slug — ZIP에 설계 철학 및 에이전트 컨텍스트 주입"
+            "title": "Issue Key"
           },
-          "os_id": {
-            "type": "string",
-            "const": "wsl2",
-            "title": "Os Id",
-            "description": "사용자 실행 환경 OS (현재 wsl2만 지원)",
-            "default": "wsl2"
+          "checks": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Checks"
           },
-          "auth_method": {
-            "type": "string",
-            "enum": [
-              "api_key",
-              "oauth_browser"
+          "risk_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Risk Reasons"
+          },
+          "changed_files": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Auth Method",
-            "description": "Claude 인증 방식 — api_key(기본), oauth_browser(claude login)",
-            "default": "api_key"
+            "title": "Changed Files"
           },
-          "locale": {
-            "type": "string",
-            "maxLength": 8,
-            "title": "Locale",
-            "description": "ZIP 생성 locale — 'ko'(기본) 또는 'en'. body_md_en 우선 사용",
-            "default": "ko"
+          "triage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triage"
+          },
+          "risk_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Score"
+          },
+          "triage_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triage Reasons"
+          },
+          "budget": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget"
           }
         },
-        "type": "object",
-        "title": "GenerateRequest",
-        "description": "ZIP 생성 요청 — 위저드 설정 + API 키."
-      },
-      "GenerateStartResponse": {
-        "properties": {
-          "task_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Task Id"
-          },
-          "session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
+        "additionalProperties": true,
         "type": "object",
         "required": [
-          "task_id",
-          "session_id",
-          "status",
-          "message"
+          "governance",
+          "verdict",
+          "tier",
+          "merge_decision"
         ],
-        "title": "GenerateStartResponse",
-        "description": "프로토타입 생성 시작 응답 (202 Accepted)."
+        "title": "GovernanceEvaluateResponse",
+        "description": "evaluate() 반환 dict 형식화. 축약(off)/전체(on)/트리아지 스키마를 모두 수용."
       },
       "HTTPValidationError": {
         "properties": {
@@ -14652,6 +13898,245 @@
           "team_id"
         ],
         "title": "LinearValidateRequest"
+      },
+      "LlmKeySourceTotals": {
+        "properties": {
+          "key_source": {
+            "type": "string",
+            "title": "Key Source"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key_source",
+          "input_tokens",
+          "output_tokens",
+          "cost"
+        ],
+        "title": "LlmKeySourceTotals",
+        "description": "key_source(구독시트/조직키)별 토큰·비용 합계."
+      },
+      "LlmProjectUsageSummary": {
+        "properties": {
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "total_input_tokens": {
+            "type": "integer",
+            "title": "Total Input Tokens"
+          },
+          "total_output_tokens": {
+            "type": "integer",
+            "title": "Total Output Tokens"
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          },
+          "by_key_source": {
+            "items": {
+              "$ref": "#/components/schemas/LlmKeySourceTotals"
+            },
+            "type": "array",
+            "title": "By Key Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "total_input_tokens",
+          "total_output_tokens",
+          "total_cost",
+          "by_key_source"
+        ],
+        "title": "LlmProjectUsageSummary",
+        "description": "프로젝트별 사용량 집계 — key_source 구분 회계 포함."
+      },
+      "LlmProvider": {
+        "type": "string",
+        "enum": [
+          "anthropic",
+          "openai"
+        ],
+        "title": "LlmProvider"
+      },
+      "LlmUsageEntryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "key_source": {
+            "type": "string",
+            "title": "Key Source"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "request_kind": {
+            "type": "string",
+            "title": "Request Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "project_id",
+          "task_id",
+          "provider",
+          "key_source",
+          "model",
+          "input_tokens",
+          "output_tokens",
+          "cost",
+          "request_kind",
+          "status"
+        ],
+        "title": "LlmUsageEntryResponse"
+      },
+      "LlmUsageListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LlmUsageEntryResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "LlmUsageListResponse"
+      },
+      "LlmUsageStatus": {
+        "type": "string",
+        "enum": [
+          "success",
+          "error"
+        ],
+        "title": "LlmUsageStatus"
       },
       "MCPServerCreate": {
         "properties": {
@@ -17655,91 +17140,6 @@
         ],
         "title": "PMRatingResponse"
       },
-      "PMRecommendItemResponse": {
-        "properties": {
-          "pm_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Pm Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug"
-          },
-          "avatar_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatar Url"
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title"
-          },
-          "domain": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Domain"
-          },
-          "match_score": {
-            "type": "integer",
-            "title": "Match Score"
-          },
-          "reasoning": {
-            "type": "string",
-            "title": "Reasoning"
-          },
-          "dimension_scores": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Dimension Scores"
-          },
-          "match_reasons": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Match Reasons"
-          }
-        },
-        "type": "object",
-        "required": [
-          "pm_id",
-          "name",
-          "slug",
-          "avatar_url",
-          "title",
-          "domain",
-          "match_score",
-          "reasoning"
-        ],
-        "title": "PMRecommendItemResponse",
-        "description": "PM 추천 단일 항목."
-      },
       "PMRecommendListResponse": {
         "properties": {
           "items": {
@@ -19792,600 +19192,6 @@
         ],
         "title": "PrototypeCatalogListResponse"
       },
-      "PrototypeListResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/PrototypeResponse"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "total"
-        ],
-        "title": "PrototypeListResponse"
-      },
-      "PrototypeResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
-          },
-          "variant_index": {
-            "type": "integer",
-            "title": "Variant Index"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "design_pattern": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Design Pattern"
-          },
-          "menu_structure": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Menu Structure"
-          },
-          "ui_structure": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ui Structure"
-          },
-          "color_palette": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Color Palette"
-          },
-          "thumbnail_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Thumbnail Url"
-          },
-          "figma_file_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Figma File Key"
-          },
-          "figma_embed_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Figma Embed Url"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "tech_stack_tags": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tech Stack Tags"
-          },
-          "architecture_pattern": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Architecture Pattern"
-          },
-          "variant_rationale": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Variant Rationale"
-          },
-          "is_recommended": {
-            "type": "boolean",
-            "title": "Is Recommended",
-            "default": false
-          },
-          "pros": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Pros"
-          },
-          "cons": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Cons"
-          },
-          "estimated_weeks_min": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Estimated Weeks Min"
-          },
-          "estimated_weeks_max": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Estimated Weeks Max"
-          },
-          "team_size_min": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Team Size Min"
-          },
-          "team_size_max": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Team Size Max"
-          },
-          "team_roles": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Team Roles"
-          },
-          "complexity_score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Complexity Score"
-          },
-          "scalability_score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scalability Score"
-          },
-          "monthly_cost_min_usd": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Monthly Cost Min Usd"
-          },
-          "monthly_cost_max_usd": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Monthly Cost Max Usd"
-          },
-          "maintenance_difficulty": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Maintenance Difficulty"
-          },
-          "skill_requirements": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Skill Requirements"
-          },
-          "match_reasoning": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Match Reasoning"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "session_id",
-          "variant_index",
-          "title",
-          "description",
-          "design_pattern",
-          "menu_structure",
-          "ui_structure",
-          "color_palette",
-          "thumbnail_url",
-          "figma_file_key",
-          "figma_embed_url",
-          "status",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "PrototypeResponse"
-      },
-      "PrototypeSessionCreate": {
-        "properties": {
-          "organization_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Organization Id"
-          },
-          "solution_prompt": {
-            "type": "string",
-            "title": "Solution Prompt",
-            "description": "솔루션을 설명하는 자연어 프롬프트"
-          },
-          "tech_stack": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Tech Stack",
-            "description": "사용자 선호 기술 스택"
-          },
-          "industry": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Industry",
-            "description": "업종 코드 (it, fintech, ecommerce, healthcare, ...)"
-          },
-          "company_size": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Company Size",
-            "description": "회사 규모 (startup/small/medium/mid-large/enterprise)"
-          },
-          "business_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Business Type",
-            "description": "비즈니스 유형 (b2b/b2c/b2b2c/internal)"
-          },
-          "main_product": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Main Product",
-            "description": "주력 제품/서비스"
-          },
-          "company_description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Company Description",
-            "description": "회사 설명 (자연어)"
-          }
-        },
-        "type": "object",
-        "required": [
-          "organization_id",
-          "solution_prompt"
-        ],
-        "title": "PrototypeSessionCreate"
-      },
-      "PrototypeSessionResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "organization_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Organization Id"
-          },
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "User Id"
-          },
-          "solution_prompt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Solution Prompt"
-          },
-          "parsed_requirements": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parsed Requirements"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "selected_prototype_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Prototype Id"
-          },
-          "selected_pm_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Pm Id"
-          },
-          "current_step": {
-            "type": "integer",
-            "title": "Current Step"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "organization_id",
-          "user_id",
-          "solution_prompt",
-          "parsed_requirements",
-          "status",
-          "selected_prototype_id",
-          "selected_pm_id",
-          "current_step",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "PrototypeSessionResponse"
-      },
-      "PrototypeSessionStatusResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "status",
-          "created_at"
-        ],
-        "title": "PrototypeSessionStatusResponse"
-      },
-      "PrototypeSessionUpdate": {
-        "properties": {
-          "selected_prototype_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Prototype Id"
-          },
-          "selected_pm_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Selected Pm Id"
-          },
-          "current_step": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 1.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Step"
-          }
-        },
-        "type": "object",
-        "title": "PrototypeSessionUpdate",
-        "description": "PATCH /prototype-sessions/{id} 요청 스키마."
-      },
       "PrototypeTagCreate": {
         "properties": {
           "slug": {
@@ -21130,91 +19936,6 @@
           "review_completion_rate"
         ],
         "title": "QualityMetrics"
-      },
-      "RecommendComponentsResponse": {
-        "properties": {
-          "agents": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Agents",
-            "description": "추천 에이전트 ID 목록"
-          },
-          "skills": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Skills",
-            "description": "추천 스킬 ID 목록"
-          },
-          "excluded_agents": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Excluded Agents",
-            "description": "제외 에이전트 ID 목록"
-          },
-          "catalog_entry_slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Catalog Entry Slug"
-          },
-          "reasoning": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasoning"
-          }
-        },
-        "type": "object",
-        "title": "RecommendComponentsResponse",
-        "description": "GET /prototype-sessions/{id}/recommend-components 응답."
-      },
-      "RecommendPMsResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/PMRecommendItemResponse"
-            },
-            "type": "array",
-            "title": "Items"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "title": "RecommendPMsResponse",
-        "description": "POST /prototype-sessions/{id}/recommend-pms 응답."
-      },
-      "RedownloadRequest": {
-        "properties": {
-          "env_vars": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Env Vars",
-            "description": "환경 변수 맵. 서버에 저장되지 않음."
-          }
-        },
-        "type": "object",
-        "title": "RedownloadRequest",
-        "description": "재다운로드 요청 — 저장된 설정 기반, env_vars만 전달."
       },
       "RefreshTokenRequest": {
         "properties": {
@@ -23982,146 +22703,6 @@
         ],
         "title": "WeeklyThroughput"
       },
-      "WizardConfigResponse": {
-        "properties": {
-          "project_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Project Id"
-          },
-          "wizard_data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/WizardData"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "project_id",
-          "wizard_data",
-          "updated_at"
-        ],
-        "title": "WizardConfigResponse",
-        "description": "위저드 설정 조회 응답."
-      },
-      "WizardConfigSave": {
-        "properties": {
-          "wizard_data": {
-            "$ref": "#/components/schemas/WizardData"
-          }
-        },
-        "type": "object",
-        "required": [
-          "wizard_data"
-        ],
-        "title": "WizardConfigSave",
-        "description": "위저드 설정 저장 요청."
-      },
-      "WizardData": {
-        "properties": {
-          "organization": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Organization"
-          },
-          "solution": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Solution"
-          },
-          "agents": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Agents"
-          },
-          "skills": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Skills"
-          },
-          "pipelines": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Pipelines"
-          },
-          "platform": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Platform"
-          }
-        },
-        "type": "object",
-        "title": "WizardData",
-        "description": "위저드 7단계 결과 데이터."
-      },
-      "WizardPreviewRequest": {
-        "properties": {
-          "step": {
-            "type": "string",
-            "title": "Step"
-          },
-          "data": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Data"
-          }
-        },
-        "type": "object",
-        "required": [
-          "step",
-          "data"
-        ],
-        "title": "WizardPreviewRequest"
-      },
-      "WizardPreviewResponse": {
-        "properties": {
-          "step": {
-            "type": "string",
-            "title": "Step"
-          },
-          "result": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Result"
-          },
-          "supported": {
-            "type": "boolean",
-            "title": "Supported"
-          }
-        },
-        "type": "object",
-        "required": [
-          "step",
-          "supported"
-        ],
-        "title": "WizardPreviewResponse"
-      },
       "app__schemas__control_tower__ProjectListResponse": {
         "properties": {
           "items": {
@@ -24143,95 +22724,6 @@
         ],
         "title": "ProjectListResponse"
       },
-      "app__schemas__modernize__FinalizeRequest": {
-        "properties": {
-          "create_linear_issues": {
-            "type": "boolean",
-            "title": "Create Linear Issues",
-            "default": true
-          },
-          "project_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Project Id",
-            "description": "ProjectLinearCredentials 우선 사용 시"
-          }
-        },
-        "type": "object",
-        "title": "FinalizeRequest",
-        "description": "`POST /sessions/{id}/finalize` 요청 body."
-      },
-      "app__schemas__modernize__FinalizeResponse": {
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "linear_parent_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linear Parent Url"
-          },
-          "linear_parent_identifier": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linear Parent Identifier"
-          },
-          "linear_child_count": {
-            "type": "integer",
-            "title": "Linear Child Count",
-            "default": 0
-          },
-          "linear_errors": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Linear Errors"
-          },
-          "zip_url": {
-            "type": "string",
-            "title": "Zip Url"
-          },
-          "selected_recommendation_count": {
-            "type": "integer",
-            "title": "Selected Recommendation Count",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "required": [
-          "session_id",
-          "status",
-          "zip_url"
-        ],
-        "title": "FinalizeResponse",
-        "description": "finalize 응답."
-      },
       "app__schemas__project__ProjectListResponse": {
         "properties": {
           "items": {
@@ -24252,131 +22744,6 @@
           "total"
         ],
         "title": "ProjectListResponse"
-      },
-      "app__schemas__prototype__FinalizeRequest": {
-        "properties": {
-          "project_name": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Project Name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "linear_api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linear Api Key",
-            "description": "Linear API 키 (선택)"
-          },
-          "linear_team_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Linear Team Id",
-            "description": "Linear 팀 UUID (선택)"
-          },
-          "notion_api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notion Api Key",
-            "description": "Notion API 키 (선택)"
-          },
-          "notion_database_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Notion Database Id",
-            "description": "Notion 데이터베이스 UUID (선택)"
-          },
-          "hook_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Hook Ids",
-            "description": "선택된 훅 ID 목록"
-          }
-        },
-        "type": "object",
-        "required": [
-          "project_name"
-        ],
-        "title": "FinalizeRequest",
-        "description": "POST /prototype-sessions/{id}/finalize 요청 스키마."
-      },
-      "app__schemas__prototype__FinalizeResponse": {
-        "properties": {
-          "project_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Project Id"
-          },
-          "project_name": {
-            "type": "string",
-            "title": "Project Name"
-          },
-          "session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "initial_task_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Initial Task Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "project_id",
-          "project_name",
-          "session_id",
-          "message"
-        ],
-        "title": "FinalizeResponse",
-        "description": "POST /prototype-sessions/{id}/finalize 응답."
       }
     },
     "securitySchemes": {
