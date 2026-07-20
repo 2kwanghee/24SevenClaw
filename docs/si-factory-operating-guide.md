@@ -1,7 +1,7 @@
 ---
 title: ClickEye SI 팩토리 — 전략적 실행 가이드
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-07-20
 related:
   - docs/si-factory-transition.md

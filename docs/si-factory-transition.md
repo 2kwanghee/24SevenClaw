@@ -1,7 +1,7 @@
 ---
 title: ClickEye SI 팩토리 전환 — 마스터 설계 기준
 category: architecture
-status: current
+status: needs-revision
 last_updated: 2026-07-16
 related:
   - docs/hybrid-runner-headless-poc.md
