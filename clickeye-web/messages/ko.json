@@ -36,6 +36,8 @@
     },
     "projectDialog": {
       "newProject": "새 프로젝트",
+      "orgLabel": "대상 조직",
+      "orgSelfDefault": "본인 조직 (기본)",
       "deleteTitle": "프로젝트 삭제",
       "deleteConfirm": "<name>{name}</name> 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "deleting": "삭제 중..."
@@ -307,6 +309,7 @@
       "statusInactive": "비활성",
       "emptyState": "조직 멤버가 없습니다",
       "emptyStateHint": "위의 \"멤버 초대\" 버튼으로 멤버를 추가하세요",
+      "noOrg": "소속된 조직이 없습니다",
       "totalCount": "총 {count}명",
       "roles": {
         "org_admin": "관리자",

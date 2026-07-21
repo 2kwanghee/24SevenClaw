@@ -36,6 +36,8 @@
     },
     "projectDialog": {
       "newProject": "New project",
+      "orgLabel": "Target organization",
+      "orgSelfDefault": "My organization (default)",
       "deleteTitle": "Delete project",
       "deleteConfirm": "Are you sure you want to delete the <name>{name}</name> project? This action cannot be undone.",
       "deleting": "Deleting..."
@@ -307,6 +309,7 @@
       "statusInactive": "Inactive",
       "emptyState": "No organization members",
       "emptyStateHint": "Use the 'Invite member' button above to add members",
+      "noOrg": "You don't belong to any organization",
       "totalCount": "{count} member(s) total",
       "roles": {
         "org_admin": "Admin",

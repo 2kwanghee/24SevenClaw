@@ -36,6 +36,8 @@
     },
     "projectDialog": {
       "newProject": "新規プロジェクト",
+      "orgLabel": "対象組織",
+      "orgSelfDefault": "自分の組織（デフォルト）",
       "deleteTitle": "プロジェクトを削除",
       "deleteConfirm": "<name>{name}</name> プロジェクトを削除してもよろしいですか？この操作は元に戻せません。",
       "deleting": "削除中..."
@@ -307,6 +309,7 @@
       "statusInactive": "非アクティブ",
       "emptyState": "組織メンバーがいません",
       "emptyStateHint": "上の「メンバーを招待」ボタンを使ってメンバーを追加してください",
+      "noOrg": "所属している組織がありません",
       "totalCount": "合計{count}名のメンバー",
       "roles": {
         "org_admin": "管理者",

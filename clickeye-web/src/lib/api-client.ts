@@ -93,6 +93,20 @@ export interface RegisterResponse {
   created_at: string;
 }
 
+/** `GET /auth/me` 응답 (현재 로그인 사용자) */
+export interface UserResponse {
+  id: string;
+  email: string;
+  display_name: string;
+  avatar_url: string | null;
+  plan: string;
+  created_at: string;
+  /** 사용자의 소속(primary) 조직 ID. 없을 수 있음. */
+  organization_id: string | null;
+  /** 시스템 역할 (조직 셀렉터 노출 여부 판단 등에 사용) */
+  system_role: SystemRole;
+}
+
 // --- Preview / Generate ---
 
 export interface FileTreeNode {
@@ -169,6 +183,12 @@ export interface ProjectListResponse {
 export interface ProjectCreateRequest {
   name: string;
   description?: string;
+  /**
+   * 프로젝트를 소속시킬 대상 조직(고객사) ID.
+   * 생략 시 백엔드가 요청 사용자의 primary organization을 사용한다.
+   * 비-primary org 지정 시 백엔드가 멤버십/`control_tower:write`로 인가한다(없으면 403).
+   */
+  organization_id?: string;
 }
 
 export interface ProjectUpdateRequest {
@@ -257,6 +277,9 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    /** 현재 로그인 사용자 정보 조회 (organization_id, system_role 포함) */
+    me: (token: string) => authRequest<UserResponse>("/api/v1/auth/me", token),
   },
 
   projects: {
