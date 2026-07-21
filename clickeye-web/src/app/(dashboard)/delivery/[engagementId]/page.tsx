@@ -21,9 +21,12 @@ import {
 } from "@/hooks/use-orchestrator";
 import { useProject } from "@/hooks/use-projects";
 import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
+import { useGovernancePolicy } from "@/hooks/use-governance";
+import { useProjectOverrides } from "@/hooks/use-contracts";
 import { useMockMode } from "@/stores/mock-mode-store";
 import { useRBACStore } from "@/stores/rbac-store";
 import {
+  mockGovernancePolicy,
   mockLedgerSummary,
   mockProject,
   mockReviewRounds,
@@ -133,6 +136,19 @@ export default function DeliveryEngagementPage() {
       ? false
       : !rbacLoaded || ledgerFetchingRaw;
   const ledgerError = mock ? false : ledgerErrorRaw;
+
+  // F. 거버넌스 정책 — 목업 ON일 때는 실 API 호출을 비활성화하고 픽스처로 대체한다.
+  const {
+    data: policyData,
+    isLoading: policyLoadingRaw,
+    isError: policyErrorRaw,
+  } = useGovernancePolicy(!mock);
+  const { data: overridesData } = useProjectOverrides(mock ? "" : projectId);
+
+  const governancePolicy = mock ? mockGovernancePolicy : (policyData ?? null);
+  const governanceLoading = mock ? false : policyLoadingRaw;
+  const governanceError = mock ? false : policyErrorRaw;
+  const contractOverrides = mock ? [] : (overridesData?.items ?? undefined);
 
   const subtasks = summary?.subtasks ?? [];
   const reviewRounds = reviewData?.items ?? [];
@@ -278,7 +294,12 @@ export default function DeliveryEngagementPage() {
                 isError={ledgerError}
                 restricted={ledgerRestricted}
               />
-              <GovernancePolicyPanel />
+              <GovernancePolicyPanel
+                policy={governancePolicy}
+                isLoading={governanceLoading}
+                isError={governanceError}
+                overrides={contractOverrides}
+              />
             </aside>
           </div>
 

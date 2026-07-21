@@ -595,5 +595,26 @@
       "tagline": "AIが実行するSIデリバリー管制プレーン",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
+  },
+  "governance": {
+    "title": "ガバナンスポリシー",
+    "loading": "ポリシーを読み込み中…",
+    "error": "ガバナンスポリシーの読み込みに失敗しました。",
+    "empty": "ガバナンスポリシー情報がありません。",
+    "on": "ON",
+    "off": "OFF",
+    "disabled": "ガバナンスゲートが無効です。",
+    "gateRules": "ゲートルール",
+    "modeBlock": "ブロック",
+    "modeWarn": "警告",
+    "ruleDisabled": "無効",
+    "highRisk": "高リスクパス・直接マージ禁止",
+    "riskDemote": "高リスクの変更は直接マージではなくPRに降格されます。",
+    "toggles": "トグル",
+    "overrides": "適用中の契約オーバーライド",
+    "overridesEmpty": "適用中のオーバーライドはありません。",
+    "overrideActive": "有効",
+    "sourceNote": "ポリシー出典",
+    "temporalLink": "Temporal UI を開く"
   }
 }

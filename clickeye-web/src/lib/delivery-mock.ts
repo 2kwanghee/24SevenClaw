@@ -4,6 +4,7 @@
  * api-client 실제 타입을 그대로 사용하며 타입 캐스팅(as) 없이 통과해야 한다.
  */
 import type {
+  GovernancePolicyResponse,
   LinearTeamState,
   LlmProjectUsageSummary,
   OrchestratorSessionListResponse,
@@ -280,3 +281,26 @@ export const mockReviewRounds: ReviewRoundResponse[] = [
     updated_at: "2026-07-19T09:35:00Z",
   },
 ];
+
+// --- 거버넌스 정책 (머지 게이트) ---
+
+export const mockGovernancePolicy: GovernancePolicyResponse = {
+  governance_enabled: true,
+  gate_rules: [
+    { key: "contract-drift", label: "차단", mode: "block", enabled: true },
+    { key: "ticket-ref", label: "차단", mode: "block", enabled: true },
+    { key: "plan-trace", label: "권고", mode: "warn", enabled: true },
+  ],
+  high_risk: {
+    prefixes: ["clickeye-contracts/", "clickeye-infra/"],
+    patterns: ["*auth*", "*security*"],
+  },
+  toggles: {
+    FLOWOPS_GOVERNANCE: true,
+    FLOWOPS_GOVERNANCE_CONTRACT: true,
+    FLOWOPS_GOVERNANCE_TICKET: true,
+    FLOWOPS_GOVERNANCE_TRACE: true,
+  },
+  risk_demote_to_pr: true,
+  source_note: "목업 데이터 — 실제 API 응답이 아닙니다",
+};

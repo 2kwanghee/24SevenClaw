@@ -595,5 +595,26 @@
       "tagline": "Control plane delivery SI yang dijalankan AI",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
+  },
+  "governance": {
+    "title": "Kebijakan Tata Kelola",
+    "loading": "Memuat kebijakan…",
+    "error": "Gagal memuat kebijakan tata kelola.",
+    "empty": "Tidak ada kebijakan tata kelola.",
+    "on": "ON",
+    "off": "OFF",
+    "disabled": "Gerbang tata kelola dinonaktifkan.",
+    "gateRules": "Aturan Gerbang",
+    "modeBlock": "Blokir",
+    "modeWarn": "Peringatan",
+    "ruleDisabled": "nonaktif",
+    "highRisk": "Jalur berisiko tinggi · merge langsung diblokir",
+    "riskDemote": "Perubahan berisiko tinggi diturunkan menjadi PR alih-alih merge langsung.",
+    "toggles": "Sakelar",
+    "overrides": "Override Kontrak yang Diterapkan",
+    "overridesEmpty": "Tidak ada override yang diterapkan.",
+    "overrideActive": "Aktif",
+    "sourceNote": "Sumber kebijakan",
+    "temporalLink": "Buka Temporal UI"
   }
 }

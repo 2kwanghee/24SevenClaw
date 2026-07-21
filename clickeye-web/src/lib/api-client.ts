@@ -1410,6 +1410,35 @@ export const contracts = {
     ),
 };
 
+// --- Governance ---
+
+export interface GovernanceGateRule {
+  key: string;
+  label: string;
+  mode: "block" | "warn";
+  enabled: boolean;
+}
+
+export interface GovernanceHighRisk {
+  prefixes: string[];
+  patterns: string[];
+}
+
+export interface GovernancePolicyResponse {
+  governance_enabled: boolean;
+  gate_rules: GovernanceGateRule[];
+  high_risk: GovernanceHighRisk;
+  toggles: Record<string, boolean>;
+  risk_demote_to_pr: boolean;
+  source_note: string;
+}
+
+export const governance = {
+  /** GET /api/v1/governance/policy — 머지 게이트 정책 요약(읽기 전용, 인증 필요) */
+  getPolicy: (token: string) =>
+    authRequest<GovernancePolicyResponse>("/api/v1/governance/policy", token),
+};
+
 // --- Orchestrator ---
 
 export type OrchestratorPhase =
