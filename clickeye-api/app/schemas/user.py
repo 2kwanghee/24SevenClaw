@@ -27,6 +27,8 @@ class UserResponse(BaseModel):
     display_name: str
     avatar_url: str | None
     plan: str
+    system_role: str = "member"
+    organization_id: UUID | None = None
     language: str = "en"
     created_at: datetime
 

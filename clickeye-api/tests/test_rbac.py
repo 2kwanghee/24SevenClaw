@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import Organization
@@ -224,3 +224,33 @@ async def test_audit_log_forbidden_for_member(
 ) -> None:
     resp = await client.get("/api/v1/admin/audit-log", headers=auth_headers)
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_add_org_member_seals_null_primary_org(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """(f) primary organization_id가 NULL인 유저를 멤버로 추가하면 primary가 봉합된다."""
+    headers, admin_id = await _register_and_login(client, "seal_admin@test.com")
+    await _set_role(db_session, admin_id, "admin")
+    _, target_id = await _register_and_login(client, "seal_target@test.com")
+    org_id = await _create_org(db_session)
+
+    # 사전 조건: 대상 유저의 primary org는 NULL
+    target = (
+        await db_session.execute(select(User).where(User.id == uuid.UUID(target_id)))
+    ).scalar_one()
+    assert target.organization_id is None
+
+    resp = await client.post(
+        f"/api/v1/organizations/{org_id}/members",
+        json={"user_id": target_id, "org_role": "org_member"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+
+    db_session.expire_all()
+    target = (
+        await db_session.execute(select(User).where(User.id == uuid.UUID(target_id)))
+    ).scalar_one()
+    assert str(target.organization_id) == org_id

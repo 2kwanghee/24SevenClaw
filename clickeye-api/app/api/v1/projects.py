@@ -27,11 +27,7 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
     service = ProjectService(db)
-    project = await service.create(
-        owner_id=user.id,  # type: ignore[arg-type]
-        data=data,
-        organization_id=user.organization_id,  # type: ignore[arg-type]
-    )
+    project = await service.create(user=user, data=data)
     return ProjectResponse.model_validate(project)
 
 

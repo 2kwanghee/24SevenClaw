@@ -8230,7 +8230,7 @@
           "linear-credentials"
         ],
         "summary": "Save Linear Credentials",
-        "description": "Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화. tunnel_url 제공 시 Linear webhook 자동 등록.\napi_key 미입력 시 기존 키 유지 (tunnel_url·webhook_secret만 갱신 가능).",
+        "description": "Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화.\n\ntunnel_url 제공 시 Linear webhook 자동 등록.\napi_key 미입력 시 기존 키 유지 (tunnel_url·webhook_secret만 갱신 가능).",
         "operationId": "save_linear_credentials_api_v1_me_linear_credentials__post",
         "requestBody": {
           "content": {
@@ -17951,6 +17951,18 @@
               }
             ],
             "title": "Project Type"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
           }
         },
         "type": "object",
@@ -18267,6 +18279,18 @@
             "type": "string",
             "format": "uuid",
             "title": "Owner Id"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
           },
           "name": {
             "type": "string",
@@ -20098,6 +20122,23 @@
           "plan": {
             "type": "string",
             "title": "Plan"
+          },
+          "system_role": {
+            "type": "string",
+            "title": "System Role",
+            "default": "member"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
           },
           "language": {
             "type": "string",
@@ -22570,6 +22611,23 @@
           "plan": {
             "type": "string",
             "title": "Plan"
+          },
+          "system_role": {
+            "type": "string",
+            "title": "System Role",
+            "default": "member"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
           },
           "language": {
             "type": "string",
