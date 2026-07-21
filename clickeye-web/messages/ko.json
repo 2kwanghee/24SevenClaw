@@ -598,5 +598,26 @@
       "tagline": "AI 실행 · SI 딜리버리 관제 플레인",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
+  },
+  "governance": {
+    "title": "거버넌스 정책",
+    "loading": "정책 불러오는 중…",
+    "error": "거버넌스 정책을 불러오지 못했습니다.",
+    "empty": "거버넌스 정책 정보가 없습니다.",
+    "on": "ON",
+    "off": "OFF",
+    "disabled": "거버넌스 게이트가 비활성화되어 있습니다.",
+    "gateRules": "게이트 룰",
+    "modeBlock": "차단",
+    "modeWarn": "권고",
+    "ruleDisabled": "미적용",
+    "highRisk": "HIGH 위험 경로 · 직접머지 금지",
+    "riskDemote": "HIGH 위험 변경은 직접 머지 대신 PR로 강등됩니다.",
+    "toggles": "토글",
+    "overrides": "적용된 계약 오버라이드",
+    "overridesEmpty": "적용된 오버라이드가 없습니다.",
+    "overrideActive": "활성",
+    "sourceNote": "정책 출처",
+    "temporalLink": "Temporal UI 열기"
   }
 }

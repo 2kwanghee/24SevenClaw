@@ -598,5 +598,26 @@
       "tagline": "AI-run SI delivery control plane",
       "copyright": "© 2026 ClickEye. All rights reserved."
     }
+  },
+  "governance": {
+    "title": "Governance Policy",
+    "loading": "Loading policy…",
+    "error": "Failed to load governance policy.",
+    "empty": "No governance policy available.",
+    "on": "ON",
+    "off": "OFF",
+    "disabled": "The governance gate is disabled.",
+    "gateRules": "Gate Rules",
+    "modeBlock": "Block",
+    "modeWarn": "Warn",
+    "ruleDisabled": "disabled",
+    "highRisk": "High-risk paths · direct merge blocked",
+    "riskDemote": "High-risk changes are demoted to a PR instead of a direct merge.",
+    "toggles": "Toggles",
+    "overrides": "Applied Contract Overrides",
+    "overridesEmpty": "No overrides applied.",
+    "overrideActive": "Active",
+    "sourceNote": "Policy source",
+    "temporalLink": "Open Temporal UI"
   }
 }
