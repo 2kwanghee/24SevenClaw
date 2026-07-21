@@ -15,7 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.schemas.governance import GovernanceEvaluateRequest, GovernanceEvaluateResponse
+from app.dependencies import get_current_user
+from app.models.user import User
+from app.schemas.governance import (
+    GovernanceEvaluateRequest,
+    GovernanceEvaluateResponse,
+    GovernancePolicyResponse,
+)
 from app.services.governance_gate_service import GovernanceGateService
 
 router = APIRouter(prefix="/governance", tags=["governance"])
@@ -59,3 +65,15 @@ async def evaluate_governance(
     수행된다(그 외엔 세션 미사용 → 연결도 없음). 현행 DB-less 계약과 하위호환.
     """
     return await GovernanceGateService(db).evaluate(req)
+
+
+@router.get("/policy", response_model=GovernancePolicyResponse)
+async def get_governance_policy(
+    _user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """전역 머지-게이트 정책 요약을 반환한다(딜리버리 콘솔 거버넌스 패널용).
+
+    커널(governance.core.policy_summary)이 SSOT 이며 서비스는 위임만 한다. 로그인 사용자면
+    누구나 조회 가능(읽기 전용, 신규 권한 없음). 토글 상태는 API 서버 env 기준(source_note).
+    """
+    return GovernanceGateService().get_policy()

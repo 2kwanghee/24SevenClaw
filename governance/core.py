@@ -513,3 +513,88 @@ def evaluate(
                 result["merge_decision"] = "pr"
 
     return result
+
+
+# ── 정책 요약(읽기 전용 노출) ────────────────────────────────────────────────
+def policy_summary() -> dict:
+    """전역 머지-게이트 정책을 직렬화 가능한 dict 로 요약한다(순수·additive).
+
+    evaluate() 와 로직을 공유하지 않고 커널 상수/토글 함수만 읽어 노출한다. HTTP
+    어댑터(FastAPI `GET /governance/policy`)가 이 값을 그대로 스키마로 감싸 반환하므로
+    정책의 이중관리가 발생하지 않는다. stdlib 전용이며 어떤 기존 로직도 변경하지 않는다.
+
+    토글 상태는 **이 함수가 실행되는 프로세스의 환경변수 기준**이다(API 서버 env). 따라서
+    파이프라인/CI 프로세스의 실제 적용값과 다를 수 있으며 source_note 로 이를 명시한다.
+    블로킹 룰(contract-drift/ticket-ref)과 권고 룰(plan-trace)의 mode·enabled, 고위험
+    경로(prefixes/patterns), 위험강등(risk-demote) 여부를 함께 노출한다.
+
+    evaluate() 실효값 정합: 마스터(FLOWOPS_GOVERNANCE) off 면 evaluate() 가 즉시 단락하여
+    모든 룰이 무력화되므로, gate_rules[].enabled 와 risk_demote_to_pr 는 마스터 AND 개별
+    토글로 계산한다("마스터 off인데 enabled=true" 모순 방지). 최상위 governance_enabled 는
+    마스터 플래그 자체를 그대로 노출한다. 트리아지 집행축(triage_enforce)은 evaluate() 의
+    실제 조건(마스터 on + _TRIAGE + _TRIAGE_ENFORCE 모두 opt-in)일 때만 파생 룰로 포함한다.
+    """
+    master = is_enabled("FLOWOPS_GOVERNANCE")
+    gate_rules = [
+        {
+            "key": "contract_drift",
+            "label": "계약 드리프트",
+            "mode": "block",
+            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
+        },
+        {
+            "key": "ticket_ref",
+            "label": "티켓 참조",
+            "mode": "block",
+            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_TICKET"),
+        },
+        {
+            "key": "plan_trace",
+            "label": "플랜 추적성",
+            "mode": "warn",
+            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_TRACE"),
+        },
+    ]
+    # 트리아지 집행(band==block→차단, band==review→direct 강등 to pr)은 마스터 on +
+    # _TRIAGE + _TRIAGE_ENFORCE 가 모두 opt-in 일 때만 evaluate() 에서 발생한다. 그 조건일
+    # 때만 파생 블로킹 룰을 노출한다(거짓 보고 금지 — 비활성 시엔 아예 포함하지 않음).
+    triage_enforce_active = (
+        master
+        and is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE")
+        and is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE")
+    )
+    if triage_enforce_active:
+        gate_rules.append(
+            {
+                "key": "triage_enforce",
+                "label": "트리아지 집행",
+                "mode": "block",
+                "enabled": True,
+            }
+        )
+    toggles = {
+        # 마스터 + 기존 게이트 항목(기본 on, is_enabled 로 읽음).
+        "FLOWOPS_GOVERNANCE": master,
+        "FLOWOPS_GOVERNANCE_CONTRACT": is_enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
+        "FLOWOPS_GOVERNANCE_TICKET": is_enabled("FLOWOPS_GOVERNANCE_TICKET"),
+        "FLOWOPS_GOVERNANCE_TRACE": is_enabled("FLOWOPS_GOVERNANCE_TRACE"),
+        "FLOWOPS_GOVERNANCE_RISK_DEMOTE": is_enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
+        # 트리아지(신규, 기본 off, is_opt_in 로 읽음).
+        "FLOWOPS_GOVERNANCE_TRIAGE": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE"),
+        "FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"),
+        "FLOWOPS_GOVERNANCE_TRIAGE_BUDGET": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET"),
+    }
+    return {
+        "governance_enabled": master,
+        "gate_rules": gate_rules,
+        "high_risk": {
+            "prefixes": list(HIGH_PREFIXES),
+            "patterns": [p.pattern for p in HIGH_PATH_PATTERNS],
+        },
+        "toggles": toggles,
+        "risk_demote_to_pr": master and is_enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
+        "source_note": (
+            "토글 상태는 API 서버 env 기준값(파이프라인/CI와 다를 수 있음). "
+            "마스터 off 시 모든 룰 무력화. 게이트 룰·고위험 경로 자체는 항상 정확."
+        ),
+    }

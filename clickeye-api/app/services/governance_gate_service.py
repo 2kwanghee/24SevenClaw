@@ -54,6 +54,15 @@ class GovernanceGateService:
             metrics=req.metrics,
         )
 
+    def get_policy(self) -> dict[str, Any]:
+        """전역 머지-게이트 정책 요약을 커널에서 읽어 반환한다(읽기 전용, DB 미사용).
+
+        로직은 커널 policy_summary() 에 단일 존재하고 여기서는 위임만 한다(이중관리 0).
+        """
+        from governance.core import policy_summary
+
+        return policy_summary()
+
     async def _usage_from_ledger(self, project_id: Any) -> dict[str, Any]:
         """원장 집계 → 커널 usage 계약({cost: float|None, tokens: int})으로 정규화.
 
