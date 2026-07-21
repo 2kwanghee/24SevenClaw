@@ -36,6 +36,7 @@
     },
     "projectDialog": {
       "newProject": "Proyek baru",
+      "orgLabel": "Organisasi target",
       "deleteTitle": "Hapus proyek",
       "deleteConfirm": "Apakah Anda yakin ingin menghapus proyek <name>{name}</name>? Tindakan ini tidak dapat dibatalkan.",
       "deleting": "Menghapus..."
@@ -307,6 +308,7 @@
       "statusInactive": "Tidak aktif",
       "emptyState": "Tidak ada anggota organisasi",
       "emptyStateHint": "Gunakan tombol 'Undang anggota' di atas untuk menambahkan anggota",
+      "noOrg": "Anda tidak tergabung dalam organisasi mana pun",
       "totalCount": "Total {count} anggota",
       "roles": {
         "org_admin": "Admin",

@@ -12,10 +12,8 @@ import {
   useAddOrgMember,
   useRemoveOrgMember,
 } from "@/hooks/use-rbac";
+import { useMe } from "@/hooks/use-me";
 import type { OrgMemberResponse, OrgRole } from "@/lib/api-client";
-
-// TODO: 실제 조직 ID는 세션 또는 URL에서 가져와야 함
-const DEFAULT_ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 const ORG_ROLE_COLORS: Record<OrgRole, string> = {
   org_admin: "bg-violet-50 text-violet-700 border-violet-200",
@@ -244,9 +242,31 @@ function MemberRow({
 }
 
 function MembersContent() {
-  const orgId = DEFAULT_ORG_ID;
+  const { data: me, isLoading: meLoading } = useMe();
+  const orgId = me?.organization_id ?? "";
   const { data: members, isLoading, error } = useOrgMembers(orgId);
   const t = useTranslations("settings.members");
+
+  // 소속 조직이 없는 사용자 처리
+  if (!meLoading && !orgId) {
+    return (
+      <div>
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+            <Users2 className="h-5 w-5 text-[var(--text-secondary)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+          <Users2 className="h-12 w-12 text-[var(--text-muted)]" />
+          <p className="text-sm text-[var(--text-muted)]">{t("noOrg")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -261,11 +281,11 @@ function MembersContent() {
             <p className="mt-0.5 text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
           </div>
         </div>
-        <InviteMemberForm orgId={orgId} />
+        {orgId && <InviteMemberForm orgId={orgId} />}
       </div>
 
       {/* 로딩 */}
-      {isLoading && (
+      {(meLoading || isLoading) && (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
