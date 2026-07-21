@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import AppError
 from app.models.agent_connection import AgentConnection
 from app.models.artifact import Artifact
 from app.models.central_contract import CustomerContractOverride
@@ -15,12 +16,15 @@ from app.models.orchestrator import OrchestratorSession
 from app.models.project import Project
 from app.models.project_config import ProjectConfig
 from app.models.project_linear_credentials import ProjectLinearCredentials
+from app.models.rbac import OrganizationMembership
 from app.models.ticket import Ticket
+from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.models.user_linear_credentials import UserLinearCredentials
 from app.schemas.project import ProjectCreate, ProjectResetResponse, ProjectResponse, ProjectUpdate
 from app.schemas.wizard_config import WizardConfigSave
 from app.services.base import BaseService
+from app.services.rbac_service import RBACService
 from app.utils.db import get_or_404
 
 

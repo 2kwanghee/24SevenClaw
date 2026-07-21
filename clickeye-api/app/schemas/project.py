@@ -9,6 +9,7 @@ class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
     project_type: str | None = Field(None, max_length=30)
+    organization_id: UUID | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -21,6 +22,7 @@ class ProjectUpdate(BaseModel):
 class ProjectResponse(BaseModel):
     id: UUID
     owner_id: UUID
+    organization_id: UUID | None = None
     name: str
     slug: str
     description: str | None
