@@ -619,5 +619,116 @@
     "overrideActive": "Active",
     "sourceNote": "Policy source",
     "temporalLink": "Open Temporal UI"
+  },
+  "delivery": {
+    "phase": {
+      "requested": "Requested",
+      "decomposed": "Decomposed",
+      "assigned": "Assigned",
+      "drafting": "Drafting",
+      "reviewing": "Reviewing",
+      "integrating": "Integrating",
+      "validating": "Validating",
+      "approved": "Approved",
+      "transitioning": "Transitioning",
+      "completed": "Completed"
+    },
+    "keyStatus": {
+      "fresh": "Fresh",
+      "stale": "Needs refresh",
+      "no_saved_key": "Not saved",
+      "never_downloaded": "Not downloaded",
+      "n/a": "N/A"
+    },
+    "console": {
+      "backToList": "Back to delivery list",
+      "subtitle": "SI delivery console",
+      "syncLinear": "Sync Linear states",
+      "projectError": "Failed to load engagement info. Showing by ID.",
+      "sessionsError": "Failed to load session list.",
+      "noSessions": "This engagement has no work sessions yet",
+      "createSession": "Create a work session",
+      "summaryError": "Some data could not be refreshed.",
+      "issueBoardTitle": "Issue work board",
+      "subtaskCount": "Subtasks {count}",
+      "reviewTitle": "Pending review",
+      "reviewCount": "Review rounds {count}",
+      "reviewError": "Failed to refresh review data.",
+      "scopeCurrent": "<b>MVP-1·2</b> Issue board · Pipeline · Review · Cost (implemented now)",
+      "scopeFuture": "Gray = <b>Phase 2/3</b> (gate decision history · per-issue cost · Temporal lookup — backend first)"
+    },
+    "stepper": {
+      "ariaLabel": "Pipeline stages",
+      "inProgress": "in progress",
+      "intake": "Intake",
+      "context": "Context",
+      "plan": "Plan",
+      "implementReview": "Implement·Review",
+      "validate": "Validate",
+      "mergeComplete": "Merge·Complete"
+    },
+    "cost": {
+      "title": "AI execution cost",
+      "totalTokens": "Total tokens",
+      "input": "Input",
+      "output": "Output",
+      "meteredTotal": "Metered total",
+      "unknown": "Not calculated",
+      "emptyTitle": "No LLM executions recorded yet",
+      "emptyDesc": "Tokens and cost will be aggregated here as work proceeds.",
+      "errorLoad": "Failed to load cost data.",
+      "restrictedTitle": "Cost ledger access required",
+      "restrictedDesc": "Ask an administrator for the <b>settings:manage</b> permission.",
+      "footer": "In-house development uses subscription sessions first. The headline metric is <b>tokens</b>; cost is calculated only for organization API key usage.",
+      "detailSubscription": "Flat rate · cost not calculated",
+      "detailMetered": "{cost} · metered",
+      "detailMeteredUnknown": "Metered · not calculated",
+      "keySource": {
+        "subscription_seat": "Subscription seat",
+        "org_api_key": "Org API key"
+      }
+    },
+    "issues": {
+      "empty": "No issues yet",
+      "pushToLinear": "Push issues to Linear",
+      "columnEmpty": "Empty",
+      "unlinked": "Unlinked",
+      "unlinkedOther": "Unlinked · Other",
+      "role": {
+        "architect": "Architect",
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "qa": "QA",
+        "security": "Security",
+        "devops": "DevOps",
+        "reviewer": "Reviewer"
+      }
+    },
+    "review": {
+      "round": "Round",
+      "viewDiff": "View diff",
+      "merge": "Merge",
+      "reject": "Reject",
+      "disabledMock": "Disabled in mock mode",
+      "rejectReasonPlaceholder": "Enter a reason for rejection...",
+      "rejectReasonLabel": "Rejection reason",
+      "confirm": "Confirm",
+      "diffModalTitle": "Review diff · Round #{number}",
+      "roundNumber": "Round #{number}"
+    },
+    "list": {
+      "title": "Delivery",
+      "subtitle": "SI delivery control per engagement",
+      "errorLoad": "Failed to load engagement list.",
+      "empty": "No engagements registered yet",
+      "startFromProjects": "Start from Projects",
+      "statusActive": "Active",
+      "statusArchived": "Archived"
+    },
+    "mock": {
+      "label": "Mock data",
+      "ariaLabel": "Show mock data",
+      "banner": "Showing mock data — not real data."
+    }
   }
 }

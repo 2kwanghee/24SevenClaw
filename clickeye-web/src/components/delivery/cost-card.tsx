@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { AlertTriangle, Coins, Lock } from "lucide-react";
 
 import type {
@@ -13,11 +14,6 @@ interface CostCardProps {
   isError?: boolean;
   restricted?: boolean;
 }
-
-const KEY_SOURCE_LABELS: Record<string, string> = {
-  subscription_seat: "구독 시트",
-  org_api_key: "조직 API 키",
-};
 
 function formatTokens(value: number): string {
   return value.toLocaleString("en-US");
@@ -35,11 +31,12 @@ function formatCost(value: number | string | null): string | null {
 }
 
 function CardFrame({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("delivery");
   return (
     <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[0_1px_2px_rgba(20,24,33,0.05)]">
       <div className="flex items-center gap-2.5 border-b border-[var(--border-subtle)] px-4 py-3.5">
         <h2 className="text-[13.5px] font-bold tracking-tight text-[var(--text-primary)]">
-          AI 실행 비용
+          {t("cost.title")}
         </h2>
       </div>
       {children}
@@ -48,17 +45,20 @@ function CardFrame({ children }: { children: React.ReactNode }) {
 }
 
 function KeySourceRow({ row }: { row: LlmKeySourceTotals }) {
-  const label = KEY_SOURCE_LABELS[row.key_source] ?? row.key_source;
+  const t = useTranslations("delivery");
+  const label = t.has(`cost.keySource.${row.key_source}`)
+    ? t(`cost.keySource.${row.key_source}`)
+    : row.key_source;
   const tokens = row.input_tokens + row.output_tokens;
   const cost = formatCost(row.cost);
   const isSubscription = row.key_source === "subscription_seat";
 
   // 정직성: 구독 시트는 정액이라 비용 미산정, 조직 키는 종량 과금.
   const detail = isSubscription
-    ? "정액 · 비용 미산정"
+    ? t("cost.detailSubscription")
     : cost
-      ? `${cost} · 종량`
-      : "종량 · 미산정";
+      ? t("cost.detailMetered", { cost })
+      : t("cost.detailMeteredUnknown");
 
   return (
     <div className="flex items-center gap-2.5">
@@ -87,6 +87,7 @@ export function CostCard({
   isError = false,
   restricted = false,
 }: CostCardProps) {
+  const t = useTranslations("delivery");
   // 권한 없음 — 에러 대신 안내.
   if (restricted) {
     return (
@@ -96,10 +97,12 @@ export function CostCard({
             <Lock className="h-5 w-5 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-xs font-medium text-[var(--text-secondary)]">
-            비용 원장 조회 권한이 필요합니다
+            {t("cost.restrictedTitle")}
           </p>
           <p className="text-[11px] text-[var(--text-muted)]">
-            관리자에게 <b className="font-semibold">settings:manage</b> 권한을 요청하세요.
+            {t.rich("cost.restrictedDesc", {
+              b: (chunks) => <b className="font-semibold">{chunks}</b>,
+            })}
           </p>
         </div>
       </CardFrame>
@@ -130,7 +133,7 @@ export function CostCard({
       <CardFrame>
         <div className="m-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          비용 데이터를 불러오지 못했습니다.
+          {t("cost.errorLoad")}
         </div>
       </CardFrame>
     );
@@ -150,10 +153,10 @@ export function CostCard({
             <Coins className="h-5 w-5 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-xs font-medium text-[var(--text-secondary)]">
-            아직 기록된 LLM 실행이 없습니다
+            {t("cost.emptyTitle")}
           </p>
           <p className="text-[11px] text-[var(--text-muted)]">
-            작업이 진행되면 토큰·비용이 여기에 집계됩니다.
+            {t("cost.emptyDesc")}
           </p>
         </div>
       </CardFrame>
@@ -168,17 +171,17 @@ export function CostCard({
         {/* 대표 지표 — 총 토큰 */}
         <div className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-            총 토큰
+            {t("cost.totalTokens")}
           </span>
           <span className="font-mono text-2xl font-bold tabular-nums leading-none text-[var(--text-primary)]">
             {formatTokens(totalTokens)}
           </span>
           <span className="text-[11px] text-[var(--text-muted)]">
-            입력{" "}
+            {t("cost.input")}{" "}
             <span className="font-mono tabular-nums">
               {formatTokens(summary.total_input_tokens)}
             </span>{" "}
-            · 출력{" "}
+            · {t("cost.output")}{" "}
             <span className="font-mono tabular-nums">
               {formatTokens(summary.total_output_tokens)}
             </span>
@@ -188,10 +191,10 @@ export function CostCard({
         {/* 과금 총액 (조직 API 키 사용분) */}
         <div className="flex items-baseline justify-between border-t border-[var(--border-subtle)] pt-3">
           <span className="text-[11px] font-medium text-[var(--text-muted)]">
-            종량 과금 합계
+            {t("cost.meteredTotal")}
           </span>
           <span className="font-mono text-sm font-semibold tabular-nums text-[var(--text-primary)]">
-            {totalCost ?? "미산정"}
+            {totalCost ?? t("cost.unknown")}
           </span>
         </div>
 
@@ -205,9 +208,11 @@ export function CostCard({
         )}
 
         <p className="border-t border-[var(--border-subtle)] pt-3 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
-          사내 개발은 구독 세션을 우선 사용합니다. 대표 지표는{" "}
-          <b className="font-semibold text-[var(--text-secondary)]">토큰</b>이며,
-          금액은 조직 API 키 사용분에만 산정됩니다.
+          {t.rich("cost.footer", {
+            b: (chunks) => (
+              <b className="font-semibold text-[var(--text-secondary)]">{chunks}</b>
+            ),
+          })}
         </p>
       </div>
     </CardFrame>

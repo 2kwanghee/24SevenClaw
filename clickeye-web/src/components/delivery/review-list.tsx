@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Loader2 } from "lucide-react";
 
 import { BaseModal } from "@/components/common/base-modal";
@@ -27,12 +28,14 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState("");
 
+  const t = useTranslations("delivery");
   const merge = useMergeReview();
   const reject = useRejectReview();
   const mock = useMockMode((s) => s.enabled);
 
   const canAct = round.status === "review_completed";
-  const identifier = subtask?.linear_identifier ?? subtask?.title ?? "라운드";
+  const identifier =
+    subtask?.linear_identifier ?? subtask?.title ?? t("review.round");
 
   const handleReject = () => {
     if (!reason.trim()) return;
@@ -81,7 +84,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
                 {round.diff_summary}
               </span>
             )}
-            <span>Round #{round.round_number}</span>
+            <span>{t("review.roundNumber", { number: round.round_number })}</span>
           </div>
         </div>
 
@@ -91,7 +94,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
             onClick={() => setDiffOpen(true)}
             className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            diff 보기
+            {t("review.viewDiff")}
           </button>
           {canAct && (
             <>
@@ -104,22 +107,22 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
                   })
                 }
                 disabled={merge.isPending || mock}
-                title={mock ? "목업 모드에서는 비활성" : undefined}
+                title={mock ? t("review.disabledMock") : undefined}
                 className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--accent-fg)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
               >
                 {merge.isPending && (
                   <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
                 )}
-                병합
+                {t("review.merge")}
               </button>
               <button
                 type="button"
                 onClick={() => setShowReject((v) => !v)}
                 disabled={reject.isPending || mock}
-                title={mock ? "목업 모드에서는 비활성" : undefined}
+                title={mock ? t("review.disabledMock") : undefined}
                 className="rounded-lg border border-[var(--border-medium)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover-danger)] hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:opacity-50"
               >
-                거절
+                {t("review.reject")}
               </button>
             </>
           )}
@@ -133,8 +136,8 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="거절 사유를 입력하세요..."
-            aria-label="거절 사유"
+            placeholder={t("review.rejectReasonPlaceholder")}
+            aria-label={t("review.rejectReasonLabel")}
             className="flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-red-400 focus:outline-none"
           />
           <button
@@ -146,7 +149,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
             {reject.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
             ) : (
-              "확인"
+              t("review.confirm")
             )}
           </button>
         </div>
@@ -156,7 +159,7 @@ function ReviewRow({ round, subtask }: ReviewRowProps) {
         open={diffOpen}
         onClose={() => setDiffOpen(false)}
         size="lg"
-        title={`리뷰 diff · Round #${round.round_number}`}
+        title={t("review.diffModalTitle", { number: round.round_number })}
       >
         <div className="p-4">
           <ReviewDiffViewer round={round} />

@@ -1,55 +1,34 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, GitBranch, KeyRound } from "lucide-react";
 
 import type { KeyStatus, ProjectResponse } from "@/lib/api-client";
 
-export const PHASE_LABELS: Record<string, string> = {
-  requested: "요청됨",
-  decomposed: "분해됨",
-  assigned: "배정됨",
-  drafting: "초안 작성",
-  reviewing: "리뷰 중",
-  integrating: "통합 중",
-  validating: "검증 중",
-  approved: "승인됨",
-  transitioning: "전환 중",
-  completed: "완료",
-};
-
-const KEY_STATUS_META: Record<KeyStatus, { label: string; cls: string }> = {
-  fresh: {
-    label: "최신",
-    cls: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-  },
-  stale: {
-    label: "갱신 필요",
-    cls: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
-  },
-  no_saved_key: {
-    label: "미저장",
-    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
-  },
-  never_downloaded: {
-    label: "미다운로드",
-    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
-  },
-  "n/a": {
-    label: "해당 없음",
-    cls: "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
-  },
+const KEY_STATUS_CLS: Record<KeyStatus, string> = {
+  fresh:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  stale:
+    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+  no_saved_key:
+    "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
+  never_downloaded:
+    "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
+  "n/a": "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
 };
 
 function KeyBadge({ name, status }: { name: string; status: KeyStatus }) {
-  const meta = KEY_STATUS_META[status] ?? KEY_STATUS_META["n/a"];
+  const t = useTranslations("delivery");
+  const cls = KEY_STATUS_CLS[status] ?? KEY_STATUS_CLS["n/a"];
+  const label = t(`keyStatus.${status in KEY_STATUS_CLS ? status : "n/a"}`);
   return (
     <span
-      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${meta.cls}`}
+      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium ${cls}`}
     >
       <KeyRound className="h-3 w-3" aria-hidden="true" />
       {name}
-      <b className="font-semibold">{meta.label}</b>
+      <b className="font-semibold">{label}</b>
     </span>
   );
 }
@@ -69,6 +48,7 @@ export function ConsoleHeader({
   onSync,
   syncing,
 }: ConsoleHeaderProps) {
+  const t = useTranslations("delivery");
   return (
     <section className="flex flex-col gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 shadow-[0_1px_2px_rgba(20,24,33,0.05)] sm:p-6">
       <div className="flex flex-wrap items-start gap-4">
@@ -76,7 +56,7 @@ export function ConsoleHeader({
           <Link
             href="/delivery"
             className="mt-0.5 rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            aria-label="딜리버리 목록으로 돌아가기"
+            aria-label={t("console.backToList")}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
@@ -91,12 +71,12 @@ export function ConsoleHeader({
                     className="h-1.5 w-1.5 rounded-full bg-current"
                     aria-hidden="true"
                   />
-                  {PHASE_LABELS[phase] ?? phase}
+                  {t.has(`phase.${phase}`) ? t(`phase.${phase}`) : phase}
                 </span>
               )}
             </div>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              SI 딜리버리 콘솔
+              {t("console.subtitle")}
             </p>
           </div>
         </div>
@@ -118,7 +98,7 @@ export function ConsoleHeader({
               className={`h-3.5 w-3.5 ${syncing ? "animate-pulse" : ""}`}
               aria-hidden="true"
             />
-            Linear 상태 동기화
+            {t("console.syncLinear")}
           </button>
         </div>
       </div>

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { AlertTriangle, Boxes, FlaskConical } from "lucide-react";
 
-import { ConsoleHeader, PHASE_LABELS } from "@/components/delivery/console-header";
+import { ConsoleHeader } from "@/components/delivery/console-header";
 import { DeliveryStepper } from "@/components/delivery/delivery-stepper";
 import { IssueBoard } from "@/components/delivery/issue-board";
 import { ReviewList } from "@/components/delivery/review-list";
@@ -64,6 +65,7 @@ function CardShell({
 }
 
 export default function DeliveryEngagementPage() {
+  const t = useTranslations("delivery");
   const { engagementId } = useParams<{ engagementId: string }>();
   const projectId = engagementId;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
@@ -165,7 +167,7 @@ export default function DeliveryEngagementPage() {
       {mock && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           <FlaskConical className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          목업 데이터 표시 중 — 실제 데이터가 아닙니다.
+          {t("mock.banner")}
         </div>
       )}
 
@@ -181,7 +183,7 @@ export default function DeliveryEngagementPage() {
       {projectError && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          수주건 정보를 불러오지 못했습니다. ID로 표시합니다.
+          {t("console.projectError")}
         </div>
       )}
 
@@ -201,7 +203,7 @@ export default function DeliveryEngagementPage() {
             >
               {s.title}
               <span className="rounded bg-black/10 px-1 py-0.5 text-[10px] dark:bg-white/15">
-                {PHASE_LABELS[s.phase] ?? s.phase}
+                {t.has(`phase.${s.phase}`) ? t(`phase.${s.phase}`) : s.phase}
               </span>
             </button>
           ))}
@@ -223,7 +225,7 @@ export default function DeliveryEngagementPage() {
       {sessionsError && !sessionsLoading && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          세션 목록을 불러오지 못했습니다.
+          {t("console.sessionsError")}
         </div>
       )}
 
@@ -234,13 +236,13 @@ export default function DeliveryEngagementPage() {
             <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
-            이 수주건에는 아직 작업 세션이 없습니다
+            {t("console.noSessions")}
           </p>
           <Link
             href={`/projects/${projectId}/ai-team`}
             className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
           >
-            작업 세션 만들러 가기
+            {t("console.createSession")}
           </Link>
         </div>
       )}
@@ -256,7 +258,7 @@ export default function DeliveryEngagementPage() {
           {summaryError && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              일부 데이터를 갱신하지 못했습니다.
+              {t("console.summaryError")}
             </div>
           )}
 
@@ -264,7 +266,10 @@ export default function DeliveryEngagementPage() {
           <div className="grid items-start gap-4 lg:grid-cols-[1fr_340px]">
             <div className="flex min-w-0 flex-col gap-4">
               {/* C. 이슈 보드 */}
-              <CardShell title="이슈 작업 보드" count={`서브태스크 ${subtasks.length}`}>
+              <CardShell
+                title={t("console.issueBoardTitle")}
+                count={t("console.subtaskCount", { count: subtasks.length })}
+              >
                 <IssueBoard
                   sessionId={activeSessionId}
                   subtasks={subtasks}
@@ -274,11 +279,14 @@ export default function DeliveryEngagementPage() {
 
               {/* E. 검토 대기 */}
               {reviewRounds.length > 0 && (
-                <CardShell title="검토 대기" count={`리뷰 라운드 ${reviewRounds.length}`}>
+                <CardShell
+                  title={t("console.reviewTitle")}
+                  count={t("console.reviewCount", { count: reviewRounds.length })}
+                >
                   {reviewError && (
                     <div className="m-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      리뷰 데이터를 갱신하지 못했습니다.
+                      {t("console.reviewError")}
                     </div>
                   )}
                   <ReviewList rounds={reviewRounds} subtasks={subtasks} />
@@ -307,11 +315,17 @@ export default function DeliveryEngagementPage() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-base)] px-4 py-3 text-xs text-[var(--text-secondary)]">
             <span className="inline-flex items-center gap-2">
               <span className="h-2 w-2 flex-none rounded-full bg-emerald-500" aria-hidden="true" />
-              <b className="font-semibold text-[var(--text-primary)]">MVP-1·2</b> 이슈 보드 · 파이프라인 · 리뷰 · 비용 (지금 구현)
+              {t.rich("console.scopeCurrent", {
+                b: (chunks) => (
+                  <b className="font-semibold text-[var(--text-primary)]">{chunks}</b>
+                ),
+              })}
             </span>
             <span className="inline-flex items-center gap-2 text-[var(--text-muted)]">
               <span className="h-2 w-2 flex-none rounded-full bg-[var(--text-muted)]" aria-hidden="true" />
-              회색 = <b className="font-semibold">2차/3차</b> (게이트 결정 이력 · 이슈별 비용 · Temporal 조회 — 백엔드 선행)
+              {t.rich("console.scopeFuture", {
+                b: (chunks) => <b className="font-semibold">{chunks}</b>,
+              })}
             </span>
           </div>
         </div>

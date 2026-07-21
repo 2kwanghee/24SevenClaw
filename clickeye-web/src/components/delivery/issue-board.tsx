@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Loader2, Link2, Inbox } from "lucide-react";
 
 import { IssueCard } from "@/components/delivery/issue-card";
@@ -15,6 +16,7 @@ interface IssueBoardProps {
 const UNLINKED_KEY = "__unlinked__";
 
 export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps) {
+  const t = useTranslations("delivery");
   const pushToLinear = usePushToLinear();
 
   // ai-team/page.tsx 와 동일한 순번·의존성 계산
@@ -41,7 +43,9 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
   // 이 컬럼은 진짜 미연동(linear_issue_id 없음) + 상태 미매칭(연동됐으나 팀 상태 컬럼에
   // 매칭 안 됨) 항목을 함께 담는다. 후자가 섞이면 라벨을 "미연동 · 기타"로 정직하게 표기.
   const hasMismatched = unlinkedItems.some((s) => !!s.linear_issue_id);
-  const unlinkedTitle = hasMismatched ? "미연동 · 기타" : "미연동";
+  const unlinkedTitle = hasMismatched
+    ? t("issues.unlinkedOther")
+    : t("issues.unlinked");
 
   const renderCard = (st: SubTaskResponse) => (
     <IssueCard
@@ -60,7 +64,7 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
           <Inbox className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />
         </div>
-        <p className="text-sm text-[var(--text-muted)]">아직 이슈가 없습니다</p>
+        <p className="text-sm text-[var(--text-muted)]">{t("issues.empty")}</p>
       </div>
     );
   }
@@ -88,7 +92,7 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
               ) : (
                 <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-              Linear에 이슈 등록
+              {t("issues.pushToLinear")}
             </button>
           )}
           {unlinkedItems.map(renderCard)}
@@ -105,7 +109,7 @@ export function IssueBoard({ sessionId, subtasks, teamStates }: IssueBoardProps)
         >
           {items.length === 0 ? (
             <p className="rounded-lg border border-dashed border-[var(--border-subtle)] py-6 text-center text-[11px] text-[var(--text-muted)]">
-              비어 있음
+              {t("issues.columnEmpty")}
             </p>
           ) : (
             items.map(renderCard)
