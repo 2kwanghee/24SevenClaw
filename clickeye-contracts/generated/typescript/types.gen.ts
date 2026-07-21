@@ -515,6 +515,38 @@ export type GovernanceEvaluateResponse = {
     } | null) | undefined;
 };
 
+/**
+ * 단일 머지-게이트 룰의 요약.
+ */
+export type GovernanceGateRule = {
+    key: string;
+    label: string;
+    mode: string;
+    enabled: boolean;
+};
+
+/**
+ * 고위험(HIGH) 분류 기준 — 직접머지 금지·PR 강등 대상.
+ */
+export type GovernanceHighRisk = {
+    prefixes: Array<string>;
+    patterns: Array<string>;
+};
+
+/**
+ * 전역 머지-게이트 정책 요약. 커널(governance.core.policy_summary)의 SSOT 노출.
+ */
+export type GovernancePolicyResponse = {
+    governance_enabled: boolean;
+    gate_rules: Array<GovernanceGateRule>;
+    high_risk: GovernanceHighRisk;
+    toggles: {
+        [key: string]: boolean;
+    };
+    risk_demote_to_pr: boolean;
+    source_note: string;
+};
+
 export type HttpValidationError = {
     detail?: Array<ValidationError>;
 };
@@ -6524,6 +6556,22 @@ export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponses = {
 };
 
 export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponse = EvaluateGovernanceApiV1GovernanceEvaluatePostResponses[keyof EvaluateGovernanceApiV1GovernanceEvaluatePostResponses];
+
+export type GetGovernancePolicyApiV1GovernancePolicyGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/governance/policy';
+};
+
+export type GetGovernancePolicyApiV1GovernancePolicyGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: GovernancePolicyResponse;
+};
+
+export type GetGovernancePolicyApiV1GovernancePolicyGetResponse = GetGovernancePolicyApiV1GovernancePolicyGetResponses[keyof GetGovernancePolicyApiV1GovernancePolicyGetResponses];
 
 export type ListInstallationsApiV1ModernizeInstallationsGetData = {
     body?: never;

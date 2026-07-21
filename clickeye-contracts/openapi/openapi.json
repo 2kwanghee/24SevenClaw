@@ -8702,6 +8702,33 @@
         }
       }
     },
+    "/api/v1/governance/policy": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Get Governance Policy",
+        "description": "전역 머지-게이트 정책 요약을 반환한다(딜리버리 콘솔 거버넌스 패널용).\n\n커널(governance.core.policy_summary)이 SSOT 이며 서비스는 위임만 한다. 로그인 사용자면\n누구나 조회 가능(읽기 전용, 신규 권한 없음). 토글 상태는 API 서버 env 기준(source_note).",
+        "operationId": "get_governance_policy_api_v1_governance_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernancePolicyResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/modernize/installations": {
       "get": {
         "tags": [
@@ -12866,6 +12893,104 @@
         ],
         "title": "GovernanceEvaluateResponse",
         "description": "evaluate() 반환 dict 형식화. 축약(off)/전체(on)/트리아지 스키마를 모두 수용."
+      },
+      "GovernanceGateRule": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "mode",
+          "enabled"
+        ],
+        "title": "GovernanceGateRule",
+        "description": "단일 머지-게이트 룰의 요약."
+      },
+      "GovernanceHighRisk": {
+        "properties": {
+          "prefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prefixes"
+          },
+          "patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Patterns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prefixes",
+          "patterns"
+        ],
+        "title": "GovernanceHighRisk",
+        "description": "고위험(HIGH) 분류 기준 — 직접머지 금지·PR 강등 대상."
+      },
+      "GovernancePolicyResponse": {
+        "properties": {
+          "governance_enabled": {
+            "type": "boolean",
+            "title": "Governance Enabled"
+          },
+          "gate_rules": {
+            "items": {
+              "$ref": "#/components/schemas/GovernanceGateRule"
+            },
+            "type": "array",
+            "title": "Gate Rules"
+          },
+          "high_risk": {
+            "$ref": "#/components/schemas/GovernanceHighRisk"
+          },
+          "toggles": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Toggles"
+          },
+          "risk_demote_to_pr": {
+            "type": "boolean",
+            "title": "Risk Demote To Pr"
+          },
+          "source_note": {
+            "type": "string",
+            "title": "Source Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "governance_enabled",
+          "gate_rules",
+          "high_risk",
+          "toggles",
+          "risk_demote_to_pr",
+          "source_note"
+        ],
+        "title": "GovernancePolicyResponse",
+        "description": "전역 머지-게이트 정책 요약. 커널(governance.core.policy_summary)의 SSOT 노출."
       },
       "HTTPValidationError": {
         "properties": {

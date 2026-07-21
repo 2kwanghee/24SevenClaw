@@ -50,3 +50,33 @@ class GovernanceEvaluateResponse(BaseModel):
     budget: dict[str, Any] | None = None
 
     model_config = {"extra": "allow"}
+
+
+# ── 정책 조회(GET /governance/policy) ────────────────────────────────────────
+# 커널 policy_summary() 반환 dict 를 그대로 형식화한다. 로직 없음(읽기 전용 노출).
+class GovernanceGateRule(BaseModel):
+    """단일 머지-게이트 룰의 요약."""
+
+    key: str
+    label: str
+    mode: str  # "block"(차단) | "warn"(권고)
+    enabled: bool
+
+
+class GovernanceHighRisk(BaseModel):
+    """고위험(HIGH) 분류 기준 — 직접머지 금지·PR 강등 대상."""
+
+    prefixes: list[str]
+    patterns: list[str]
+
+
+class GovernancePolicyResponse(BaseModel):
+    """전역 머지-게이트 정책 요약. 커널(governance.core.policy_summary)의 SSOT 노출."""
+
+    governance_enabled: bool
+    gate_rules: list[GovernanceGateRule]
+    high_risk: GovernanceHighRisk
+    # 토글명 → 현재 상태(bool). API 서버 프로세스 env 기준(source_note 참조).
+    toggles: dict[str, bool]
+    risk_demote_to_pr: bool
+    source_note: str
