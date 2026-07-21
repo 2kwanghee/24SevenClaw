@@ -103,6 +103,56 @@ jobs:
       - name: Mypy type check
         run: uv run mypy app/ --ignore-missing-imports
 
+  # ── API Integration: 실 Postgres 마이그레이션 스모크 ──
+  # 단위 잡(api)은 SQLite in-memory + create_all 로 회귀 0 유지. 이 잡은 실
+  # Postgres 서비스 컨테이너에 alembic upgrade head 를 적용해 마이그레이션 체인과
+  # PG 전용 기능을 검증한다(pytest -m pg). 기존 단위 경로와 완전 분리.
+  api-integration:
+    name: API Integration (Postgres migrations)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clickeye-api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clickeye_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # env.py 는 settings.database_url(=DATABASE_URL) 사용 → alembic 대상 DB
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/clickeye_test
+      # conftest pg fixture/skip 판정 + 마이그레이션 테스트 대상 DB
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/clickeye_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Alembic upgrade head (실 Postgres)
+        run: uv run alembic upgrade head
+
+      - name: Run Postgres integration tests
+        run: uv run pytest -m pg -q
+
   # ── OpenAPI Contract 파이프라인 ──
   openapi-sync:
     name: OpenAPI Sync (export → generate → validate)
