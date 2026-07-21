@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Boxes, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 
 import { useProjects } from "@/hooks/use-projects";
@@ -9,6 +10,7 @@ import { useMockMode } from "@/stores/mock-mode-store";
 import { mockProject } from "@/lib/delivery-mock";
 
 export default function DeliveryListPage() {
+  const t = useTranslations("delivery");
   const mock = useMockMode((s) => s.enabled);
   const { data, isLoading: isLoadingRaw, isError: isErrorRaw } = useProjects();
 
@@ -25,10 +27,10 @@ export default function DeliveryListPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-            딜리버리
+            {t("list.title")}
           </h1>
           <p className="text-xs text-[var(--text-muted)]">
-            수주건별 SI 딜리버리 관제
+            {t("list.subtitle")}
           </p>
         </div>
         <div className="ml-auto">
@@ -47,7 +49,7 @@ export default function DeliveryListPage() {
       {isError && !isLoading && (
         <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          수주건 목록을 불러오지 못했습니다.
+          {t("list.errorLoad")}
         </div>
       )}
 
@@ -58,13 +60,13 @@ export default function DeliveryListPage() {
             <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
           </div>
           <p className="text-sm text-[var(--text-muted)]">
-            아직 등록된 수주건이 없습니다
+            {t("list.empty")}
           </p>
           <Link
             href="/projects"
             className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
           >
-            프로젝트에서 시작하기
+            {t("list.startFromProjects")}
           </Link>
         </div>
       )}
@@ -93,7 +95,9 @@ export default function DeliveryListPage() {
                         : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
                     }`}
                   >
-                    {engagement.status === "active" ? "진행 중" : "보관됨"}
+                    {engagement.status === "active"
+                      ? t("list.statusActive")
+                      : t("list.statusArchived")}
                   </span>
                 </div>
                 {engagement.description && (

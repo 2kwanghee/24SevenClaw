@@ -616,5 +616,116 @@
     "overrideActive": "有効",
     "sourceNote": "ポリシー出典",
     "temporalLink": "Temporal UI を開く"
+  },
+  "delivery": {
+    "phase": {
+      "requested": "リクエスト済み",
+      "decomposed": "分解済み",
+      "assigned": "割り当て済み",
+      "drafting": "ドラフト作成",
+      "reviewing": "レビュー中",
+      "integrating": "統合中",
+      "validating": "検証中",
+      "approved": "承認済み",
+      "transitioning": "移行中",
+      "completed": "完了"
+    },
+    "keyStatus": {
+      "fresh": "最新",
+      "stale": "更新が必要",
+      "no_saved_key": "未保存",
+      "never_downloaded": "未ダウンロード",
+      "n/a": "該当なし"
+    },
+    "console": {
+      "backToList": "デリバリー一覧に戻る",
+      "subtitle": "SIデリバリーコンソール",
+      "syncLinear": "Linear状態を同期",
+      "projectError": "案件情報を読み込めませんでした。IDで表示します。",
+      "sessionsError": "セッション一覧を読み込めませんでした。",
+      "noSessions": "この案件にはまだ作業セッションがありません",
+      "createSession": "作業セッションを作成する",
+      "summaryError": "一部のデータを更新できませんでした。",
+      "issueBoardTitle": "課題作業ボード",
+      "subtaskCount": "サブタスク {count}",
+      "reviewTitle": "レビュー待ち",
+      "reviewCount": "レビューラウンド {count}",
+      "reviewError": "レビューデータを更新できませんでした。",
+      "scopeCurrent": "<b>MVP-1·2</b> 課題ボード · パイプライン · レビュー · コスト（現在実装）",
+      "scopeFuture": "グレー = <b>第2/第3フェーズ</b>（ゲート判定履歴 · 課題別コスト · Temporal照会 — バックエンド先行）"
+    },
+    "stepper": {
+      "ariaLabel": "パイプライン段階",
+      "inProgress": "進行中",
+      "intake": "インテイク",
+      "context": "コンテキスト",
+      "plan": "計画",
+      "implementReview": "実装·レビュー",
+      "validate": "検証",
+      "mergeComplete": "マージ·完了"
+    },
+    "cost": {
+      "title": "AI実行コスト",
+      "totalTokens": "合計トークン",
+      "input": "入力",
+      "output": "出力",
+      "meteredTotal": "従量課金合計",
+      "unknown": "未算定",
+      "emptyTitle": "まだ記録されたLLM実行はありません",
+      "emptyDesc": "作業が進むとトークン·コストがここに集計されます。",
+      "errorLoad": "コストデータを読み込めませんでした。",
+      "restrictedTitle": "コスト台帳の閲覧権限が必要です",
+      "restrictedDesc": "管理者に <b>settings:manage</b> 権限を依頼してください。",
+      "footer": "社内開発はサブスクリプションセッションを優先します。主要指標は <b>トークン</b> で、金額は組織APIキー使用分のみ算定されます。",
+      "detailSubscription": "定額 · コスト未算定",
+      "detailMetered": "{cost} · 従量",
+      "detailMeteredUnknown": "従量 · 未算定",
+      "keySource": {
+        "subscription_seat": "サブスクリプションシート",
+        "org_api_key": "組織APIキー"
+      }
+    },
+    "issues": {
+      "empty": "まだ課題がありません",
+      "pushToLinear": "Linearに課題を登録",
+      "columnEmpty": "空です",
+      "unlinked": "未連携",
+      "unlinkedOther": "未連携 · その他",
+      "role": {
+        "architect": "アーキテクト",
+        "frontend": "フロントエンド",
+        "backend": "バックエンド",
+        "qa": "QA",
+        "security": "セキュリティ",
+        "devops": "DevOps",
+        "reviewer": "レビュアー"
+      }
+    },
+    "review": {
+      "round": "ラウンド",
+      "viewDiff": "diffを表示",
+      "merge": "マージ",
+      "reject": "却下",
+      "disabledMock": "モックモードでは無効",
+      "rejectReasonPlaceholder": "却下理由を入力してください...",
+      "rejectReasonLabel": "却下理由",
+      "confirm": "確認",
+      "diffModalTitle": "レビューdiff · Round #{number}",
+      "roundNumber": "Round #{number}"
+    },
+    "list": {
+      "title": "デリバリー",
+      "subtitle": "案件別SIデリバリー管制",
+      "errorLoad": "案件一覧を読み込めませんでした。",
+      "empty": "まだ登録された案件がありません",
+      "startFromProjects": "プロジェクトから開始",
+      "statusActive": "進行中",
+      "statusArchived": "アーカイブ済み"
+    },
+    "mock": {
+      "label": "モックデータ",
+      "ariaLabel": "モックデータを表示",
+      "banner": "モックデータを表示中 — 実データではありません。"
+    }
   }
 }

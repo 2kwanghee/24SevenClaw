@@ -616,5 +616,116 @@
     "overrideActive": "Aktif",
     "sourceNote": "Sumber kebijakan",
     "temporalLink": "Buka Temporal UI"
+  },
+  "delivery": {
+    "phase": {
+      "requested": "Diminta",
+      "decomposed": "Diuraikan",
+      "assigned": "Ditugaskan",
+      "drafting": "Penyusunan",
+      "reviewing": "Sedang ditinjau",
+      "integrating": "Sedang diintegrasikan",
+      "validating": "Sedang divalidasi",
+      "approved": "Disetujui",
+      "transitioning": "Sedang beralih",
+      "completed": "Selesai"
+    },
+    "keyStatus": {
+      "fresh": "Terbaru",
+      "stale": "Perlu diperbarui",
+      "no_saved_key": "Belum disimpan",
+      "never_downloaded": "Belum diunduh",
+      "n/a": "T/A"
+    },
+    "console": {
+      "backToList": "Kembali ke daftar delivery",
+      "subtitle": "Konsol delivery SI",
+      "syncLinear": "Sinkronkan status Linear",
+      "projectError": "Gagal memuat info engagement. Ditampilkan berdasarkan ID.",
+      "sessionsError": "Gagal memuat daftar sesi.",
+      "noSessions": "Engagement ini belum memiliki sesi kerja",
+      "createSession": "Buat sesi kerja",
+      "summaryError": "Sebagian data gagal diperbarui.",
+      "issueBoardTitle": "Papan kerja isu",
+      "subtaskCount": "Subtugas {count}",
+      "reviewTitle": "Menunggu tinjauan",
+      "reviewCount": "Ronde tinjauan {count}",
+      "reviewError": "Gagal memperbarui data tinjauan.",
+      "scopeCurrent": "<b>MVP-1·2</b> Papan isu · Pipeline · Tinjauan · Biaya (diterapkan sekarang)",
+      "scopeFuture": "Abu-abu = <b>Fase 2/3</b> (riwayat keputusan gate · biaya per isu · pencarian Temporal — backend dulu)"
+    },
+    "stepper": {
+      "ariaLabel": "Tahap pipeline",
+      "inProgress": "sedang berlangsung",
+      "intake": "Intake",
+      "context": "Konteks",
+      "plan": "Rencana",
+      "implementReview": "Implementasi·Tinjauan",
+      "validate": "Validasi",
+      "mergeComplete": "Merge·Selesai"
+    },
+    "cost": {
+      "title": "Biaya eksekusi AI",
+      "totalTokens": "Total token",
+      "input": "Input",
+      "output": "Output",
+      "meteredTotal": "Total terukur",
+      "unknown": "Belum dihitung",
+      "emptyTitle": "Belum ada eksekusi LLM yang tercatat",
+      "emptyDesc": "Token dan biaya akan diagregasi di sini seiring pekerjaan berjalan.",
+      "errorLoad": "Gagal memuat data biaya.",
+      "restrictedTitle": "Perlu akses buku besar biaya",
+      "restrictedDesc": "Minta izin <b>settings:manage</b> kepada administrator.",
+      "footer": "Pengembangan internal mengutamakan sesi langganan. Metrik utama adalah <b>token</b>; biaya hanya dihitung untuk penggunaan kunci API organisasi.",
+      "detailSubscription": "Tarif tetap · biaya tidak dihitung",
+      "detailMetered": "{cost} · terukur",
+      "detailMeteredUnknown": "Terukur · belum dihitung",
+      "keySource": {
+        "subscription_seat": "Kursi langganan",
+        "org_api_key": "Kunci API organisasi"
+      }
+    },
+    "issues": {
+      "empty": "Belum ada isu",
+      "pushToLinear": "Kirim isu ke Linear",
+      "columnEmpty": "Kosong",
+      "unlinked": "Belum tertaut",
+      "unlinkedOther": "Belum tertaut · Lainnya",
+      "role": {
+        "architect": "Arsitek",
+        "frontend": "Frontend",
+        "backend": "Backend",
+        "qa": "QA",
+        "security": "Keamanan",
+        "devops": "DevOps",
+        "reviewer": "Peninjau"
+      }
+    },
+    "review": {
+      "round": "Ronde",
+      "viewDiff": "Lihat diff",
+      "merge": "Merge",
+      "reject": "Tolak",
+      "disabledMock": "Dinonaktifkan dalam mode mock",
+      "rejectReasonPlaceholder": "Masukkan alasan penolakan...",
+      "rejectReasonLabel": "Alasan penolakan",
+      "confirm": "Konfirmasi",
+      "diffModalTitle": "Diff tinjauan · Round #{number}",
+      "roundNumber": "Round #{number}"
+    },
+    "list": {
+      "title": "Delivery",
+      "subtitle": "Kontrol delivery SI per engagement",
+      "errorLoad": "Gagal memuat daftar engagement.",
+      "empty": "Belum ada engagement terdaftar",
+      "startFromProjects": "Mulai dari Proyek",
+      "statusActive": "Aktif",
+      "statusArchived": "Diarsipkan"
+    },
+    "mock": {
+      "label": "Data mock",
+      "ariaLabel": "Tampilkan data mock",
+      "banner": "Menampilkan data mock — bukan data asli."
+    }
   }
 }

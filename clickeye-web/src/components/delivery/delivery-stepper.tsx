@@ -1,21 +1,22 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 
 import type { OrchestratorPhase } from "@/lib/api-client";
 
 interface StepGroup {
-  label: string;
+  key: string;
   phases: OrchestratorPhase[];
 }
 
 const STEP_GROUPS: StepGroup[] = [
-  { label: "인테이크", phases: ["requested"] },
-  { label: "컨텍스트", phases: ["decomposed"] },
-  { label: "계획", phases: ["assigned"] },
-  { label: "구현·리뷰", phases: ["drafting", "reviewing", "integrating"] },
-  { label: "검증", phases: ["validating"] },
-  { label: "병합·완료", phases: ["approved", "transitioning", "completed"] },
+  { key: "intake", phases: ["requested"] },
+  { key: "context", phases: ["decomposed"] },
+  { key: "plan", phases: ["assigned"] },
+  { key: "implementReview", phases: ["drafting", "reviewing", "integrating"] },
+  { key: "validate", phases: ["validating"] },
+  { key: "mergeComplete", phases: ["approved", "transitioning", "completed"] },
 ];
 
 interface DeliveryStepperProps {
@@ -23,19 +24,23 @@ interface DeliveryStepperProps {
 }
 
 export function DeliveryStepper({ currentPhase }: DeliveryStepperProps) {
+  const t = useTranslations("delivery");
   const currentGroup = STEP_GROUPS.findIndex((g) =>
     g.phases.includes(currentPhase),
   );
 
   return (
-    <ol className="flex items-center overflow-x-auto pb-1" aria-label="파이프라인 단계">
+    <ol
+      className="flex items-center overflow-x-auto pb-1"
+      aria-label={t("stepper.ariaLabel")}
+    >
       {STEP_GROUPS.map((group, i) => {
         const isDone = currentGroup >= 0 && i < currentGroup;
         const isCurrent = i === currentGroup;
         const isFirst = i === 0;
 
         return (
-          <li key={group.label} className="flex flex-none items-center">
+          <li key={group.key} className="flex flex-none items-center">
             {!isFirst && (
               <span
                 className={`h-0.5 w-8 sm:w-9 ${
@@ -68,8 +73,10 @@ export function DeliveryStepper({ currentPhase }: DeliveryStepperProps) {
                       : "text-[var(--text-muted)]"
                 }`}
               >
-                {group.label}
-                {isCurrent && <span className="sr-only"> (진행 중)</span>}
+                {t(`stepper.${group.key}`)}
+                {isCurrent && (
+                  <span className="sr-only"> ({t("stepper.inProgress")})</span>
+                )}
               </span>
             </div>
           </li>

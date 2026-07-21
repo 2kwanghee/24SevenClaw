@@ -1,41 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { FileText } from "lucide-react";
 
 import { SubTaskDetailModal } from "@/components/ai-team/subtask-detail-modal";
 import { useMockMode } from "@/stores/mock-mode-store";
 import type { SubTaskResponse, SubTaskRole } from "@/lib/api-client";
 
-const ROLE_META: Record<SubTaskRole, { label: string; cls: string }> = {
-  architect: {
-    label: "아키텍트",
-    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  },
-  frontend: {
-    label: "프론트엔드",
-    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  },
-  backend: {
-    label: "백엔드",
-    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  },
-  qa: {
-    label: "QA",
-    cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
-  },
-  security: {
-    label: "보안",
-    cls: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  },
-  devops: {
-    label: "DevOps",
-    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  },
-  reviewer: {
-    label: "리뷰어",
-    cls: "bg-[var(--accent-soft)] text-[var(--accent)]",
-  },
+const ROLE_CLS: Record<SubTaskRole, string> = {
+  architect: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  frontend: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  backend: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  qa: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  security: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
+  devops: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  reviewer: "bg-[var(--accent-soft)] text-[var(--accent)]",
 };
 
 interface IssueCardProps {
@@ -54,12 +34,15 @@ export function IssueCard({
   dependencyMap,
 }: IssueCardProps) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("delivery");
   const mock = useMockMode((s) => s.enabled);
 
-  const role = ROLE_META[subtask.assigned_role] ?? {
-    label: subtask.assigned_role,
-    cls: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  };
+  const roleCls =
+    ROLE_CLS[subtask.assigned_role] ??
+    "bg-[var(--bg-hover)] text-[var(--text-secondary)]";
+  const roleLabel = t.has(`issues.role.${subtask.assigned_role}`)
+    ? t(`issues.role.${subtask.assigned_role}`)
+    : subtask.assigned_role;
   const identifier = subtask.linear_identifier ?? `#${orderNum}`;
 
   return (
@@ -79,9 +62,9 @@ export function IssueCard({
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${role.cls}`}
+            className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${roleCls}`}
           >
-            {role.label}
+            {roleLabel}
           </span>
           {subtask.artifact_id && (
             <span className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-[var(--text-muted)]">

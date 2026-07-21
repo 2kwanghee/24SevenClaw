@@ -616,5 +616,116 @@
     "overrideActive": "활성",
     "sourceNote": "정책 출처",
     "temporalLink": "Temporal UI 열기"
+  },
+  "delivery": {
+    "phase": {
+      "requested": "요청됨",
+      "decomposed": "분해됨",
+      "assigned": "배정됨",
+      "drafting": "초안 작성",
+      "reviewing": "리뷰 중",
+      "integrating": "통합 중",
+      "validating": "검증 중",
+      "approved": "승인됨",
+      "transitioning": "전환 중",
+      "completed": "완료"
+    },
+    "keyStatus": {
+      "fresh": "최신",
+      "stale": "갱신 필요",
+      "no_saved_key": "미저장",
+      "never_downloaded": "미다운로드",
+      "n/a": "해당 없음"
+    },
+    "console": {
+      "backToList": "딜리버리 목록으로 돌아가기",
+      "subtitle": "SI 딜리버리 콘솔",
+      "syncLinear": "Linear 상태 동기화",
+      "projectError": "수주건 정보를 불러오지 못했습니다. ID로 표시합니다.",
+      "sessionsError": "세션 목록을 불러오지 못했습니다.",
+      "noSessions": "이 수주건에는 아직 작업 세션이 없습니다",
+      "createSession": "작업 세션 만들러 가기",
+      "summaryError": "일부 데이터를 갱신하지 못했습니다.",
+      "issueBoardTitle": "이슈 작업 보드",
+      "subtaskCount": "서브태스크 {count}",
+      "reviewTitle": "검토 대기",
+      "reviewCount": "리뷰 라운드 {count}",
+      "reviewError": "리뷰 데이터를 갱신하지 못했습니다.",
+      "scopeCurrent": "<b>MVP-1·2</b> 이슈 보드 · 파이프라인 · 리뷰 · 비용 (지금 구현)",
+      "scopeFuture": "회색 = <b>2차/3차</b> (게이트 결정 이력 · 이슈별 비용 · Temporal 조회 — 백엔드 선행)"
+    },
+    "stepper": {
+      "ariaLabel": "파이프라인 단계",
+      "inProgress": "진행 중",
+      "intake": "인테이크",
+      "context": "컨텍스트",
+      "plan": "계획",
+      "implementReview": "구현·리뷰",
+      "validate": "검증",
+      "mergeComplete": "병합·완료"
+    },
+    "cost": {
+      "title": "AI 실행 비용",
+      "totalTokens": "총 토큰",
+      "input": "입력",
+      "output": "출력",
+      "meteredTotal": "종량 과금 합계",
+      "unknown": "미산정",
+      "emptyTitle": "아직 기록된 LLM 실행이 없습니다",
+      "emptyDesc": "작업이 진행되면 토큰·비용이 여기에 집계됩니다.",
+      "errorLoad": "비용 데이터를 불러오지 못했습니다.",
+      "restrictedTitle": "비용 원장 조회 권한이 필요합니다",
+      "restrictedDesc": "관리자에게 <b>settings:manage</b> 권한을 요청하세요.",
+      "footer": "사내 개발은 구독 세션을 우선 사용합니다. 대표 지표는 <b>토큰</b>이며, 금액은 조직 API 키 사용분에만 산정됩니다.",
+      "detailSubscription": "정액 · 비용 미산정",
+      "detailMetered": "{cost} · 종량",
+      "detailMeteredUnknown": "종량 · 미산정",
+      "keySource": {
+        "subscription_seat": "구독 시트",
+        "org_api_key": "조직 API 키"
+      }
+    },
+    "issues": {
+      "empty": "아직 이슈가 없습니다",
+      "pushToLinear": "Linear에 이슈 등록",
+      "columnEmpty": "비어 있음",
+      "unlinked": "미연동",
+      "unlinkedOther": "미연동 · 기타",
+      "role": {
+        "architect": "아키텍트",
+        "frontend": "프론트엔드",
+        "backend": "백엔드",
+        "qa": "QA",
+        "security": "보안",
+        "devops": "DevOps",
+        "reviewer": "리뷰어"
+      }
+    },
+    "review": {
+      "round": "라운드",
+      "viewDiff": "diff 보기",
+      "merge": "병합",
+      "reject": "거절",
+      "disabledMock": "목업 모드에서는 비활성",
+      "rejectReasonPlaceholder": "거절 사유를 입력하세요...",
+      "rejectReasonLabel": "거절 사유",
+      "confirm": "확인",
+      "diffModalTitle": "리뷰 diff · Round #{number}",
+      "roundNumber": "Round #{number}"
+    },
+    "list": {
+      "title": "딜리버리",
+      "subtitle": "수주건별 SI 딜리버리 관제",
+      "errorLoad": "수주건 목록을 불러오지 못했습니다.",
+      "empty": "아직 등록된 수주건이 없습니다",
+      "startFromProjects": "프로젝트에서 시작하기",
+      "statusActive": "진행 중",
+      "statusArchived": "보관됨"
+    },
+    "mock": {
+      "label": "목업 데이터",
+      "ariaLabel": "목업 데이터 표시",
+      "banner": "목업 데이터 표시 중 — 실제 데이터가 아닙니다."
+    }
   }
 }
