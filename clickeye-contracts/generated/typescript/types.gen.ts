@@ -478,11 +478,101 @@ export type DiffResult = {
     review_type: string | null;
 };
 
+/**
+ * env 파일 렌더 요청. confirm=True 여야 실제 렌더 수행.
+ */
+export type EnvRenderRequest = {
+    /**
+     * 렌더 확정 플래그
+     */
+    confirm?: boolean;
+};
+
+/**
+ * 렌더 결과 — 재생성 명령 문자열만 반환하며 docker/재생성은 실행하지 않는다.
+ */
+export type EnvRenderResult = {
+    /**
+     * 렌더된 env 파일 경로
+     */
+    rendered_path: string;
+    /**
+     * 렌더 시각
+     */
+    rendered_at: string;
+    /**
+     * 파일에 기록된 관리형 키 수
+     */
+    applied_count: number;
+    /**
+     * 사용자가 수동 실행할 재생성 명령(백엔드는 실행하지 않음)
+     */
+    recreate_command: string;
+    /**
+     * 재생성 대상 관리형 서비스명
+     */
+    services?: Array<string>;
+    /**
+     * 렌더 후 남은 미적용 키(정상 시 빈 목록)
+     */
+    pending?: Array<string>;
+};
+
 export type EnvVarDef = {
     name: string;
     description?: string;
     pattern?: string;
     required?: boolean;
+};
+
+/**
+ * 관리형 env 키 1건의 조회 표현.
+ *
+ * 시크릿 값은 절대 평문으로 반환하지 않는다(masked_value 는 "***" 또는 None).
+ */
+export type EnvVarItem = {
+    /**
+     * 환경변수명
+     */
+    key: string;
+    /**
+     * 값이 설정되어 있는지
+     */
+    has_value: boolean;
+    /**
+     * 시크릿 여부(True 면 값 미반환)
+     */
+    is_secret: boolean;
+    /**
+     * 편집 가능 여부(제외 키는 False)
+     */
+    editable: boolean;
+    /**
+     * 비시크릿은 값(절단), 시크릿은 '***'(값 있을 때), 값 없으면 None
+     */
+    masked_value?: string | null;
+    /**
+     * 마지막 변경 시각
+     */
+    updated_at?: string | null;
+    /**
+     * 마지막 변경 superadmin
+     */
+    updated_by?: string | null;
+    /**
+     * 마지막 렌더 이후 변경되어 아직 미적용인지
+     */
+    pending?: boolean;
+};
+
+/**
+ * env 값 쓰기 요청 — value 는 write-only(응답에 포함되지 않음).
+ */
+export type EnvVarUpsert = {
+    /**
+     * 설정할 값(평문). 저장 시 Fernet 암호화됨.
+     */
+    value: string;
 };
 
 /**
@@ -7379,6 +7469,101 @@ export type ListPortsApiV1AdminOpsPortsGetResponses = {
 };
 
 export type ListPortsApiV1AdminOpsPortsGetResponse = ListPortsApiV1AdminOpsPortsGetResponses[keyof ListPortsApiV1AdminOpsPortsGetResponses];
+
+export type ListEnvApiV1AdminOpsEnvGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/env';
+};
+
+export type ListEnvApiV1AdminOpsEnvGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<EnvVarItem>;
+};
+
+export type ListEnvApiV1AdminOpsEnvGetResponse = ListEnvApiV1AdminOpsEnvGetResponses[keyof ListEnvApiV1AdminOpsEnvGetResponses];
+
+export type DeleteEnvApiV1AdminOpsEnvKeyDeleteData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/env/{key}';
+};
+
+export type DeleteEnvApiV1AdminOpsEnvKeyDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteEnvApiV1AdminOpsEnvKeyDeleteError = DeleteEnvApiV1AdminOpsEnvKeyDeleteErrors[keyof DeleteEnvApiV1AdminOpsEnvKeyDeleteErrors];
+
+export type DeleteEnvApiV1AdminOpsEnvKeyDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteEnvApiV1AdminOpsEnvKeyDeleteResponse = DeleteEnvApiV1AdminOpsEnvKeyDeleteResponses[keyof DeleteEnvApiV1AdminOpsEnvKeyDeleteResponses];
+
+export type UpsertEnvApiV1AdminOpsEnvKeyPutData = {
+    body: EnvVarUpsert;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/env/{key}';
+};
+
+export type UpsertEnvApiV1AdminOpsEnvKeyPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpsertEnvApiV1AdminOpsEnvKeyPutError = UpsertEnvApiV1AdminOpsEnvKeyPutErrors[keyof UpsertEnvApiV1AdminOpsEnvKeyPutErrors];
+
+export type UpsertEnvApiV1AdminOpsEnvKeyPutResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type UpsertEnvApiV1AdminOpsEnvKeyPutResponse = UpsertEnvApiV1AdminOpsEnvKeyPutResponses[keyof UpsertEnvApiV1AdminOpsEnvKeyPutResponses];
+
+export type RenderEnvApiV1AdminOpsEnvRenderPostData = {
+    body: EnvRenderRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/env/render';
+};
+
+export type RenderEnvApiV1AdminOpsEnvRenderPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RenderEnvApiV1AdminOpsEnvRenderPostError = RenderEnvApiV1AdminOpsEnvRenderPostErrors[keyof RenderEnvApiV1AdminOpsEnvRenderPostErrors];
+
+export type RenderEnvApiV1AdminOpsEnvRenderPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: EnvRenderResult;
+};
+
+export type RenderEnvApiV1AdminOpsEnvRenderPostResponse = RenderEnvApiV1AdminOpsEnvRenderPostResponses[keyof RenderEnvApiV1AdminOpsEnvRenderPostResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});
