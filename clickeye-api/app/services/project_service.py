@@ -175,7 +175,7 @@ class ProjectService(BaseService):
             )
             .limit(1)
         )
-        # 존재 여부만 필요 — 활성 멤버십 중복 행이 있어도 500(MultipleResultsFound) 나지 않도록 first() 사용
+        # 존재 여부만 확인 (중복 활성 행이 있어도 500 방지 위해 first())
         if result.scalars().first() is None:
             raise AppError("FORBIDDEN", "해당 조직에 프로젝트를 생성할 권한이 없습니다", 403)
 
