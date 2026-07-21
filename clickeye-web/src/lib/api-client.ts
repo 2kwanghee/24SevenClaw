@@ -270,7 +270,181 @@ async function authRequest<T>(
   }
 }
 
+// --- Ops (superadmin 운영 패널, FEATURE_OPS_PANEL 게이트) ---
+// prefix: /api/v1/admin/ops — 전 엔드포인트 superadmin 전용.
+// 프론트 RoleGuard/isSuperadmin은 UX 게이팅일 뿐 실경계는 백엔드가 강제한다.
+
+export interface OpsContainer {
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  health: string | null;
+  ports: string;
+  created: string;
+}
+
+export interface OpsPort {
+  service: string;
+  host: string;
+  port: number;
+  reachable: boolean;
+  latency_ms: number | null;
+}
+
+export interface OpsEnvVar {
+  key: string;
+  has_value: boolean;
+  is_secret: boolean;
+  masked_value?: string | null;
+  editable: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+  pending: boolean;
+}
+
+export interface OpsEnvRenderRequest {
+  confirm: boolean;
+}
+
+export interface OpsEnvRenderResponse {
+  command: string;
+  rendered_path: string;
+  applied_keys: string[];
+  [key: string]: unknown;
+}
+
+export interface OpsTableInfo {
+  key: string;
+  label: string;
+  ops: string[];
+  row_count?: number | null;
+}
+
+export interface OpsTableColumn {
+  name: string;
+  type: string;
+  required: boolean;
+  /** create 시 값 지정 가능 여부 (자동 컬럼 id/created_at 등은 false) */
+  creatable: boolean;
+  /** update 시 수정 가능 여부 (불변 컬럼은 false) */
+  editable: boolean;
+  sensitive: boolean;
+  max_length: number | null;
+  enum?: string[] | null;
+}
+
+export interface OpsTableSchema {
+  columns: OpsTableColumn[];
+  pk: string;
+}
+
+export interface OpsTableRowsResponse {
+  items: Array<Record<string, unknown>>;
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface OpsTableRow {
+  table: string;
+  pk: string;
+  values: Record<string, unknown>;
+}
+
+export interface OpsTableRowsParams {
+  limit?: number;
+  offset?: number;
+  q?: string;
+}
+
+export const ops = {
+  listContainers: (token: string) =>
+    authRequest<OpsContainer[]>("/api/v1/admin/ops/containers", token),
+
+  listPorts: (token: string) =>
+    authRequest<OpsPort[]>("/api/v1/admin/ops/ports", token),
+
+  listEnv: (token: string) =>
+    authRequest<OpsEnvVar[]>("/api/v1/admin/ops/env", token),
+
+  putEnv: (token: string, key: string, value: string) =>
+    authRequest<OpsEnvVar>(
+      `/api/v1/admin/ops/env/${encodeURIComponent(key)}`,
+      token,
+      { method: "PUT", body: JSON.stringify({ value }) },
+    ),
+
+  deleteEnv: (token: string, key: string) =>
+    authRequest<void>(
+      `/api/v1/admin/ops/env/${encodeURIComponent(key)}`,
+      token,
+      { method: "DELETE" },
+    ),
+
+  renderEnv: (token: string, confirm = true) =>
+    authRequest<OpsEnvRenderResponse>("/api/v1/admin/ops/env/render", token, {
+      method: "POST",
+      body: JSON.stringify({ confirm } satisfies OpsEnvRenderRequest),
+    }),
+
+  listTables: (token: string) =>
+    authRequest<OpsTableInfo[]>("/api/v1/admin/ops/tables", token),
+
+  getTableSchema: (token: string, table: string) =>
+    authRequest<OpsTableSchema>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/schema`,
+      token,
+    ),
+
+  listTableRows: (token: string, table: string, params?: OpsTableRowsParams) => {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set("limit", String(params.limit));
+    if (params?.offset !== undefined) query.set("offset", String(params.offset));
+    if (params?.q) query.set("q", params.q);
+    const qs = query.toString();
+    return authRequest<OpsTableRowsResponse>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/rows${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+
+  getTableRow: (token: string, table: string, pk: string) =>
+    authRequest<OpsTableRow>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/rows/${encodeURIComponent(pk)}`,
+      token,
+    ),
+
+  createTableRow: (token: string, table: string, values: Record<string, unknown>) =>
+    authRequest<OpsTableRow>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/rows`,
+      token,
+      { method: "POST", body: JSON.stringify({ values }) },
+    ),
+
+  updateTableRow: (
+    token: string,
+    table: string,
+    pk: string,
+    values: Record<string, unknown>,
+  ) =>
+    authRequest<OpsTableRow>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/rows/${encodeURIComponent(pk)}`,
+      token,
+      { method: "PUT", body: JSON.stringify({ values }) },
+    ),
+
+  deleteTableRow: (token: string, table: string, pk: string) =>
+    authRequest<void>(
+      `/api/v1/admin/ops/tables/${encodeURIComponent(table)}/rows/${encodeURIComponent(pk)}?confirm=true`,
+      token,
+      { method: "DELETE" },
+    ),
+};
+
 export const apiClient = {
+  ops,
+
   auth: {
     register: (data: RegisterRequest) =>
       request<RegisterResponse>("/api/v1/auth/register", {

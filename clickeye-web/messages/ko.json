@@ -41,6 +41,13 @@
       "deleteTitle": "프로젝트 삭제",
       "deleteConfirm": "<name>{name}</name> 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
       "deleting": "삭제 중..."
+    },
+    "confirmByTyping": {
+      "close": "닫기",
+      "prompt": "확인을 위해 다음을 입력하세요:",
+      "cancel": "취소",
+      "confirm": "삭제",
+      "pending": "처리 중…"
     }
   },
   "validation": {
@@ -476,7 +483,8 @@
     },
     "sections": {
       "settings": "설정",
-      "admin": "관리"
+      "admin": "관리",
+      "ops": "운영"
     },
     "settings": {
       "members": "조직 멤버",
@@ -496,6 +504,11 @@
       "globalSettings": "전역 설정",
       "recommendations": "추천 로그",
       "audit": "감사 로그"
+    },
+    "ops": {
+      "containers": "컨테이너",
+      "env": "환경변수",
+      "tables": "데이터 테이블"
     }
   },
   "home": {
@@ -729,6 +742,101 @@
       "label": "목업 데이터",
       "ariaLabel": "목업 데이터 표시",
       "banner": "목업 데이터 표시 중 — 실제 데이터가 아닙니다."
+    }
+  },
+  "ops": {
+    "containers": {
+      "pageTitle": "컨테이너 & 포트",
+      "pageDescription": "실행 중인 컨테이너 상태와 서비스 포트 연결 상태를 확인합니다. 조회 전용입니다.",
+      "containersTitle": "컨테이너",
+      "portsTitle": "포트 연결 상태",
+      "error": "정보를 불러오지 못했습니다.",
+      "empty": "표시할 항목이 없습니다.",
+      "noHealth": "헬스체크 없음",
+      "reachable": "연결됨",
+      "unreachable": "연결 안 됨",
+      "col": {
+        "name": "이름",
+        "image": "이미지",
+        "state": "상태",
+        "health": "헬스",
+        "ports": "포트",
+        "created": "생성 시각",
+        "service": "서비스",
+        "host": "호스트",
+        "port": "포트",
+        "reachable": "연결",
+        "latency": "지연"
+      }
+    },
+    "env": {
+      "pageTitle": "관리형 환경변수",
+      "pageDescription": "API 서비스의 관리형 환경변수를 편집합니다. 변경 후 ‘적용’하면 재생성 명령이 표시되며, 운영자가 해당 명령을 직접 실행해야 반영됩니다. (NEXT_PUBLIC_* 등 빌드타임 변수는 대상 아님)",
+      "error": "환경변수를 불러오지 못했습니다.",
+      "empty": "표시할 환경변수가 없습니다.",
+      "pendingSummary": "{count}개 변경이 적용 대기 중입니다.",
+      "noPending": "적용 대기 중인 변경이 없습니다.",
+      "valueSet": "설정됨",
+      "valueUnset": "미설정",
+      "secret": "시크릿",
+      "col": {
+        "key": "키",
+        "value": "값",
+        "status": "상태",
+        "updated": "수정"
+      },
+      "newValuePlaceholder": "새 값 입력",
+      "pendingBadge": "적용 대기",
+      "appliedBadge": "적용됨",
+      "locked": "잠김",
+      "save": "저장",
+      "cancel": "취소",
+      "edit": "편집",
+      "delete": "삭제",
+      "saveSuccess": "환경변수가 저장되었습니다.",
+      "deleteSuccess": "환경변수가 삭제되었습니다.",
+      "deleteTitle": "환경변수 삭제",
+      "deleteDescription": "{key} 환경변수를 삭제합니다. 이 작업은 재생성 명령 실행 후 반영됩니다.",
+      "render": {
+        "title": "재생성 명령",
+        "close": "닫기",
+        "button": "적용",
+        "manualNotice": "서버는 이 명령을 자동 실행하지 않습니다. 아래 명령을 복사하여 운영 환경에서 직접 실행해야 변경이 반영됩니다.",
+        "command": "명령",
+        "copy": "복사",
+        "copied": "복사됨",
+        "renderedPath": "렌더 경로",
+        "appliedKeys": "적용 키",
+        "error": "재생성 명령 생성에 실패했습니다."
+      }
+    },
+    "tables": {
+      "pageTitle": "데이터 테이블",
+      "pageDescription": "화이트리스트로 허용된 테이블만 조회/편집할 수 있습니다.",
+      "listError": "테이블 목록을 불러오지 못했습니다.",
+      "listEmpty": "허용된 테이블이 없습니다.",
+      "rowCount": "{count}행",
+      "schemaError": "테이블 스키마를 불러오지 못했습니다.",
+      "rowsError": "행을 불러오지 못했습니다.",
+      "noRows": "표시할 행이 없습니다.",
+      "searchPlaceholder": "검색…",
+      "addRow": "행 추가",
+      "editRow": "행 편집",
+      "edit": "편집",
+      "delete": "삭제",
+      "save": "저장",
+      "cancel": "취소",
+      "immutable": "변경 불가",
+      "prev": "이전",
+      "next": "다음",
+      "pageInfo": "{page} / {total} 페이지",
+      "createSuccess": "행이 생성되었습니다.",
+      "updateSuccess": "행이 수정되었습니다.",
+      "deleteSuccess": "행이 삭제되었습니다.",
+      "deleteTitle": "행 삭제",
+      "deleteDescription": "{pk} 행을 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+      "backToList": "테이블 목록",
+      "sensitiveKeepHint": "변경 시에만 입력 (미입력 시 기존 값 유지)"
     }
   }
 }
