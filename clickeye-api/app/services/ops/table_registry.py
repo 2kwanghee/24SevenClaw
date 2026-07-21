@@ -12,7 +12,10 @@
 - `required`  : create(POST) payload 에 반드시 존재해야 하는 컬럼.
 - `editable`  : update(PUT) 로 수정 가능한 컬럼. PK/created_at/updated_at/updated_by 등
                 자동·불변 컬럼은 False.
-- create 시 설정 가능한 컬럼 = (`required` 또는 `editable`) 인 컬럼.
+- `creatable` : create(POST) payload 로 설정 가능한 컬럼(SSOT). 자동생성 PK(id)·
+                created_at/updated_at/updated_by·보호 플래그(is_system) 는 False.
+                사용자 제공 natural PK(app_settings.key) 는 editable=False 여도 True.
+                프론트 생성 폼은 이 플래그로 전송 컬럼을 결정한다.
 - update 시 설정 가능한 컬럼 = `editable` 인 컬럼. 그 외 컬럼을 payload 에 담으면 거부.
 - `sensitive` : 조회(list/get) 및 감사 로그에서 값을 마스킹(***). 초기 3개 테이블엔 민감
                 컬럼이 없으나(설정성 데이터), 마스킹 경로는 제네릭하게 지원한다.
@@ -44,14 +47,15 @@ class ColumnSpec:
     type: ColumnType
     required: bool = False
     editable: bool = True
+    # create(POST) payload 에서 설정 가능한 컬럼인지 (SSOT). 자동생성 PK(id)·
+    # created_at/updated_at/updated_by·보호 플래그(is_system) 는 False. 사용자 제공
+    # natural PK(app_settings.key) 는 editable=False 여도 creatable=True.
+    # 기본 True — editable/required 컬럼은 모두 create 가능하므로 자동/불변 컬럼에만
+    # 명시적으로 False 를 지정한다.
+    creatable: bool = True
     sensitive: bool = False
     max_length: int | None = None
     enum: tuple[str, ...] | None = None
-
-    @property
-    def creatable(self) -> bool:
-        """create payload 에서 설정 가능한 컬럼인지 (natural PK 포함)."""
-        return self.required or self.editable
 
 
 @dataclass(frozen=True)
@@ -94,11 +98,12 @@ _APP_SETTINGS = TableDescriptor(
     model=AppSetting,
     pk_column="key",
     columns=(
+        # key 는 사용자 제공 natural PK — editable=False 이나 create 시 반드시 제공(creatable).
         ColumnSpec("key", "str", required=True, editable=False, max_length=100),
         ColumnSpec("value", "json", required=True, editable=True),
         ColumnSpec("description", "str", required=False, editable=True),
-        ColumnSpec("updated_by", "uuid", editable=False),
-        ColumnSpec("updated_at", "datetime", editable=False),
+        ColumnSpec("updated_by", "uuid", editable=False, creatable=False),
+        ColumnSpec("updated_at", "datetime", editable=False, creatable=False),
     ),
     allowed_ops=frozenset({"read", "create", "update", "delete"}),
 )
@@ -109,7 +114,8 @@ _ROI_STANDARDS = TableDescriptor(
     model=RoiStandard,
     pk_column="id",
     columns=(
-        ColumnSpec("id", "uuid", required=False, editable=False),
+        # id 는 서버 자동생성 PK — create payload 로 받지 않음(creatable=False).
+        ColumnSpec("id", "uuid", required=False, editable=False, creatable=False),
         ColumnSpec(
             "category",
             "enum",
@@ -125,9 +131,9 @@ _ROI_STANDARDS = TableDescriptor(
         ColumnSpec("unit", "str", required=True, editable=True, max_length=32),
         ColumnSpec("display_order", "int", required=False, editable=True),
         ColumnSpec("is_active", "bool", required=False, editable=True),
-        ColumnSpec("updated_by", "uuid", editable=False),
-        ColumnSpec("created_at", "datetime", editable=False),
-        ColumnSpec("updated_at", "datetime", editable=False),
+        ColumnSpec("updated_by", "uuid", editable=False, creatable=False),
+        ColumnSpec("created_at", "datetime", editable=False, creatable=False),
+        ColumnSpec("updated_at", "datetime", editable=False, creatable=False),
     ),
     allowed_ops=frozenset({"read", "create", "update", "delete"}),
 )
@@ -139,7 +145,8 @@ _PRESETS = TableDescriptor(
     model=Preset,
     pk_column="id",
     columns=(
-        ColumnSpec("id", "uuid", required=False, editable=False),
+        # id 는 서버 자동생성 PK — create 미지원 테이블이지만 일관성 위해 creatable=False.
+        ColumnSpec("id", "uuid", required=False, editable=False, creatable=False),
         ColumnSpec("name", "str", required=True, editable=True, max_length=200),
         ColumnSpec("slug", "str", required=True, editable=True, max_length=200),
         ColumnSpec(
@@ -154,11 +161,11 @@ _PRESETS = TableDescriptor(
         ColumnSpec("default_skills", "json", required=False, editable=True),
         ColumnSpec("default_pipelines", "json", required=False, editable=True),
         ColumnSpec("description", "str", required=False, editable=True),
-        # is_system 은 시스템 시드 플래그 — 편집 금지(보호).
-        ColumnSpec("is_system", "bool", editable=False),
+        # is_system 은 시스템 시드 플래그 — 편집/생성 금지(보호).
+        ColumnSpec("is_system", "bool", editable=False, creatable=False),
         ColumnSpec("is_active", "bool", required=False, editable=True),
-        ColumnSpec("created_at", "datetime", editable=False),
-        ColumnSpec("updated_at", "datetime", editable=False),
+        ColumnSpec("created_at", "datetime", editable=False, creatable=False),
+        ColumnSpec("updated_at", "datetime", editable=False, creatable=False),
     ),
     allowed_ops=frozenset({"read", "update"}),
 )

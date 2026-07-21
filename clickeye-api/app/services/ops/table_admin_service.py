@@ -292,6 +292,7 @@ def get_schema(table_key: str) -> TableSchema:
                 type=s.type,
                 required=s.required,
                 editable=s.editable,
+                creatable=s.creatable,
                 sensitive=s.sensitive,
                 max_length=s.max_length,
                 enum=list(s.enum) if s.enum is not None else None,

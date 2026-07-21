@@ -23511,6 +23511,11 @@
             "title": "Editable",
             "description": "update 시 수정 가능 여부"
           },
+          "creatable": {
+            "type": "boolean",
+            "title": "Creatable",
+            "description": "create 시 설정 가능 여부(자동생성 PK/타임스탬프는 False)"
+          },
           "sensitive": {
             "type": "boolean",
             "title": "Sensitive",
@@ -23550,6 +23555,7 @@
           "type",
           "required",
           "editable",
+          "creatable",
           "sensitive"
         ],
         "title": "TableColumnSchema",

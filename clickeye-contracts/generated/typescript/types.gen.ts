@@ -2446,6 +2446,10 @@ export type TableColumnSchema = {
      */
     editable: boolean;
     /**
+     * create 시 설정 가능 여부(자동생성 PK/타임스탬프는 False)
+     */
+    creatable: boolean;
+    /**
      * 시크릿 여부(조회/감사에서 마스킹)
      */
     sensitive: boolean;

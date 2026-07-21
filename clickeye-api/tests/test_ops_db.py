@@ -151,6 +151,37 @@ async def test_schema_shape(
     # id/created_at 은 편집 불가.
     assert by_name["id"]["editable"] is False
     assert by_name["created_at"]["editable"] is False
+    # creatable: 자동생성 PK(id)·타임스탬프는 False, editable 컬럼은 True.
+    assert by_name["id"]["creatable"] is False
+    assert by_name["created_at"]["creatable"] is False
+    assert by_name["updated_by"]["creatable"] is False
+    assert by_name["category"]["creatable"] is True
+    assert by_name["label"]["creatable"] is True
+
+
+@pytest.mark.asyncio
+async def test_schema_creatable_flags(
+    client: AsyncClient, db_session: AsyncSession, ops_enabled: None
+) -> None:
+    """PR-5 계약 갭: 컬럼별 creatable 노출. 사용자 제공 PK vs 자동 컬럼 구분."""
+    headers = await _superadmin(client, db_session, "creatable@opsdb.com")
+
+    # app_settings: key 는 사용자 제공 natural PK → creatable=True 이나 editable=False.
+    app = await client.get("/api/v1/admin/ops/tables/app_settings/schema", headers=headers)
+    assert app.status_code == 200
+    by_name = {c["name"]: c for c in app.json()["columns"]}
+    assert by_name["key"]["creatable"] is True
+    assert by_name["key"]["editable"] is False
+    assert by_name["value"]["creatable"] is True
+    assert by_name["updated_at"]["creatable"] is False
+
+    # presets: is_system(보호)·id 는 creatable=False.
+    presets = await client.get("/api/v1/admin/ops/tables/presets/schema", headers=headers)
+    assert presets.status_code == 200
+    p_by_name = {c["name"]: c for c in presets.json()["columns"]}
+    assert p_by_name["id"]["creatable"] is False
+    assert p_by_name["is_system"]["creatable"] is False
+    assert p_by_name["name"]["creatable"] is True
 
 
 # ---------------------------------------------------------------------------

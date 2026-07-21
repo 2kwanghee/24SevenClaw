@@ -108,6 +108,7 @@ class TableColumnSchema(BaseModel):
     type: str = Field(description="논리 타입 (str/int/float/bool/uuid/datetime/json/enum)")
     required: bool = Field(description="create 시 필수 여부")
     editable: bool = Field(description="update 시 수정 가능 여부")
+    creatable: bool = Field(description="create 시 설정 가능 여부(자동생성 PK/타임스탬프는 False)")
     sensitive: bool = Field(description="시크릿 여부(조회/감사에서 마스킹)")
     max_length: int | None = Field(default=None, description="문자열 최대 길이")
     enum: list[str] | None = Field(default=None, description="enum 허용값 목록")
