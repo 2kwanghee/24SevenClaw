@@ -1451,6 +1451,7 @@ export type ProjectCreate = {
     name: string;
     description?: string | null;
     project_type?: string | null;
+    organization_id?: string | null;
 };
 
 export type ProjectKpiResponse = {
@@ -1508,6 +1509,7 @@ export type ProjectResetResponse = {
 export type ProjectResponse = {
     id: string;
     owner_id: string;
+    organization_id?: string | null;
     name: string;
     slug: string;
     description: string | null;
@@ -1833,6 +1835,8 @@ export type RegisterResponse = {
     display_name: string;
     avatar_url: string | null;
     plan: string;
+    system_role?: string;
+    organization_id?: string | null;
     language?: string;
     created_at: string;
     maturity_required?: boolean;
@@ -2269,6 +2273,8 @@ export type UserResponse = {
     display_name: string;
     avatar_url: string | null;
     plan: string;
+    system_role?: string;
+    organization_id?: string | null;
     language?: string;
     created_at: string;
 };

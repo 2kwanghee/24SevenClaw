@@ -2728,7 +2728,9 @@ export const getLinearCredentialsApiV1MeLinearCredentialsGet = <ThrowOnError ext
 
 /**
  * Save Linear Credentials
- * Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화. tunnel_url 제공 시 Linear webhook 자동 등록.
+ * Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화.
+ *
+ * tunnel_url 제공 시 Linear webhook 자동 등록.
  * api_key 미입력 시 기존 키 유지 (tunnel_url·webhook_secret만 갱신 가능).
  */
 export const saveLinearCredentialsApiV1MeLinearCredentialsPost = <ThrowOnError extends boolean = false>(options: Options<SaveLinearCredentialsApiV1MeLinearCredentialsPostData, ThrowOnError>) => {

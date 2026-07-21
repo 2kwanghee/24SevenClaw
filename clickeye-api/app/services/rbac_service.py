@@ -154,7 +154,7 @@ class RBACService:
         # desync 봉합: 대상 유저의 primary organization_id가 없으면 이 org로 설정
         target_user = await self.db.get(User, user_id)
         if target_user is not None and target_user.organization_id is None:
-            target_user.organization_id = organization_id  # type: ignore[assignment]
+            target_user.organization_id = organization_id
 
         # 감사 로그
         audit = RoleAuditLog(
