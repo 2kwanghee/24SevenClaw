@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -56,9 +57,7 @@ class EnvVarItem(BaseModel):
     )
     updated_at: datetime | None = Field(default=None, description="마지막 변경 시각")
     updated_by: UUID | None = Field(default=None, description="마지막 변경 superadmin")
-    pending: bool = Field(
-        default=False, description="마지막 렌더 이후 변경되어 아직 미적용인지"
-    )
+    pending: bool = Field(default=False, description="마지막 렌더 이후 변경되어 아직 미적용인지")
 
 
 class EnvVarUpsert(BaseModel):
@@ -82,9 +81,66 @@ class EnvRenderResult(BaseModel):
     recreate_command: str = Field(
         description="사용자가 수동 실행할 재생성 명령(백엔드는 실행하지 않음)"
     )
-    services: list[str] = Field(
-        default_factory=list, description="재생성 대상 관리형 서비스명"
-    )
+    services: list[str] = Field(default_factory=list, description="재생성 대상 관리형 서비스명")
     pending: list[str] = Field(
         default_factory=list, description="렌더 후 남은 미적용 키(정상 시 빈 목록)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 화이트리스트 테이블 CRUD (CE-305 PR-4)
+# ---------------------------------------------------------------------------
+
+
+class TableInfo(BaseModel):
+    """화이트리스트 테이블 1건의 목록 표현."""
+
+    key: str = Field(description="테이블 논리 키")
+    label: str = Field(description="사람이 읽는 라벨")
+    ops: list[str] = Field(description="허용 연산 목록 (read/create/update/delete)")
+    row_count: int | None = Field(default=None, description="행 수(집계 실패 시 None)")
+
+
+class TableColumnSchema(BaseModel):
+    """동적 폼 렌더용 컬럼 디스크립터."""
+
+    name: str = Field(description="컬럼명")
+    type: str = Field(description="논리 타입 (str/int/float/bool/uuid/datetime/json/enum)")
+    required: bool = Field(description="create 시 필수 여부")
+    editable: bool = Field(description="update 시 수정 가능 여부")
+    sensitive: bool = Field(description="시크릿 여부(조회/감사에서 마스킹)")
+    max_length: int | None = Field(default=None, description="문자열 최대 길이")
+    enum: list[str] | None = Field(default=None, description="enum 허용값 목록")
+
+
+class TableSchema(BaseModel):
+    """테이블 스키마(컬럼 디스크립터 집합) 응답."""
+
+    key: str = Field(description="테이블 논리 키")
+    label: str = Field(description="사람이 읽는 라벨")
+    pk_column: str = Field(description="기본키 컬럼명")
+    allowed_ops: list[str] = Field(description="허용 연산 목록")
+    columns: list[TableColumnSchema] = Field(description="컬럼 디스크립터 목록")
+
+
+class TableRowsPage(BaseModel):
+    """행 페이지네이션 응답. 값은 화이트리스트 컬럼만 포함하며 민감 컬럼은 마스킹."""
+
+    total: int = Field(description="필터 적용 후 전체 행 수")
+    limit: int = Field(description="페이지 크기")
+    offset: int = Field(description="오프셋")
+    rows: list[dict[str, Any]] = Field(description="행 목록(화이트리스트 컬럼만, 마스킹 적용)")
+
+
+class TableRowWrite(BaseModel):
+    """행 생성/수정 요청. 화이트리스트 컬럼만 허용하며 그 외 키는 거부."""
+
+    values: dict[str, Any] = Field(description="컬럼명→값 매핑(화이트리스트 컬럼만)")
+
+
+class TableRow(BaseModel):
+    """단건 행 응답 엔벌로프(get/create/update). 값은 이미 마스킹 적용됨."""
+
+    table: str = Field(description="테이블 논리 키")
+    pk: str = Field(description="행 기본키(문자열)")
+    values: dict[str, Any] = Field(description="화이트리스트 컬럼 값(민감 컬럼 마스킹)")

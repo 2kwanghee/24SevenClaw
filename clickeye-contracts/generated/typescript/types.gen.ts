@@ -2425,6 +2425,144 @@ export type SystemFeaturesResponse = {
     live_preview_enabled: boolean;
 };
 
+/**
+ * 동적 폼 렌더용 컬럼 디스크립터.
+ */
+export type TableColumnSchema = {
+    /**
+     * 컬럼명
+     */
+    name: string;
+    /**
+     * 논리 타입 (str/int/float/bool/uuid/datetime/json/enum)
+     */
+    type: string;
+    /**
+     * create 시 필수 여부
+     */
+    required: boolean;
+    /**
+     * update 시 수정 가능 여부
+     */
+    editable: boolean;
+    /**
+     * 시크릿 여부(조회/감사에서 마스킹)
+     */
+    sensitive: boolean;
+    /**
+     * 문자열 최대 길이
+     */
+    max_length?: number | null;
+    /**
+     * enum 허용값 목록
+     */
+    enum?: Array<string> | null;
+};
+
+/**
+ * 화이트리스트 테이블 1건의 목록 표현.
+ */
+export type TableInfo = {
+    /**
+     * 테이블 논리 키
+     */
+    key: string;
+    /**
+     * 사람이 읽는 라벨
+     */
+    label: string;
+    /**
+     * 허용 연산 목록 (read/create/update/delete)
+     */
+    ops: Array<string>;
+    /**
+     * 행 수(집계 실패 시 None)
+     */
+    row_count?: number | null;
+};
+
+/**
+ * 단건 행 응답 엔벌로프(get/create/update). 값은 이미 마스킹 적용됨.
+ */
+export type TableRow = {
+    /**
+     * 테이블 논리 키
+     */
+    table: string;
+    /**
+     * 행 기본키(문자열)
+     */
+    pk: string;
+    /**
+     * 화이트리스트 컬럼 값(민감 컬럼 마스킹)
+     */
+    values: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * 행 생성/수정 요청. 화이트리스트 컬럼만 허용하며 그 외 키는 거부.
+ */
+export type TableRowWrite = {
+    /**
+     * 컬럼명→값 매핑(화이트리스트 컬럼만)
+     */
+    values: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * 행 페이지네이션 응답. 값은 화이트리스트 컬럼만 포함하며 민감 컬럼은 마스킹.
+ */
+export type TableRowsPage = {
+    /**
+     * 필터 적용 후 전체 행 수
+     */
+    total: number;
+    /**
+     * 페이지 크기
+     */
+    limit: number;
+    /**
+     * 오프셋
+     */
+    offset: number;
+    /**
+     * 행 목록(화이트리스트 컬럼만, 마스킹 적용)
+     */
+    rows: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+/**
+ * 테이블 스키마(컬럼 디스크립터 집합) 응답.
+ */
+export type TableSchema = {
+    /**
+     * 테이블 논리 키
+     */
+    key: string;
+    /**
+     * 사람이 읽는 라벨
+     */
+    label: string;
+    /**
+     * 기본키 컬럼명
+     */
+    pk_column: string;
+    /**
+     * 허용 연산 목록
+     */
+    allowed_ops: Array<string>;
+    /**
+     * 컬럼 디스크립터 목록
+     */
+    columns: Array<TableColumnSchema>;
+};
+
 export type TokenResponse = {
     access_token: string;
     refresh_token: string;
@@ -7564,6 +7702,193 @@ export type RenderEnvApiV1AdminOpsEnvRenderPostResponses = {
 };
 
 export type RenderEnvApiV1AdminOpsEnvRenderPostResponse = RenderEnvApiV1AdminOpsEnvRenderPostResponses[keyof RenderEnvApiV1AdminOpsEnvRenderPostResponses];
+
+export type ListTablesApiV1AdminOpsTablesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/tables';
+};
+
+export type ListTablesApiV1AdminOpsTablesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<TableInfo>;
+};
+
+export type ListTablesApiV1AdminOpsTablesGetResponse = ListTablesApiV1AdminOpsTablesGetResponses[keyof ListTablesApiV1AdminOpsTablesGetResponses];
+
+export type GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetData = {
+    body?: never;
+    path: {
+        table_key: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/tables/{table_key}/schema';
+};
+
+export type GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetError = GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetErrors[keyof GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetErrors];
+
+export type GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TableSchema;
+};
+
+export type GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetResponse = GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetResponses[keyof GetTableSchemaApiV1AdminOpsTablesTableKeySchemaGetResponses];
+
+export type ListRowsApiV1AdminOpsTablesTableKeyRowsGetData = {
+    body?: never;
+    path: {
+        table_key: string;
+    };
+    query?: {
+        limit?: number;
+        offset?: number;
+        q?: string | null;
+    };
+    url: '/api/v1/admin/ops/tables/{table_key}/rows';
+};
+
+export type ListRowsApiV1AdminOpsTablesTableKeyRowsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListRowsApiV1AdminOpsTablesTableKeyRowsGetError = ListRowsApiV1AdminOpsTablesTableKeyRowsGetErrors[keyof ListRowsApiV1AdminOpsTablesTableKeyRowsGetErrors];
+
+export type ListRowsApiV1AdminOpsTablesTableKeyRowsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TableRowsPage;
+};
+
+export type ListRowsApiV1AdminOpsTablesTableKeyRowsGetResponse = ListRowsApiV1AdminOpsTablesTableKeyRowsGetResponses[keyof ListRowsApiV1AdminOpsTablesTableKeyRowsGetResponses];
+
+export type CreateRowApiV1AdminOpsTablesTableKeyRowsPostData = {
+    body: TableRowWrite;
+    path: {
+        table_key: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/tables/{table_key}/rows';
+};
+
+export type CreateRowApiV1AdminOpsTablesTableKeyRowsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateRowApiV1AdminOpsTablesTableKeyRowsPostError = CreateRowApiV1AdminOpsTablesTableKeyRowsPostErrors[keyof CreateRowApiV1AdminOpsTablesTableKeyRowsPostErrors];
+
+export type CreateRowApiV1AdminOpsTablesTableKeyRowsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: TableRow;
+};
+
+export type CreateRowApiV1AdminOpsTablesTableKeyRowsPostResponse = CreateRowApiV1AdminOpsTablesTableKeyRowsPostResponses[keyof CreateRowApiV1AdminOpsTablesTableKeyRowsPostResponses];
+
+export type DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteData = {
+    body?: never;
+    path: {
+        table_key: string;
+        pk: string;
+    };
+    query?: {
+        confirm?: boolean;
+    };
+    url: '/api/v1/admin/ops/tables/{table_key}/rows/{pk}';
+};
+
+export type DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteError = DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteErrors[keyof DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteErrors];
+
+export type DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteResponse = DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteResponses[keyof DeleteRowApiV1AdminOpsTablesTableKeyRowsPkDeleteResponses];
+
+export type GetRowApiV1AdminOpsTablesTableKeyRowsPkGetData = {
+    body?: never;
+    path: {
+        table_key: string;
+        pk: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/tables/{table_key}/rows/{pk}';
+};
+
+export type GetRowApiV1AdminOpsTablesTableKeyRowsPkGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetRowApiV1AdminOpsTablesTableKeyRowsPkGetError = GetRowApiV1AdminOpsTablesTableKeyRowsPkGetErrors[keyof GetRowApiV1AdminOpsTablesTableKeyRowsPkGetErrors];
+
+export type GetRowApiV1AdminOpsTablesTableKeyRowsPkGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: TableRow;
+};
+
+export type GetRowApiV1AdminOpsTablesTableKeyRowsPkGetResponse = GetRowApiV1AdminOpsTablesTableKeyRowsPkGetResponses[keyof GetRowApiV1AdminOpsTablesTableKeyRowsPkGetResponses];
+
+export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutData = {
+    body: TableRowWrite;
+    path: {
+        table_key: string;
+        pk: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/ops/tables/{table_key}/rows/{pk}';
+};
+
+export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutError = UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutErrors[keyof UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutErrors];
+
+export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: TableRow;
+};
+
+export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponse = UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses[keyof UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});

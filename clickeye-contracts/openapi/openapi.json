@@ -10414,6 +10414,408 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/ops/tables": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "List Tables",
+        "description": "화이트리스트 테이블 목록(허용 연산 + 행 수).",
+        "operationId": "list_tables_api_v1_admin_ops_tables_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TableInfo"
+                  },
+                  "type": "array",
+                  "title": "Response List Tables Api V1 Admin Ops Tables Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/ops/tables/{table_key}/schema": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Get Table Schema",
+        "description": "테이블 컬럼 디스크립터(동적 폼용). 미등재는 404.",
+        "operationId": "get_table_schema_api_v1_admin_ops_tables__table_key__schema_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/tables/{table_key}/rows": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "List Rows",
+        "description": "페이지네이션 조회(마스킹). 미등재는 404.",
+        "operationId": "list_rows_api_v1_admin_ops_tables__table_key__rows_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableRowsPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Create Row",
+        "description": "행 생성. 미허용 연산 405, 임의 컬럼 400.",
+        "operationId": "create_row_api_v1_admin_ops_tables__table_key__rows_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableRowWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableRow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/tables/{table_key}/rows/{pk}": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Get Row",
+        "description": "단건 조회(마스킹). 미등재/미존재는 404.",
+        "operationId": "get_row_api_v1_admin_ops_tables__table_key__rows__pk__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          },
+          {
+            "name": "pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableRow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Update Row",
+        "description": "행 수정. PK/불변 컬럼 변경 400, 미존재 404.",
+        "operationId": "update_row_api_v1_admin_ops_tables__table_key__rows__pk__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          },
+          {
+            "name": "pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableRowWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableRow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Delete Row",
+        "description": "행 삭제(confirm=true 필수). 미허용 연산 405, 미존재 404.",
+        "operationId": "delete_row_api_v1_admin_ops_tables__table_key__rows__pk__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Table Key"
+            }
+          },
+          {
+            "name": "pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pk"
+            }
+          },
+          {
+            "name": "confirm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Confirm"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -23086,6 +23488,240 @@
           "live_preview_enabled"
         ],
         "title": "SystemFeaturesResponse"
+      },
+      "TableColumnSchema": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "컬럼명"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "논리 타입 (str/int/float/bool/uuid/datetime/json/enum)"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "description": "create 시 필수 여부"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable",
+            "description": "update 시 수정 가능 여부"
+          },
+          "sensitive": {
+            "type": "boolean",
+            "title": "Sensitive",
+            "description": "시크릿 여부(조회/감사에서 마스킹)"
+          },
+          "max_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Length",
+            "description": "문자열 최대 길이"
+          },
+          "enum": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum",
+            "description": "enum 허용값 목록"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "required",
+          "editable",
+          "sensitive"
+        ],
+        "title": "TableColumnSchema",
+        "description": "동적 폼 렌더용 컬럼 디스크립터."
+      },
+      "TableInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "테이블 논리 키"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "사람이 읽는 라벨"
+          },
+          "ops": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ops",
+            "description": "허용 연산 목록 (read/create/update/delete)"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count",
+            "description": "행 수(집계 실패 시 None)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "ops"
+        ],
+        "title": "TableInfo",
+        "description": "화이트리스트 테이블 1건의 목록 표현."
+      },
+      "TableRow": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "title": "Table",
+            "description": "테이블 논리 키"
+          },
+          "pk": {
+            "type": "string",
+            "title": "Pk",
+            "description": "행 기본키(문자열)"
+          },
+          "values": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Values",
+            "description": "화이트리스트 컬럼 값(민감 컬럼 마스킹)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "table",
+          "pk",
+          "values"
+        ],
+        "title": "TableRow",
+        "description": "단건 행 응답 엔벌로프(get/create/update). 값은 이미 마스킹 적용됨."
+      },
+      "TableRowWrite": {
+        "properties": {
+          "values": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Values",
+            "description": "컬럼명→값 매핑(화이트리스트 컬럼만)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "values"
+        ],
+        "title": "TableRowWrite",
+        "description": "행 생성/수정 요청. 화이트리스트 컬럼만 허용하며 그 외 키는 거부."
+      },
+      "TableRowsPage": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "필터 적용 후 전체 행 수"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "페이지 크기"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "오프셋"
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rows",
+            "description": "행 목록(화이트리스트 컬럼만, 마스킹 적용)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "rows"
+        ],
+        "title": "TableRowsPage",
+        "description": "행 페이지네이션 응답. 값은 화이트리스트 컬럼만 포함하며 민감 컬럼은 마스킹."
+      },
+      "TableSchema": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "테이블 논리 키"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "사람이 읽는 라벨"
+          },
+          "pk_column": {
+            "type": "string",
+            "title": "Pk Column",
+            "description": "기본키 컬럼명"
+          },
+          "allowed_ops": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Ops",
+            "description": "허용 연산 목록"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/TableColumnSchema"
+            },
+            "type": "array",
+            "title": "Columns",
+            "description": "컬럼 디스크립터 목록"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "pk_column",
+          "allowed_ops",
+          "columns"
+        ],
+        "title": "TableSchema",
+        "description": "테이블 스키마(컬럼 디스크립터 집합) 응답."
       },
       "TokenResponse": {
         "properties": {
