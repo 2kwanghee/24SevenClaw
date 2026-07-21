@@ -38,9 +38,10 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
     staleTime: 5 * 60 * 1000,
   });
 
-  // 사용자가 아직 선택하지 않았으면(null) 자신의 소속 조직을 기본값으로 사용한다.
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
-  const effectiveOrgId = selectedOrgId ?? me?.organization_id ?? "";
+  // 기본 선택 = placeholder(""). 빈 값이면 organization_id를 생략해 백엔드가
+  // 사용자의 primary organization으로 폴백한다. me.organization_id를 preselect하지
+  // 않는다 — 그 org는 고객사 목록에 없을 수 있어 표시값과 전송값이 어긋난다.
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
 
   if (!open) return null;
 
@@ -92,10 +93,12 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
               <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
               <select
                 id="organization"
-                value={effectiveOrgId}
+                value={selectedOrgId}
                 onChange={(e) => setSelectedOrgId(e.target.value)}
                 className="w-full appearance-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none transition-all focus:border-zinc-400 focus:bg-[var(--bg-hover)] focus:ring-2 focus:ring-zinc-400/20"
               >
+                {/* 기본값 = 본인 조직(폴백). 표시값과 옵션 집합을 일치시킨다. */}
+                <option value="">{tD("orgSelfDefault")}</option>
                 {customerList?.items.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.company_name}
@@ -112,9 +115,9 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
               {
                 name: data.name,
                 description: data.description || undefined,
-                // 관리자가 대상 조직을 선택한 경우에만 명시 전달.
-                // 일반 사용자는 생략 → 백엔드가 primary organization 사용.
-                organization_id: showOrgSelector && effectiveOrgId ? effectiveOrgId : undefined,
+                // 특정 고객사를 명시 선택한 경우에만 전달. placeholder("") 선택 또는
+                // 일반 사용자는 생략 → 백엔드가 primary organization으로 폴백.
+                organization_id: selectedOrgId ? selectedOrgId : undefined,
               },
               {
                 onSuccess: (project) => {

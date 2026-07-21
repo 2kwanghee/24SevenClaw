@@ -37,6 +37,7 @@
     "projectDialog": {
       "newProject": "Proyek baru",
       "orgLabel": "Organisasi target",
+      "orgSelfDefault": "Organisasi saya (default)",
       "deleteTitle": "Hapus proyek",
       "deleteConfirm": "Apakah Anda yakin ingin menghapus proyek <name>{name}</name>? Tindakan ini tidak dapat dibatalkan.",
       "deleting": "Menghapus..."

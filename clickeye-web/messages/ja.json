@@ -37,6 +37,7 @@
     "projectDialog": {
       "newProject": "新規プロジェクト",
       "orgLabel": "対象組織",
+      "orgSelfDefault": "自分の組織（デフォルト）",
       "deleteTitle": "プロジェクトを削除",
       "deleteConfirm": "<name>{name}</name> プロジェクトを削除してもよろしいですか？この操作は元に戻せません。",
       "deleting": "削除中..."
