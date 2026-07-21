@@ -113,11 +113,22 @@ cmd_up() {
   docker compose up -d redis
   wait_healthy clickeye-redis 60
 
-  # 3. DB 마이그레이션 (api 이미지의 alembic 을 일회성 컨테이너로 실행)
+  # 3. DB 마이그레이션 (CE-305: migrate one-shot 서비스 게이트로 일원화)
+  #    기존 `docker compose run --rm --no-deps api ... alembic upgrade head` 를 제거하고
+  #    compose 의 migrate 서비스(restart:no)를 1회 기동해 완료(exit 0)를 확인한다.
+  #    api 는 depends_on: migrate(service_completed_successfully) 로 이 완료를 다시
+  #    기다리므로 [4/5] 에서 재실행되지 않는다(복제본 있어도 1회).
   echo ""
-  echo "▶ [3/5] DB 마이그레이션(alembic upgrade head)..."
-  docker compose run --rm --no-deps api /app/.venv/bin/alembic upgrade head
-  echo "✅ 마이그레이션 완료"
+  echo "▶ [3/5] DB 마이그레이션(migrate 서비스 게이트 · alembic upgrade head)..."
+  docker compose up -d migrate
+  migrate_code="$(docker wait clickeye-migrate 2>/dev/null || echo 1)"
+  if [ "$migrate_code" = "0" ]; then
+    echo "✅ 마이그레이션 완료 (migrate exit 0)"
+  else
+    echo "❌ 마이그레이션 실패 (migrate exit ${migrate_code}). 최근 로그:"
+    docker logs --tail 40 clickeye-migrate 2>&1 || true
+    exit 1
+  fi
 
   # 4. API
   echo ""

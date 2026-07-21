@@ -54,6 +54,24 @@ services:
           memory: 64M
     restart: always
 
+  # ── 마이그레이션 게이트 (CE-305 PR-1) ──
+  # api 와 동일 이미지(동일 build)로 `alembic upgrade head`(백필 045 포함)를 1회 실행 후 종료.
+  #   api 가 depends_on: migrate(service_completed_successfully) 로 완료를 기다린 뒤 기동
+  #   → `docker compose -f docker-compose.prod.yml up -d` 만으로 마이그레이션 자동 적용
+  #   (복제본이 있어도 one-shot 이라 1회). prod 는 profiles 미사용 → 매 up 마다 게이트 통과.
+  migrate:
+    build:
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.api
+    container_name: clickeye-migrate
+    command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   api:
     build:
       # 단계6: 컨텍스트를 레포 루트로 → governance editable(path="../") 해석 가능.
@@ -68,11 +86,22 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS}
       DEBUG: "false"
+    # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드(없어도 무시).
+    #   기존 environment: 키는 불변 — 실제 관리대상 키 이관은 PR-3(precedence 회피).
+    env_file:
+      - path: ../managed/api.env
+        required: false
+    # 관리형 env 파일을 컨테이너 /app/managed 로 노출(MANAGED_ENV_PATH). 운영 패널(PR-2~)이 사용.
+    volumes:
+      - ../managed:/app/managed
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # 마이그레이션 게이트: migrate 가 성공(exit 0)해야 api 기동.
+      migrate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -82,6 +111,10 @@ services:
           cpus: "0.25"
           memory: 256M
     restart: always
+    # default(db/redis 접근) + ops-net(dockerproxy 접근, PR-2~) 겸용.
+    networks:
+      - default
+      - ops-net
 
   web:
     build:
@@ -112,6 +145,33 @@ services:
           cpus: "0.1"
           memory: 128M
     restart: always
+
+  # ── 운영 패널용 read-only Docker 소켓 프록시 (CE-305 PR-1) ──
+  # 어떤 앱 컨테이너도 docker.sock 을 raw 로 쥐지 않는다. api 는 PR-2 부터
+  #   http://dockerproxy:2375 로 read-only 조회만 수행(POST=0 → 쓰기 전면 차단).
+  #   호스트/외부 포트 미노출(내부 ops-net 전용). profiles:[ops] → 기본 미기동(회귀 0·킬스위치).
+  dockerproxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: clickeye-dockerproxy
+    environment:
+      CONTAINERS: "1"   # 컨테이너 목록/inspect(GET) 허용
+      INFO: "1"         # /info(GET) 허용
+      PING: "1"         # /_ping 허용
+      VERSION: "1"      # /version 허용
+      POST: "0"         # POST(쓰기) 전면 차단 — 읽기 전용 보장
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: always
+    networks:
+      - ops-net
+    profiles:
+      - ops
+
+networks:
+  # 운영 패널 전용 내부망(CE-305): dockerproxy 는 여기에만 접속(호스트/외부 미노출).
+  #   internal: true → 외부 게이트웨이 없음(소켓 프록시 격리). api 는 default+ops-net 겸용.
+  ops-net:
+    internal: true
 
 volumes:
   pgdata:
