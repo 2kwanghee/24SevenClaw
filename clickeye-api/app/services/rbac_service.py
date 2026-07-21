@@ -134,13 +134,16 @@ class RBACService:
 
         # 이미 멤버인지 확인
         existing = await self.db.execute(
-            select(OrganizationMembership).where(
+            select(OrganizationMembership)
+            .where(
                 OrganizationMembership.user_id == user_id,
                 OrganizationMembership.organization_id == organization_id,
                 OrganizationMembership.is_active == True,  # noqa: E712
             )
+            .limit(1)
         )
-        if existing.scalar_one_or_none() is not None:
+        # 활성 멤버십 중복 행이 있어도 500 나지 않도록 first() 사용
+        if existing.scalars().first() is not None:
             raise AppError("ALREADY_MEMBER", "이미 조직의 멤버입니다", 409)
 
         membership = OrganizationMembership(

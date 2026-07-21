@@ -167,13 +167,16 @@ class ProjectService(BaseService):
         if RBACService(self.db).check_permission(user, "control_tower:write"):
             return
         result = await self.db.execute(
-            select(OrganizationMembership).where(
+            select(OrganizationMembership)
+            .where(
                 OrganizationMembership.user_id == user.id,
                 OrganizationMembership.organization_id == organization_id,
                 OrganizationMembership.is_active == True,  # noqa: E712
             )
+            .limit(1)
         )
-        if result.scalar_one_or_none() is None:
+        # 존재 여부만 필요 — 활성 멤버십 중복 행이 있어도 500(MultipleResultsFound) 나지 않도록 first() 사용
+        if result.scalars().first() is None:
             raise AppError("FORBIDDEN", "해당 조직에 프로젝트를 생성할 권한이 없습니다", 403)
 
     async def get_by_id(self, project_id: UUID, owner_id: UUID) -> Project:
