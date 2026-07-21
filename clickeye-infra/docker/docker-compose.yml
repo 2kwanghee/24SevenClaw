@@ -70,11 +70,13 @@ services:
       JWT_SECRET_KEY: dev-secret-key
       CORS_ORIGINS: '["http://localhost:3000"]'
       DEBUG: "true"
-    # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드(없어도 무시).
-    #   기존 environment: 키는 불변 — 실제 관리대상 키 이관은 PR-3(precedence 회피).
+      # 관리형 env 파일의 컨테이너 내부 경로(PR-2~ 백엔드가 참조). 배관 단계에서 export.
+      MANAGED_ENV_PATH: /app/managed/api.env
+    # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드. 빈 배관 파일이 항상
+    #   존재하므로 plain string 형식 사용(구버전 compose 호환). 기존 environment: 키는 불변
+    #   — 실제 관리대상 키 이관은 PR-3(precedence 회피).
     env_file:
-      - path: ../managed/api.env
-        required: false
+      - ../managed/api.env
     # 관리형 env 파일을 컨테이너 /app/managed 로 노출(MANAGED_ENV_PATH). 운영 패널(PR-2~)이
     #   렌더/조회에 사용. PR-1 에서는 마운트 배관만.
     volumes:
@@ -182,6 +184,8 @@ services:
     image: tecnativa/docker-socket-proxy:0.3.0
     container_name: clickeye-dockerproxy
     environment:
+      # CONTAINERS=1 은 inspect(GET)로 컨테이너 env 를 노출할 수 있으나, ops-net internal +
+      #   profile 게이트로 격리되고 최종적으로 PR-2 의 api 레이어에서 inspect env 를 스트립한다.
       CONTAINERS: "1"   # 컨테이너 목록/inspect(GET) 허용
       INFO: "1"         # /info(GET) 허용
       PING: "1"         # /_ping 허용
