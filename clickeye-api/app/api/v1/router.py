@@ -18,6 +18,7 @@ from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.llm_ledger import router as llm_ledger_router
 from app.api.v1.maturity import router as maturity_router
 from app.api.v1.modernize import router as modernize_router
+from app.api.v1.ops_infra import router as ops_infra_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.pm_profiles import router as pm_profiles_router
@@ -70,3 +71,4 @@ api_v1_router.include_router(roi_router)
 api_v1_router.include_router(roi_admin_router)
 api_v1_router.include_router(setup_bootstrap_router)
 api_v1_router.include_router(system_features_router)
+api_v1_router.include_router(ops_infra_router)

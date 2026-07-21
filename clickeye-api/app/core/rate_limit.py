@@ -20,6 +20,9 @@ _EXEMPT_PATHS = frozenset({"/api/v1/health"})
 # 인증 경로 접두사 (차등 제한 적용)
 _AUTH_PREFIX = "/api/v1/auth"
 
+# 운영(Ops) 패널 접두사 (저버짓 차등 제한)
+_OPS_PREFIX = "/api/v1/admin/ops"
+
 
 def _get_client_ip(request: Request) -> str:
     """X-Forwarded-For 헤더에서 클라이언트 IP 추출. 유효하지 않으면 직접 연결 IP 사용."""
@@ -39,6 +42,8 @@ def _get_rate_limit(path: str) -> tuple[int, int]:
     """경로에 따른 (요청 수, 윈도우 초) 반환."""
     if path.startswith(_AUTH_PREFIX):
         return settings.rate_limit_auth_requests, settings.rate_limit_auth_window
+    if path.startswith(_OPS_PREFIX):
+        return settings.rate_limit_ops_requests, settings.rate_limit_ops_window
     return settings.rate_limit_default_requests, settings.rate_limit_default_window
 
 
@@ -57,9 +62,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_ip = _get_client_ip(request)
         max_requests, window = _get_rate_limit(path)
 
-        # 인증 경로는 별도 키로 분리
+        # 경로군별 별도 키로 버킷 분리
         if path.startswith(_AUTH_PREFIX):
             key = f"rate_limit:auth:{client_ip}"
+        elif path.startswith(_OPS_PREFIX):
+            key = f"rate_limit:ops:{client_ip}"
         else:
             key = f"rate_limit:{client_ip}"
 

@@ -118,6 +118,35 @@ def get_locale(
     return "en"
 
 
+async def require_superadmin(user: User = Depends(get_current_user)) -> User:
+    """superadmin 전용 가드.
+
+    admin 과 superadmin 은 ROLE_PERMISSIONS 를 다수 공유하므로 require_permission 을
+    재사용할 수 없다. system_role == "superadmin" 을 명시적으로 검사한다.
+    (rbac_service.py / ROLE_PERMISSIONS 는 미변경 — HIGH auth 경로 회피.)
+    """
+    role = getattr(user, "system_role", "") or ""
+    if role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="superadmin 권한이 필요합니다.",
+        )
+    return user
+
+
+def require_ops_feature() -> None:
+    """운영(Ops) 패널 feature flag 가드.
+
+    `feature_ops_panel = False` 일 때 ops endpoint 가 모두 404 응답 (킬스위치).
+    modernize 게이트와 동일 패턴 — 인증보다 먼저 평가되어 존재 자체를 은닉한다.
+    """
+    if not settings.feature_ops_panel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not Found",
+        )
+
+
 def require_modernize_feature() -> None:
     """ClickEye Modernize feature flag 가드.
 
