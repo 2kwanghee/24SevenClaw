@@ -124,9 +124,15 @@ class ProjectService(BaseService):
         )
         return result.scalar_one_or_none()
 
-    async def create(
-        self, owner_id: UUID, data: ProjectCreate, organization_id: UUID | None = None
-    ) -> Project:
+    async def create(self, user: User, data: ProjectCreate) -> Project:
+        owner_id = user.id
+        primary_org_id = user.organization_id
+        target_org_id = data.organization_id or primary_org_id
+
+        # 대상 org를 명시했고 primary org와 다르면 인가 검증 (IDOR 방지)
+        if data.organization_id is not None and data.organization_id != primary_org_id:
+            await self._authorize_target_org(user, data.organization_id)
+
         slug = _slugify(data.name)
 
         # slug 중복 시 숫자 접미사 추가
@@ -145,12 +151,30 @@ class ProjectService(BaseService):
             name=data.name,
             slug=slug,
             description=data.description,
-            organization_id=organization_id,
+            organization_id=target_org_id,
         )
         self.db.add(project)
         await self.db.commit()
         await self.db.refresh(project)
         return project
+
+    async def _authorize_target_org(self, user: User, organization_id: UUID) -> None:
+        """요청한 organization_id에 프로젝트를 생성할 권한을 검증한다.
+
+        control_tower:write 권한 보유자는 임의 조직 지정 가능,
+        그 외에는 해당 조직의 활성 멤버십이 있어야 한다. 없으면 거부.
+        """
+        if RBACService(self.db).check_permission(user, "control_tower:write"):
+            return
+        result = await self.db.execute(
+            select(OrganizationMembership).where(
+                OrganizationMembership.user_id == user.id,
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.is_active == True,  # noqa: E712
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise AppError("FORBIDDEN", "해당 조직에 프로젝트를 생성할 권한이 없습니다", 403)
 
     async def get_by_id(self, project_id: UUID, owner_id: UUID) -> Project:
         return await get_or_404(
