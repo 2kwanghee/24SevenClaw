@@ -9,7 +9,8 @@
       "submit": "送信",
       "processing": "処理中...",
       "loginIn": "サインイン中...",
-      "login": "サインイン"
+      "login": "サインイン",
+      "confirm": "確認"
     },
     "aria": {
       "close": "閉じる",
@@ -102,7 +103,11 @@
     },
     "users": {
       "roleChangeSuccess": "ロールを{role}に変更しました",
-      "roleChangeFail": "ロールの変更に失敗しました"
+      "roleChangeFail": "ロールの変更に失敗しました",
+      "deactivateSuccess": "ユーザー {name} を無効化しました",
+      "deactivateFail": "ユーザーの無効化に失敗しました",
+      "deleteSuccess": "ユーザー {name} を削除しました",
+      "deleteFail": "ユーザーの削除に失敗しました"
     },
     "projects": {
       "fetchFail": "プロジェクトの読み込みに失敗しました",
@@ -747,6 +752,12 @@
       "label": "モックデータ",
       "ariaLabel": "モックデータを表示",
       "banner": "モックデータを表示中 — 実データではありません。"
+    },
+    "deleteProject": {
+      "action": "削除",
+      "ariaLabel": "{name} を削除",
+      "success": "プロジェクトを削除しました",
+      "fail": "プロジェクトの削除に失敗しました"
     }
   },
   "ops": {

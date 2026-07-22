@@ -9,7 +9,8 @@
       "submit": "Submit",
       "processing": "Processing...",
       "loginIn": "Signing in...",
-      "login": "Sign in"
+      "login": "Sign in",
+      "confirm": "Confirm"
     },
     "aria": {
       "close": "Close",
@@ -102,7 +103,11 @@
     },
     "users": {
       "roleChangeSuccess": "Role changed to {role}",
-      "roleChangeFail": "Failed to change role"
+      "roleChangeFail": "Failed to change role",
+      "deactivateSuccess": "User {name} deactivated",
+      "deactivateFail": "Failed to deactivate user",
+      "deleteSuccess": "User {name} deleted",
+      "deleteFail": "Failed to delete user"
     },
     "projects": {
       "fetchFail": "Failed to load projects",
@@ -747,6 +752,12 @@
       "label": "Mock data",
       "ariaLabel": "Show mock data",
       "banner": "Showing mock data — not real data."
+    },
+    "deleteProject": {
+      "action": "Delete",
+      "ariaLabel": "Delete {name}",
+      "success": "Project deleted",
+      "fail": "Failed to delete project"
     }
   },
   "ops": {

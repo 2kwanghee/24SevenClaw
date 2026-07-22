@@ -9,7 +9,8 @@
       "submit": "제출",
       "processing": "처리 중...",
       "loginIn": "로그인 중...",
-      "login": "로그인"
+      "login": "로그인",
+      "confirm": "확인"
     },
     "aria": {
       "close": "닫기",
@@ -102,7 +103,11 @@
     },
     "users": {
       "roleChangeSuccess": "역할이 {role}(으)로 변경되었습니다",
-      "roleChangeFail": "역할 변경에 실패했습니다"
+      "roleChangeFail": "역할 변경에 실패했습니다",
+      "deactivateSuccess": "{name} 사용자를 비활성화했습니다",
+      "deactivateFail": "사용자 비활성화에 실패했습니다",
+      "deleteSuccess": "{name} 사용자를 삭제했습니다",
+      "deleteFail": "사용자 삭제에 실패했습니다"
     },
     "projects": {
       "fetchFail": "프로젝트 목록을 불러오지 못했습니다",
@@ -747,6 +752,12 @@
       "label": "목업 데이터",
       "ariaLabel": "목업 데이터 표시",
       "banner": "목업 데이터 표시 중 — 실제 데이터가 아닙니다."
+    },
+    "deleteProject": {
+      "action": "삭제",
+      "ariaLabel": "{name} 삭제",
+      "success": "프로젝트를 삭제했습니다",
+      "fail": "프로젝트 삭제에 실패했습니다"
     }
   },
   "ops": {
