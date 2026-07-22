@@ -10246,6 +10246,174 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/ops/env": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "List Env",
+        "description": "관리형 env 키 조회(제외 키 포함, 시크릿 값 미반환).",
+        "operationId": "list_env_api_v1_admin_ops_env_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EnvVarItem"
+                  },
+                  "type": "array",
+                  "title": "Response List Env Api V1 Admin Ops Env Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/ops/env/{key}": {
+      "put": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Upsert Env",
+        "description": "env 값 upsert. 편집 제외/미허용 키는 400.",
+        "operationId": "upsert_env_api_v1_admin_ops_env__key__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvVarUpsert"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Delete Env",
+        "description": "env 값 삭제. 편집 제외/미허용 키는 400, 미존재는 404.",
+        "operationId": "delete_env_api_v1_admin_ops_env__key__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ops/env/render": {
+      "post": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Render Env",
+        "description": "env 파일 렌더 + 재생성 명령 문자열 반환(docker/재생성 미실행).",
+        "operationId": "render_env_api_v1_admin_ops_env_render_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvRenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvRenderResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -12732,6 +12900,69 @@
         "title": "DiffResult",
         "description": "diff 생성 결과."
       },
+      "EnvRenderRequest": {
+        "properties": {
+          "confirm": {
+            "type": "boolean",
+            "title": "Confirm",
+            "description": "렌더 확정 플래그",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "EnvRenderRequest",
+        "description": "env 파일 렌더 요청. confirm=True 여야 실제 렌더 수행."
+      },
+      "EnvRenderResult": {
+        "properties": {
+          "rendered_path": {
+            "type": "string",
+            "title": "Rendered Path",
+            "description": "렌더된 env 파일 경로"
+          },
+          "rendered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Rendered At",
+            "description": "렌더 시각"
+          },
+          "applied_count": {
+            "type": "integer",
+            "title": "Applied Count",
+            "description": "파일에 기록된 관리형 키 수"
+          },
+          "recreate_command": {
+            "type": "string",
+            "title": "Recreate Command",
+            "description": "사용자가 수동 실행할 재생성 명령(백엔드는 실행하지 않음)"
+          },
+          "services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Services",
+            "description": "재생성 대상 관리형 서비스명"
+          },
+          "pending": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pending",
+            "description": "렌더 후 남은 미적용 키(정상 시 빈 목록)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rendered_path",
+          "rendered_at",
+          "applied_count",
+          "recreate_command"
+        ],
+        "title": "EnvRenderResult",
+        "description": "렌더 결과 — 재생성 명령 문자열만 반환하며 docker/재생성은 실행하지 않는다."
+      },
       "EnvVarDef": {
         "properties": {
           "name": {
@@ -12759,6 +12990,98 @@
           "name"
         ],
         "title": "EnvVarDef"
+      },
+      "EnvVarItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "환경변수명"
+          },
+          "has_value": {
+            "type": "boolean",
+            "title": "Has Value",
+            "description": "값이 설정되어 있는지"
+          },
+          "is_secret": {
+            "type": "boolean",
+            "title": "Is Secret",
+            "description": "시크릿 여부(True 면 값 미반환)"
+          },
+          "editable": {
+            "type": "boolean",
+            "title": "Editable",
+            "description": "편집 가능 여부(제외 키는 False)"
+          },
+          "masked_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Value",
+            "description": "비시크릿은 값(절단), 시크릿은 '***'(값 있을 때), 값 없으면 None"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "마지막 변경 시각"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By",
+            "description": "마지막 변경 superadmin"
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "description": "마지막 렌더 이후 변경되어 아직 미적용인지",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "has_value",
+          "is_secret",
+          "editable"
+        ],
+        "title": "EnvVarItem",
+        "description": "관리형 env 키 1건의 조회 표현.\n\n시크릿 값은 절대 평문으로 반환하지 않는다(masked_value 는 \"***\" 또는 None)."
+      },
+      "EnvVarUpsert": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "설정할 값(평문). 저장 시 Fernet 암호화됨."
+          }
+        },
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "title": "EnvVarUpsert",
+        "description": "env 값 쓰기 요청 — value 는 write-only(응답에 포함되지 않음)."
       },
       "FileTreeNode": {
         "properties": {
