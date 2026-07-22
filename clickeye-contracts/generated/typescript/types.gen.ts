@@ -328,6 +328,42 @@ export type CodebaseAnalysisResponse = {
     analyzed_at?: string | null;
 };
 
+/**
+ * dockerproxy `GET /containers/json` 정규화 결과.
+ *
+ * 시크릿 노출 방지를 위해 환경변수/명령은 절대 포함하지 않는다.
+ */
+export type ContainerStatus = {
+    /**
+     * 컨테이너 이름
+     */
+    name: string;
+    /**
+     * 이미지 태그
+     */
+    image: string;
+    /**
+     * 상태 요약 (running/exited 등)
+     */
+    state: string;
+    /**
+     * 상세 상태 문자열 (예: Up 2 hours)
+     */
+    status: string;
+    /**
+     * 헬스체크 상태 (healthy/unhealthy/starting)
+     */
+    health?: string | null;
+    /**
+     * 포트 매핑 문자열 목록
+     */
+    ports?: Array<string>;
+    /**
+     * 생성 시각 (unix epoch)
+     */
+    created?: number;
+};
+
 export type ContractAuditLogListResponse = {
     items: Array<ContractAuditLogResponse>;
     total: number;
@@ -1398,6 +1434,32 @@ export type PlatformSummaryResponse = {
     automation_rate: number;
     review_acceptance_rate: number;
     generated_at: string;
+};
+
+/**
+ * `ops_port_targets` 각 대상에 대한 TCP 도달성 프로브 결과.
+ */
+export type PortStatus = {
+    /**
+     * 서비스/대상 논리 이름
+     */
+    service: string;
+    /**
+     * 프로브 호스트
+     */
+    host: string;
+    /**
+     * 프로브 포트
+     */
+    port: number;
+    /**
+     * TCP 연결 성공 여부
+     */
+    reachable: boolean;
+    /**
+     * 연결 지연 (ms), 실패 시 None
+     */
+    latency_ms?: number | null;
 };
 
 export type PresetApplyResponse = {
@@ -7285,6 +7347,38 @@ export type GetSystemFeaturesApiV1SystemFeaturesGetResponses = {
 };
 
 export type GetSystemFeaturesApiV1SystemFeaturesGetResponse = GetSystemFeaturesApiV1SystemFeaturesGetResponses[keyof GetSystemFeaturesApiV1SystemFeaturesGetResponses];
+
+export type ListContainersApiV1AdminOpsContainersGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/containers';
+};
+
+export type ListContainersApiV1AdminOpsContainersGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<ContainerStatus>;
+};
+
+export type ListContainersApiV1AdminOpsContainersGetResponse = ListContainersApiV1AdminOpsContainersGetResponses[keyof ListContainersApiV1AdminOpsContainersGetResponses];
+
+export type ListPortsApiV1AdminOpsPortsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/ports';
+};
+
+export type ListPortsApiV1AdminOpsPortsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<PortStatus>;
+};
+
+export type ListPortsApiV1AdminOpsPortsGetResponse = ListPortsApiV1AdminOpsPortsGetResponses[keyof ListPortsApiV1AdminOpsPortsGetResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});

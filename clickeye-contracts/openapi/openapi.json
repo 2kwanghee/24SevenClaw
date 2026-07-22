@@ -10184,6 +10184,68 @@
           }
         ]
       }
+    },
+    "/api/v1/admin/ops/containers": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "List Containers",
+        "description": "read-only dockerproxy 를 통한 컨테이너 상태 목록.",
+        "operationId": "list_containers_api_v1_admin_ops_containers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContainerStatus"
+                  },
+                  "type": "array",
+                  "title": "Response List Containers Api V1 Admin Ops Containers Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/ops/ports": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "List Ports",
+        "description": "설정된 포트 대상들의 TCP 도달성 상태.",
+        "operationId": "list_ports_api_v1_admin_ops_ports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PortStatus"
+                  },
+                  "type": "array",
+                  "title": "Response List Ports Api V1 Admin Ops Ports Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -12040,6 +12102,65 @@
         ],
         "title": "CodebaseAnalysisResponse",
         "description": "`/modernize/sessions/{id}/analysis` 응답 — 분석 완료 후."
+      },
+      "ContainerStatus": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "컨테이너 이름"
+          },
+          "image": {
+            "type": "string",
+            "title": "Image",
+            "description": "이미지 태그"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "상태 요약 (running/exited 등)"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "상세 상태 문자열 (예: Up 2 hours)"
+          },
+          "health": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health",
+            "description": "헬스체크 상태 (healthy/unhealthy/starting)"
+          },
+          "ports": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ports",
+            "description": "포트 매핑 문자열 목록"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created",
+            "description": "생성 시각 (unix epoch)",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "image",
+          "state",
+          "status"
+        ],
+        "title": "ContainerStatus",
+        "description": "dockerproxy `GET /containers/json` 정규화 결과.\n\n시크릿 노출 방지를 위해 환경변수/명령은 절대 포함하지 않는다."
       },
       "ContractAuditLogListResponse": {
         "properties": {
@@ -17799,6 +17920,51 @@
           "generated_at"
         ],
         "title": "PlatformSummaryResponse"
+      },
+      "PortStatus": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "서비스/대상 논리 이름"
+          },
+          "host": {
+            "type": "string",
+            "title": "Host",
+            "description": "프로브 호스트"
+          },
+          "port": {
+            "type": "integer",
+            "title": "Port",
+            "description": "프로브 포트"
+          },
+          "reachable": {
+            "type": "boolean",
+            "title": "Reachable",
+            "description": "TCP 연결 성공 여부"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms",
+            "description": "연결 지연 (ms), 실패 시 None"
+          }
+        },
+        "type": "object",
+        "required": [
+          "service",
+          "host",
+          "port",
+          "reachable"
+        ],
+        "title": "PortStatus",
+        "description": "`ops_port_targets` 각 대상에 대한 TCP 도달성 프로브 결과."
       },
       "PresetApplyResponse": {
         "properties": {

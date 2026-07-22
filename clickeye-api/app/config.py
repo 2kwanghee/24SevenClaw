@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     rate_limit_default_window: int = 60
     rate_limit_auth_requests: int = 10
     rate_limit_auth_window: int = 60
+    # 운영(Ops) 패널 저버짓 — superadmin 전용이라 낮게 유지.
+    rate_limit_ops_requests: int = 30
+    rate_limit_ops_window: int = 60
 
     # Anthropic (Solution Wizard v2)
     anthropic_api_key: str = ""
@@ -62,6 +65,18 @@ class Settings(BaseSettings):
     # ClickEye Modernize (기존 코드 현대화 파이프라인, MVP-2-A).
     # 기본 False — 화이트리스트 베타 사용자만 노출. 신규 라우트/모델은 이 flag 가 True 일 때만 활성.
     feature_modernize_enabled: bool = False
+
+    # 운영(Ops) 패널 (CE-305, superadmin 전용 인프라 조회/관리).
+    # 기본 False — OFF 시 전 ops endpoint 404 (킬스위치, 무침습 롤아웃).
+    feature_ops_panel: bool = False
+    # read-only docker 소켓 프록시 내부 URL (POST=0, GET 전용).
+    docker_proxy_url: str = "http://dockerproxy:2375"
+    # 관리형 env 파일 마운트 경로 (env CRUD PR 에서 사용).
+    managed_env_path: str = "/app/managed/api.env"
+    # 포트 프로브 대상 목록. 형식: "host:port" 또는 "service=host:port". JSON 배열로 주입.
+    ops_port_targets: list[str] = []
+    # 관리형 서비스명 목록 (env 렌더/재생성 안내 대상). JSON 배열로 주입.
+    ops_managed_services: list[str] = []
 
     # GitHub App (Modernize 의 repo 연결용 — feature_modernize_enabled 와 별개로 미설정 가능)
     # 모든 값 비어있으면 github_app_service.is_configured() 가 False — 관련 endpoint 503.
