@@ -1,7 +1,7 @@
 ---
 title: 페이지 스펙 기반 개발 파이프라인 (인덱스)
 category: page
-status: needs-revision
+status: current
 last_updated: 2026-07-22
 related:
   - clickeye-web/src/app
