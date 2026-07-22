@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Boxes, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+import { Boxes, Loader2, AlertTriangle, ChevronRight, Trash2 } from "lucide-react";
 
-import { useProjects } from "@/hooks/use-projects";
+import { useProjects, useDeleteProject } from "@/hooks/use-projects";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { MockModeToggle } from "@/components/delivery/mock-mode-toggle";
 import { useMockMode } from "@/stores/mock-mode-store";
 import { mockProject } from "@/lib/delivery-mock";
@@ -13,6 +16,10 @@ export default function DeliveryListPage() {
   const t = useTranslations("delivery");
   const mock = useMockMode((s) => s.enabled);
   const { data, isLoading: isLoadingRaw, isError: isErrorRaw } = useProjects();
+  const deleteProject = useDeleteProject();
+
+  // 삭제 대상 프로젝트 (확인 다이얼로그용)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const engagements = mock ? [mockProject] : data?.items ?? [];
   const isLoading = mock ? false : isLoadingRaw;
