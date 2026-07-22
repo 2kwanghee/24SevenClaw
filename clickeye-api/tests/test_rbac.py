@@ -292,9 +292,7 @@ async def test_delete_user_hard_by_superadmin(
     await _set_role(db_session, super_id, "superadmin")
     _, target_id = await _register_and_login(client, "hard_target@test.com")
 
-    resp = await client.delete(
-        f"/api/v1/admin/users/{target_id}?hard=true", headers=headers
-    )
+    resp = await client.delete(f"/api/v1/admin/users/{target_id}?hard=true", headers=headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["mode"] == "hard"
@@ -327,9 +325,7 @@ async def test_delete_user_hard_forbidden_for_admin(
     await _set_role(db_session, admin_id, "admin")
     _, target_id = await _register_and_login(client, "hard_admin_target@test.com")
 
-    resp = await client.delete(
-        f"/api/v1/admin/users/{target_id}?hard=true", headers=headers
-    )
+    resp = await client.delete(f"/api/v1/admin/users/{target_id}?hard=true", headers=headers)
     assert resp.status_code == 403
 
 

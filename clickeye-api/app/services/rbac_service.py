@@ -216,9 +216,7 @@ class RBACService:
             )
 
         # role_audit_logs.actor_id (NOT NULL + SET NULL) 위반 회피: actor 로그 선삭제
-        await self.db.execute(
-            delete(RoleAuditLog).where(RoleAuditLog.actor_id == target_user_id)
-        )
+        await self.db.execute(delete(RoleAuditLog).where(RoleAuditLog.actor_id == target_user_id))
         await self.db.delete(target)
         await self.db.commit()
         return "hard"

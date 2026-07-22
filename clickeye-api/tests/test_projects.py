@@ -301,9 +301,7 @@ async def _register_login(
         "/api/v1/auth/register",
         json={"email": email, "password": password, "display_name": email.split("@")[0]},
     )
-    resp = await client.post(
-        "/api/v1/auth/login", json={"email": email, "password": password}
-    )
+    resp = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
     headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
     me = await client.get("/api/v1/auth/me", headers=headers)
     return headers, me.json()["id"]

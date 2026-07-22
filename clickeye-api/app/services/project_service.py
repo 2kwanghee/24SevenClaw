@@ -236,9 +236,7 @@ class ProjectService(BaseService):
         await self.db.refresh(project)
         return project
 
-    async def delete(
-        self, project_id: UUID, owner_id: UUID, is_superadmin: bool = False
-    ) -> None:
+    async def delete(self, project_id: UUID, owner_id: UUID, is_superadmin: bool = False) -> None:
         """프로젝트 소프트 삭제 (status="deleted").
 
         is_superadmin=True 이면 owner 스코프를 우회하여 타 조직 프로젝트도 삭제할 수 있다
