@@ -93,7 +93,13 @@ async def delete_project(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     service = ProjectService(db)
-    await service.delete(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
+    # superadmin 은 owner 스코프를 우회하여 타 조직 프로젝트도 삭제 가능(컨트롤타워 경로).
+    is_superadmin = (getattr(user, "system_role", "") or "") == "superadmin"
+    await service.delete(
+        project_id=project_id,
+        owner_id=user.id,  # type: ignore[arg-type]
+        is_superadmin=is_superadmin,
+    )
 
 
 @router.post("/{project_id}/reset", response_model=ProjectResetResponse)

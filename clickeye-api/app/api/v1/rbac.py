@@ -13,6 +13,7 @@ from app.schemas.rbac import (
     PermissionsResponse,
     RoleUpdateRequest,
     UserAdminResponse,
+    UserDeleteResponse,
 )
 from app.services.rbac_service import RBACService
 
@@ -65,6 +66,34 @@ async def update_user_role(
     service = RBACService(db)
     updated = await service.assign_system_role(user_id, data.system_role, user)
     return UserAdminResponse.model_validate(updated)
+
+
+@router.delete(
+    "/admin/users/{user_id}",
+    response_model=UserDeleteResponse,
+    tags=["admin"],
+)
+async def delete_user(
+    user_id: UUID,
+    hard: bool = Query(False, description="true 시 물리 삭제 (superadmin 전용). 기본은 비활성화."),
+    user: User = Depends(require_permission("user:manage")),
+    db: AsyncSession = Depends(get_db),
+) -> UserDeleteResponse:
+    """사용자 삭제.
+
+    - 기본(soft): `is_active=false` 비활성화 (admin 이상).
+    - `?hard=true`: 레코드 물리 삭제 (superadmin 전용).
+
+    가드: 자기 자신/마지막 superadmin 삭제 금지, 조직 스코프.
+    """
+    service = RBACService(db)
+    mode = await service.delete_user(user_id, user, hard=hard)
+    return UserDeleteResponse(
+        user_id=user_id,
+        mode=mode,
+        is_active=False,
+        deleted=(mode == "hard"),
+    )
 
 
 # --- 조직 멤버 관리 ---

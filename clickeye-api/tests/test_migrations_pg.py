@@ -125,10 +125,7 @@ async def test_membership_dedupe_and_unique_active_index(
     # 2) 사용자/조직/중복 활성 멤버십 2건 삽입 (유니크 인덱스 생성 전이므로 성공)
     async with pg_engine.begin() as conn:
         await conn.execute(
-            text(
-                "INSERT INTO users (id, email, display_name) "
-                "VALUES (:id, :email, :name)"
-            ),
+            text("INSERT INTO users (id, email, display_name) VALUES (:id, :email, :name)"),
             {"id": user_id, "email": f"{user_id}@t.local", "name": "dedupe-user"},
         )
         await conn.execute(

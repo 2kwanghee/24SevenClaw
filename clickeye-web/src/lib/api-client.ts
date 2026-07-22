@@ -696,6 +696,15 @@ export interface RoleUpdateRequest {
   system_role: SystemRole;
 }
 
+/** `DELETE /admin/users/{id}` 응답 (rbac.py delete_user / UserDeleteResponse) */
+export interface UserDeleteResponse {
+  user_id: string;
+  /** soft: is_active=false 비활성화, hard: 레코드 물리 삭제(superadmin 전용) */
+  mode: "soft" | "hard";
+  is_active: boolean;
+  deleted: boolean;
+}
+
 export interface OrgMemberResponse {
   id: string;
   user_id: string;
@@ -742,6 +751,21 @@ export const rbac = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  /**
+   * 사용자 삭제. 기본은 소프트(비활성화, is_active=false).
+   * `hard=true` 시 물리 삭제(superadmin 전용).
+   */
+  deleteUser: (
+    token: string,
+    userId: string,
+    options?: { hard?: boolean },
+  ) =>
+    authRequest<UserDeleteResponse>(
+      `/api/v1/admin/users/${userId}${options?.hard ? "?hard=true" : ""}`,
+      token,
+      { method: "DELETE" },
+    ),
 
   getOrgMembers: (token: string, orgId: string) =>
     authRequest<OrgMemberResponse[]>(

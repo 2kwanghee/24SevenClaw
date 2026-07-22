@@ -4916,6 +4916,67 @@
         }
       }
     },
+    "/api/v1/admin/users/{user_id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete User",
+        "description": "사용자 삭제.\n\n- 기본(soft): `is_active=false` 비활성화 (admin 이상).\n- `?hard=true`: 레코드 물리 삭제 (superadmin 전용).\n\n가드: 자기 자신/마지막 superadmin 삭제 금지, 조직 스코프.",
+        "operationId": "delete_user_api_v1_admin_users__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "hard",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "true 시 물리 삭제 (superadmin 전용). 기본은 비활성화.",
+              "default": false,
+              "title": "Hard"
+            },
+            "description": "true 시 물리 삭제 (superadmin 전용). 기본은 비활성화."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations/{org_id}/members": {
       "get": {
         "tags": [
@@ -22360,6 +22421,40 @@
           "display_name"
         ],
         "title": "UserCreate"
+      },
+      "UserDeleteResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "soft",
+              "hard"
+            ],
+            "title": "Mode"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "deleted": {
+            "type": "boolean",
+            "title": "Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "mode",
+          "is_active",
+          "deleted"
+        ],
+        "title": "UserDeleteResponse",
+        "description": "사용자 삭제/비활성화 결과.\n\n- soft: is_active=False 로 비활성화 (레코드 보존)\n- hard: 레코드 물리 삭제 (superadmin 전용)"
       },
       "UserLogin": {
         "properties": {

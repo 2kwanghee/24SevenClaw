@@ -50,6 +50,20 @@ export function useUpdateUserRole() {
   });
 }
 
+export function useDeleteUser() {
+  const token = useAccessToken();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, hard }: { userId: string; hard?: boolean }) =>
+      rbac.deleteUser(token, userId, { hard }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "audit-log"] });
+    },
+  });
+}
+
 export function useOrgMembers(orgId: string) {
   const token = useAccessToken();
 

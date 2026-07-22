@@ -9,7 +9,8 @@
       "submit": "Kirim",
       "processing": "Memproses...",
       "loginIn": "Sedang masuk...",
-      "login": "Masuk"
+      "login": "Masuk",
+      "confirm": "Konfirmasi"
     },
     "aria": {
       "close": "Tutup",
@@ -102,7 +103,11 @@
     },
     "users": {
       "roleChangeSuccess": "Peran diubah menjadi {role}",
-      "roleChangeFail": "Gagal mengubah peran"
+      "roleChangeFail": "Gagal mengubah peran",
+      "deactivateSuccess": "Pengguna {name} dinonaktifkan",
+      "deactivateFail": "Gagal menonaktifkan pengguna",
+      "deleteSuccess": "Pengguna {name} dihapus",
+      "deleteFail": "Gagal menghapus pengguna"
     },
     "projects": {
       "fetchFail": "Gagal memuat proyek",
@@ -747,6 +752,12 @@
       "label": "Data mock",
       "ariaLabel": "Tampilkan data mock",
       "banner": "Menampilkan data mock — bukan data asli."
+    },
+    "deleteProject": {
+      "action": "Hapus",
+      "ariaLabel": "Hapus {name}",
+      "success": "Proyek dihapus",
+      "fail": "Gagal menghapus proyek"
     }
   },
   "ops": {

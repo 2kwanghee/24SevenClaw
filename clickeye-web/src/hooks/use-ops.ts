@@ -90,7 +90,7 @@ export function useRenderOpsEnv() {
   const token = useAccessToken();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (confirm = true) => ops.renderEnv(token, confirm),
+    mutationFn: (confirm: boolean) => ops.renderEnv(token, confirm),
     onSuccess: () => qc.invalidateQueries({ queryKey: [...OPS_KEY, "env"] }),
   });
 }

@@ -102,7 +102,11 @@ async def test_superadmin_ok(
 
 
 @pytest.mark.asyncio
-async def test_flag_off_404(client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_flag_off_404(
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # ambient env(.env 의 FEATURE_OPS_PANEL) 오염 방지 — 플래그 off 를 명시적으로 강제.
+    monkeypatch.setattr(settings, "feature_ops_panel", False)
     headers = await _superadmin(client, db_session, "flagoff@opsdb.com")
     resp = await client.get("/api/v1/admin/ops/tables", headers=headers)
     assert resp.status_code == 404
