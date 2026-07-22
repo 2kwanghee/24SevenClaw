@@ -54,7 +54,6 @@ version: ...       # 선택
 ### guide — 실행/사용 가이드
 | 문서 | 목적 | status |
 |------|------|--------|
-| [cli-guide.md](cli-guide.md) | `@clickeye/cli`(`ce`) 명령·카탈로그·프리셋 | current |
 | [pipeline-guide.md](pipeline-guide.md) | 자동화 파이프라인 v6 + 거버넌스 게이트 | current |
 | [si-factory-operating-guide.md](si-factory-operating-guide.md) | SI 팩토리 전략적 실행 가이드 (배포·토글·통제·선결조건) | current |
 | [aws-deployment-guide-ec2.md](aws-deployment-guide-ec2.md) | EC2 1대 docker-compose 배포(초보자용) | current |

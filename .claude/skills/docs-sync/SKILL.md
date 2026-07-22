@@ -21,7 +21,7 @@ description: 코드 변경 후 영향받는 docs/ 문서를 현행화한다. 유
 
 **호출 시점**: 리마인더가 떠 있으면(=needs-revision 문서가 있으면) **커밋 전에 1회** 호출한다. 편집마다가 아니라 **배치로 1회** — 토큰을 아끼는 핵심.
 
-대상 영역(참고): clickeye-api→`agent-protocol.md`/페이지스펙, clickeye-web→`docs/pages/**`·`architecture-overview.md`·`product-guide.md`, clickeye-cli→`cli-guide.md`, scripts/→`pipeline-guide.md`·`clickeye-development-pipeline.md`, clickeye-infra→`aws-deployment-guide-ec2.md`.
+대상 영역(참고): clickeye-api→`agent-protocol.md`/페이지스펙, clickeye-web→`docs/pages/**`·`architecture-overview.md`·`product-guide.md`, scripts/→`pipeline-guide.md`·`clickeye-development-pipeline.md`, clickeye-infra→`aws-deployment-guide-ec2.md`.
 
 스킬을 직접 호출하지 않아도, **현재 needs-revision 문서 목록**은 다음으로 확인한다:
 ```bash
@@ -59,8 +59,8 @@ git -C /mnt/c/workspace/ClickEye diff --name-only HEAD~1 2>/dev/null
 ### 2. 영향 문서 역매핑
 변경된 코드 경로를 각 문서의 `related` 프론트매터 및 `docs/pages/README.md`의 연결 파일 맵과 대조해 영향 문서를 추린다.
 ```bash
-# related에 특정 경로를 추적하는 문서 찾기 (예: clickeye-cli)
-grep -rl "clickeye-cli" /mnt/c/workspace/ClickEye/docs --include=*.md -l | xargs grep -l "^related:" 2>/dev/null
+# related에 특정 경로를 추적하는 문서 찾기 (예: clickeye-api)
+grep -rl "clickeye-api" /mnt/c/workspace/ClickEye/docs --include=*.md -l | xargs grep -l "^related:" 2>/dev/null
 ```
 판단이 필요하면 변경 diff와 문서 본문을 읽어 실제 영향 여부를 확인한다(거짓 매칭 배제).
 
