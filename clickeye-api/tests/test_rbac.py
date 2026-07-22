@@ -254,3 +254,105 @@ async def test_add_org_member_seals_null_primary_org(
         await db_session.execute(select(User).where(User.id == uuid.UUID(target_id)))
     ).scalar_one()
     assert str(target.organization_id) == org_id
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 사용자 삭제 (soft/hard)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_delete_user_soft_by_admin(client: AsyncClient, db_session: AsyncSession) -> None:
+    """소프트 삭제(기본): admin 이 member 를 비활성화한다."""
+    headers, _admin_id = await _register_and_login(client, "del_admin@test.com")
+    await _set_role(db_session, _admin_id, "admin")
+    _, target_id = await _register_and_login(client, "del_target@test.com")
+
+    resp = await client.delete(f"/api/v1/admin/users/{target_id}", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["mode"] == "soft"
+    assert body["deleted"] is False
+    assert body["is_active"] is False
+
+    # is_active 반영 확인
+    db_session.expire_all()
+    target = (
+        await db_session.execute(select(User).where(User.id == uuid.UUID(target_id)))
+    ).scalar_one()
+    assert target.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_delete_user_hard_by_superadmin(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """하드 삭제: superadmin 이 사용자를 물리 삭제한다."""
+    headers, super_id = await _register_and_login(client, "hard_super@test.com")
+    await _set_role(db_session, super_id, "superadmin")
+    _, target_id = await _register_and_login(client, "hard_target@test.com")
+
+    resp = await client.delete(
+        f"/api/v1/admin/users/{target_id}?hard=true", headers=headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["mode"] == "hard"
+    assert body["deleted"] is True
+
+    # 레코드가 물리 삭제됨
+    db_session.expire_all()
+    target = (
+        await db_session.execute(select(User).where(User.id == uuid.UUID(target_id)))
+    ).scalar_one_or_none()
+    assert target is None
+
+
+@pytest.mark.asyncio
+async def test_delete_user_forbidden_for_member(
+    client: AsyncClient, auth_headers: dict[str, str], db_session: AsyncSession
+) -> None:
+    """비-admin(member) 는 사용자 삭제 불가 (403)."""
+    _, target_id = await _register_and_login(client, "victim@test.com")
+    resp = await client.delete(f"/api/v1/admin/users/{target_id}", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_user_hard_forbidden_for_admin(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """admin(비-superadmin) 은 하드 삭제 불가 (403)."""
+    headers, admin_id = await _register_and_login(client, "hard_admin@test.com")
+    await _set_role(db_session, admin_id, "admin")
+    _, target_id = await _register_and_login(client, "hard_admin_target@test.com")
+
+    resp = await client.delete(
+        f"/api/v1/admin/users/{target_id}?hard=true", headers=headers
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_user_self_blocked(client: AsyncClient, db_session: AsyncSession) -> None:
+    """자기 자신 삭제 금지 (400)."""
+    headers, admin_id = await _register_and_login(client, "self_admin@test.com")
+    await _set_role(db_session, admin_id, "admin")
+
+    resp = await client.delete(f"/api/v1/admin/users/{admin_id}", headers=headers)
+    assert resp.status_code == 400
+    assert resp.json()["code"] == "CANNOT_DELETE_SELF"
+
+
+@pytest.mark.asyncio
+async def test_delete_last_superadmin_blocked(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """마지막 superadmin 삭제 금지 (409)."""
+    headers, super_id = await _register_and_login(client, "last_super@test.com")
+    await _set_role(db_session, super_id, "superadmin")
+
+    # 유일한 superadmin 이 자기 자신을 삭제 시도 → last-superadmin 가드가 우선 차단
+    resp = await client.delete(f"/api/v1/admin/users/{super_id}", headers=headers)
+    assert resp.status_code == 409
+    assert resp.json()["code"] == "LAST_SUPERADMIN"

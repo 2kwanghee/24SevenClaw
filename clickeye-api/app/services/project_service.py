@@ -236,8 +236,19 @@ class ProjectService(BaseService):
         await self.db.refresh(project)
         return project
 
-    async def delete(self, project_id: UUID, owner_id: UUID) -> None:
-        project = await self.get_by_id(project_id, owner_id)
+    async def delete(
+        self, project_id: UUID, owner_id: UUID, is_superadmin: bool = False
+    ) -> None:
+        """프로젝트 소프트 삭제 (status="deleted").
+
+        is_superadmin=True 이면 owner 스코프를 우회하여 타 조직 프로젝트도 삭제할 수 있다
+        (컨트롤타워/플랫폼 관리 경로). 소프트 삭제이므로 FK 연쇄는 발생하지 않는다
+        (상태 플래그만 변경 — 별도 마이그레이션 불필요).
+        """
+        if is_superadmin:
+            project = await self.get_for_admin(project_id)
+        else:
+            project = await self.get_by_id(project_id, owner_id)
         project.status = "deleted"  # type: ignore[assignment]
         project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()

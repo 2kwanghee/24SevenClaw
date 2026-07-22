@@ -1,9 +1,10 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
+from app.models.project import Project
 from app.models.rbac import OrganizationMembership, RoleAuditLog
 from app.models.user import User
 
@@ -117,6 +118,110 @@ class RBACService:
 
         result = await self.db.execute(select(User).order_by(User.created_at))
         return list(result.scalars().all())
+
+    async def _count_superadmins(self) -> int:
+        """전체 superadmin 수를 반환."""
+        result = await self.db.execute(
+            select(func.count()).select_from(User).where(User.system_role == "superadmin")
+        )
+        return int(result.scalar_one())
+
+    async def delete_user(
+        self,
+        target_user_id: UUID,
+        actor: User,
+        hard: bool = False,
+    ) -> str:
+        """사용자 삭제.
+
+        - soft(기본): is_active=False 로 비활성화 (admin 이상). 레코드/연관 데이터 보존.
+        - hard: 레코드 물리 삭제 (superadmin 전용). FK 연쇄 안전 처리.
+
+        반환값: "soft" | "hard" (수행한 모드).
+
+        가드:
+        - 자기 자신 삭제 금지 (400)
+        - superadmin 대상은 superadmin 만 삭제 가능 (403)
+        - 마지막 남은 superadmin 삭제 금지 (409)
+        - hard 삭제는 superadmin 전용 (403)
+        - 조직 스코프: 비-superadmin actor 는 동일 조직 사용자만 삭제 (403)
+
+        hard 삭제 FK 처리:
+        - owner_id 로 활성(비-deleted) 프로젝트를 보유하면 차단(409) — 파괴적 연쇄 방지.
+          (프로젝트를 먼저 삭제/이관해야 함)
+        - role_audit_logs.actor_id 는 ondelete=SET NULL 이나 NOT NULL 컬럼이라
+          PG 에서 위반이 발생하므로, 해당 actor 로그를 명시적으로 선삭제한다.
+        - 그 외 CASCADE FK(pm_ratings, organization_memberships, *_credentials,
+          maturity_assessments)와 SET NULL FK(orchestrator.created_by, ticket 등)는
+          기존 ondelete 제약으로 DB 가 정합 처리한다.
+        """
+        # 권한: soft 는 user:manage(admin+), hard 는 superadmin 전용
+        if not self.check_permission(actor, "user:manage"):
+            raise AppError("FORBIDDEN", "사용자 관리 권한이 없습니다", 403)
+
+        actor_is_superadmin = (getattr(actor, "system_role", "") or "") == "superadmin"
+        if hard and not actor_is_superadmin:
+            raise AppError("FORBIDDEN", "하드 삭제는 superadmin 만 가능합니다", 403)
+
+        target = await self.db.get(User, target_user_id)
+        if target is None:
+            raise AppError("USER_NOT_FOUND", "사용자를 찾을 수 없습니다", 404)
+
+        target_role = target.system_role or "member"
+
+        # superadmin 대상은 superadmin 만 삭제 가능
+        if target_role == "superadmin" and not actor_is_superadmin:
+            raise AppError("FORBIDDEN", "superadmin 사용자는 superadmin 만 삭제할 수 있습니다", 403)
+
+        # 마지막 남은 superadmin 삭제/비활성화 금지
+        # (self-delete 검사보다 먼저 — 단일 superadmin 자기 삭제도 여기서 차단)
+        if target_role == "superadmin" and await self._count_superadmins() <= 1:
+            raise AppError("LAST_SUPERADMIN", "마지막 superadmin 은 삭제할 수 없습니다", 409)
+
+        # 자기 자신 삭제 금지
+        if target.id == actor.id:
+            raise AppError("CANNOT_DELETE_SELF", "자기 자신은 삭제할 수 없습니다", 400)
+
+        # 조직 스코프: 비-superadmin actor 는 동일 조직 사용자만
+        if not actor_is_superadmin and target.organization_id != actor.organization_id:
+            raise AppError("FORBIDDEN", "다른 조직의 사용자를 삭제할 수 없습니다", 403)
+
+        if not hard:
+            # 소프트 삭제: 비활성화
+            target.is_active = False  # type: ignore[assignment]
+            audit = RoleAuditLog(
+                actor_id=actor.id,
+                target_user_id=target_user_id,
+                action="deactivate_user",
+                old_value=target_role,
+                new_value="inactive",
+                resource="user",
+            )
+            self.db.add(audit)
+            await self.db.commit()
+            return "soft"
+
+        # 하드 삭제 (superadmin)
+        # 활성 프로젝트 소유 시 차단 (파괴적 연쇄 방지)
+        active_projects = await self.db.execute(
+            select(func.count())
+            .select_from(Project)
+            .where(Project.owner_id == target_user_id, Project.status != "deleted")
+        )
+        if int(active_projects.scalar_one()) > 0:
+            raise AppError(
+                "USER_HAS_PROJECTS",
+                "소유한 프로젝트가 있어 삭제할 수 없습니다. 프로젝트를 먼저 삭제/이관하세요",
+                409,
+            )
+
+        # role_audit_logs.actor_id (NOT NULL + SET NULL) 위반 회피: actor 로그 선삭제
+        await self.db.execute(
+            delete(RoleAuditLog).where(RoleAuditLog.actor_id == target_user_id)
+        )
+        await self.db.delete(target)
+        await self.db.commit()
+        return "hard"
 
     async def add_org_member(
         self,

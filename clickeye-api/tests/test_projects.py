@@ -287,3 +287,65 @@ async def test_auth_me_exposes_org_and_role(
     body = resp.json()
     assert "organization_id" in body
     assert "system_role" in body
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# superadmin 프로젝트 삭제 경로 (컨트롤타워)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def _register_login(
+    client: AsyncClient, email: str, password: str = "pw12345678"
+) -> tuple[dict[str, str], str]:
+    await client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "display_name": email.split("@")[0]},
+    )
+    resp = await client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password}
+    )
+    headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    me = await client.get("/api/v1/auth/me", headers=headers)
+    return headers, me.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_superadmin_deletes_other_project(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """superadmin 은 타 사용자(타 조직) 소유 프로젝트도 삭제할 수 있다."""
+    owner_headers, _owner_id = await _register_login(client, "proj_owner@test.com")
+    create_resp = await client.post(
+        "/api/v1/projects/", json={"name": "타조직 프로젝트"}, headers=owner_headers
+    )
+    project_id = create_resp.json()["id"]
+
+    super_headers, super_id = await _register_login(client, "proj_super@test.com")
+    await _set_role(db_session, uuid.UUID(super_id), "superadmin")
+
+    resp = await client.delete(f"/api/v1/projects/{project_id}", headers=super_headers)
+    assert resp.status_code == 204
+
+    # owner 목록에서 사라짐 (soft delete → status=deleted)
+    list_resp = await client.get("/api/v1/projects/", headers=owner_headers)
+    assert list_resp.json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_non_superadmin_cannot_delete_other_project(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """비-superadmin 은 타 사용자 프로젝트 삭제 불가 (owner 스코프 → 404)."""
+    owner_headers, _owner_id = await _register_login(client, "proj_owner2@test.com")
+    create_resp = await client.post(
+        "/api/v1/projects/", json={"name": "내 프로젝트"}, headers=owner_headers
+    )
+    project_id = create_resp.json()["id"]
+
+    other_headers, _other_id = await _register_login(client, "proj_other@test.com")
+    resp = await client.delete(f"/api/v1/projects/{project_id}", headers=other_headers)
+    assert resp.status_code == 404
+
+    # 원 소유자 목록에는 그대로 존재
+    list_resp = await client.get("/api/v1/projects/", headers=owner_headers)
+    assert list_resp.json()["total"] == 1

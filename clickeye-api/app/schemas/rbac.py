@@ -40,6 +40,19 @@ class RoleUpdateRequest(BaseModel):
     system_role: SystemRole
 
 
+class UserDeleteResponse(BaseModel):
+    """사용자 삭제/비활성화 결과.
+
+    - soft: is_active=False 로 비활성화 (레코드 보존)
+    - hard: 레코드 물리 삭제 (superadmin 전용)
+    """
+
+    user_id: UUID
+    mode: Literal["soft", "hard"]
+    is_active: bool
+    deleted: bool
+
+
 class OrgMemberAddRequest(BaseModel):
     user_id: UUID
     org_role: OrgRole = "org_member"
