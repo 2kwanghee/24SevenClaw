@@ -13,6 +13,7 @@ TEST_DATABASE_URL(postgresql+asyncpg://...) 미설정 시 conftest 의
 
 import os
 import subprocess
+import uuid
 from pathlib import Path
 
 import pytest
@@ -94,3 +95,106 @@ async def test_alembic_upgrade_head_on_fresh_postgres(
     async with pg_engine.connect() as conn:
         versions = (await conn.execute(text("SELECT version_num FROM alembic_version"))).fetchall()
     assert len(versions) == 1, f"단일 head 여야 함, 실제: {[v[0] for v in versions]}"
+
+
+async def test_membership_dedupe_and_unique_active_index(
+    pg_engine: AsyncEngine, pg_database_url: str
+) -> None:
+    """047: 중복 활성 멤버십 dedupe + 부분 유니크 인덱스 강제 (CE-306 항목1).
+
+    046 까지 올린 상태에서 동일 (user_id, organization_id) 활성 멤버십 2건을 삽입한
+    뒤 head(047) 로 올리면, dedupe 로 최신 joined_at 1건만 활성으로 남고, 이후
+    동일 조합의 활성 멤버십 삽입은 유니크 인덱스에 의해 IntegrityError 로 차단된다.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    await _reset_public_schema(pg_engine)
+
+    # 1) 046 까지만 적용 — organization_memberships 테이블은 있으나 유니크 인덱스는 없음
+    result = _run_alembic(["upgrade", "046"], pg_database_url)
+    assert result.returncode == 0, (
+        f"alembic upgrade 046 실패 (rc={result.returncode})\n"
+        f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    )
+
+    user_id = uuid.uuid4()
+    org_id = uuid.uuid4()
+    keep_id = uuid.uuid4()  # joined_at 이 더 최신 → dedupe 후 살아남아야 함
+    drop_id = uuid.uuid4()  # joined_at 이 과거 → 비활성화되어야 함
+
+    # 2) 사용자/조직/중복 활성 멤버십 2건 삽입 (유니크 인덱스 생성 전이므로 성공)
+    async with pg_engine.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO users (id, email, display_name) "
+                "VALUES (:id, :email, :name)"
+            ),
+            {"id": user_id, "email": f"{user_id}@t.local", "name": "dedupe-user"},
+        )
+        await conn.execute(
+            text("INSERT INTO organizations (id, company_name) VALUES (:id, :name)"),
+            {"id": org_id, "name": "dedupe-org"},
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO organization_memberships "
+                "(id, user_id, organization_id, org_role, joined_at, is_active) VALUES "
+                "(:id, :u, :o, 'org_member', '2026-01-01T00:00:00+00', true)"
+            ),
+            {"id": drop_id, "u": user_id, "o": org_id},
+        )
+        await conn.execute(
+            text(
+                "INSERT INTO organization_memberships "
+                "(id, user_id, organization_id, org_role, joined_at, is_active) VALUES "
+                "(:id, :u, :o, 'org_member', '2026-06-01T00:00:00+00', true)"
+            ),
+            {"id": keep_id, "u": user_id, "o": org_id},
+        )
+
+    # 3) head(047) 로 — dedupe 실행 + 부분 유니크 인덱스 생성. 예외 없이 완료돼야 함
+    result = _run_alembic(["upgrade", "head"], pg_database_url)
+    assert result.returncode == 0, (
+        f"alembic upgrade head 실패 (rc={result.returncode})\n"
+        f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    )
+
+    async with pg_engine.connect() as conn:
+        active_ids = {
+            row[0]
+            for row in (
+                await conn.execute(
+                    text(
+                        "SELECT id FROM organization_memberships "
+                        "WHERE user_id = :u AND organization_id = :o AND is_active IS TRUE"
+                    ),
+                    {"u": user_id, "o": org_id},
+                )
+            ).fetchall()
+        }
+        # 4) 최신 joined_at 1건만 활성으로 남는다
+        assert active_ids == {keep_id}, f"dedupe 후 활성은 keep_id 1건이어야 함, 실제: {active_ids}"
+
+        # 5) 부분 유니크 인덱스가 존재한다
+        idx = (
+            await conn.execute(
+                text(
+                    "SELECT indexname FROM pg_indexes "
+                    "WHERE tablename = 'organization_memberships' "
+                    "AND indexname = 'uq_org_membership_active'"
+                )
+            )
+        ).fetchall()
+        assert len(idx) == 1, "uq_org_membership_active 부분 유니크 인덱스가 존재해야 함"
+
+    # 6) 동일 (user, org) 활성 멤버십 추가 삽입은 유니크 인덱스로 차단된다
+    with pytest.raises(IntegrityError):
+        async with pg_engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO organization_memberships "
+                    "(id, user_id, organization_id, org_role, joined_at, is_active) VALUES "
+                    "(:id, :u, :o, 'org_member', now(), true)"
+                ),
+                {"id": uuid.uuid4(), "u": user_id, "o": org_id},
+            )

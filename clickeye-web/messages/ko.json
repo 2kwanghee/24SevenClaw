@@ -644,7 +644,11 @@
       "validating": "검증 중",
       "approved": "승인됨",
       "transitioning": "전환 중",
-      "completed": "완료"
+      "completed": "완료",
+      "revising": "수정 중",
+      "in_development": "개발 중",
+      "validated": "검증됨",
+      "released": "배포됨"
     },
     "keyStatus": {
       "fresh": "최신",
@@ -707,6 +711,7 @@
       "columnEmpty": "비어 있음",
       "unlinked": "미연동",
       "unlinkedOther": "미연동 · 기타",
+      "artifact": "산출물",
       "role": {
         "architect": "아키텍트",
         "frontend": "프론트엔드",
