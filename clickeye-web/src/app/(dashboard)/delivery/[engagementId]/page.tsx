@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Boxes, FlaskConical } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Boxes, FlaskConical, Trash2 } from "lucide-react";
 
 import { ConsoleHeader } from "@/components/delivery/console-header";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { DeliveryStepper } from "@/components/delivery/delivery-stepper";
 import { IssueBoard } from "@/components/delivery/issue-board";
 import { ReviewList } from "@/components/delivery/review-list";
@@ -20,7 +22,7 @@ import {
   useSyncLinearStates,
   useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
-import { useProject } from "@/hooks/use-projects";
+import { useProject, useDeleteProject } from "@/hooks/use-projects";
 import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
 import { useGovernancePolicy } from "@/hooks/use-governance";
 import { useProjectOverrides } from "@/hooks/use-contracts";
