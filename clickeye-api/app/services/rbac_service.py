@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
@@ -131,7 +132,7 @@ class RBACService:
         target_user_id: UUID,
         actor: User,
         hard: bool = False,
-    ) -> str:
+    ) -> Literal["soft", "hard"]:
         """사용자 삭제.
 
         - soft(기본): is_active=False 로 비활성화 (admin 이상). 레코드/연관 데이터 보존.

@@ -90,7 +90,7 @@ async def delete_user(
     mode = await service.delete_user(user_id, user, hard=hard)
     return UserDeleteResponse(
         user_id=user_id,
-        mode=mode,  # type: ignore[arg-type]
+        mode=mode,
         is_active=False,
         deleted=(mode == "hard"),
     )
