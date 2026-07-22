@@ -38,7 +38,10 @@ if docker compose ps --services --filter "status=running" 2>/dev/null | grep -qx
   echo "✅ Temporal 준비 완료 (Web UI: http://localhost:8080)"
 fi
 
-# 4. API DB 마이그레이션 (api 레포가 있을 때만)
+# 4. API DB 마이그레이션 — 호스트 개발 흐름 전용(uv run).
+#    참고(CE-305): 컨테이너 기동 흐름(`--profile full` / deploy.sh)은 compose 의 migrate
+#    one-shot 서비스가 기동 전 자동 적용하므로 이 호스트 스텝과 중복되지 않는다
+#    (setup-dev 의 기본 `docker compose up -d` 는 db/redis 만 기동 → migrate 미기동).
 API_DIR="$ROOT_DIR/clickeye-api"
 if [ -d "$API_DIR" ] && [ -f "$API_DIR/alembic.ini" ]; then
   echo ""

@@ -1,3 +1,6 @@
 .env
 .env.local
 *.log
+
+# 관리형 env 실파일(운영 패널 렌더 타깃, CE-305) — .example/.gitkeep 만 추적
+managed/*.env
