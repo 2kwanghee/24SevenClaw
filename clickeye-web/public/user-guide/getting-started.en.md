@@ -29,6 +29,5 @@ ClickEye is an AI agent-driven development automation delivery platform. Create 
 
 - [AI Team Management](/guide/ai-team-management) — Task requests, draft generation, and approval flow
 - [Agent Platform](/guide/agent-platform) — Features and setup for each platform
-- [CLI Guide](/guide/cli-guide) — Using the CLI tool
 
 > Detailed content will be updated later (24S-186).

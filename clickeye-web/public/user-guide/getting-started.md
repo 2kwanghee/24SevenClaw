@@ -29,6 +29,5 @@ ClickEye는 AI 에이전트 기반 개발 자동화 딜리버리 플랫폼입니
 
 - [AI Team 관리](/guide/ai-team-management) — 작업 요청·초안 생성·승인 흐름
 - [에이전트 플랫폼](/guide/agent-platform) — 플랫폼별 특징과 설정
-- [CLI 사용법](/guide/cli-guide) — CLI 도구 활용
 
 > 상세 내용은 추후 업데이트 예정입니다 (24S-186).

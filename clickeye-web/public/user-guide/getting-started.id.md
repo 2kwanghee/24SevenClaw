@@ -29,6 +29,5 @@ ClickEye adalah platform delivery otomatisasi pengembangan berbasis AI agent. Bu
 
 - [Manajemen AI Team](/guide/ai-team-management) — Alur permintaan tugas, pembuatan draf, dan persetujuan
 - [Platform Agent](/guide/agent-platform) — Karakteristik dan konfigurasi tiap platform
-- [Penggunaan CLI](/guide/cli-guide) — Memanfaatkan alat CLI
 
 > Detail lebih lanjut akan diperbarui kemudian (24S-186).
