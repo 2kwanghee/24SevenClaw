@@ -69,7 +69,7 @@ export function IssueCard({
           {subtask.artifact_id && (
             <span className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-[var(--text-muted)]">
               <FileText className="h-3 w-3" aria-hidden="true" />
-              artifact
+              {t("issues.artifact")}
             </span>
           )}
         </div>

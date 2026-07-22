@@ -644,7 +644,11 @@
       "validating": "Validating",
       "approved": "Approved",
       "transitioning": "Transitioning",
-      "completed": "Completed"
+      "completed": "Completed",
+      "revising": "Revising",
+      "in_development": "In development",
+      "validated": "Validated",
+      "released": "Released"
     },
     "keyStatus": {
       "fresh": "Fresh",
@@ -707,6 +711,7 @@
       "columnEmpty": "Empty",
       "unlinked": "Unlinked",
       "unlinkedOther": "Unlinked · Other",
+      "artifact": "Artifact",
       "role": {
         "architect": "Architect",
         "frontend": "Frontend",

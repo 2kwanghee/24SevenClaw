@@ -1,19 +1,8 @@
 "use client";
 
-import type { PhaseDuration } from "@/lib/api-client";
+import { useTranslations } from "next-intl";
 
-const PHASE_LABELS: Record<string, string> = {
-  requested: "요청",
-  decomposed: "분해",
-  assigned: "배정",
-  drafting: "초안 작성",
-  reviewing: "검토",
-  revising: "수정",
-  approved: "승인",
-  in_development: "개발",
-  validated: "검증",
-  released: "배포",
-};
+import type { PhaseDuration } from "@/lib/api-client";
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}초`;
@@ -26,6 +15,7 @@ interface PhaseVelocityChartProps {
 }
 
 export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
+  const t = useTranslations("delivery.phase");
   const maxDuration = Math.max(...data.map((d) => d.avg_duration_seconds), 1);
 
   return (
@@ -44,7 +34,7 @@ export function PhaseVelocityChart({ data }: PhaseVelocityChartProps) {
       ) : (
         <div className="space-y-3">
           {data.map((item) => {
-            const label = PHASE_LABELS[item.phase] ?? item.phase;
+            const label = t.has(item.phase) ? t(item.phase) : item.phase;
             const pct = (item.avg_duration_seconds / maxDuration) * 100;
 
             return (

@@ -644,7 +644,11 @@
       "validating": "Sedang divalidasi",
       "approved": "Disetujui",
       "transitioning": "Sedang beralih",
-      "completed": "Selesai"
+      "completed": "Selesai",
+      "revising": "Sedang direvisi",
+      "in_development": "Sedang dikembangkan",
+      "validated": "Tervalidasi",
+      "released": "Dirilis"
     },
     "keyStatus": {
       "fresh": "Terbaru",
@@ -707,6 +711,7 @@
       "columnEmpty": "Kosong",
       "unlinked": "Belum tertaut",
       "unlinkedOther": "Belum tertaut · Lainnya",
+      "artifact": "Artefak",
       "role": {
         "architect": "Arsitek",
         "frontend": "Frontend",

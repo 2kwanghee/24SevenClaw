@@ -1,21 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Clock } from "lucide-react";
 
 import type { PhaseTimelineEntry } from "@/lib/api-client";
-
-const PHASE_LABELS: Record<string, string> = {
-  requested: "요청됨",
-  decomposed: "분해됨",
-  assigned: "배정됨",
-  drafting: "초안 작성",
-  reviewing: "리뷰 중",
-  integrating: "통합 중",
-  validating: "검증 중",
-  approved: "승인됨",
-  transitioning: "전환 중",
-  completed: "완료",
-};
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}초`;
@@ -39,6 +27,7 @@ interface ProjectTimelineProps {
 }
 
 export function ProjectTimeline({ data }: ProjectTimelineProps) {
+  const t = useTranslations("delivery.phase");
   return (
     <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
       <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
@@ -53,7 +42,7 @@ export function ProjectTimeline({ data }: ProjectTimelineProps) {
         <div className="relative space-y-0">
           {data.map((entry, i) => {
             const isLast = i === data.length - 1;
-            const label = PHASE_LABELS[entry.phase] ?? entry.phase;
+            const label = t.has(entry.phase) ? t(entry.phase) : entry.phase;
 
             return (
               <div key={`${entry.phase}-${i}`} className="flex gap-3">

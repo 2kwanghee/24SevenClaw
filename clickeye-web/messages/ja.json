@@ -644,7 +644,11 @@
       "validating": "検証中",
       "approved": "承認済み",
       "transitioning": "移行中",
-      "completed": "完了"
+      "completed": "完了",
+      "revising": "修正中",
+      "in_development": "開発中",
+      "validated": "検証済み",
+      "released": "リリース済み"
     },
     "keyStatus": {
       "fresh": "最新",
@@ -707,6 +711,7 @@
       "columnEmpty": "空です",
       "unlinked": "未連携",
       "unlinkedOther": "未連携 · その他",
+      "artifact": "成果物",
       "role": {
         "architect": "アーキテクト",
         "frontend": "フロントエンド",
