@@ -138,22 +138,9 @@ def require_ops_feature() -> None:
     """운영(Ops) 패널 feature flag 가드.
 
     `feature_ops_panel = False` 일 때 ops endpoint 가 모두 404 응답 (킬스위치).
-    modernize 게이트와 동일 패턴 — 인증보다 먼저 평가되어 존재 자체를 은닉한다.
+    feature flag 게이트 패턴 — 인증보다 먼저 평가되어 존재 자체를 은닉한다.
     """
     if not settings.feature_ops_panel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not Found",
-        )
-
-
-def require_modernize_feature() -> None:
-    """ClickEye Modernize feature flag 가드.
-
-    `feature_modernize_enabled = False` 일 때 신규 endpoint 가 모두 404 응답.
-    기존 사용자에게 베타 기능이 노출되지 않도록 보장 (비침습성 원칙).
-    """
-    if not settings.feature_modernize_enabled:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not Found",

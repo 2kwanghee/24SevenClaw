@@ -2,12 +2,9 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.pm_profile import PMProfile
-from app.models.prototype_session import Prototype, PrototypeSession
-from app.models.user import User
 
 
 async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
@@ -56,53 +53,6 @@ async def _seed_pm_profiles(db: AsyncSession) -> list[str]:
         await db.refresh(p)
         ids.append(str(p.id))
     return ids
-
-
-async def _create_session_id(client: AsyncClient, headers: dict[str, str], db: AsyncSession) -> str:
-    """테스트용 조직(API) + PrototypeSession(DB 직접 시딩)을 생성하고 session_id를 반환한다.
-
-    위저드 프로토타입 세션 엔드포인트는 P3 에서 제거되었으므로, PM 평가/추천 회귀
-    커버리지 유지를 위해 보존 모델(PrototypeSession/Prototype)에 직접 시딩한다.
-    """
-    org_resp = await client.post(
-        "/api/v1/organizations/",
-        json={"company_name": "PM 테스트 회사", "size": "11-50"},
-        headers=headers,
-    )
-    org_id = org_resp.json()["id"]
-
-    user = (await db.execute(select(User).where(User.email == "test@example.com"))).scalar_one()
-
-    session = PrototypeSession(
-        user_id=user.id,
-        organization_id=uuid.UUID(org_id),
-        solution_prompt="SaaS 구독 서비스를 만들고 싶습니다",
-        status="ready",
-    )
-    db.add(session)
-    await db.commit()
-    await db.refresh(session)
-    return str(session.id)
-
-
-async def _create_org_and_prototype(
-    client: AsyncClient, headers: dict[str, str], db: AsyncSession
-) -> dict:
-    """테스트용 세션 + Prototype(DB 직접 시딩)을 생성하고 첫 프로토타입을 반환한다."""
-    session_id = await _create_session_id(client, headers, db)
-
-    proto = Prototype(
-        session_id=uuid.UUID(session_id),
-        variant_index=0,
-        title="프로토타입 A",
-        description="테스트 프로토타입",
-        design_pattern="dashboard",
-        status="ready",
-    )
-    db.add(proto)
-    await db.commit()
-    await db.refresh(proto)
-    return {"id": str(proto.id)}
 
 
 @pytest.mark.asyncio
@@ -166,40 +116,6 @@ async def test_get_profile_not_found(client: AsyncClient, auth_headers: dict[str
 
 
 @pytest.mark.asyncio
-async def test_recommend_pms(
-    client: AsyncClient,
-    auth_headers: dict[str, str],
-    db_session: AsyncSession,
-) -> None:
-    await _seed_pm_profiles(db_session)
-    prototype = await _create_org_and_prototype(client, auth_headers, db_session)
-
-    resp = await client.post(
-        "/api/v1/pm-profiles/recommend",
-        json={"prototype_id": prototype["id"]},
-        headers=auth_headers,
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert len(body["items"]) == 3
-    # 점수 내림차순 정렬 확인
-    scores = [item["match_score"] for item in body["items"]]
-    assert scores == sorted(scores, reverse=True)
-
-
-@pytest.mark.asyncio
-async def test_recommend_pms_prototype_not_found(
-    client: AsyncClient, auth_headers: dict[str, str]
-) -> None:
-    resp = await client.post(
-        "/api/v1/pm-profiles/recommend",
-        json={"prototype_id": "00000000-0000-0000-0000-000000000000"},
-        headers=auth_headers,
-    )
-    assert resp.status_code == 404
-
-
-@pytest.mark.asyncio
 async def test_rate_pm(
     client: AsyncClient,
     auth_headers: dict[str, str],
@@ -207,12 +123,10 @@ async def test_rate_pm(
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
 
-    # 세션 생성
-    session_id = await _create_session_id(client, auth_headers, db_session)
-
+    # PM 평가는 pm_profile + user 스코프 — 세션 개념 없이 동작한다.
     resp = await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
-        json={"session_id": session_id, "rating": 4, "comment": "좋은 PM입니다"},
+        json={"rating": 4, "comment": "좋은 PM입니다"},
         headers=auth_headers,
     )
     assert resp.status_code == 201
@@ -231,10 +145,7 @@ async def test_rate_pm_invalid_score(
 
     resp = await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
-        json={
-            "session_id": "00000000-0000-0000-0000-000000000001",
-            "rating": 6,
-        },
+        json={"rating": 6},
         headers=auth_headers,
     )
     assert resp.status_code == 422
@@ -247,13 +158,12 @@ async def test_list_ratings(
     db_session: AsyncSession,
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
-    session_id = await _create_session_id(client, auth_headers, db_session)
 
     # 평가 2개 등록
     for rating_val in (3, 5):
         await client.post(
             f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
-            json={"session_id": session_id, "rating": rating_val},
+            json={"rating": rating_val},
             headers=auth_headers,
         )
 
@@ -275,12 +185,9 @@ async def test_get_metrics(
 ) -> None:
     pm_ids = await _seed_pm_profiles(db_session)
 
-    # 세션 생성 + 평가
-    session_id = await _create_session_id(client, auth_headers, db_session)
-
     await client.post(
         f"/api/v1/pm-profiles/{pm_ids[0]}/ratings",
-        json={"session_id": session_id, "rating": 5},
+        json={"rating": 5},
         headers=auth_headers,
     )
 

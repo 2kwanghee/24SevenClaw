@@ -298,7 +298,7 @@ Cloud: JWT 검증
 ### 5.2 보안 원칙
 - 모든 통신 TLS 암호화 (HTTPS)
 - JWT 기반 stateless 인증
-- 사용자 외부 도구 API 키는 서버에 **저장하지 않음** (.env → ZIP에만 포함)
+- 사용자 외부 도구 API 키는 서버에 **저장하지 않음** (.env는 로컬 실행 환경에만 존재)
 - 사용자의 AI API 키 (Claude, Gemini)는 절대 서버로 전송하지 않음
 - 비밀번호는 bcrypt 해싱
 

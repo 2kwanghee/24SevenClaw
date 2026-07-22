@@ -1,7 +1,7 @@
 ---
 title: 아키텍처 비교
 category: product
-status: needs-revision
+status: current
 last_updated: 2026-07-22
 related:
   - clickeye-web

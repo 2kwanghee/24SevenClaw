@@ -1,4 +1,4 @@
-"""PM 프로필 서비스 — PM 목록/추천/구성/평가."""
+"""PM 프로필 서비스 — PM 목록/구성/평가."""
 
 from datetime import UTC, datetime
 from typing import Any
@@ -13,7 +13,6 @@ from app.models.pm_composition import PMComposition
 from app.models.pm_metrics import PMMetrics
 from app.models.pm_profile import PMProfile
 from app.models.pm_rating import PMRating
-from app.models.prototype_session import Prototype, PrototypeSession
 from app.schemas.pm_profile import (
     PMCompositionCreate,
     PMCompositionGroupedResponse,
@@ -24,13 +23,11 @@ from app.schemas.pm_profile import (
     PMProfileWithMetrics,
     PMRatingCreate,
 )
-from app.services.claude_service import ClaudeService
 
 
 class PMService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self._claude = ClaudeService()
 
     # ── PM 프로필 조회 ──
 
@@ -173,151 +170,6 @@ class PMService:
         await self.db.delete(composition)
         await self.db.commit()
 
-    # ── PM 추천 ──
-
-    async def recommend_pms(
-        self,
-        prototype_id: UUID,
-        session_id: UUID | None = None,
-    ) -> list[dict[str, Any]]:
-        """프로토타입에 적합한 PM을 추천한다.
-
-        알고리즘:
-            1. 도메인 기반 점수 (40%) — ClaudeService 룰 기반
-            2. 전문분야 유사도 (30%) — design_pattern + 세션 프롬프트 키워드 매칭
-            3. 평가지표 가중치 (30%) — avg_rating 기반
-
-        Returns:
-            list[{pm_profile: PMProfile, match_score: int, reasoning: str}]
-            상위 3~5개 결과만 반환
-        """
-        # 프로토타입 조회
-        prototype = await self.db.get(Prototype, prototype_id)
-        if prototype is None:
-            raise AppError("PROTOTYPE_NOT_FOUND", "프로토타입을 찾을 수 없습니다", 404)
-
-        # 세션 컨텍스트 로드 (있는 경우)
-        context_text = ""
-        if session_id:
-            session = await self.db.get(PrototypeSession, session_id)
-            if session and session.solution_prompt:
-                context_text = str(session.solution_prompt)
-
-        # 활성 PM 프로필 조회
-        stmt = select(PMProfile).where(PMProfile.is_active.is_(True))
-        result = await self.db.execute(stmt)
-        profiles = list(result.scalars().all())
-
-        if not profiles:
-            return []
-
-        # 1단계: 도메인 기반 점수 (ClaudeService)
-        design_pattern = str(prototype.design_pattern or "")
-        domains = [str(p.domain or "") for p in profiles]
-        domain_scores = self._claude.recommend_pm_scores(design_pattern, domains)
-
-        # 2단계: 전문분야 유사도 키워드 준비
-        combined_text = (design_pattern + " " + context_text).lower()
-        keywords = [kw for kw in combined_text.split() if len(kw) > 2]
-
-        # 3단계: 메트릭 일괄 로드 (N+1 방지)
-        pm_ids = [p.id for p in profiles]
-        metrics_stmt = select(PMMetrics).where(PMMetrics.pm_id.in_(pm_ids))
-        metrics_result = await self.db.execute(metrics_stmt)
-        metrics_by_pm: dict[Any, PMMetrics] = {m.pm_id: m for m in metrics_result.scalars().all()}
-
-        # 4단계: 레지스트리 도메인 메타 기반 보너스 — PM 구성 슬러그의 domains 집합 수집
-        # 모든 PM의 compositions를 한 번에 로드
-        from app.models.registry import Agent, Skill
-
-        comps_stmt = select(PMComposition).where(PMComposition.pm_id.in_(pm_ids))
-        comps_result = await self.db.execute(comps_stmt)
-        all_comps = list(comps_result.scalars().all())
-
-        agent_slugs = {c.component_slug for c in all_comps if c.component_type == "agent"}
-        skill_slugs = {c.component_slug for c in all_comps if c.component_type == "skill"}
-
-        # 레지스트리에서 slug → domains 맵 구성
-        reg_domain_map: dict[str, list[str]] = {}
-        if agent_slugs:
-            a_stmt = select(Agent).where(Agent.slug.in_(agent_slugs))
-            for a in (await self.db.execute(a_stmt)).scalars().all():
-                reg_domain_map[str(a.slug)] = list(a.domains or [])
-        if skill_slugs:
-            s_stmt = select(Skill).where(Skill.slug.in_(skill_slugs))
-            for s in (await self.db.execute(s_stmt)).scalars().all():
-                reg_domain_map[str(s.slug)] = list(s.domains or [])
-
-        # PM별 레지스트리 도메인 집합
-        pm_reg_domains: dict[Any, set[str]] = {}
-        for comp in all_comps:
-            _pid_c: Any = comp.pm_id
-            if _pid_c not in pm_reg_domains:
-                pm_reg_domains[_pid_c] = set()
-            pm_reg_domains[_pid_c].update(reg_domain_map.get(str(comp.component_slug), []))
-
-        # 세션 도메인 키워드 (design_pattern + context_text에서 추출)
-        session_domain_tokens = {t.lower() for t in combined_text.split() if len(t) > 2}
-
-        recommendations: list[dict[str, Any]] = []
-        for profile in profiles:
-            domain_key = str(profile.domain or "")
-            domain_score = float(domain_scores.get(domain_key, 40))
-
-            # 전문분야 유사도: 키워드가 specialties에 포함된 비율
-            _specs: Any = profile.specialties
-            pm_specialties = [s.lower() for s in (_specs or [])]
-            if keywords and pm_specialties:
-                matched = sum(
-                    1 for kw in keywords if any(kw in spec or spec in kw for spec in pm_specialties)
-                )
-                specialty_score = min(matched / max(len(keywords), 1) * 200, 100.0)
-            else:
-                specialty_score = 50.0
-
-            # 평가지표 점수: avg_rating(1~5) → 0~100 스케일
-            _pid: Any = profile.id
-            metric = metrics_by_pm.get(_pid)
-            if metric and metric.total_ratings and int(metric.total_ratings) > 0:
-                metric_score = float(metric.avg_rating or 0) / 5.0 * 100
-            else:
-                metric_score = 50.0  # 평가 없는 경우 중립값
-
-            # 레지스트리 도메인 보너스: PM 구성 items의 domains가 세션 컨텍스트와 교집합
-            reg_domains = pm_reg_domains.get(_pid, set())
-            if reg_domains and session_domain_tokens:
-                overlap = reg_domains & session_domain_tokens
-                domain_bonus = min(len(overlap) / max(len(reg_domains), 1) * 100, 10.0)
-            else:
-                domain_bonus = 0.0
-
-            # 가중 합산 (도메인 보너스는 최대 +10점)
-            final_score = min(
-                int(domain_score * 0.4 + specialty_score * 0.3 + metric_score * 0.3 + domain_bonus),
-                100,
-            )
-
-            reasoning = (
-                f"{profile.name}({profile.domain})은 "
-                f"{design_pattern or '해당'} 프로젝트에 "
-                f"도메인({int(domain_score)}pt)·"
-                f"전문분야({int(specialty_score)}pt)·"
-                f"평가({int(metric_score)}pt)"
-                + (f"·레지스트리({int(domain_bonus)}pt)" if domain_bonus > 0 else "")
-                + f" 기준으로 종합 {final_score}점입니다."
-            )
-            recommendations.append(
-                {
-                    "pm_profile": profile,
-                    "match_score": final_score,
-                    "reasoning": reasoning,
-                }
-            )
-
-        # 점수 내림차순 정렬 후 상위 3~5개 반환
-        recommendations.sort(key=lambda r: int(r["match_score"]), reverse=True)
-        return recommendations[:5]
-
     # ── PM 구성 ──
 
     async def get_composition(self, pm_id: UUID) -> PMCompositionGroupedResponse:
@@ -396,7 +248,6 @@ class PMService:
 
         rating = PMRating(
             pm_id=pm_profile_id,
-            session_id=data.session_id,
             user_id=user_id,
             rating=data.rating,
             reaction=data.reaction,

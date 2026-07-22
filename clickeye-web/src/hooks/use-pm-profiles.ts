@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import {
   pmProfiles,
   type PMRatingCreateRequest,
-  type PMRecommendRequest,
 } from "@/lib/api-client";
 
 function useAccessToken() {
@@ -48,17 +47,6 @@ export function usePMComposition(profileId: string) {
     queryKey: ["pm-profiles", profileId, "composition"],
     queryFn: () => pmProfiles.getComposition(token, profileId),
     enabled: !!token && !!profileId,
-  });
-}
-
-// --- PM 추천 (프로토타입 기반) ---
-
-export function useRecommendPMProfiles(data: PMRecommendRequest) {
-  const token = useAccessToken();
-  return useQuery({
-    queryKey: ["pm-profiles", "recommend", data],
-    queryFn: () => pmProfiles.recommend(token, data),
-    enabled: !!token && !!data.prototype_id,
   });
 }
 

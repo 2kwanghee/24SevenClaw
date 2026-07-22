@@ -23,9 +23,6 @@ from app.schemas.pm_profile import (
     PMRatingCreate,
     PMRatingListResponse,
     PMRatingResponse,
-    PMRecommendListResponse,
-    PMRecommendRequest,
-    PMRecommendResponse,
 )
 from app.services.pm_markdown_service import parse_markdown_to_pm_dict, serialize_pm_to_markdown
 from app.services.pm_service import PMService
@@ -67,30 +64,6 @@ async def get_profile(
     """PM 프로필과 메트릭을 함께 조회한다."""
     service = PMService(db)
     return await service.get_profile(profile_id)
-
-
-@router.post("/recommend", response_model=PMRecommendListResponse)
-async def recommend_pms(
-    data: PMRecommendRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> PMRecommendListResponse:
-    """프로토타입에 적합한 PM을 추천한다 (상위 3~5개)."""
-    service = PMService(db)
-    recommendations = await service.recommend_pms(
-        prototype_id=data.prototype_id,
-        session_id=data.session_id,
-    )
-    return PMRecommendListResponse(
-        items=[
-            PMRecommendResponse(
-                pm_profile=PMProfileResponse.model_validate(r["pm_profile"]),
-                match_score=int(r["match_score"]),
-                reasoning=str(r["reasoning"]) if r["reasoning"] else None,
-            )
-            for r in recommendations
-        ]
-    )
 
 
 @router.get("/{profile_id}/composition", response_model=PMCompositionGroupedResponse)

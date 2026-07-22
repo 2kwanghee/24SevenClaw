@@ -50,12 +50,10 @@ ALLOWED_KEYS: dict[str, _KeySpec] = {
     "OPENAI_MODEL_DEFAULT": _KeySpec(is_secret=False, kind="str"),
     "LLM_ROUTE_COMPLEXITY_THRESHOLD": _KeySpec(is_secret=False, kind="float"),
     "FEATURE_OPS_PANEL": _KeySpec(is_secret=False, kind="bool"),
-    "FEATURE_MODERNIZE_ENABLED": _KeySpec(is_secret=False, kind="bool"),
     "FEATURE_LLM_GATEWAY": _KeySpec(is_secret=False, kind="bool"),
     "FEATURE_TEMPORAL": _KeySpec(is_secret=False, kind="bool"),
     "ANTHROPIC_API_KEY": _KeySpec(is_secret=True, kind="str"),
     "OPENAI_API_KEY": _KeySpec(is_secret=True, kind="str"),
-    "GITHUB_APP_WEBHOOK_SECRET": _KeySpec(is_secret=True, kind="str"),
     "GOVERNANCE_SERVICE_TOKEN": _KeySpec(is_secret=True, kind="str"),
 }
 

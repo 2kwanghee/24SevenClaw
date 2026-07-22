@@ -1,8 +1,8 @@
 ---
 title: ClickEye SI 팩토리 전환 — 마스터 설계 기준
 category: architecture
-status: needs-revision
-last_updated: 2026-07-16
+status: current
+last_updated: 2026-07-22
 related:
   - docs/hybrid-runner-headless-poc.md
   - docs/architecture-overview.md
@@ -254,7 +254,7 @@ activity 배선·Linear fetch)는 후속 단계로 남긴다.
 
 - clickeye-agent 실행 핸들러 P3 신규 구현
 - 라우터: 프로젝트→데스크탑 또는 클라우드 자동 배치
-- 수주 인테이크 자동화 (Linear 티켓→ZIP→실행)
+- 수주 인테이크 자동화 (Linear 티켓→실행)
 - 마진 추적·보고 (ROI 고도화)
 
 #### P3 설계 노트 (실동작 이월 — 스켈레톤/설계만)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -28,8 +28,6 @@ class ProjectResponse(BaseModel):
     description: str | None
     status: str
     settings: dict  # type: ignore[type-arg]
-    wizard_data: dict[str, Any] | None = None
-    prototype_session_id: UUID | None = None
     pm_profile_id: UUID | None = None
     project_type: str | None = None
     bootstrap_status: str = "skipped"

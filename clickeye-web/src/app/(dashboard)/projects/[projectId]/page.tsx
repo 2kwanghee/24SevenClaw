@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
@@ -16,11 +16,6 @@ import {
   Calendar,
   Activity,
   Bot,
-  Wrench,
-  GitBranch,
-  Monitor,
-  Layers,
-  Building2,
   CheckCircle2,
   XCircle,
   RefreshCw,
@@ -35,26 +30,12 @@ import { useTranslations } from "next-intl";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ResetProjectDialog } from "@/components/projects/reset-project-dialog";
 import { ProjectForm } from "@/components/projects/project-form";
-import { PMFeedbackCard } from "@/components/projects/pm-feedback-card";
 import {
   useDeleteProject,
   useProject,
   useUpdateProject,
 } from "@/hooks/use-projects";
 import { apiClient, ApiClientError, projectLinearCredentials, type ProjectLinearStatus } from "@/lib/api-client";
-
-const SOLUTION_TYPE_LABELS: Record<string, string> = {
-  saas: "SaaS",
-  "rest-api": "REST API",
-  mvp: "MVP",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  "claude-code": "Claude Code",
-  "gemini-cli": "Gemini CLI",
-  codex: "Codex",
-  cursor: "Cursor",
-};
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -76,12 +57,6 @@ export default function ProjectDetailPage() {
   /* --------------------------------------------------------------
     Linear 연동 프리플라이트 — 자격증명 저장 상태 확인
   -------------------------------------------------------------- */
-  const skillIds = useMemo<string[]>(
-    () => ((project?.wizard_data?.skills ?? []) as { id: string }[]).map((s) => s.id),
-    [project?.wizard_data?.skills],
-  );
-  const hasLinear = skillIds.includes("linear");
-
   const { data: linearStatus, refetch: refetchLinearStatus, isFetching: linearFetching } = useQuery({
     queryKey: ["linear-connection-status", projectId],
     queryFn: () => projectLinearCredentials.status(token, projectId),
@@ -132,13 +107,6 @@ export default function ProjectDetailPage() {
   const isActive = project.status === "active";
   const isStale =
     project.anthropic_key_status === "stale" || project.linear_key_status === "stale";
-  const resolveSolutionTypeLabel = (solutionType?: string | null) => {
-    if (!solutionType) return tD("notSet");
-    if (solutionType === "fullstack") return tD("solutionTypeFullstack");
-    if (solutionType === "internal-tool") return tD("solutionTypeInternalTool");
-    if (solutionType === "custom") return tD("solutionTypeCustom");
-    return SOLUTION_TYPE_LABELS[solutionType] ?? solutionType;
-  };
 
   return (
     <div>
@@ -291,94 +259,13 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* 설정 요약 (wizard 프로젝트) */}
-        {(project.wizard_data || project.project_type === "wizard") && (
-          <div className="mt-6 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
-              {tD("configSummary")}
-            </h2>
-
-            {project.wizard_data ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <ConfigBadge
-                  icon={Building2}
-                  label={tD("labelCompany")}
-                  value={
-                    (project.wizard_data.organization?.companyName as string) ||
-                    tD("notSet")
-                  }
-                />
-                <ConfigBadge
-                  icon={Layers}
-                  label={tD("labelSolution")}
-                  value={
-                    resolveSolutionTypeLabel(project.wizard_data.solution?.solutionType as string | undefined)
-                  }
-                />
-                <ConfigBadge
-                  icon={Bot}
-                  label={tD("labelAgents")}
-                  value={
-                    project.wizard_data.agents?.length > 0
-                      ? tD("countItem", { count: project.wizard_data.agents.length })
-                      : tD("notSet")
-                  }
-                />
-                <ConfigBadge
-                  icon={Wrench}
-                  label={tD("labelSkills")}
-                  value={
-                    project.wizard_data.skills?.length > 0
-                      ? tD("countItem", { count: project.wizard_data.skills.length })
-                      : tD("notSet")
-                  }
-                />
-                <ConfigBadge
-                  icon={GitBranch}
-                  label={tD("labelPipelines")}
-                  value={
-                    project.wizard_data.pipelines?.length > 0
-                      ? tD("countItem", { count: project.wizard_data.pipelines.length })
-                      : tD("notSet")
-                  }
-                />
-                <ConfigBadge
-                  icon={Monitor}
-                  label={tD("labelPlatform")}
-                  value={
-                    project.wizard_data.platform?.platformId
-                      ? PLATFORM_LABELS[
-                          project.wizard_data.platform.platformId as string
-                        ] ??
-                        (project.wizard_data.platform.platformId as string)
-                      : tD("notSet")
-                  }
-                />
-              </div>
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">{tD("noWizardData")}</p>
-            )}
-          </div>
-        )}
-
         {/* Linear 연동 프리플라이트 카드 */}
-        {hasLinear && (
-          <LinearPreflightCard
-            projectId={projectId}
-            status={linearStatus ?? null}
-            isFetching={linearFetching}
-            onRefresh={() => void refetchLinearStatus()}
-          />
-        )}
-
-        {/* PM 피드백 카드 (wizard 프로젝트이고 PM이 배정된 경우) */}
-        {project.pm_profile_id && project.prototype_session_id && (
-          <PMFeedbackCard
-            projectId={projectId}
-            pmProfileId={project.pm_profile_id}
-            sessionId={project.prototype_session_id}
-          />
-        )}
+        <LinearPreflightCard
+          projectId={projectId}
+          status={linearStatus ?? null}
+          isFetching={linearFetching}
+          onRefresh={() => void refetchLinearStatus()}
+        />
 
         {/* 위험 구역 */}
         <div className="mt-6 rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -457,26 +344,6 @@ export default function ProjectDetailPage() {
         onCancel={() => setResetOpen(false)}
         onConfirm={() => void handleReset()}
       />
-    </div>
-  );
-}
-
-/* -- 설정 요약 배지 -- */
-
-interface ConfigBadgeProps {
-  icon: typeof Building2;
-  label: string;
-  value: string;
-}
-
-function ConfigBadge({ icon: Icon, label, value }: ConfigBadgeProps) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-      <div className="min-w-0">
-        <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
-        <p className="truncate text-xs font-medium text-[var(--text-primary)]">{value}</p>
-      </div>
     </div>
   );
 }

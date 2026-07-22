@@ -285,112 +285,6 @@ def create_issues(
     return created
 
 
-# ---------------------------------------------------------------------------
-# Modernize 전용 헬퍼 (MVP-2-A) — 기존 함수 미변경, 신규 함수 추가만
-# ---------------------------------------------------------------------------
-
-
-def create_modernize_parent_issue(
-    api_key: str,
-    team_id: str,
-    *,
-    repo_full_name: str,
-    scenario: str,
-    summary_md: str,
-    label_ids: list[str] | None = None,
-) -> dict:  # type: ignore[type-arg]
-    """Modernize 분석 결과의 parent issue 생성.
-
-    Returns:
-        {id, identifier, url, title} — 실패 시 빈 dict.
-    """
-    title = f"Modernize: {repo_full_name} ({scenario})"
-    description = (
-        f"ClickEye Modernize 분석 결과 자동 등록.\n\n"
-        f"- repo: `{repo_full_name}`\n- scenario: `{scenario}`\n\n"
-        f"---\n\n## AI 진단 요약\n\n{summary_md[:5000]}"
-    )
-    variables: dict = {  # type: ignore[type-arg]
-        "input": {
-            "teamId": team_id,
-            "title": title,
-            "description": description,
-        }
-    }
-    if label_ids:
-        variables["input"]["labelIds"] = label_ids
-    data = _call(api_key, _ISSUE_CREATE, variables)
-    issue = data.get("issueCreate", {}).get("issue") or {}
-    return {
-        "id": issue.get("id", ""),
-        "identifier": issue.get("identifier", ""),
-        "url": issue.get("url", ""),
-        "title": issue.get("title", ""),
-    }
-
-
-def create_modernize_child_issues(
-    api_key: str,
-    team_id: str,
-    recommendations: list[dict],  # type: ignore[type-arg]
-    *,
-    parent_id: str | None = None,
-    label_ids: list[str] | None = None,
-    state_id: str | None = None,
-) -> list[dict]:  # type: ignore[type-arg]
-    """권장안 list 를 Linear 자식 이슈로 일괄 생성.
-
-    recommendations: 각 항목에 title / rationale_md / risk / effort / priority / prompt_md.
-
-    Returns:
-        list of {rec_id, issue_id, identifier, url, title}
-    """
-    created: list[dict] = []  # type: ignore[type-arg]
-    for rec in recommendations:
-        title = rec.get("title", "")
-        rationale = rec.get("rationale_md") or ""
-        prompt = rec.get("prompt_md") or ""
-        risk = rec.get("risk", "med")
-        effort = rec.get("effort", "M")
-        description = (
-            f"{rationale}\n\n"
-            f"- risk: **{risk}**  · effort: **{effort}**\n\n"
-            f"---\n\n## AI 에이전트 작업 지시 (`.ralph/tasks/<id>.md`)\n\n{prompt}"
-        )
-        variables: dict = {  # type: ignore[type-arg]
-            "input": {
-                "teamId": team_id,
-                "title": title,
-                "description": description,
-            }
-        }
-        if parent_id:
-            variables["input"]["parentId"] = parent_id
-        if label_ids:
-            variables["input"]["labelIds"] = label_ids
-        if state_id:
-            variables["input"]["stateId"] = state_id
-
-        try:
-            data = _call(api_key, _ISSUE_CREATE, variables)
-        except Exception:
-            # 한 건 실패해도 나머지 진행 — 결과 반환 후 호출자가 부분 성공 처리
-            created.append({"rec_id": rec.get("id", ""), "error": "linear_create_failed"})
-            continue
-
-        issue = data.get("issueCreate", {}).get("issue") or {}
-        created.append(
-            {
-                "rec_id": rec.get("id", ""),
-                "issue_id": issue.get("id", ""),
-                "identifier": issue.get("identifier", ""),
-                "url": issue.get("url", ""),
-                "title": issue.get("title", ""),
-            }
-        )
-    return created
-
-
 def create_issue_relation(
     api_key: str,
     *,
@@ -399,8 +293,8 @@ def create_issue_relation(
 ) -> bool:
     """`blocking_issue_id` 가 `blocked_issue_id` 를 막는(blocks) 관계 등록.
 
-    Modernize plan phase 의 depends_on 을 Linear 이슈 관계로 반영할 때 사용 —
-    실패해도 finalize 전체를 막지 않는 best-effort 헬퍼.
+    딜리버리 플랜의 depends_on 을 Linear 이슈 관계로 반영할 때 사용 —
+    실패해도 전체 흐름을 막지 않는 best-effort 헬퍼.
 
     Returns:
         성공 여부.

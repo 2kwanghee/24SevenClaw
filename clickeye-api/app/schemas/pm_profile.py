@@ -204,24 +204,6 @@ class PMCompositionGroupedResponse(BaseModel):
     plugins: list[PMCompositionResponse] = []
 
 
-# --- PMRecommend ---
-
-
-class PMRecommendRequest(BaseModel):
-    prototype_id: UUID
-    session_id: UUID | None = None
-
-
-class PMRecommendResponse(BaseModel):
-    pm_profile: PMProfileResponse
-    match_score: int
-    reasoning: str | None
-
-
-class PMRecommendListResponse(BaseModel):
-    items: list[PMRecommendResponse]
-
-
 # --- PMMetrics ---
 
 
@@ -244,7 +226,6 @@ class PMMetricsResponse(BaseModel):
 
 
 class PMRatingCreate(BaseModel):
-    session_id: UUID
     reaction: Literal["like", "dislike"] | None = None
     rating: int | None = Field(None, ge=1, le=5)
     comment: str | None = None
@@ -262,7 +243,6 @@ class PMRatingResponse(BaseModel):
     id: UUID
     pm_id: UUID
     user_id: UUID
-    session_id: UUID
     rating: int
     reaction: str | None
     comment: str | None

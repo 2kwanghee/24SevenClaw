@@ -57,7 +57,7 @@ class LlmUsageLedger(Base):
     output_tokens = Column(Integer, nullable=False, default=0)
     # 구독시트는 비용=NULL, 조직키만 단가로 산정
     cost = Column(Numeric(14, 6), nullable=True)
-    request_kind = Column(String(64), nullable=False)  # 예: modernize_summary
+    request_kind = Column(String(64), nullable=False)  # 예: wizard_preview
     meta = Column(JSONB, nullable=True)
     status: Column[LlmUsageStatus] = Column(
         Enum(LlmUsageStatus, name="llm_usage_status"),

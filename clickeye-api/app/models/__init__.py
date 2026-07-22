@@ -8,16 +8,10 @@ from app.models.central_contract import (  # noqa: F401
     ContractAuditLog,
     CustomerContractOverride,
 )
-from app.models.codebase_analysis import CodebaseAnalysis  # noqa: F401
-from app.models.github_installation import GitHubInstallation  # noqa: F401
-from app.models.github_repo import GitHubRepo  # noqa: F401
 from app.models.license import License  # noqa: F401
 from app.models.llm_usage_ledger import LlmUsageLedger  # noqa: F401
 from app.models.managed_env_var import ManagedEnvVar  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
-from app.models.modernize_phase_artifact import ModernizePhaseArtifact  # noqa: F401
-from app.models.modernize_recommendation import ModernizeRecommendation  # noqa: F401
-from app.models.modernize_session import ModernizeSession  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
 from app.models.pm_composition import PMComposition  # noqa: F401
@@ -29,7 +23,6 @@ from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
 from app.models.project_linear_credentials import ProjectLinearCredentials  # noqa: F401
 from app.models.prototype_catalog import PrototypeCatalogEntry, PrototypeTag  # noqa: F401
-from app.models.prototype_session import Prototype, PrototypeSession  # noqa: F401
 from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateRun  # noqa: F401
 from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
@@ -47,19 +40,13 @@ __all__ = [
     "Artifact",
     "ArtifactEvent",
     "CentralContract",
-    "CodebaseAnalysis",
     "ContractAuditLog",
     "CustomerContractOverride",
-    "GitHubInstallation",
-    "GitHubRepo",
     "License",
     "LlmUsageLedger",
     "ManagedEnvVar",
     "MaturityAssessment",
     "MCPServer",
-    "ModernizePhaseArtifact",
-    "ModernizeRecommendation",
-    "ModernizeSession",
     "OrchestratorSession",
     "Organization",
     "OrganizationMembership",
@@ -72,8 +59,6 @@ __all__ = [
     "Project",
     "ProjectConfig",
     "ProjectLinearCredentials",
-    "Prototype",
-    "PrototypeSession",
     "QualityCheck",
     "QualityGateEvent",
     "QualityGateRun",

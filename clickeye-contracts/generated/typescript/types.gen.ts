@@ -304,31 +304,6 @@ export type CentralContractUpdate = {
 };
 
 /**
- * `/modernize/sessions/{id}/analysis` 응답 — 분석 완료 후.
- */
-export type CodebaseAnalysisResponse = {
-    session_id: string;
-    loc_total?: number | null;
-    file_count?: number | null;
-    lang_distribution?: {
-        [key: string]: number;
-    };
-    manifests?: Array<{
-        [key: string]: unknown;
-    }>;
-    outdated_packages?: Array<{
-        [key: string]: unknown;
-    }>;
-    framework_signals?: {
-        [key: string]: unknown;
-    };
-    risk_flags?: Array<string>;
-    llm_summary_md?: string | null;
-    tokens_used?: number | null;
-    analyzed_at?: string | null;
-};
-
-/**
  * dockerproxy `GET /containers/json` 정규화 결과.
  *
  * 시크릿 노출 방지를 위해 환경변수/명령은 절대 포함하지 않는다.
@@ -753,28 +728,6 @@ export type HookUpdate = {
     output_file?: string | null;
 };
 
-/**
- * GitHub App 설치 URL + CSRF state JWT.
- */
-export type InstallUrlResponse = {
-    install_url: string;
-    state: string;
-};
-
-/**
- * `/modernize/installations` 응답 항목.
- */
-export type InstallationListItem = {
-    id: string;
-    installation_id: number;
-    account_login: string;
-    account_type: string;
-    repository_selection: string;
-    installed_at: string;
-    suspended_at?: string | null;
-    repo_count?: number;
-};
-
 export type IntegrationValidateResponse = {
     valid: boolean;
     message: string;
@@ -1026,93 +979,6 @@ export type MergeRequest = {
     merge_strategy: 'accept_draft' | 'accept_review' | 'manual_merge';
     merged_content?: string | null;
     message?: string | null;
-};
-
-/**
- * `GET/POST /sessions/{id}/plan` 응답 — plan.json + modernization-plan.md.
- */
-export type ModernizePlanResponse = {
-    session_id: string;
-    waves: Array<PlanWaveGroup>;
-    plan_md: string;
-    approved_at?: string | null;
-    generated_at?: string | null;
-};
-
-/**
- * 권장안 응답 항목.
- */
-export type ModernizeRecommendationResponse = {
-    id: string;
-    idx: number;
-    category: string;
-    target_path?: string | null;
-    before?: {
-        [key: string]: unknown;
-    } | null;
-    after?: {
-        [key: string]: unknown;
-    } | null;
-    title: string;
-    rationale_md?: string | null;
-    effort: string;
-    risk: string;
-    priority: number;
-    prompt_md?: string | null;
-    linear_issue_id?: string | null;
-    linear_identifier?: string | null;
-    selected: boolean;
-    depends_on?: Array<number>;
-    wave?: number;
-    assigned_agent?: string | null;
-};
-
-/**
- * `PATCH /recommendations/{id}` 요청 body — 사용자 검수용.
- */
-export type ModernizeRecommendationUpdate = {
-    selected?: boolean | null;
-    priority?: number | null;
-    prompt_md?: string | null;
-};
-
-/**
- * POST /modernize/sessions 요청 body.
- */
-export type ModernizeSessionCreate = {
-    /**
-     * GitHubInstallation.id (UUID PK)
-     */
-    installation_pk: string;
-    repo_full_name: string;
-    branch?: string;
-    /**
-     * 'versionup' | 'refactor' | 'language_migrate'
-     */
-    scenario: string;
-    goals_text?: string | null;
-    target_stack?: {
-        [key: string]: unknown;
-    } | null;
-};
-
-/**
- * 세션 상태 + 진행률 응답. 폴링용.
- */
-export type ModernizeSessionResponse = {
-    id: string;
-    repo_full_name: string;
-    repo_branch: string;
-    commit_sha?: string | null;
-    scenario: string;
-    status: string;
-    current_phase: 'asis' | 'requirements' | 'tobe' | 'plan' | 'preflight' | 'execute';
-    progress_pct: number;
-    error?: {
-        [key: string]: unknown;
-    } | null;
-    created_at?: string | null;
-    updated_at?: string | null;
 };
 
 export type NaturalLanguageConfigRequest = {
@@ -1397,7 +1263,6 @@ export type PmProfileWithMetrics = {
 };
 
 export type PmRatingCreate = {
-    session_id: string;
     reaction?: ('like' | 'dislike') | null;
     rating?: number | null;
     comment?: string | null;
@@ -1412,26 +1277,10 @@ export type PmRatingResponse = {
     id: string;
     pm_id: string;
     user_id: string;
-    session_id: string;
     rating: number;
     reaction: string | null;
     comment: string | null;
     created_at: string;
-};
-
-export type PmRecommendListResponse = {
-    items: Array<PmRecommendResponse>;
-};
-
-export type PmRecommendRequest = {
-    prototype_id: string;
-    session_id?: string | null;
-};
-
-export type PmRecommendResponse = {
-    pm_profile: PmProfileResponse;
-    match_score: number;
-    reasoning: string | null;
 };
 
 export type PmRecommendationLogListResponse = {
@@ -1491,28 +1340,6 @@ export type PhaseTimelineEntry = {
 export type PhaseTransitionRequest = {
     target_phase: 'requested' | 'decomposed' | 'assigned' | 'drafting' | 'reviewing' | 'integrating' | 'validating' | 'approved' | 'transitioning' | 'completed';
     message?: string | null;
-};
-
-/**
- * `plan.json` 의 태스크 1건.
- */
-export type PlanTaskItem = {
-    rec_id: string;
-    idx: number;
-    title: string;
-    category: string;
-    effort: string;
-    risk: string;
-    assigned_agent?: string | null;
-    depends_on?: Array<number>;
-};
-
-/**
- * `plan.json` 의 웨이브(마일스톤) 1건.
- */
-export type PlanWaveGroup = {
-    wave: number;
-    tasks: Array<PlanTaskItem>;
 };
 
 export type PlatformSummaryResponse = {
@@ -1701,10 +1528,6 @@ export type ProjectResponse = {
     settings: {
         [key: string]: unknown;
     };
-    wizard_data?: {
-        [key: string]: unknown;
-    } | null;
-    prototype_session_id?: string | null;
     pm_profile_id?: string | null;
     project_type?: string | null;
     bootstrap_status?: string;
@@ -2059,18 +1882,6 @@ export type RegistryItemResponse = {
  */
 export type RejectRequest = {
     reason: string;
-};
-
-/**
- * `/modernize/installations/{id}/repos` 응답 항목.
- */
-export type RepoListItem = {
-    gh_repo_id: number;
-    full_name: string;
-    default_branch: string;
-    private: boolean;
-    language_primary?: string | null;
-    pushed_at?: string | null;
 };
 
 export type RequirementsResponse = {
@@ -5951,31 +5762,6 @@ export type UpdateProfileApiV1PmProfilesProfileIdPutResponses = {
 
 export type UpdateProfileApiV1PmProfilesProfileIdPutResponse = UpdateProfileApiV1PmProfilesProfileIdPutResponses[keyof UpdateProfileApiV1PmProfilesProfileIdPutResponses];
 
-export type RecommendPmsApiV1PmProfilesRecommendPostData = {
-    body: PmRecommendRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/pm-profiles/recommend';
-};
-
-export type RecommendPmsApiV1PmProfilesRecommendPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type RecommendPmsApiV1PmProfilesRecommendPostError = RecommendPmsApiV1PmProfilesRecommendPostErrors[keyof RecommendPmsApiV1PmProfilesRecommendPostErrors];
-
-export type RecommendPmsApiV1PmProfilesRecommendPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: PmRecommendListResponse;
-};
-
-export type RecommendPmsApiV1PmProfilesRecommendPostResponse = RecommendPmsApiV1PmProfilesRecommendPostResponses[keyof RecommendPmsApiV1PmProfilesRecommendPostResponses];
-
 export type GetCompositionApiV1PmProfilesProfileIdCompositionGetData = {
     body?: never;
     path: {
@@ -6763,66 +6549,6 @@ export type RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPo
 
 export type RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponse = RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponses[keyof RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponses];
 
-export type GetInstallUrlApiV1IntegrationsGithubAppInstallUrlGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/integrations/github/app/install-url';
-};
-
-export type GetInstallUrlApiV1IntegrationsGithubAppInstallUrlGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: InstallUrlResponse;
-};
-
-export type GetInstallUrlApiV1IntegrationsGithubAppInstallUrlGetResponse = GetInstallUrlApiV1IntegrationsGithubAppInstallUrlGetResponses[keyof GetInstallUrlApiV1IntegrationsGithubAppInstallUrlGetResponses];
-
-export type GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetData = {
-    body?: never;
-    path?: never;
-    query: {
-        installation_id: number;
-        state: string;
-        setup_action?: string | null;
-        code?: string | null;
-    };
-    url: '/api/v1/integrations/github/app/callback';
-};
-
-export type GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetError = GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetErrors[keyof GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetErrors];
-
-export type GithubAppCallbackApiV1IntegrationsGithubAppCallbackGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/integrations/github/app/webhook';
-};
-
-export type GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponse = GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses[keyof GithubAppWebhookApiV1IntegrationsGithubAppWebhookPostResponses];
-
 export type EvaluateGovernanceApiV1GovernanceEvaluatePostData = {
     body: GovernanceEvaluateRequest;
     headers?: {
@@ -6866,239 +6592,6 @@ export type GetGovernancePolicyApiV1GovernancePolicyGetResponses = {
 };
 
 export type GetGovernancePolicyApiV1GovernancePolicyGetResponse = GetGovernancePolicyApiV1GovernancePolicyGetResponses[keyof GetGovernancePolicyApiV1GovernancePolicyGetResponses];
-
-export type ListInstallationsApiV1ModernizeInstallationsGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/modernize/installations';
-};
-
-export type ListInstallationsApiV1ModernizeInstallationsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: Array<InstallationListItem>;
-};
-
-export type ListInstallationsApiV1ModernizeInstallationsGetResponse = ListInstallationsApiV1ModernizeInstallationsGetResponses[keyof ListInstallationsApiV1ModernizeInstallationsGetResponses];
-
-export type ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetData = {
-    body?: never;
-    path: {
-        installation_pk: string;
-    };
-    query?: {
-        refresh?: boolean;
-    };
-    url: '/api/v1/modernize/installations/{installation_pk}/repos';
-};
-
-export type ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetError = ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetErrors[keyof ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetErrors];
-
-export type ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: Array<RepoListItem>;
-};
-
-export type ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetResponse = ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetResponses[keyof ListInstallationReposApiV1ModernizeInstallationsInstallationPkReposGetResponses];
-
-export type CreateSessionApiV1ModernizeSessionsPostData = {
-    body: ModernizeSessionCreate;
-    path?: never;
-    query?: never;
-    url: '/api/v1/modernize/sessions';
-};
-
-export type CreateSessionApiV1ModernizeSessionsPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreateSessionApiV1ModernizeSessionsPostError = CreateSessionApiV1ModernizeSessionsPostErrors[keyof CreateSessionApiV1ModernizeSessionsPostErrors];
-
-export type CreateSessionApiV1ModernizeSessionsPostResponses = {
-    /**
-     * Successful Response
-     */
-    201: ModernizeSessionResponse;
-};
-
-export type CreateSessionApiV1ModernizeSessionsPostResponse = CreateSessionApiV1ModernizeSessionsPostResponses[keyof CreateSessionApiV1ModernizeSessionsPostResponses];
-
-export type GetSessionApiV1ModernizeSessionsSessionIdGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}';
-};
-
-export type GetSessionApiV1ModernizeSessionsSessionIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetSessionApiV1ModernizeSessionsSessionIdGetError = GetSessionApiV1ModernizeSessionsSessionIdGetErrors[keyof GetSessionApiV1ModernizeSessionsSessionIdGetErrors];
-
-export type GetSessionApiV1ModernizeSessionsSessionIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ModernizeSessionResponse;
-};
-
-export type GetSessionApiV1ModernizeSessionsSessionIdGetResponse = GetSessionApiV1ModernizeSessionsSessionIdGetResponses[keyof GetSessionApiV1ModernizeSessionsSessionIdGetResponses];
-
-export type GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/analysis';
-};
-
-export type GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetError = GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetErrors[keyof GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetErrors];
-
-export type GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: CodebaseAnalysisResponse;
-};
-
-export type GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetResponse = GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetResponses[keyof GetSessionAnalysisApiV1ModernizeSessionsSessionIdAnalysisGetResponses];
-
-export type ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/recommendations';
-};
-
-export type ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetError = ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetErrors[keyof ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetErrors];
-
-export type ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: Array<ModernizeRecommendationResponse>;
-};
-
-export type ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetResponse = ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetResponses[keyof ListRecommendationsApiV1ModernizeSessionsSessionIdRecommendationsGetResponses];
-
-export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchData = {
-    body: ModernizeRecommendationUpdate;
-    path: {
-        session_id: string;
-        rec_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/recommendations/{rec_id}';
-};
-
-export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchError = UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchErrors[keyof UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchErrors];
-
-export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: ModernizeRecommendationResponse;
-};
-
-export type UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponse = UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponses[keyof UpdateRecommendationApiV1ModernizeSessionsSessionIdRecommendationsRecIdPatchResponses];
-
-export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/plan/generate';
-};
-
-export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostError = GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostErrors[keyof GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostErrors];
-
-export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostResponses = {
-    /**
-     * Successful Response
-     */
-    200: ModernizePlanResponse;
-};
-
-export type GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostResponse = GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostResponses[keyof GeneratePlanApiV1ModernizeSessionsSessionIdPlanGeneratePostResponses];
-
-export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetData = {
-    body?: never;
-    path: {
-        session_id: string;
-    };
-    query?: never;
-    url: '/api/v1/modernize/sessions/{session_id}/plan';
-};
-
-export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetError = GetPlanApiV1ModernizeSessionsSessionIdPlanGetErrors[keyof GetPlanApiV1ModernizeSessionsSessionIdPlanGetErrors];
-
-export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: ModernizePlanResponse;
-};
-
-export type GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponse = GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses[keyof GetPlanApiV1ModernizeSessionsSessionIdPlanGetResponses];
 
 export type ListCustomersApiV1ControlTowerCustomersGetData = {
     body?: never;

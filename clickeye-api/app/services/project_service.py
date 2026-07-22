@@ -22,7 +22,6 @@ from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.models.user_linear_credentials import UserLinearCredentials
 from app.schemas.project import ProjectCreate, ProjectResetResponse, ProjectResponse, ProjectUpdate
-from app.schemas.wizard_config import WizardConfigSave
 from app.services.base import BaseService
 from app.services.rbac_service import RBACService
 from app.utils.db import get_or_404
@@ -74,11 +73,8 @@ def annotate_key_status(
     linear_creds_updated_at: datetime | None,
 ) -> ProjectResponse:
     """ProjectResponse에 key status 필드를 채운다."""
-    auth_method: str = (
-        (project.wizard_data or {}).get("solution", {}).get("authMethod", "api_key")  # type: ignore[call-overload]  # TODO: 타입 정합
-        if project.wizard_data
-        else "api_key"
-    )
+    # 위저드(prototype-session)는 폐기됨 — auth_method 는 항상 api_key.
+    auth_method: str = "api_key"
     resp.anthropic_key_status = _compute_key_status(
         project.last_zip_downloaded_at,  # type: ignore[arg-type]
         project.last_env_downloaded_at,  # type: ignore[arg-type]
@@ -246,19 +242,6 @@ class ProjectService(BaseService):
         project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
 
-    async def save_wizard_config(
-        self, project_id: UUID, owner_id: UUID, data: WizardConfigSave
-    ) -> Project:
-        project = await self.get_by_id(project_id, owner_id)
-        project.wizard_data = data.wizard_data.model_dump()  # type: ignore[assignment]
-        project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
-        await self.db.commit()
-        await self.db.refresh(project)
-        return project
-
-    async def get_wizard_config(self, project_id: UUID, owner_id: UUID) -> Project:
-        return await self.get_by_id(project_id, owner_id)
-
     async def reset(self, project_id: UUID, owner_id: UUID) -> ProjectResetResponse:
         """프로젝트를 초기 상태로 되돌린다. 식별자/소유자/이름/조직은 보존."""
         from app.ws.hub import agent_hub
@@ -306,9 +289,7 @@ class ProjectService(BaseService):
         counts["licenses"] = 1 if old_license is not None else 0
 
         # 4. 프로젝트 컬럼 리셋
-        project.wizard_data = None  # type: ignore[assignment]
         project.settings = {}  # type: ignore[assignment]
-        project.prototype_session_id = None  # type: ignore[assignment]
         project.pm_profile_id = None  # type: ignore[assignment]
         project.requirements_text = None  # type: ignore[assignment]
         project.setup_token_hash = None  # type: ignore[assignment]

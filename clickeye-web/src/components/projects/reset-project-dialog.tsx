@@ -47,7 +47,6 @@ export function ResetProjectDialog({
         </p>
 
         <ul className="mt-3 space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-          <li>위자드 설정 (wizard_data)</li>
           <li>티켓 및 이벤트</li>
           <li>오케스트레이터 세션 및 메시지</li>
           <li>산출물 (Artifacts)</li>

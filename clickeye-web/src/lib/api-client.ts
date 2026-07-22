@@ -139,15 +139,6 @@ export interface GenerateRequest extends PreviewRequest {
 
 // --- Projects ---
 
-export interface WizardConfigData {
-  organization: Record<string, unknown>;
-  solution: Record<string, unknown>;
-  agents: Array<{ id: string }>;
-  skills: Array<{ id: string }>;
-  pipelines: Array<{ id: string }>;
-  platform: Record<string, unknown>;
-}
-
 export type KeyStatus = "fresh" | "stale" | "no_saved_key" | "never_downloaded" | "n/a";
 
 export interface ProjectResponse {
@@ -158,11 +149,9 @@ export interface ProjectResponse {
   description: string | null;
   status: "active" | "archived";
   settings: Record<string, unknown>;
-  wizard_data: WizardConfigData | null;
   project_type: string | null;
   bootstrap_status: "pending" | "running" | "pending_review" | "failed" | "completed" | "skipped";
   pm_profile_id: string | null;
-  prototype_session_id: string | null;
   last_zip_downloaded_at: string | null;
   last_env_downloaded_at: string | null;
   anthropic_key_status: KeyStatus;
@@ -505,20 +494,6 @@ export const apiClient = {
         { method: "POST", body: JSON.stringify(data) },
       ),
 
-    saveConfig: (
-      token: string,
-      projectId: string,
-      wizardData: WizardConfigData,
-    ) =>
-      authRequest<{ project_id: string; wizard_data: WizardConfigData; updated_at: string }>(
-        `/api/v1/projects/${projectId}/config`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({ wizard_data: wizardData }),
-        },
-      ),
-
     /** 프로젝트 KPI 조회 */
     kpi: (token: string, projectId: string) =>
       authRequest<ProjectKPIResponse>(
@@ -839,134 +814,6 @@ export const organizations = {
     authRequest<OrganizationResponse>("/api/v1/organizations/me", token),
 };
 
-// --- Solution Wizard v2: Prototype Sessions ---
-
-export interface PrototypeSessionCreateRequest {
-  organization_id: string;
-  solution_prompt: string;
-  tech_stack?: string[];
-  industry?: string | null;
-  // 회사 컨텍스트 — Claude variant 생성 시 회사 특성을 고려하기 위해 전달
-  company_size?: string | null;
-  business_type?: string | null;
-  main_product?: string | null;
-  company_description?: string | null;
-}
-
-export interface PrototypeSessionResponse {
-  id: string;
-  organization_id: string;
-  user_id: string;
-  solution_prompt: string | null;
-  parsed_requirements: Record<string, unknown> | null;
-  status: "pending" | "generating" | "completed" | "failed";
-  selected_prototype_id: string | null;
-  selected_pm_id: string | null;
-  current_step: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PrototypeSessionStatusResponse {
-  id: string;
-  status: string;
-  created_at: string;
-}
-
-export interface PrototypeSessionUpdateRequest {
-  selected_prototype_id?: string | null;
-  selected_pm_id?: string | null;
-  current_step?: number | null;
-}
-
-export interface PrototypeResponse {
-  id: string;
-  session_id: string;
-  variant_index: number;
-  title: string;
-  description: string | null;
-  design_pattern: string | null;
-  menu_structure: Record<string, unknown> | null;
-  ui_structure: Record<string, unknown> | null;
-  color_palette: Record<string, unknown> | null;
-  thumbnail_url: string | null;
-  figma_file_key: string | null;
-  figma_embed_url: string | null;
-  status: string;
-  tech_stack_tags: string[];
-  architecture_pattern: string | null;
-  variant_rationale: string | null;
-  is_recommended: boolean;
-  pros: string[];
-  cons: string[];
-  // 정량 지표 (Phase A — Claude 생성, 폴백 시 누락)
-  estimated_weeks_min?: number | null;
-  estimated_weeks_max?: number | null;
-  team_size_min?: number | null;
-  team_size_max?: number | null;
-  team_roles?: string[];
-  complexity_score?: number | null;
-  scalability_score?: number | null;
-  monthly_cost_min_usd?: number | null;
-  monthly_cost_max_usd?: number | null;
-  maintenance_difficulty?: string | null;
-  skill_requirements?: string[];
-  match_reasoning?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PrototypeListResponse {
-  items: PrototypeResponse[];
-  total: number;
-}
-
-/** 세션 기반 PM 추천 응답 단일 항목 */
-export interface PMRecommendItemResponse {
-  pm_id: string;
-  name: string;
-  slug: string;
-  avatar_url: string | null;
-  title: string | null;
-  domain: string | null;
-  match_score: number;
-  reasoning: string;
-  dimension_scores?: Record<string, number>;
-  match_reasons?: string[];
-}
-
-/** POST /prototype-sessions/{id}/recommend-pms 응답 */
-export interface SessionRecommendPMsResponse {
-  items: PMRecommendItemResponse[];
-}
-
-export interface FinalizeRequest {
-  project_name: string;
-  description?: string | null;
-}
-
-export interface FinalizeResponse {
-  project_id: string;
-  project_name: string;
-  session_id: string;
-  message: string;
-}
-
-export interface GenerateStartResponse {
-  message: string;
-  session_id: string;
-}
-
-
-/** GET /prototype-sessions/{id}/recommend-components 응답 */
-export interface RecommendComponentsResponse {
-  agents: string[];
-  skills: string[];
-  excluded_agents: string[];
-  catalog_entry_slug: string | null;
-  reasoning: string | null;
-}
-
 // --- Solution Wizard v2: PM Profiles ---
 
 export interface PMProfileResponse {
@@ -1069,21 +916,6 @@ export interface PMProfileListResponse {
   total: number;
 }
 
-export interface PMRecommendRequest {
-  prototype_id: string;
-  session_id?: string | null;
-}
-
-export interface PMRecommendResponse {
-  pm_profile: PMProfileResponse;
-  match_score: number;
-  reasoning: string | null;
-}
-
-export interface PMRecommendListResponse {
-  items: PMRecommendResponse[];
-}
-
 export interface PMMetricResponse {
   id: string;
   pm_id: string;
@@ -1117,7 +949,6 @@ export interface PMCompositionGroupedResponse {
 }
 
 export interface PMRatingCreateRequest {
-  session_id: string;
   reaction?: "like" | "dislike";
   rating?: number;
   comment?: string;
@@ -1127,7 +958,6 @@ export interface PMRatingResponse {
   id: string;
   pm_id: string;
   user_id: string;
-  session_id: string;
   rating: number;
   reaction: string | null;
   comment: string | null;
@@ -1160,12 +990,6 @@ export const pmProfiles = {
 
   get: (token: string, profileId: string) =>
     authRequest<PMProfileWithMetrics>(`/api/v1/pm-profiles/${profileId}`, token),
-
-  recommend: (token: string, data: PMRecommendRequest) =>
-    authRequest<PMRecommendListResponse>("/api/v1/pm-profiles/recommend", token, {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
 
   getComposition: (token: string, profileId: string) =>
     authRequest<PMCompositionGroupedResponse>(

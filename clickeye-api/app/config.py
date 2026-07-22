@@ -62,10 +62,6 @@ class Settings(BaseSettings):
     pm_reco_v2_enabled: bool = False
 
     # Feature flags
-    # ClickEye Modernize (기존 코드 현대화 파이프라인, MVP-2-A).
-    # 기본 False — 화이트리스트 베타 사용자만 노출. 신규 라우트/모델은 이 flag 가 True 일 때만 활성.
-    feature_modernize_enabled: bool = False
-
     # 운영(Ops) 패널 (CE-305, superadmin 전용 인프라 조회/관리).
     # 기본 False — OFF 시 전 ops endpoint 404 (킬스위치, 무침습 롤아웃).
     feature_ops_panel: bool = False
@@ -78,21 +74,7 @@ class Settings(BaseSettings):
     # 관리형 서비스명 목록 (env 렌더/재생성 안내 대상). JSON 배열로 주입.
     ops_managed_services: list[str] = []
 
-    # GitHub App (Modernize 의 repo 연결용 — feature_modernize_enabled 와 별개로 미설정 가능)
-    # 모든 값 비어있으면 github_app_service.is_configured() 가 False — 관련 endpoint 503.
-    # 등록 가이드: docs/modernize-github-app-setup.md
-    github_app_id: int = 0
-    # PEM 형식 RSA private key (개행 포함). 환경변수에 통째로 또는 \\n 으로 인코딩.
-    github_app_private_key: str = ""
-    # user-to-server OAuth (사용자 식별 검증)
-    github_app_client_id: str = ""
-    github_app_client_secret: str = ""
-    # webhook 서명 검증 시크릿 (HMAC-SHA256)
-    github_app_webhook_secret: str = ""
-    # App slug — install URL 구성용 (예: "clickeye-modernize-dev")
-    github_app_slug: str = ""
-
-    # 프론트엔드 URL (OAuth callback 후 redirect 대상)
+    # 프론트엔드 URL (redirect 대상)
     frontend_url: str = "http://localhost:3000"
 
     # 거버넌스 게이트 HTTP 노출용 머신 토큰. None/빈값이면 dev 개방(인증 없음),

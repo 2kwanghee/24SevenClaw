@@ -1,8 +1,8 @@
 ---
 title: ClickEye SI 팩토리 — 전략적 실행 가이드
 category: guide
-status: needs-revision
-last_updated: 2026-07-20
+status: current
+last_updated: 2026-07-22
 related:
   - docs/si-factory-transition.md
   - docs/pipeline-guide.md
@@ -629,7 +629,7 @@ bash scripts/auto_dev_pipeline.sh --once
 
 - [ ] agent `RunnerHandler` 구현 (command.run_task 실행)
 - [ ] 러너 라우터: 프로젝트 → 데스크탑/클라우드 자동 배치
-- [ ] 수주 인테이크 배선 (modernize finalize → ZIP → 실행)
+- [ ] 수주 인테이크 배선 (요구 분석 → 딜리버리 인게이지먼트 → 실행)
 - [ ] 마진 추적 (ROI 견적 vs LLM 원장)
 
 **선결**: P2 완료 + 러너 프로비저닝

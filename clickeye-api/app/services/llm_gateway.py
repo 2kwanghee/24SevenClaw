@@ -121,7 +121,6 @@ _ROUTE_TIER: dict[str, str] = {
     "design": _TIER_ADVANCED,
     "architecture": _TIER_ADVANCED,
     # 일반 구현/요약 → default(sonnet 티어)
-    "modernize_summary": _TIER_DEFAULT,
     "wizard_preview": _TIER_DEFAULT,
     "implement": _TIER_DEFAULT,
     # 경량 분류/추출 → light(haiku 티어)

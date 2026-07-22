@@ -13,13 +13,6 @@ class Project(UUIDPKMixin, TimestampMixin, Base):
     description = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="active")
     settings = Column(JSON, nullable=False, default=dict)
-    wizard_data = Column(JSON, nullable=True)
-    prototype_session_id = Column(
-        Uuid,
-        ForeignKey("prototype_sessions.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
     pm_profile_id = Column(
         Uuid,
         ForeignKey("pm_profiles.id", ondelete="SET NULL"),
