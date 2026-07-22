@@ -28,9 +28,6 @@ detect_changed_modules() {
     if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-contracts/"; then
         modules="$modules contracts"
     fi
-    if git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | grep -q "^clickeye-cli/"; then
-        modules="$modules cli"
-    fi
 
     # staged 파일이 없으면 unstaged 변경 확인
     if [ -z "$modules" ]; then
@@ -45,9 +42,6 @@ detect_changed_modules() {
         fi
         if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-contracts/"; then
             modules="$modules contracts"
-        fi
-        if git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | grep -q "^clickeye-cli/"; then
-            modules="$modules cli"
         fi
     fi
 
@@ -102,11 +96,6 @@ for module in $MODULES; do
         contracts)
             dir="$PROJECT_DIR/clickeye-contracts"
             run_gate "Gate2:Type" "contracts" "npx tsc --noEmit" "$dir"
-            ;;
-        cli)
-            dir="$PROJECT_DIR/clickeye-cli"
-            run_gate "Gate1:Lint" "cli" "npm run lint" "$dir"
-            run_gate "Gate2:Type" "cli" "npx tsc --noEmit" "$dir"
             ;;
     esac
 done

@@ -38,7 +38,6 @@ logs
 # --- api 이미지에 불필요한 형제 레포 (각자 자체 컨텍스트로 빌드) ---
 clickeye-web
 clickeye-agent
-clickeye-cli
 clickeye-contracts
 clickeye
 docs

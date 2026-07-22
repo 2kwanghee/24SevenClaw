@@ -19,7 +19,6 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 
 - **웹 SaaS (Cloud)**: 회원가입 → 12단계 위저드로 솔루션 설계 → 프리뷰 → ZIP 다운로드
 - **로컬 (사용자 PC)**: ZIP 해제 → Agent 플랫폼(Claude Code/Gemini CLI/Cursor 등) 실행 → AI 개발
-- **CLI (파워유저)**: `npx @clickeye/cli init`으로 동일한 설정 파일 생성 가능
 
 비개발자도 브라우저에서 솔루션을 설계하고, ZIP 하나로 AI 개발 환경을 즉시 구축할 수 있다.
 
@@ -159,7 +158,7 @@ clickeye-api (FastAPI)
 │   ├── 프리뷰 API (파일 트리 + 내용) (LoadMap_v3)
 │   ├── ZIP 생성 API (스트리밍)        (LoadMap_v3)
 │   └── 추천 API (규칙 기반)          (LoadMap_v3)
-└── 생성 엔진 (CLI에서 이식)           (LoadMap_v3)
+└── 생성 엔진                         (LoadMap_v3)
 ```
 
 ---
@@ -248,7 +247,6 @@ Browser ────(HTTPS)────► Cloud API ────(ZIP Stream)─
 
 미래 확장 (Phase 2):
 - Browser ↔ Cloud: WebSocket (대시보드 실시간 업데이트)
-- CLI ↔ Cloud: HTTPS (설정 동기화)
 ```
 
 ### 5.2 API 엔드포인트 요약
@@ -331,5 +329,4 @@ POST /api/v1/recommend
 ### 7.3 Phase 2 확장
 - 사용자 커스텀 에이전트 업로드/공유
 - 에이전트 마켓플레이스
-- CLI ↔ 웹 설정 동기화
 - 사용 통계 대시보드

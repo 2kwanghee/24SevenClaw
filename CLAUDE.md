@@ -1,18 +1,16 @@
 # ClickEye - Development Guide
 
 ## Project Overview
-AI 개발 자동화 솔루션 빌더 플랫폼.
-- **Web-First 아키텍처**: 브라우저에서 12단계 위저드로 솔루션 설계 → ZIP 다운로드 → 로컬에서 AI 개발
+AI 개발 자동화 SI 딜리버리 팩토리 플랫폼.
+- **Web-First 아키텍처**: 브라우저 딜리버리 콘솔에서 SI 딜리버리를 설계·실행·추적
 - **멀티 Agent 플랫폼**: Claude Code / Gemini CLI / Cursor / Codex 지원
-- **CLI 병행**: CLI는 파워유저용으로 유지 (동일 생성 엔진 공유)
-- 6개 레포: web, api, agent, infra, contracts, cli
+- 5개 레포: web, api, agent, infra, contracts
 
 ## Repository Map
 | Repo | Tech | Port | 역할 |
 |------|------|------|------|
-| `clickeye-web` | Next.js 15 | 3000 | 웹 프론트엔드 (위저드 UI + 대시보드) |
-| `clickeye-api` | FastAPI | 8000 | 백엔드 API (카탈로그 + ZIP 생성) |
-| `clickeye-cli` | TypeScript (Node.js) | - | CLI 도구 (`@clickeye/cli`) |
+| `clickeye-web` | Next.js 15 | 3000 | 웹 프론트엔드 (딜리버리 콘솔 + 대시보드) |
+| `clickeye-api` | FastAPI | 8000 | 백엔드 API (딜리버리/거버넌스/운영) |
 | `clickeye-agent` | Python | - | 고객 서버 에이전트 데몬 |
 | `clickeye-infra` | Docker/YAML | - | 인프라 설정 |
 | `clickeye-contracts` | TypeScript | - | 공유 타입/프로토콜 |
@@ -29,16 +27,16 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 ┌─────────────────────────────────────────────┐
 │  Cloud (web + api)                          │
 │  ├── PostgreSQL + Redis                     │
-│  ├── 12단계 위저드 (솔루션 설계)              │
-│  ├── 카탈로그 (에이전트/스킬/플랫폼)           │
-│  ├── ZIP 생성 엔진 (프리뷰 + 다운로드)        │
-│  └── 라이센스 관리                            │
+│  ├── 딜리버리 콘솔 (인게이지먼트 설계·추적)    │
+│  ├── AI 팀 오케스트레이션 (서브태스크/승인)    │
+│  ├── 거버넌스 커널 (정책 SSOT)                │
+│  ├── 운영 패널 (컨테이너/env/테이블)          │
+│  └── Linear 동기화                           │
 └──────────────┬──────────────────────────────┘
-               │ ZIP 다운로드
+               │ 하이브리드 실행 (컨테이너/Temporal)
                ▼
 ┌─────────────────────────────────────────────┐
-│  사용자 로컬 PC                               │
-│  ├── unzip → 프로젝트 디렉토리                 │
+│  실행 러너 (Agent 플랫폼)                     │
 │  ├── .claude/ 또는 .gemini/ 또는 .cursor/     │
 │  ├── .env (API 키)                           │
 │  └── Agent 플랫폼 실행 (claude / gemini / etc)│
@@ -47,11 +45,10 @@ AI 개발 자동화 솔루션 빌더 플랫폼.
 
 ## Key Documents
 - `docs/README.md` — **문서 매니페스트** (전체 docs/ 정식 레지스트리 + 정규화 프론트매터 규약). 새 문서는 반드시 여기 등재.
-- `LoadMap_v3.md` — 마스터 로드맵 (2주 스프린트, 12단계 위저드)
+- `LoadMap_v3.md` — 마스터 로드맵 (2주 스프린트)
 - `TODO.md` — 일별 태스크
 - `docs/architecture-overview.md` — 아키텍처 상세
 - `docs/agent-protocol.md` — 통신 프로토콜
-- `docs/cli-guide.md` — CLI 상세 가이드 (에이전트 카탈로그, 스택 프리셋)
 - `docs/pipeline-guide.md` — 자동화 파이프라인 가이드 (v6 — 메타프롬프트 기획 + 거버넌스 게이트)
 - `docs/comparison.md` — 유사 플랫폼 비교
 - `docs/license-model.md` — 라이센스 정책
