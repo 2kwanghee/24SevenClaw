@@ -2399,6 +2399,19 @@ export type UserCreate = {
     display_name: string;
 };
 
+/**
+ * 사용자 삭제/비활성화 결과.
+ *
+ * - soft: is_active=False 로 비활성화 (레코드 보존)
+ * - hard: 레코드 물리 삭제 (superadmin 전용)
+ */
+export type UserDeleteResponse = {
+    user_id: string;
+    mode: 'soft' | 'hard';
+    is_active: boolean;
+    deleted: boolean;
+};
+
 export type UserLogin = {
     email: string;
     password: string;
@@ -4808,6 +4821,38 @@ export type UpdateUserRoleApiV1AdminUsersUserIdRolePatchResponses = {
 };
 
 export type UpdateUserRoleApiV1AdminUsersUserIdRolePatchResponse = UpdateUserRoleApiV1AdminUsersUserIdRolePatchResponses[keyof UpdateUserRoleApiV1AdminUsersUserIdRolePatchResponses];
+
+export type DeleteUserApiV1AdminUsersUserIdDeleteData = {
+    body?: never;
+    path: {
+        user_id: string;
+    };
+    query?: {
+        /**
+         * true 시 물리 삭제 (superadmin 전용). 기본은 비활성화.
+         */
+        hard?: boolean;
+    };
+    url: '/api/v1/admin/users/{user_id}';
+};
+
+export type DeleteUserApiV1AdminUsersUserIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteUserApiV1AdminUsersUserIdDeleteError = DeleteUserApiV1AdminUsersUserIdDeleteErrors[keyof DeleteUserApiV1AdminUsersUserIdDeleteErrors];
+
+export type DeleteUserApiV1AdminUsersUserIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserDeleteResponse;
+};
+
+export type DeleteUserApiV1AdminUsersUserIdDeleteResponse = DeleteUserApiV1AdminUsersUserIdDeleteResponses[keyof DeleteUserApiV1AdminUsersUserIdDeleteResponses];
 
 export type GetOrgMembersApiV1OrganizationsOrgIdMembersGetData = {
     body?: never;
