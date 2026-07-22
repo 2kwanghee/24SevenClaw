@@ -1,9 +1,11 @@
 ---
 title: 통신 프로토콜
 category: architecture
-status: needs-revision
-last_updated: 2026-07-16
+status: current
+last_updated: 2026-07-22
 related:
+  - clickeye-api/app/api/v1/governance.py
+  - clickeye-api/app/api/v1/ops_*.py
   - clickeye-api/app/ws
   - clickeye-agent
   - clickeye-contracts/protocol/commands.ts
@@ -207,6 +209,106 @@ ZIP 파일 스트리밍 다운로드.
   "pipelines": ["harness", "tdd", "lint-gate"]
 }
 ```
+
+---
+
+### 3.7 거버넌스 정책 (CE-303)
+
+#### `GET /api/v1/governance/policy`
+자동화 가이드라인 커널 SSOT. 전역 거버넌스 정책(인증 필수, 읽기전용).
+```json
+// Response (200)
+{
+  "tiers": {
+    "contract_drift": { "severity": "critical", "action": "block" },
+    "ticket_reference": { "severity": "high", "action": "block" },
+    "trace_plan": { "severity": "medium", "action": "warn" },
+    "risk_demotion": { "severity": "high", "action": "demote_to_pr" }
+  },
+  "sensitive_paths": [
+    "clickeye-contracts/**",
+    "clickeye-infra/**",
+    "*auth*"
+  ],
+  "whitelist_tables": ["app_settings", "roi_standards", "presets"],
+  "env_protected_keys": ["JWT_SECRET_KEY", "DATABASE_URL", "REDIS_URL"]
+}
+```
+
+---
+
+### 3.8 운영 관리 (Superadmin, CE-305)
+
+#### `GET /api/v1/admin/ops/containers`
+실행 중인 docker 컨테이너 목록 (read-only, env 스트립).
+```json
+// Response (200)
+{
+  "containers": [
+    { "name": "clickeye-web", "image": "...", "status": "running", "ports": [3000] },
+    { "name": "clickeye-api", "image": "...", "status": "running", "ports": [8000] },
+    { "name": "postgres", "image": "...", "status": "running", "ports": [5432] },
+    { "name": "redis", "image": "...", "status": "running", "ports": [6379] }
+  ]
+}
+```
+
+#### `GET /api/v1/admin/ops/ports`
+포트 프로브 결과 (localhost의 열린 포트, read-only).
+```json
+// Response (200)
+{
+  "open_ports": [3000, 8000, 5432, 6379],
+  "probe_timestamp": "2026-07-22T10:30:00Z"
+}
+```
+
+#### `GET /api/v1/admin/ops/env`
+관리형 환경변수 조회 (Fernet 암호화, JWT_SECRET_KEY/DATABASE_URL/REDIS_URL 제외).
+```json
+// Response (200)
+{
+  "variables": [
+    { "key": "OPENAI_API_KEY", "value": "***encrypted***" },
+    { "key": "LINEAR_API_KEY", "value": "***encrypted***" }
+  ]
+}
+```
+
+#### `PUT /api/v1/admin/ops/env/{key}`
+환경변수 수정 (JSON 평문 입력 → Fernet 암호화 저장).
+```json
+// Request
+{ "value": "new_secret_value" }
+```
+
+#### `DELETE /api/v1/admin/ops/env/{key}`
+환경변수 삭제.
+
+#### `POST /api/v1/admin/ops/env/render`
+명령 미리보기 (docker 미실행, 편집된 env를 적용하는 명령어만 반환).
+```json
+// Response (200)
+{
+  "command": "docker-compose -f docker-compose.prod.yml up -d",
+  "note": "수동으로 실행해야 합니다. 자동 적용 불가."
+}
+```
+
+#### `GET /api/v1/admin/ops/tables`
+화이트리스트 테이블(app_settings/roi_standards/presets) CRUD.
+```json
+// Response (200)
+{
+  "tables": [
+    { "id": "1", "table": "app_settings", "field": "key", "editable": true },
+    { "id": "2", "table": "roi_standards", "field": "tier", "editable": true }
+  ]
+}
+```
+
+#### `POST/PUT/DELETE /api/v1/admin/ops/tables`
+화이트리스트 항목 추가/수정/삭제 (민감 테이블 제외).
 
 ---
 

@@ -1,11 +1,14 @@
 ---
 title: 아키텍처 개요
 category: architecture
-status: needs-revision
-last_updated: 2026-06-15
+status: current
+last_updated: 2026-07-22
 related:
   - clickeye-web
   - clickeye-api
+  - clickeye-api/app/api/v1/governance.py
+  - clickeye-api/app/api/v1/ops_*.py
+  - clickeye-api/app/models/managed_env_var.py
 ---
 
 # ClickEye - Architecture Overview
@@ -98,13 +101,16 @@ ClickEye는 **웹 SaaS (위저드 UI + 카탈로그 + ZIP 생성) + 로컬 Agent
 
 | 역할 | 설명 |
 |------|------|
-| **사용자 인증** | 계정 관리, 로그인, JWT 토큰 |
+| **사용자 인증** | 계정 관리, 로그인, JWT 토큰 + organization_id/system_role 노출(CE-302) |
+| **조직 스코핑** | 프로젝트 생성 시 대상 조직(organization_id) 지정 + 멤버십 기반 인가(CE-302) |
 | **12단계 위저드** | 회사정보 → 프로토타입 생성 → 프로토타입 선택 → PM 추천 → PM 선택 → PM 구성확인 → 에이전트 → 플랫폼 → OS → 환경변수 → ROI → 최종확인 |
 | **카탈로그 관리** | 에이전트/스킬/플랫폼/파이프라인 카탈로그 (JSON 기반) |
 | **추천 엔진** | 솔루션 유형 기반 에이전트/스킬/파이프라인 자동 추천 |
 | **프리뷰 생성** | 위저드 설정 → 파일 트리 + 내용 미리보기 |
 | **ZIP 생성** | 위저드 설정 + API 키(.env) → ZIP 스트리밍 다운로드 |
 | **프로젝트 관리** | 프로젝트 메타데이터 + 위저드 설정(JSONB) 저장 |
+| **거버넌스 정책** | GET /governance/policy 커널 SSOT — 자동화 가이드라인(계약 정책/규칙) 노출(CE-303) |
+| **운영 패널** | Superadmin 전용 컨테이너/env/테이블 관리 + Temporal 링크(CE-305) |
 | **라이센스 관리** | 플랜 관리, 프로젝트 한도 (Phase 2) |
 
 ### 3.2 저장하는 데이터
@@ -251,15 +257,32 @@ Browser ────(HTTPS)────► Cloud API ────(ZIP Stream)─
 # 인증 (완료)
 POST /api/v1/auth/register
 POST /api/v1/auth/login
+GET  /api/v1/auth/me                    # organization_id/system_role 포함(CE-302)
 
 # 프로젝트 (완료)
 GET  /api/v1/projects
-POST /api/v1/projects
+POST /api/v1/projects                   # organization_id 필수(CE-302)
 GET  /api/v1/projects/{id}
 
-# 조직 (LoadMap_v3)
+# 조직 (LoadMap_v3, CE-302)
 POST /api/v1/organizations
 GET  /api/v1/organizations/me
+GET  /api/v1/organizations/{id}/members
+
+# 거버넌스 (CE-303)
+GET  /api/v1/governance/policy          # 커널 SSOT(define/rules/tiers)
+
+# 운영 (Superadmin, CE-305)
+GET  /api/v1/admin/ops/containers       # 실행중 컨테이너(read-only)
+GET  /api/v1/admin/ops/ports            # 포트 프로브 결과(read-only)
+GET  /api/v1/admin/ops/env              # 관리형 env(Fernet 암호화)
+PUT  /api/v1/admin/ops/env/{key}        # env 수정
+DELETE /api/v1/admin/ops/env/{key}      # env 삭제
+POST /api/v1/admin/ops/env/render       # 명령 미리보기(docker 미실행)
+GET  /api/v1/admin/ops/tables           # 화이트리스트 테이블 CRUD
+POST /api/v1/admin/ops/tables
+PUT  /api/v1/admin/ops/tables/{id}
+DELETE /api/v1/admin/ops/tables/{id}
 
 # 카탈로그 (LoadMap_v3)
 GET  /api/v1/catalog/agents

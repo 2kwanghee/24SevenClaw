@@ -2,7 +2,7 @@
 title: ClickEye 문서 매니페스트
 category: reference
 status: current
-last_updated: 2026-06-15
+last_updated: 2026-07-22
 related:
   - .claude/skills/docs-sync/SKILL.md
   - .claude/agents/docs.md
@@ -86,6 +86,7 @@ version: ...       # 선택
 | 문서 | 목적 | status |
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
+| [pages/admin/ops.md](pages/admin/ops.md) | Superadmin 운영 패널 (컨테이너/env/테이블 관리, CE-305) | implemented |
 
 > 개별 페이지 스펙(landing/auth/solutions/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
 

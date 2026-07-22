@@ -1,11 +1,13 @@
 ---
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
-status: needs-revision
-last_updated: 2026-06-12
+status: current
+last_updated: 2026-07-22
 related:
   - scripts/auto_dev_pipeline.sh
   - scripts/pre_merge_gate.py
+  - clickeye-api/app/api/v1/governance.py
+  - clickeye-api/app/services/governance_gate_service.py
 ---
 
 # 자동화 파이프라인 가이드
@@ -315,6 +317,11 @@ CI(`ci.yml`의 `governance` 잡)는 동일 모듈을 PR에서 재확인하는 **
 권위 게이트 판정을 반드시 유지한다. `FLOWOPS_GOVERNANCE_SERVICE_URL`이 **빈 값이면 HTTP 경로를 완전히 건너뛰어
 기존 로컬 판정 그대로(회귀 0)** — URL 존재 여부가 스위치이므로 `is_enabled` 미설정=활성 규약과 무관하다.
 (관련 변수: `FLOWOPS_GOVERNANCE_SERVICE_URL`·`FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT`·`GOVERNANCE_SERVICE_TOKEN`, `.env.example` 참조.)
+
+**거버넌스 정책 SSOT — `GET /api/v1/governance/policy` (CE-303):**
+자동화 정책의 커널(전역 정책: tiers, sensitive_paths, whitelist_tables, protected_env_keys)은 
+API 서버 `GET /api/v1/governance/policy` 엔드포인트로 노출된다(인증 필수, 읽기전용).
+딜리버리 콘솔의 "거버넌스 패널"에서 이 정책을 실데이터로 확인할 수 있다.
 
 ### Step 6: 머지 — 2가지 경로
 
