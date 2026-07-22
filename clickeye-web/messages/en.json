@@ -41,6 +41,13 @@
       "deleteTitle": "Delete project",
       "deleteConfirm": "Are you sure you want to delete the <name>{name}</name> project? This action cannot be undone.",
       "deleting": "Deleting..."
+    },
+    "confirmByTyping": {
+      "close": "Close",
+      "prompt": "To confirm, type:",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "pending": "Processing…"
     }
   },
   "validation": {
@@ -476,7 +483,8 @@
     },
     "sections": {
       "settings": "Settings",
-      "admin": "Admin"
+      "admin": "Admin",
+      "ops": "Ops"
     },
     "settings": {
       "members": "Organization members",
@@ -496,6 +504,11 @@
       "globalSettings": "Global settings",
       "recommendations": "Recommendation log",
       "audit": "Audit log"
+    },
+    "ops": {
+      "containers": "Containers",
+      "env": "Environment",
+      "tables": "Data Tables"
     }
   },
   "home": {
@@ -729,6 +742,101 @@
       "label": "Mock data",
       "ariaLabel": "Show mock data",
       "banner": "Showing mock data — not real data."
+    }
+  },
+  "ops": {
+    "containers": {
+      "pageTitle": "Containers & Ports",
+      "pageDescription": "View running container status and service port reachability. Read-only.",
+      "containersTitle": "Containers",
+      "portsTitle": "Port Reachability",
+      "error": "Failed to load.",
+      "empty": "Nothing to display.",
+      "noHealth": "No healthcheck",
+      "reachable": "Reachable",
+      "unreachable": "Unreachable",
+      "col": {
+        "name": "Name",
+        "image": "Image",
+        "state": "State",
+        "health": "Health",
+        "ports": "Ports",
+        "created": "Created",
+        "service": "Service",
+        "host": "Host",
+        "port": "Port",
+        "reachable": "Reachable",
+        "latency": "Latency"
+      }
+    },
+    "env": {
+      "pageTitle": "Managed Environment Variables",
+      "pageDescription": "Edit the API service's managed environment variables. After changes, click Apply to see the regeneration command; an operator must run it manually to take effect. (Build-time vars like NEXT_PUBLIC_* are out of scope.)",
+      "error": "Failed to load environment variables.",
+      "empty": "No environment variables to display.",
+      "pendingSummary": "{count} change(s) pending apply.",
+      "noPending": "No changes pending apply.",
+      "valueSet": "Set",
+      "valueUnset": "Not set",
+      "secret": "Secret",
+      "col": {
+        "key": "Key",
+        "value": "Value",
+        "status": "Status",
+        "updated": "Updated"
+      },
+      "newValuePlaceholder": "Enter new value",
+      "pendingBadge": "Pending",
+      "appliedBadge": "Applied",
+      "locked": "Locked",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "saveSuccess": "Environment variable saved.",
+      "deleteSuccess": "Environment variable deleted.",
+      "deleteTitle": "Delete Environment Variable",
+      "deleteDescription": "Delete the {key} environment variable. It takes effect after running the regeneration command.",
+      "render": {
+        "title": "Regeneration Command",
+        "close": "Close",
+        "button": "Apply",
+        "manualNotice": "The server does not run this command automatically. Copy the command below and run it manually in your ops environment for changes to take effect.",
+        "command": "Command",
+        "copy": "Copy",
+        "copied": "Copied",
+        "renderedPath": "Rendered path",
+        "appliedKeys": "Applied keys",
+        "error": "Failed to generate the regeneration command."
+      }
+    },
+    "tables": {
+      "pageTitle": "Data Tables",
+      "pageDescription": "Only whitelisted tables can be viewed and edited.",
+      "listError": "Failed to load tables.",
+      "listEmpty": "No tables available.",
+      "rowCount": "{count} rows",
+      "schemaError": "Failed to load table schema.",
+      "rowsError": "Failed to load rows.",
+      "noRows": "No rows to display.",
+      "searchPlaceholder": "Search…",
+      "addRow": "Add Row",
+      "editRow": "Edit Row",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "immutable": "Immutable",
+      "prev": "Prev",
+      "next": "Next",
+      "pageInfo": "Page {page} / {total}",
+      "createSuccess": "Row created.",
+      "updateSuccess": "Row updated.",
+      "deleteSuccess": "Row deleted.",
+      "deleteTitle": "Delete Row",
+      "deleteDescription": "Delete row {pk}. This action cannot be undone.",
+      "backToList": "Back to tables",
+      "sensitiveKeepHint": "Enter only to change (leave blank to keep)"
     }
   }
 }

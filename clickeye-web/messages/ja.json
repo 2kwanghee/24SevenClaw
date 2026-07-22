@@ -41,6 +41,13 @@
       "deleteTitle": "プロジェクトを削除",
       "deleteConfirm": "<name>{name}</name> プロジェクトを削除してもよろしいですか？この操作は元に戻せません。",
       "deleting": "削除中..."
+    },
+    "confirmByTyping": {
+      "close": "閉じる",
+      "prompt": "確認のため次を入力してください:",
+      "cancel": "キャンセル",
+      "confirm": "削除",
+      "pending": "処理中…"
     }
   },
   "validation": {
@@ -476,7 +483,8 @@
     },
     "sections": {
       "settings": "設定",
-      "admin": "管理"
+      "admin": "管理",
+      "ops": "運用"
     },
     "settings": {
       "members": "組織メンバー",
@@ -496,6 +504,11 @@
       "globalSettings": "グローバル設定",
       "recommendations": "推薦ログ",
       "audit": "監査ログ"
+    },
+    "ops": {
+      "containers": "コンテナ",
+      "env": "環境変数",
+      "tables": "データテーブル"
     }
   },
   "home": {
@@ -729,6 +742,101 @@
       "label": "モックデータ",
       "ariaLabel": "モックデータを表示",
       "banner": "モックデータを表示中 — 実データではありません。"
+    }
+  },
+  "ops": {
+    "containers": {
+      "pageTitle": "コンテナとポート",
+      "pageDescription": "稼働中のコンテナ状態とサービスポートの到達性を確認します。閲覧専用です。",
+      "containersTitle": "コンテナ",
+      "portsTitle": "ポート到達性",
+      "error": "情報を読み込めませんでした。",
+      "empty": "表示する項目がありません。",
+      "noHealth": "ヘルスチェックなし",
+      "reachable": "到達可能",
+      "unreachable": "到達不可",
+      "col": {
+        "name": "名前",
+        "image": "イメージ",
+        "state": "状態",
+        "health": "ヘルス",
+        "ports": "ポート",
+        "created": "作成",
+        "service": "サービス",
+        "host": "ホスト",
+        "port": "ポート",
+        "reachable": "到達",
+        "latency": "レイテンシ"
+      }
+    },
+    "env": {
+      "pageTitle": "管理対象の環境変数",
+      "pageDescription": "APIサービスの管理対象環境変数を編集します。変更後に「適用」すると再生成コマンドが表示され、運用担当者が手動で実行することで反映されます。（NEXT_PUBLIC_* などビルド時変数は対象外）",
+      "error": "環境変数を読み込めませんでした。",
+      "empty": "表示する環境変数がありません。",
+      "pendingSummary": "{count}件の変更が適用待ちです。",
+      "noPending": "適用待ちの変更はありません。",
+      "valueSet": "設定済み",
+      "valueUnset": "未設定",
+      "secret": "シークレット",
+      "col": {
+        "key": "キー",
+        "value": "値",
+        "status": "状態",
+        "updated": "更新"
+      },
+      "newValuePlaceholder": "新しい値を入力",
+      "pendingBadge": "適用待ち",
+      "appliedBadge": "適用済み",
+      "locked": "ロック",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "edit": "編集",
+      "delete": "削除",
+      "saveSuccess": "環境変数を保存しました。",
+      "deleteSuccess": "環境変数を削除しました。",
+      "deleteTitle": "環境変数の削除",
+      "deleteDescription": "{key} 環境変数を削除します。再生成コマンドの実行後に反映されます。",
+      "render": {
+        "title": "再生成コマンド",
+        "close": "閉じる",
+        "button": "適用",
+        "manualNotice": "サーバーはこのコマンドを自動実行しません。以下のコマンドをコピーし、運用環境で手動実行すると変更が反映されます。",
+        "command": "コマンド",
+        "copy": "コピー",
+        "copied": "コピーしました",
+        "renderedPath": "レンダーパス",
+        "appliedKeys": "適用キー",
+        "error": "再生成コマンドの生成に失敗しました。"
+      }
+    },
+    "tables": {
+      "pageTitle": "データテーブル",
+      "pageDescription": "ホワイトリストで許可されたテーブルのみ閲覧・編集できます。",
+      "listError": "テーブル一覧を読み込めませんでした。",
+      "listEmpty": "利用可能なテーブルがありません。",
+      "rowCount": "{count}行",
+      "schemaError": "テーブルスキーマを読み込めませんでした。",
+      "rowsError": "行を読み込めませんでした。",
+      "noRows": "表示する行がありません。",
+      "searchPlaceholder": "検索…",
+      "addRow": "行を追加",
+      "editRow": "行を編集",
+      "edit": "編集",
+      "delete": "削除",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "immutable": "変更不可",
+      "prev": "前へ",
+      "next": "次へ",
+      "pageInfo": "{page} / {total} ページ",
+      "createSuccess": "行を作成しました。",
+      "updateSuccess": "行を更新しました。",
+      "deleteSuccess": "行を削除しました。",
+      "deleteTitle": "行の削除",
+      "deleteDescription": "{pk} 行を削除します。この操作は取り消せません。",
+      "backToList": "テーブル一覧へ",
+      "sensitiveKeepHint": "変更時のみ入力（未入力なら現在値を維持）"
     }
   }
 }

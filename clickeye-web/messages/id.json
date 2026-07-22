@@ -41,6 +41,13 @@
       "deleteTitle": "Hapus proyek",
       "deleteConfirm": "Apakah Anda yakin ingin menghapus proyek <name>{name}</name>? Tindakan ini tidak dapat dibatalkan.",
       "deleting": "Menghapus..."
+    },
+    "confirmByTyping": {
+      "close": "Tutup",
+      "prompt": "Untuk konfirmasi, ketik:",
+      "cancel": "Batal",
+      "confirm": "Hapus",
+      "pending": "Memproses…"
     }
   },
   "validation": {
@@ -476,7 +483,8 @@
     },
     "sections": {
       "settings": "Pengaturan",
-      "admin": "Admin"
+      "admin": "Admin",
+      "ops": "Operasi"
     },
     "settings": {
       "members": "Anggota organisasi",
@@ -496,6 +504,11 @@
       "globalSettings": "Pengaturan global",
       "recommendations": "Log rekomendasi",
       "audit": "Log audit"
+    },
+    "ops": {
+      "containers": "Kontainer",
+      "env": "Variabel Lingkungan",
+      "tables": "Tabel Data"
     }
   },
   "home": {
@@ -729,6 +742,101 @@
       "label": "Data mock",
       "ariaLabel": "Tampilkan data mock",
       "banner": "Menampilkan data mock — bukan data asli."
+    }
+  },
+  "ops": {
+    "containers": {
+      "pageTitle": "Kontainer & Port",
+      "pageDescription": "Lihat status kontainer yang berjalan dan keterjangkauan port layanan. Hanya-baca.",
+      "containersTitle": "Kontainer",
+      "portsTitle": "Keterjangkauan Port",
+      "error": "Gagal memuat.",
+      "empty": "Tidak ada yang ditampilkan.",
+      "noHealth": "Tanpa healthcheck",
+      "reachable": "Terjangkau",
+      "unreachable": "Tidak terjangkau",
+      "col": {
+        "name": "Nama",
+        "image": "Image",
+        "state": "Status",
+        "health": "Health",
+        "ports": "Port",
+        "created": "Dibuat",
+        "service": "Layanan",
+        "host": "Host",
+        "port": "Port",
+        "reachable": "Terjangkau",
+        "latency": "Latensi"
+      }
+    },
+    "env": {
+      "pageTitle": "Variabel Lingkungan Terkelola",
+      "pageDescription": "Edit variabel lingkungan terkelola layanan API. Setelah perubahan, klik Terapkan untuk melihat perintah regenerasi; operator harus menjalankannya secara manual agar berlaku. (Variabel build-time seperti NEXT_PUBLIC_* di luar cakupan.)",
+      "error": "Gagal memuat variabel lingkungan.",
+      "empty": "Tidak ada variabel lingkungan untuk ditampilkan.",
+      "pendingSummary": "{count} perubahan menunggu diterapkan.",
+      "noPending": "Tidak ada perubahan yang menunggu diterapkan.",
+      "valueSet": "Terisi",
+      "valueUnset": "Kosong",
+      "secret": "Rahasia",
+      "col": {
+        "key": "Kunci",
+        "value": "Nilai",
+        "status": "Status",
+        "updated": "Diperbarui"
+      },
+      "newValuePlaceholder": "Masukkan nilai baru",
+      "pendingBadge": "Menunggu",
+      "appliedBadge": "Diterapkan",
+      "locked": "Terkunci",
+      "save": "Simpan",
+      "cancel": "Batal",
+      "edit": "Edit",
+      "delete": "Hapus",
+      "saveSuccess": "Variabel lingkungan disimpan.",
+      "deleteSuccess": "Variabel lingkungan dihapus.",
+      "deleteTitle": "Hapus Variabel Lingkungan",
+      "deleteDescription": "Hapus variabel lingkungan {key}. Berlaku setelah menjalankan perintah regenerasi.",
+      "render": {
+        "title": "Perintah Regenerasi",
+        "close": "Tutup",
+        "button": "Terapkan",
+        "manualNotice": "Server tidak menjalankan perintah ini secara otomatis. Salin perintah di bawah dan jalankan secara manual di lingkungan operasi Anda agar perubahan berlaku.",
+        "command": "Perintah",
+        "copy": "Salin",
+        "copied": "Disalin",
+        "renderedPath": "Path render",
+        "appliedKeys": "Kunci diterapkan",
+        "error": "Gagal membuat perintah regenerasi."
+      }
+    },
+    "tables": {
+      "pageTitle": "Tabel Data",
+      "pageDescription": "Hanya tabel yang masuk daftar putih yang dapat dilihat dan diedit.",
+      "listError": "Gagal memuat tabel.",
+      "listEmpty": "Tidak ada tabel yang tersedia.",
+      "rowCount": "{count} baris",
+      "schemaError": "Gagal memuat skema tabel.",
+      "rowsError": "Gagal memuat baris.",
+      "noRows": "Tidak ada baris untuk ditampilkan.",
+      "searchPlaceholder": "Cari…",
+      "addRow": "Tambah Baris",
+      "editRow": "Edit Baris",
+      "edit": "Edit",
+      "delete": "Hapus",
+      "save": "Simpan",
+      "cancel": "Batal",
+      "immutable": "Tidak dapat diubah",
+      "prev": "Sebelumnya",
+      "next": "Berikutnya",
+      "pageInfo": "Halaman {page} / {total}",
+      "createSuccess": "Baris dibuat.",
+      "updateSuccess": "Baris diperbarui.",
+      "deleteSuccess": "Baris dihapus.",
+      "deleteTitle": "Hapus Baris",
+      "deleteDescription": "Hapus baris {pk}. Tindakan ini tidak dapat dibatalkan.",
+      "backToList": "Kembali ke tabel",
+      "sensitiveKeepHint": "Isi hanya untuk mengubah (kosongkan untuk mempertahankan)"
     }
   }
 }

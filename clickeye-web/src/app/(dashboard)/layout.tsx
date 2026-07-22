@@ -24,6 +24,9 @@ import {
   BookOpen,
   Calculator,
   Key,
+  Server,
+  KeyRound,
+  Database,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -64,6 +67,13 @@ const adminItems: NavItem[] = [
   { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
   { href: "/admin/recommendations", labelKey: "admin.recommendations", icon: BarChart3 },
   { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
+];
+
+// 운영(Ops) 네비: superadmin 전용. 실경계는 백엔드(FEATURE_OPS_PANEL + superadmin)가 강제.
+const opsItems: NavItem[] = [
+  { href: "/admin/ops/containers", labelKey: "ops.containers", icon: Server },
+  { href: "/admin/ops/env", labelKey: "ops.env", icon: KeyRound },
+  { href: "/admin/ops/tables", labelKey: "ops.tables", icon: Database },
 ];
 
 const settingsItems: NavItem[] = [
@@ -122,6 +132,7 @@ export default function DashboardLayout({
   const loaded = useRBACStore((s) => s.loaded);
   const setPermissions = useRBACStore((s) => s.setPermissions);
   const showAdmin = useRBACStore((s) => s.isAdmin());
+  const showOps = useRBACStore((s) => s.isSuperadmin());
   const showOrgManage = useRBACStore((s) => s.hasPermission("org:manage"));
 
   // 스토어에 권한 동기화 (이미 RoleGuard에서도 하지만, 사이드바 렌더링용)
@@ -204,6 +215,29 @@ export default function DashboardLayout({
               )}
               <div className="space-y-1">
                 {adminItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    label={t(item.labelKey)}
+                    icon={item.icon}
+                    collapsed={collapsed}
+                    isActive={pathname.startsWith(item.href)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 운영(Ops) 섹션 — superadmin 전용 */}
+          {showOps && (
+            <div className="mt-6">
+              {!collapsed && (
+                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                  {t("sections.ops")}
+                </p>
+              )}
+              <div className="space-y-1">
+                {opsItems.map((item) => (
                   <NavLink
                     key={item.href}
                     href={item.href}

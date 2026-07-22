@@ -12,6 +12,7 @@ interface RBACActions {
   setPermissions: (permissions: string[], systemRole: SystemRole) => void;
   hasPermission: (permission: string) => boolean;
   isAdmin: () => boolean;
+  isSuperadmin: () => boolean;
   reset: () => void;
 }
 
@@ -29,6 +30,8 @@ export const useRBACStore = create<RBACState & RBACActions>((set, get) => ({
     const role = get().systemRole;
     return role === "superadmin" || role === "admin";
   },
+
+  isSuperadmin: () => get().systemRole === "superadmin",
 
   reset: () => set({ permissions: [], systemRole: null, loaded: false }),
 }));
