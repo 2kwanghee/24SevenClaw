@@ -1,10 +1,13 @@
 ---
 title: AWS EC2 배포 가이드 (초보자용)
 category: guide
-status: needs-revision
-last_updated: 2026-06-15
+status: current
+last_updated: 2026-07-22
 related:
-  - clickeye-infra/docker
+  - clickeye-infra/docker-compose.prod.yml
+  - clickeye-infra/managed/api.env
+  - clickeye-api/app/services/ops/env_service.py
+  - clickeye-api/app/services/ops/docker_client.py
 ---
 
 # ClickEye AWS 배포 가이드 — EC2 1대 (초보자용)
@@ -183,15 +186,42 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 확인:
 ```bash
-docker compose -f docker-compose.prod.yml ps          # 4개 다 Up/healthy 인지
+docker compose -f docker-compose.prod.yml ps          # 5개 다 Up/healthy 인지
 docker compose -f docker-compose.prod.yml logs -f api  # 로그 (Ctrl+C로 빠져나옴)
 ```
 
-DB 테이블 생성(마이그레이션):
+### ⚠️ DB 마이그레이션 — Migrate One-Shot 게이트 (CE-305)
+
+**중요**: 8단계 `docker compose up`을 실행하면, `migrate` 서비스가 **자동으로** `alembic upgrade head`를 실행한다.
+따라서 별도의 마이그레이션 명령어는 불필요하다. 
+
 ```bash
-docker compose -f docker-compose.prod.yml exec api /app/.venv/bin/alembic upgrade head
+# 마이그레이션 상태 확인 (선택)
+docker compose -f docker-compose.prod.yml logs migrate
 ```
-> 시드 프리셋은 앱 기동 시 멱등적으로 자동 삽입된다.
+
+> - `migrate`는 **one-shot 서비스**: DB 마이그레이션 완료 후 자동으로 Exit 0이 되며, 
+>   API 서비스가 대기했다가 마이그레이션 성공을 확인한 후 부팅된다.
+> - 로컬/배포 모두 동일한 게이트를 쓴다 (멱등성 보장).
+> - 시드 프리셋은 API 앱 기동 시 멱등적으로 자동 삽입된다.
+
+### 관리형 환경변수 (CE-305)
+
+docker-compose 파일의 `.env`로는 부족한 경우, 운영 중 환경변수를 변경하고 싶을 수 있다.
+**Superadmin 운영 패널**에서 관리형 env CRUD를 할 수 있다:
+
+1. **조회**: `GET /api/v1/admin/ops/env` → Fernet 암호화된 변수들
+2. **수정**: `PUT /api/v1/admin/ops/env/{key}` → 새 값 저장
+3. **삭제**: `DELETE /api/v1/admin/ops/env/{key}`
+4. **적용**: `POST /api/v1/admin/ops/env/render` → 수동 적용 명령 미리보기
+   > **주의**: 명령어는 미리보기만 반환하며, docker 컨테이너는 **자동으로 재시작되지 않는다.**
+   > 환경변수 변경 후 반영하려면 수동으로 `docker compose restart` 해야 한다.
+
+### 내부망 Docker API (CE-305)
+
+docker-compose에 `dockerproxy` 서비스가 포함되어 있다. 이는 기본적으로 **POST 요청을 차단**하는 read-only 프록시다.
+Superadmin 패널의 "컨테이너 조회"(`GET /admin/ops/containers`) 기능이 이를 통해 컨테이너 상태를 조회한다.
+외부망에서 접근 불가(내부망 전용).
 
 ---
 
