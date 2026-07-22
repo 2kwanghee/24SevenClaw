@@ -1,236 +1,226 @@
 ---
-title: Linear 실시간 연동 가이드 (엔드유저 ZIP 플로우)
+title: Linear 실시간 연동 가이드 (딜리버리 콘솔)
 category: guide
-status: needs-revision
-last_updated: 2026-06-15
+status: current
+last_updated: 2026-07-22
 related:
-  - scripts/start-webhook.sh
   - scripts/linear_watcher.py
   - clickeye-web/src/app/(dashboard)/settings/linear
   - docs/spec/run_guide.md
+  - docs/clickeye-product-guide.md
 ---
 
 # Linear 실시간 연동 가이드
 
-ZIP 다운로드부터 Local Claude Code가 Linear 이슈를 실시간으로 감지해 자동 개발을 트리거하기까지, 처음부터 끝까지 따라하는 가이드입니다.
+클라우드 콘솔에서 인게이지먼트를 생성하고, Linear 자격증명을 저장한 후, 로컬 Claude Code가 Linear 이슈를 감지해 자동 개발을 트리거하기까지의 완전 가이드입니다.
 
-> 이 문서는 **ZIP을 받은 엔드유저**용 셋업 가이드입니다. ClickEye 레포 자체를 운영자로서 구동하는 절차(webhook_server.py + ngrok + crontab 워치독)는 [run_guide.md](../spec/run_guide.md)를 참조하세요.
+> 이 문서는 **딜리버리 콘솔을 사용하는 엔드유저**용입니다. ClickEye 서비스 자체를 운영하는 관리자 절차(webhook_server.py + ngrok)는 [run_guide.md](../spec/run_guide.md)를 참조하세요.
 
 ---
 
 ## 전체 흐름 한눈에 보기
 
 ```
-[ClickEye 위저드] → ZIP 다운로드
+[ClickEye 콘솔] 인게이지먼트 생성
          │
          ▼
-[설정 페이지] Linear 자격증명 저장
+[설정 페이지] /settings/linear → 자격증명 저장
          │
          ▼
-[AI Team] "첫 작업 요청하기" + "AI 초안 생성"
-         │ ← 서버가 사용자 Linear에 이슈 자동 등록
+[콘솔 프로젝트] "AI 초안 생성" → Linear 이슈 자동 등록
+         │                      (Queued 상태)
          ▼
-[로컬 PC] bash scripts/setup-tunnel.sh     ← 터널 기동 (선택)
-         │ 또는
-         │   python scripts/linear_watcher.py  ← 폴링 모드
+[로컬 PC] webhook 감지 또는 폴링
+         │ (linear_watcher.py)
          ▼
-[Linear] 이슈 상태 → Queued 변경
+[로컬 Claude Code] auto_dev_pipeline.sh 자동 실행
          │
          ▼
-[로컬 Claude Code] 자동 개발 파이프라인 실행
+[Linear] 상태 자동 전이: DayQueued → In Progress → Done
 ```
 
 ---
 
-## Step 1. 위저드에서 프로젝트 생성 & ZIP 다운로드
+## Step 1. Linear 자격증명 준비
 
-1. ClickEye 웹(<http://localhost:3000>)에 로그인합니다.
-2. **새 솔루션 만들기** → 12단계 위저드를 완료합니다.
-   - **환경 변수 단계**에서 Linear 스킬을 사용할 경우 터널 방식을 선택하세요.
-     | 선택지 | 비용 | URL 고정 여부 | 권장 대상 |
-     |--------|------|--------------|----------|
-     | **Cloudflare Tunnel** (기본) | 무료 | ✅ 정적 | 대부분의 사용자 |
-     | ngrok | 유료 $8/월 고정 / 무료 임시 | ⚠️ 재시작 시 변경 | ngrok 계정 보유 사용자 |
-     | 폴링 모드 | 무료 | — | 터널 설정이 어려운 경우 |
-3. **ZIP 다운로드** 버튼을 클릭해 `{project-name}.zip`을 받습니다.
-4. 압축을 해제합니다.
+콘솔에서 자격증명을 저장하기 전에 미리 준비하세요.
 
-```bash
-unzip your-project.zip -d my-project
-cd my-project
-```
-
----
-
-## Step 2. Linear 자격증명 저장
-
-ClickEye가 사용자 본인의 Linear 워크스페이스에 이슈를 등록하려면 API 키가 필요합니다.  
-키는 **Fernet 암호화**로 서버에 안전하게 저장되며, 사용자가 명시적으로 저장한 경우에만 사용됩니다.
-
-### 2-1. Linear API 키 발급
+### 1-1. Linear API 키 발급
 
 1. <https://linear.app/settings/api> 접속
 2. **Personal API keys → Create key** 클릭
 3. 이름 예: `ClickEye`, 권한: **Full access** 또는 최소 `issues:write`, `webhooks:write`
-4. 발급된 키를 복사해 둡니다 (`lin_api_...` 형식).
+4. 발급된 키 복사 (`lin_api_...` 형식)
 
-### 2-2. Team ID 확인
+### 1-2. Team ID 확인
 
 1. Linear 앱 → 좌측 사이드바에서 팀을 우클릭 → **Copy Team ID**  
    또는 URL `https://linear.app/{workspace}/team/{TEAM_ID}/issues`에서 확인
 
-### 2-3. ClickEye 설정 페이지에서 저장
+---
 
-1. <http://localhost:3000/settings/linear> 접속
-2. 다음 항목을 입력합니다.
+## Step 2. ClickEye 콘솔에서 자격증명 저장
+
+1. ClickEye 콘솔 (<http://localhost:3000>) 접속
+2. 우상단 **Settings** → **Linear** 탭
+3. 다음 항목을 입력합니다.
 
    | 필드 | 설명 | 필수 |
    |------|------|------|
-   | Linear API Key | `lin_api_...` | ✅ |
-   | Team ID | 이슈를 등록할 팀 | ✅ |
-   | Webhook Secret | 로컬 webhook 서버 HMAC 검증용 임의 문자열 | 선택 |
-   | Tunnel URL | `setup-tunnel.sh` 실행 후 발급되는 공개 URL | 선택 |
+   | Linear API Key | Step 1-1에서 발급한 `lin_api_...` | ✅ |
+   | Team ID | Step 1-2에서 확인한 팀 ID | ✅ |
+   | Webhook Secret | 로컬 webhook 서명 검증용 (선택) | — |
 
-3. **저장** 버튼을 클릭합니다.
-   - Tunnel URL이 입력된 경우, 서버가 자동으로 사용자 Linear 워크스페이스에 **Webhook을 등록**합니다.
+4. **저장** 버튼 클릭 (Fernet 암호화로 보안 저장됨)
 
-> **보안 팁**: Webhook Secret는 `openssl rand -hex 32`로 강력한 무작위 문자열을 생성해 사용하세요.
+> **보안 팁**: Webhook Secret는 강력한 임의 문자열 생성:  
+> `openssl rand -hex 32`
 
 ---
 
-## Step 3. "첫 작업 요청하기" → Linear 이슈 자동 등록
+## Step 3. 인게이지먼트 생성 및 Linear 이슈 등록
 
-1. ClickEye → 해당 프로젝트 → **AI Team** 탭으로 이동합니다.
-2. **첫 작업 요청하기** 버튼을 클릭해 세션을 생성합니다.
-3. 세션이 `assigned` 상태가 되면 **AI 초안 생성** 버튼이 활성화됩니다.
-4. **AI 초안 생성** 클릭 → 두 가지 작업이 자동으로 순서대로 실행됩니다.
-   - ① AI가 작업을 분석해 서브태스크 초안을 생성합니다.
-   - ② 서버가 저장된 API 키로 Linear에 이슈를 등록합니다.
-5. 화면 하단에 등록된 이슈 ID (예: `CE-123`) 목록이 표시됩니다.
+1. ClickEye 콘솔 → **Projects** → 프로젝트 선택 → **Delivery**
+2. **[+ 새 인게이지먼트]** 클릭
+3. 요구사항 입력 + AI Team 프로필 선택
+4. **[AI 초안 생성]** 클릭 → 서브태스크 초안 생성 (자동)
+5. 초안 검토 후 **[작업 요청]** 클릭
+   - 콘솔이 저장된 Linear 자격증명으로 이슈 자동 등록
+   - 상태: `Queued` (또는 `DayQueued`, `NightQueued`)
+6. 화면 하단에 등록된 이슈 ID (예: `CE-123`) 목록 표시
 
 ### 자격증명 미저장 시
 
-자격증명이 없으면 `설정 페이지에서 Linear 자격증명을 등록하세요` 안내 배너가 표시됩니다.  
-[Step 2](#step-2-linear-자격증명-저장)로 돌아가 저장 후 다시 시도하세요.
+`Linear 자격증명이 필요합니다` 안내 배너 표시 → Step 2로 돌아가 저장 후 재시도
 
 ---
 
-## Step 4. 로컬 환경 설정 (ZIP 기반)
+## Step 4. 로컬 claude Code 설정
 
-압축 해제한 프로젝트 디렉토리에서 `.env` 파일을 편집합니다.
+### 4-1. 프로젝트 디렉토리 준비
+
+콘솔에서 "AI 초안 생성" 후, 시스템이 로컬용 설정을 자동으로 제공합니다.
+
+또는 수동으로:
+```bash
+# 선택: 초기 설정 파일 다운로드 (필요 시)
+# 콘솔 → Projects → [projectId] → [다운로드] → 설정 패키지
+```
+
+### 4-2. .env 파일 설정
+
+로컬 프로젝트 루트에 `.env` 파일 생성:
 
 ```bash
-# .env 최소 설정 예시
+# 필수
 LINEAR_API_KEY=lin_api_xxxxxxxxxxxx
 LINEAR_TEAM_ID=your-team-id
-WEBHOOK_SECRET=your-webhook-secret   # Step 2와 동일한 값
+ANTHROPIC_API_KEY=sk-ant-xxxxx
+
+# 선택 (webhook 또는 폴링 모드)
+WEBHOOK_SECRET=your-secret
 WEBHOOK_PORT=9876
 TUNNEL_PROVIDER=cloudflare           # cloudflare | ngrok | polling
 ```
 
 ---
 
-## Step 5. 터널 기동 (Cloudflare Tunnel 추천)
+## Step 5. Linear 이슈 감지 설정
 
-> 폴링 모드를 선택한 경우 이 단계를 건너뛰고 [Step 6b](#step-6b-폴링-모드-fallback)로 이동하세요.
+### 5-1. Webhook 모드 (권장)
 
-### Step 5a. Cloudflare Tunnel (무료, 정적 URL)
-
-> 헬퍼 스크립트 `scripts/setup-tunnel.sh`가 ZIP에 포함되지 않은 경우, [run_guide.md](../spec/run_guide.md)의 ngrok 수동 터널 절차(3-2)로 대체할 수 있습니다.
+> 웹훅이 포함된 프로젝트를 받았다면 이 단계 건너뛰기
 
 ```bash
-bash scripts/setup-tunnel.sh
+cd /mnt/c/workspace/ClickEye  # ClickEye 루트 (또는 프로젝트 루트)
+
+# webhook 서버 + ngrok 자동 설정 (진단, 기동, 검증)
+bash scripts/webhook-doctor.sh
 ```
 
-스크립트가 자동으로:
-1. `cloudflared`가 없으면 설치합니다 (Homebrew / apt / snap).
-2. 터널을 기동하고 `https://xxxx.trycloudflare.com` 형식의 URL을 발급합니다.
-3. `.env`의 `WEBHOOK_PUBLIC_URL`을 업데이트합니다.
+또는 수동:
+```bash
+# 터미널 1: webhook 서버 기동
+nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
 
-```
-☁️  Cloudflare Tunnel 설정 중...
-   터널 기동 중 (포트 9876)...
-
-   ✅ Cloudflare Tunnel URL: https://sample-example-abc.trycloudflare.com
-   .env의 WEBHOOK_PUBLIC_URL을 업데이트했습니다.
+# 터미널 2: ngrok 터널 (또는 Cloudflare Tunnel 대체)
+nohup ngrok http 9876 >> logs/ngrok.log 2>&1 &
 ```
 
-**발급된 URL을 ClickEye 설정 페이지 → Tunnel URL 필드에 저장하세요.**  
-저장 즉시 서버가 사용자 Linear에 Webhook을 자동 등록합니다.
+### 5-2. 폴링 모드 (Fallback)
 
-> ⚠️ 이 터미널 창을 닫으면 터널이 종료됩니다. 별도 터미널에서 유지하거나 `nohup`으로 백그라운드 실행하세요.
-
-### Step 5b. ngrok (유료 고정 URL / 무료 임시 URL)
+webhook 설정이 어려운 경우:
 
 ```bash
-TUNNEL_PROVIDER=ngrok bash scripts/setup-tunnel.sh
+# 터미널에서 지속 실행 또는 백그라운드
+python scripts/linear_watcher.py
+# 또는
+python scripts/linear_watcher.py &
 ```
 
-ngrok이 설치되어 있지 않으면 설치 안내가 표시됩니다.  
-`NGROK_AUTH_TOKEN`을 `.env`에 설정하면 자동으로 인증합니다.
-
-> ⚠️ 무료 플랜은 재시작마다 URL이 변경됩니다. URL 변경 시 설정 페이지에서 다시 저장해야 합니다.
+30초 간격으로 Queued 이슈 감지
 
 ---
 
-## Step 6. 로컬 Webhook 서버 기동
+## Step 6. 자동 개발 파이프라인 실행
 
-새 터미널 창에서 실행합니다.
+### 6-1. Claude Code 설정 로드
 
-```bash
-bash scripts/start-webhook.sh
-```
-
-```
-🚀 Webhook 서버 시작 중...
-   포트: 9876
-   Linear 서명 검증: 활성화
-   서버 준비 완료
-```
-
-### 헬스 체크
+로컬 프로젝트에 `.claude/` 디렉토리가 있는지 확인:
 
 ```bash
-curl http://localhost:9876/health
-# {"status":"ok","port":9876}
+ls -la .claude/
+# agents/, skills/, CLAUDE.md 등이 포함되어야 함
 ```
 
-### Step 6b. 폴링 모드 (Fallback)
-
-터널을 구성하지 않거나 Webhook 서버를 실행하기 어려운 경우, 30초 폴링으로 동일한 효과를 얻을 수 있습니다.
+### 6-2. Claude Code 시작
 
 ```bash
-python scripts/linear_watcher.py
+cd /프로젝트/루트
+claude  # Claude Code 시작
 ```
 
-또는 백그라운드 실행:
+또는 자동 트리거 설정:
 
 ```bash
-python scripts/linear_watcher.py &
+# 백그라운드에서 Linear 이슈 감지 → 자동 실행
+bash scripts/auto_dev_pipeline.sh --once
+# 또는
+bash scripts/auto_dev_pipeline.sh  # 연속 실행
 ```
 
 ---
 
 ## Step 7. 동작 확인
 
-### 7-1. Linear에서 이슈 상태 변경
+### 7-1. Linear 이슈 상태 변경
 
-1. [Step 3](#step-3-첫-작업-요청하기--linear-이슈-자동-등록)에서 등록된 이슈를 Linear에서 엽니다.
-2. 상태를 **Queued** (또는 `DayQueued`, `NightQueued`)로 변경합니다.
+Step 3에서 등록된 이슈를 Linear에서 열고 상태를 **Queued** (또는 `DayQueued`)로 변경합니다.
 
-### 7-2. 로컬 자동 개발 파이프라인 트리거 확인
+### 7-2. 파이프라인 트리거 확인
 
-- **Webhook 모드**: `start-webhook.sh` 터미널에서 다음 로그를 확인합니다.
-  ```
-  [ClickEye] Linear webhook 수신: 이슈 ABC-123 → Queued
-  [ClickEye] 자동 개발 파이프라인 트리거
-  ```
-- **폴링 모드**: `linear_watcher.py` 터미널에서 확인합니다.
-  ```
-  [watcher] 이슈 발견: ABC-123 (Queued) → 파이프라인 실행
-  ```
+**Webhook 모드**:
+```
+logs/webhook.log에서 확인:
+[ClickEye] EVENT: CE-123 → Queued
+[ClickEye] TRIGGER: auto_dev_pipeline.sh 실행
+```
 
-두 경우 모두 `.claude/` 또는 로컬 `claude` 명령이 자동으로 개발을 시작합니다.
+**폴링 모드**:
+```
+터미널에서 확인:
+[watcher] 이슈 발견: CE-123 (Queued) → 파이프라인 실행
+```
+
+### 7-3. Claude Code 자동 실행 확인
+
+로컬 Claude Code 또는 terminal 터미널에서:
+```
+[Claude] PLAN.md 생성 중...
+[Claude] 코드 작성 시작
+[Claude] 테스트 실행 중...
+[Claude] PR 생성 완료 → CE-123 링크 추가
+```
 
 ---
 
@@ -238,26 +228,33 @@ python scripts/linear_watcher.py &
 
 | 증상 | 원인 | 해결 방법 |
 |------|------|----------|
-| "Linear 이슈 생성 실패" 배너 표시 | 자격증명 미저장 또는 만료 | 설정 페이지에서 API 키 재저장 |
-| Webhook 수신 없음 | Tunnel URL 불일치 | 설정 페이지에서 현재 Tunnel URL 재저장 |
-| 서명 검증 실패 (401) | Webhook Secret 불일치 | `.env`와 설정 페이지의 Secret 동일 여부 확인 |
-| `cloudflared` 설치 실패 | 인터넷 연결 또는 권한 문제 | 수동 설치: <https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/> |
-| ngrok URL 변경됨 | 무료 플랜 재시작 | 설정 페이지에서 새 URL 재저장 또는 유료 플랜 사용 |
-| 폴링이 이슈를 감지 못함 | `LINEAR_TEAM_ID` 오류 | `.env`의 TEAM_ID가 올바른지 Linear에서 확인 |
+| "Linear 이슈 생성 실패" 배너 | 자격증명 미저장/만료 | Settings → Linear에서 API 키 재저장 |
+| 파이프라인이 실행 안 됨 | webhook 서버 또는 폴링 꺼짐 | `pgrep -f webhook_server.py` 확인, 또는 `python scripts/linear_watcher.py` 실행 |
+| `LINEAR_TEAM_ID` 오류 | .env에 잘못된 팀 ID | Linear → 팀 우클릭 → Copy Team ID 확인 |
+| Webhook Secret 불일치 | .env ≠ 콘솔 설정 | 양쪽 값 동일 확인 |
+| ngrok URL 변경 | 무료 플랜 재시작 | 콘솔 Settings → Linear에서 새 URL 저장 |
 
 ---
 
 ## 보안 체크리스트
 
-- [ ] Linear API 키가 `.env`에만 있고, 버전 관리에 커밋되지 않았는가? (`.gitignore` 확인)
-- [ ] Webhook Secret이 충분히 강력한가? (`openssl rand -hex 32` 권장)
-- [ ] `start-webhook.sh`가 로컬 호스트에서만 수신하는가? (외부 포트 9876 노출 불필요)
-- [ ] Cloudflare/ngrok 터널이 포트 9876만 노출하는가?
+- [ ] LINEAR_API_KEY가 `.env`에만 있고, `.gitignore`에 등재되었는가?
+- [ ] Webhook Secret이 강력한가? (`openssl rand -hex 32` 권장)
+- [ ] webhook 서버가 localhost 수신만 하는가? (외부 노출 불필요)
+- [ ] Cloudflare/ngrok 터널이 9876 포트만 노출하는가?
+
+---
+
+## 다음 단계
+
+1. **인게이지먼트 모니터링** → 콘솔 Delivery 탭에서 진행 상황 실시간 확인
+2. **PR 검토** → GitHub에서 자동 생성된 PR 확인
+3. **결과 승인** → Linear 이슈 상태가 Done으로 자동 전이
 
 ---
 
 ## 관련 문서
 
-- [서비스 구동 가이드 (운영자용 webhook/ngrok 상세)](../spec/run_guide.md)
-- [ClickEye 아키텍처 개요](../architecture-overview.md)
-- [AI 파이프라인 가이드](../pipeline-guide.md)
+- [ClickEye 딜리버리 제품 안내](../clickeye-product-guide.md)
+- [서비스 구동 가이드 (운영자용)](../spec/run_guide.md)
+- [개발 파이프라인](../clickeye-development-pipeline.md)

@@ -24,24 +24,15 @@ agent/
 ├── dispatcher.py               # 메시지 타입 → 핸들러 라우팅
 ├── handlers/
 │   ├── base.py                 # BaseHandler 인터페이스
+│   ├── config_handler.py       # 설정 관리
 │   ├── docker_handler.py       # Docker 컨테이너 관리
-│   ├── env_handler.py          # 환경 프로비저닝
-│   ├── claude_handler.py       # Claude 인스턴스 관리
-│   ├── git_handler.py          # Git 저장소 관리
-│   ├── build_handler.py        # 빌드/실행 관리
-│   └── pipeline_handler.py     # 파이프라인 실행 (Phase 4)
+│   ├── env_handler.py          # 환경 변수 프로비저닝
+│   └── runner_handler.py       # 실행/파이프라인 처리
 ├── reporter.py                 # 상태 보고 (→ Cloud)
 ├── local_store.py              # SQLite 로컬 상태 관리
 └── utils/
     ├── logger.py               # 구조화 로깅
     └── retry.py                # 재시도 유틸리티
-templates/                      # Docker Compose 환경 템플릿
-├── python-agent/
-│   └── docker-compose.yml
-├── nodejs-agent/
-│   └── docker-compose.yml
-└── base/
-    └── docker-compose.yml
 ```
 
 ## Core Concepts
@@ -188,28 +179,6 @@ class Reporter:
             "type": "agent.heartbeat",
             "payload": system_info,
         })
-```
-
-### 환경 템플릿
-```yaml
-# templates/python-agent/docker-compose.yml
-services:
-  agent-runtime:
-    image: "${AGENT_IMAGE}"
-    environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    volumes:
-      - ./workspace:/workspace
-
-  skill-server:
-    image: "${SKILL_IMAGE}"
-    ports:
-      - "${SKILL_PORT}:8080"
-
-  mcp-server:
-    image: "${MCP_IMAGE}"
-    ports:
-      - "${MCP_PORT}:3100"
 ```
 
 ## Testing

@@ -18,15 +18,19 @@ openapi/
 protocol/
 ├── messages.ts                 # WebSocket 메시지 타입 정의
 ├── commands.ts                 # Cloud → Agent 명령 타입
-├── events.ts                   # Agent → Cloud 이벤트 타입
+├── orchestrator.ts             # 딜리버리 오케스트레이션 타입
 ├── errors.ts                   # 에러 코드 및 타입
+├── rbac.ts, presets.ts         # RBAC, 프리셋 타입
+├── artifacts.ts, modernize.ts  # 인공물, 현대화 타입
+├── central_contract.ts         # 중앙 계약
 └── index.ts                    # 프로토콜 통합 export
 
 generated/
 └── typescript/
-    ├── index.ts                # 자동 생성된 REST API 클라이언트
+    ├── sdk.gen.ts              # 자동 생성된 REST API SDK (main)
+    ├── client.gen.ts           # 자동 생성된 클라이언트 헬퍼
     ├── types.gen.ts            # 자동 생성된 타입
-    └── services.gen.ts         # 자동 생성된 서비스 함수
+    └── index.ts                # 통합 export
 
 python/
 ├── protocol.py                 # Python용 프로토콜 타입 (Pydantic)
@@ -35,7 +39,7 @@ python/
 scripts/
 ├── fetch-spec.sh               # API 서버에서 openapi.json 가져오기
 ├── generate-ts.sh              # TypeScript 클라이언트 생성
-└── validate.sh                 # 스펙 유효성 검증
+└── pipeline.sh                 # 통합 파이프라인
 
 package.json
 tsconfig.json

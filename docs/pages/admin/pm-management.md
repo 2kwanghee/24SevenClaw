@@ -94,7 +94,6 @@ PM의 `pm_markdown` 필드는 ZIP에 그대로 주입되는 핵심 파일이다.
 - **라이브 미리보기**: 에디터 좌측 작성 / 우측 렌더링 분할 뷰 (Split Mode)
 - **자동 저장**: 3초 debounce 후 `PATCH /api/v1/pm-profiles/{id}` 호출 (`pm_markdown` 필드만)
 - **변경 감지**: 편집 중 다른 탭 이동 시 "저장되지 않은 변경사항" confirm 다이얼로그 표시
-- ZIP 생성 시 이 마크다운 원문이 플랫폼별 경로에 주입된다 (`docs/pages/download/pm-environment.md` 참조)
 
 ---
 

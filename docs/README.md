@@ -47,7 +47,7 @@ version: ...       # 선택
 ### architecture — 시스템 구조
 | 문서 | 목적 | status |
 |------|------|--------|
-| [architecture-overview.md](architecture-overview.md) | 클라우드 SaaS + 로컬 에이전트 분리, 12단계 위저드 전체 구조 | current |
+| [architecture-overview.md](architecture-overview.md) | 인게이지먼트 기반 딜리버리 콘솔 + 하이브리드 러너(데스크탑 구독/클라우드 컨테이너) | current |
 | [agent-protocol.md](agent-protocol.md) | 서버↔에이전트 통신 프로토콜 | current |
 | [si-factory-transition.md](si-factory-transition.md) | SI 딜리버리 팩토리 전환 마스터 설계 기준 (P0~P4 티켓 CE-296~301 참조) | current |
 
@@ -57,9 +57,8 @@ version: ...       # 선택
 | [pipeline-guide.md](pipeline-guide.md) | 자동화 파이프라인 v6 + 거버넌스 게이트 | current |
 | [si-factory-operating-guide.md](si-factory-operating-guide.md) | SI 팩토리 전략적 실행 가이드 (배포·토글·통제·선결조건) | current |
 | [aws-deployment-guide-ec2.md](aws-deployment-guide-ec2.md) | EC2 1대 docker-compose 배포(초보자용) | current |
-| [modernize-github-app-setup.md](modernize-github-app-setup.md) | Modernize용 GitHub App 등록 런북 | current |
 | [spec/run_guide.md](spec/run_guide.md) | 서비스 구동(API/web/webhook/ngrok/DB) | current |
-| [user-guide/linear-realtime-tracking.md](user-guide/linear-realtime-tracking.md) | 엔드유저 ZIP 기반 Linear 실시간 연동 | current |
+| [user-guide/linear-realtime-tracking.md](user-guide/linear-realtime-tracking.md) | 딜리버리 콘솔 기반 Linear 실시간 연동 | current |
 
 ### product — 제품/내러티브
 | 문서 | 목적 | status |
@@ -68,26 +67,20 @@ version: ...       # 선택
 | [clickeye-development-pipeline.md](clickeye-development-pipeline.md) | 도그푸딩 개발 파이프라인 동작 원리 | current |
 | [comparison.md](comparison.md) | 유사 플랫폼 대비 아키텍처 비교 | current |
 
-### presentation — 발표 자료
-| 문서 | 목적 | status |
-|------|------|--------|
-| [clickeye-presentation-index.md](clickeye-presentation-index.md) | 발표 흐름 Quick Reference | current |
-| [clickeye-presentation-slides.md](clickeye-presentation-slides.md) | Marp 슬라이드 덱(프론트매터 미적용 — Marp 지시자) | current |
-
 ### reference — 정책/체크리스트
 | 문서 | 목적 | status |
 |------|------|--------|
 | [license-model.md](license-model.md) | 라이선스 정책(프로젝트 단위, 티어) | current |
-| [modernize-regression-checklist.md](modernize-regression-checklist.md) | Modernize 비침습 회귀 검증 R-1~R-7 | current |
 | [hybrid-runner-headless-poc.md](hybrid-runner-headless-poc.md) | CE-297 SPIKE — 컨테이너 헤드리스 PoC + 동시성 실측 결정 메모 | current |
 
 ### page — UI 페이지 스펙
 | 문서 | 목적 | status |
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
+| [pages/delivery/console.md](pages/delivery/console.md) | 딜리버리 콘솔 (인게이지먼트 설계·실행·추적, 메인 플로우) | current |
 | [pages/admin/ops.md](pages/admin/ops.md) | Superadmin 운영 패널 (컨테이너/env/테이블 관리, CE-305) | implemented |
 
-> 개별 페이지 스펙(landing/auth/solutions/projects/onboarding/admin/settings/download)은 [pages/README.md](pages/README.md) 참조.
+> 개별 페이지 스펙(landing/auth/delivery/guide/projects/onboarding/admin/settings)은 [pages/README.md](pages/README.md) 참조. (구 solutions/download 스펙은 딜리버리 전환으로 제거됨)
 
 ### archive (자동 생성, 매니페스트 관리 제외)
 - `WeeklyWorkReport/` — `weekly-report` 스킬 산출 주간 보고

@@ -28,9 +28,11 @@ docs/pages/
 │   ├── login.md                    → /login
 │   └── register.md                 → /register
 │
-├── solutions/
-│   ├── list.md                     → /solutions
-│   └── session.md                  → /solutions/[sessionId]
+├── delivery/
+│   └── console.md                  → /delivery, /delivery/[engagementId] (메인 플로우)
+│
+├── guide/
+│   └── viewer.md                   → /guide/[slug]
 │
 ├── projects/
 │   ├── list.md                     → /projects
@@ -51,14 +53,16 @@ docs/pages/
 │   ├── contracts-detail.md         → /admin/contracts/[id]
 │   ├── audit.md                    → /admin/audit
 │   ├── pm-management.md            → /admin/pm (+[id], /composition)
-│   ├── registry.md                 → /admin/registry
+│   ├── registry.md                 → /admin/registry (agents/skills/mcps/hooks/prototype-catalog/prototype-tags)
 │   ├── recommendation-logs.md      → /admin/recommendations
+│   ├── control-tower.md            → /admin/control-tower (+customers/[orgId])
+│   ├── roi-standards.md            → /admin/roi-standards
+│   ├── settings.md                 → /admin/settings
 │   └── ops.md                      → /admin/ops (CE-305, superadmin)
 │
-├── download/
-│   └── pm-environment.md           → (참조 문서, 독립 페이지 없음)
-│
 └── settings/
+    ├── anthropic.md                → /settings/anthropic
+    ├── linear.md                   → /settings/linear
     └── members.md                  → /settings/members
 ```
 

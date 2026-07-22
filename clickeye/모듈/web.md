@@ -6,7 +6,7 @@ module: clickeye-web
 
 # 🎨 clickeye-web (Next.js 15 · :3000)
 
-웹 프론트엔드 — 12단계 위저드 UI + 대시보드.
+웹 프론트엔드 — Next.js 15 딜리버리 콘솔 + 대시보드.
 
 ## 진입점
 - [[clickeye-web/CLAUDE|🧭 모듈 CLAUDE.md]]

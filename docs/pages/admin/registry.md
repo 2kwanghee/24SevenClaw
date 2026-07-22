@@ -10,7 +10,7 @@ last_updated: 2026-04-17
 
 ## 목적
 
-관리자가 ZIP 생성 엔진에서 사용할 **Agent**, **Skill**, **MCP Server** 카탈로그를 GUI로 CRUD하는 전용 화면이다. Registry에 등록된 항목만 위저드에서 선택할 수 있고 PM Composition에서 참조된다.
+관리자가 **Agent**, **Skill**, **MCP Server** 카탈로그를 GUI로 CRUD하는 전용 화면이다. Registry에 등록된 항목은 PM Composition에서 참조되며, 딜리버리 플랫폼 커스터마이제이션의 핵심이다.
 
 ---
 

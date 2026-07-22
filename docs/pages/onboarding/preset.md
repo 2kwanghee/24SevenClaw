@@ -9,8 +9,8 @@ pages:
 components:
   - src/components/presets/preset-card.tsx
   - src/components/presets/natural-language-input.tsx
-store: useWizardStore → applyPreset
-last_updated: 2026-04-16
+store: usePresets (커스텀 훅)
+last_updated: 2026-07-22
 ---
 
 ## 목적
@@ -54,4 +54,4 @@ last_updated: 2026-04-16
 ## 구현 노트
 
 - 성숙도 진단(`/onboarding/maturity`) 이후 진입하는 것이 권장 플로우
-- v2 솔루션 위저드와 독립 (v1 `useWizardStore` 사용)
+- `usePresets` 훅으로 프리셋 데이터 조회 및 상태 관리 (TanStack Query)

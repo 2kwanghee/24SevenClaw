@@ -24,12 +24,24 @@ app/
 ├── dependencies.py         # DI (get_db, get_current_user)
 ├── api/
 │   └── v1/
-│       ├── router.py       # v1 라우터 집합
+│       ├── router.py       # v1 라우터 집합 (모든 라우터 집계)
 │       ├── auth.py         # 인증 엔드포인트
 │       ├── projects.py     # 프로젝트 CRUD
-│       ├── registry.py     # 레지스트리 프록시
-│       ├── configurations.py
-│       └── health.py
+│       ├── registry_admin.py # 레지스트리 관리 (에이전트, 스킬, 훅, 프로토타입 카탈로그)
+│       ├── health.py       # 헬스 체크
+│       ├── orchestrator.py # 딜리버리 오케스트레이션
+│       ├── governance.py   # 거버넌스 (정책, ticket-ref, plan-trace)
+│       ├── quality_gate.py # 품질 게이트
+│       ├── review_pipeline.py # 리뷰 파이프라인
+│       ├── control_tower.py # 제어탑 (고객, 조직 관리)
+│       ├── ops_infra.py    # 운영: 인프라 (컨테이너)
+│       ├── ops_env.py      # 운영: 환경 변수
+│       ├── ops_db.py       # 운영: 데이터베이스 테이블
+│       ├── contracts.py    # 계약 (프로젝트 계약, 동기화)
+│       ├── roi.py, roi_admin.py  # ROI 관리
+│       ├── maturity.py     # 성숙도 모델
+│       ├── presets.py      # 설정값 프리셋
+│       └── 기타 라우터...   # (artifact, catalog, rbac, integrations 등)
 ├── models/                 # SQLAlchemy 모델
 ├── schemas/                # Pydantic 스키마 (요청/응답)
 ├── services/               # 비즈니스 로직

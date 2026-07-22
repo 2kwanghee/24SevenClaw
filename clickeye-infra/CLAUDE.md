@@ -20,11 +20,12 @@ docker/
 ├── Dockerfile.agent                # Agent 이미지
 └── nginx/
     └── nginx.conf
+managed/                            # Managed infrastructure configs
+├── ...                             # 클라우드 배포 설정
 scripts/
-├── setup-dev.sh                    # 원커맨드 로컬 셋업
-├── migrate.sh                      # DB 마이그레이션
-├── seed-db.sh                      # 테스트 데이터
-├── generate-api-client.sh          # OpenAPI → TS 클라이언트
+├── setup-dev.sh                    # 원컴맨드 로컬 셋업 (docker-compose up + migrations)
+├── generate-api-client.sh          # OpenAPI → TS 클라이언트 생성
+├── deploy.sh                       # 배포 스크립트
 └── health-check.sh                 # 서비스 헬스 체크
 ```
 

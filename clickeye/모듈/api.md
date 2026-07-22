@@ -6,7 +6,7 @@ module: clickeye-api
 
 # 🛠️ clickeye-api (FastAPI · :8000)
 
-백엔드 API — 카탈로그 + ZIP 생성 엔진.
+백엔드 API — 딜리버리/거버넌스/운영.
 
 ## 진입점
 - [[clickeye-api/CLAUDE|🧭 모듈 CLAUDE.md]]

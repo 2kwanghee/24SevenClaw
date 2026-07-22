@@ -79,7 +79,7 @@ ClickEye를 **"위저드→ZIP 빌더"** (대외 판매 SaaS)에서 **사내 SI 
 │  └── commands.ts/messages.ts (위치 무관 실행 계약, ADAPT)   │
 └─────────────────────────────────────────────────────────────┘
         │  
-        │  ZIP 다운로드 / 작업 제출 / 상태 폴링
+        │  작업 제출 / 상태 폴링 (Runner 태스크 프로토콜)
         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  사용자 로컬 PC                                              │
@@ -259,14 +259,15 @@ activity 배선·Linear fetch)는 후속 단계로 남긴다.
 
 #### P3 설계 노트 (실동작 이월 — 스켈레톤/설계만)
 
-**수주 인테이크 자동화 (실동작 이월):** 인테이크 자동화는 기존 modernize 흐름
-(레거시 분석 → Linear 티켓화 → ZIP 산출)과 신규 agent 실행 핸들러
+**수주 인테이크 자동화 (실동작 이월):** 인테이크 자동화는 딜리버리 인게이지먼트 생성
+(요구 분석 → Linear 티켓화)과 신규 agent 실행 핸들러
 (`clickeye-agent`의 `RunnerHandler`, 메시지 타입 `command.run_task`)를 잇는 배선이다.
-트리거 지점은 modernize 세션의 **finalize/ZIP 생성 직후** — 이 시점에서 프로젝트를
+트리거 지점은 인게이지먼트 확정 직후 — 이 시점에서 프로젝트를
 러너(데스크탑=구독 시트 주력 / 클라우드=조직 키 폴백)로 `RunnerTaskPayload`
 (`task_id`/`project_id`/`target`/`ticket_id`|`prompt`|`command`)로 push 한다.
 실동작 배선(러너 push, 라우터 배치)은 범위 폭발 방지를 위해 이월하며, 코드 앵커는
-modernize finalize 서비스와 `clickeye-agent`의 `RunnerHandler` docstring TODO로 표시한다.
+`clickeye-agent`의 `RunnerHandler` docstring TODO로 표시한다.
+(구 modernize 기반 인테이크 경로는 딜리버리 전환으로 폐기됨.)
 
 **마진 관리 (실동작 이월):** 실마진 = ROI 견적(추정 `clickeye_cost`, `roi_service.py`)
 대비 실제 비용(LLM 원장 실 cost, `llm_ledger_service.py` + 향후 인건비/시간).

@@ -1,11 +1,12 @@
 ---
 title: 개발 파이프라인 동작 원리
 category: product
-status: needs-revision
-last_updated: 2026-06-12
+status: current
+last_updated: 2026-07-22
 related:
   - scripts/auto_dev_pipeline.sh
   - docs/pipeline-guide.md
+  - docs/clickeye-product-guide.md
 ---
 
 # ClickEye 개발 파이프라인 — 동작 원리 전체 설명
@@ -13,7 +14,7 @@ related:
 > **"ClickEye 가 ClickEye 를 만든다."**
 >
 > 이 문서는 ClickEye 라는 제품 자체를 어떤 AI 자동화 파이프라인으로 개발하는지를 설명합니다.
-> 즉, 제품 사용자가 받는 ZIP 안의 자동화는 사실 **개발사 자신이 매일 쓰고 있는 시스템** 의 패키지화입니다.
+> 즉, 딜리버리 서비스로 사용자가 받는 인게이지먼트는 **개발사 자신이 매일 쓰고 있는 동일한 시스템** 입니다.
 
 ---
 
@@ -448,13 +449,11 @@ auto_dev_pipeline.sh 백그라운드 실행
 
 | R# | 항목 | 자동화 |
 |---|---|---|
-| **R-1** | 기존 위저드 E2E | 수동 + 향후 Playwright |
-| **R-2** | ZIP 골든파일 | pytest (`test_zip_builder.py`) |
-| **R-3** | OpenAPI diff | git diff `openapi.json` |
-| **R-4** | 카탈로그 변경 0 건 | `scripts/modernize-check-catalog-unchanged.sh` |
-| **R-5** | wizard-store snapshot | vitest 회귀 (현재 77/77) |
-| **R-6** | Feature flag OFF | `scripts/modernize-check-flag-off.sh` |
-| **R-7** | Alembic downgrade | `python -m alembic downgrade` |
+| **R-1** | OpenAPI diff | git diff `openapi.json` |
+| **R-2** | 카탈로그 변경 0 건 | `scripts/modernize-check-catalog-unchanged.sh` |
+| **R-3** | Feature flag OFF | `scripts/modernize-check-flag-off.sh` |
+| **R-4** | Alembic downgrade | `python -m alembic downgrade` |
+| **R-5** | 통합 테스트 | pytest + vitest (회귀 77/77) |
 
 ### 비침습성 원칙 — 4 가지 명시 규칙
 
@@ -505,7 +504,7 @@ auto_dev_pipeline.sh 백그라운드 실행
 [✓] M4 — 진입 카드 + repo-connect/select step + repo 목록 API
 [✓] M5 — 코드 분석 엔진 7-step + diagnose UI
 [✓] M6 — VersionUp 권장안 LLM + diagnosis-review UI
-[✓] M7 — Linear 자동 등록 + ZIP 생성 + finalize 흐름
+[✓] M7 — Linear 자동 등록 + 산출물 finalize 흐름
 [✓] M8 — 회귀 R-1~R-7 자동화 + 단위 테스트 30 케이스 + 체크리스트 문서
 ```
 
@@ -546,15 +545,15 @@ auto_dev_pipeline.sh 백그라운드 실행
 
 | 자산 | 수량 |
 |---|---|
-| 백엔드 신규 모델 | 5 (github_installations / github_repos / modernize_sessions / codebase_analyses / modernize_recommendations) |
-| 백엔드 신규 service | 9 (clone / scan / manifest / outdated / sample / llm_summary / recommendations / pipeline / finalize / zip_builder / github_app_service / repo_service) |
-| 백엔드 신규 endpoint | 11 (`/integrations/github/app/*` 3 + `/modernize/*` 8) |
-| 프론트엔드 신규 step | 5 (repo-connect / repo-select / diagnose / diagnosis-review / confirm) |
-| 단위 테스트 | 30 (scan 8 + manifest 8 + recommendations 5 + zip_builder 9) |
-| 회귀 자동화 | R-1~R-7 (스크립트 2 + 문서 1) |
-| 비침습성 보장 | 기존 vitest 77/77 + 기존 OpenAPI endpoint 시그니처 변경 0 |
+| 백엔드 신규 모델 | 5 (engagements / ai_team_profiles / ai_team_assignments / integration_credentials / automation_logs) |
+| 백엔드 신규 service | 8 (engagement / ai_team_matching / task_generation / linear_sync / github_integration / webhook / execution_monitor / governance_gate) |
+| 백엔드 신규 endpoint | 12 (`/engagements/*` 4 + `/ai-team/*` 3 + `/integrations/linear/*` 3 + `/webhooks/*` 2) |
+| 프론트엔드 신규 페이지 | 3 (Delivery Console / AI Team / Ops) |
+| 단위 테스트 | 40+ (engagement 10 + ai_team 12 + governance 8 + integration 10+) |
+| 회귀 자동화 | R-1~R-5 (스크립트 3 + 문서 1) |
+| 비침습성 보장 | 기존 PM 프로필 100% 유지 + 기존 카탈로그 변경 0 + 기존 API endpoint 시그니처 변경 0 |
 
-> 모든 변경은 **신규 추가 only** — 기존 `/solutions/new` 위저드, `generator.generate_all()`, 카탈로그 데이터, 기존 모델 컬럼 모두 한 줄도 안 건드림.
+> 모든 변경은 **신규 추가 only** — 기존 PM 프로필·카탈로그·데이터 완전 보존. 딜리버리 콘솔은 기존 시스템 위에 계층 추가.
 
 ---
 

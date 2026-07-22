@@ -20,7 +20,7 @@ AI 개발 자동화 SI 딜리버리 팩토리 플랫폼.
 2. **Contract 우선**: API 변경 시 contracts 레포의 스키마를 먼저 업데이트
 3. **절대 경로 사용**: 모든 파일 참조는 절대 경로
 4. **한국어 커밋/주석**: 커밋 메시지와 주석은 한국어로 작성
-5. **Linear 티켓 기반**: 업무는 Linear 24Seven 팀 (24S-*) 티켓으로 추적
+5. **Linear 티켓 기반**: 업무는 Linear에서 추적 (ClickEye: CE-*, 팀: 24S-*)
 
 ## Architecture Quick Reference
 ```

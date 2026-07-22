@@ -16,13 +16,15 @@ related:
 
 ## 1. 개요
 
-현재 ClickEye의 통신은 **브라우저 ↔ Cloud API** 간 HTTPS 기반이며, ZIP 다운로드 방식으로 사용자에게 파일을 전달한다.
+현재 ClickEye의 통신은 **브라우저 ↔ Cloud API** (HTTPS) + **러너 ↔ Cloud API** (WebSocket/gRPC) 기반이며, 딜리버리 콘솔에서 인게이지먼트를 생성하고 데스크탑 구독 또는 클라우드 컨테이너에서 실행한다.
 
 ```
-Browser ──── HTTPS ────► Cloud API ──── ZIP Stream ────► Browser
+Browser ──── HTTPS ────► Cloud API
+                           ◄────► Runner (Desktop|Cloud)
+                                   (WebSocket/gRPC)
 ```
 
-> **Phase 2 예정**: CLI ↔ Cloud 통신 (설정 동기화), WebSocket (대시보드 실시간 업데이트)
+> **구현 완료**: 데스크탑 구독 + 클라우드 컨테이너 하이브리드, WebSocket 실시간 통신
 
 ---
 
@@ -127,34 +129,17 @@ Agent 플랫폼 목록.
 
 ---
 
-### 3.4 프로젝트 설정 (LoadMap_v3)
+### 3.4 프리뷰 (LoadMap_v3)
 
-#### `POST /api/v1/projects/{id}/config`
-위저드 전체 결과 저장.
+#### `POST /api/v1/projects/{id}/preview`
+프로젝트 설정에 따른 파일 트리 + 내용 프리뷰.
 ```json
 // Request
 {
-  "organization": { "company_name": "...", "size": "small", "industry": "it" },
-  "solution": { "project_name": "my-saas", "type": "saas", "stack": "fastapi-nextjs", "description": "..." },
-  "agents": ["backend", "frontend", "harness"],
-  "skills": ["tdd", "linear", "telegram"],
-  "pipelines": ["harness", "tdd", "lint-gate"],
-  "platform": "claude-code"
+  "name": "프로젝트명",
+  "description": "프로젝트 설명",
+  "settings": {}
 }
-```
-
-#### `GET /api/v1/projects/{id}/config`
-위저드 설정 조회 (재다운로드용).
-
----
-
-### 3.5 프리뷰 + ZIP 생성 (LoadMap_v3)
-
-#### `POST /api/v1/projects/{id}/preview`
-파일 트리 + 내용 프리뷰.
-```json
-// Request
-{ /* 위저드 설정과 동일 */ }
 
 // Response (200)
 {
@@ -172,47 +157,9 @@ Agent 플랫폼 목록.
 }
 ```
 
-#### `POST /api/v1/projects/{id}/generate`
-ZIP 파일 스트리밍 다운로드.
-```json
-// Request
-{
-  /* 위저드 설정 */
-  "envVars": {
-    "LINEAR_API_KEY": "lin_xxx",
-    "TELEGRAM_BOT_TOKEN": "123:ABC"
-  }
-}
-
-// Response
-// Content-Type: application/zip
-// Content-Disposition: attachment; filename="my-saas.zip"
-// (ZIP 바이너리 스트림)
-```
-
-> **보안**: envVars는 메모리에서만 처리. DB/로그에 기록하지 않음.
-
 ---
 
-### 3.6 추천 (LoadMap_v3)
-
-#### `POST /api/v1/recommend`
-솔루션 유형 기반 추천.
-```json
-// Request
-{ "solution_type": "saas", "industry": "it" }
-
-// Response (200)
-{
-  "agents": ["backend", "frontend", "devops"],
-  "skills": ["tdd", "linear", "harness-gate"],
-  "pipelines": ["harness", "tdd", "lint-gate"]
-}
-```
-
----
-
-### 3.7 거버넌스 정책 (CE-303)
+### 3.5 거버넌스 정책 (CE-303)
 
 #### `GET /api/v1/governance/policy`
 자동화 가이드라인 커널 SSOT. 전역 거버넌스 정책(인증 필수, 읽기전용).
@@ -237,7 +184,7 @@ ZIP 파일 스트리밍 다운로드.
 
 ---
 
-### 3.8 운영 관리 (Superadmin, CE-305)
+### 3.6 운영 관리 (Superadmin, CE-305)
 
 #### `GET /api/v1/admin/ops/containers`
 실행 중인 docker 컨테이너 목록 (read-only, env 스트립).
@@ -359,11 +306,10 @@ Cloud: JWT 검증
 
 ## 6. Phase 2 확장 예정
 
-### 6.1 CLI ↔ Cloud 통신
+### 6.1 CLI ↔ Cloud 통신 (예정)
 ```
 CLI ──── HTTPS ────► Cloud API
   - POST /api/cli/auth           # CLI 토큰 인증
-  - GET  /projects/{id}/config   # 설정 동기화
   - POST /projects/{id}/events   # 진행 상태 보고
 ```
 

@@ -1,13 +1,14 @@
 ---
-title: 서비스 실행 가이드
+title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: needs-revision
-last_updated: 2026-06-15
+status: current
+last_updated: 2026-07-22
 related:
   - scripts/webhook_server.py
   - scripts/auto_dev_pipeline.sh
   - clickeye-api
   - clickeye-web
+  - docs/clickeye-product-guide.md
 ---
 
 # 서비스 실행 가이드
@@ -171,19 +172,17 @@ crontab -l
 | PM 프로필 상세 + 메트릭 | GET | `/api/v1/pm-profiles/{id}` |
 | PM 구성 조회 | GET | `/api/v1/pm-profiles/{id}/composition` |
 | PM 추천 | POST | `/api/v1/pm-profiles/recommend` |
-| PM 평가 등록 | POST | `/api/v1/pm-profiles/{id}/rate` |
-| PM 메트릭 조회 | GET | `/api/v1/pm-profiles/{id}/metrics` |
-| 프로토타입 세션 생성 | POST | `/api/v1/prototype-sessions/` |
-| 프로토타입 세션 목록 | GET | `/api/v1/prototype-sessions/` |
+| 프로젝트(인게이지먼트) 목록 | GET | `/api/v1/projects/` |
+| 프로젝트(인게이지먼트) 상세 | GET | `/api/v1/projects/{id}` |
+| 산출물 프리뷰 | POST | `/api/v1/projects/{id}/preview` |
+| 거버넌스 정책 조회 | GET | `/api/v1/governance/policy` |
 
 ### 웹 UI (http://localhost:3000)
 
-- Solution Wizard v2 — 12단계 위저드 흐름
-- PM 시스템 UI (추천 · 구성 · 평가)
-- 프로토타입 UI
-- AI Team 3계층 운영 대시보드
-- 가치 대시보드 KPI 시각화
-- 성숙도 온보딩 흐름
+- **딜리버리 콘솔** — 인게이지먼트 설계·실행·추적 (/delivery/[engagementId])
+- **AI Team** — 프로필 추천·구성·평가
+- **Ops 패널** — 컨테이너·환경·테이블 모니터링
+- **Settings** — Linear, Anthropic, 멤버 관리
 
 ---
 
@@ -207,7 +206,7 @@ docker exec -it clickeye-db psql -U clickeye -d clickeye
 
 -- 데이터 확인 예시
 SELECT * FROM pm_profiles LIMIT 10;
-SELECT * FROM prototype_sessions ORDER BY created_at DESC LIMIT 5;
+SELECT * FROM projects ORDER BY created_at DESC LIMIT 5;
 
 -- 마이그레이션 이력 확인 (Alembic)
 SELECT * FROM alembic_version;
@@ -473,7 +472,7 @@ grep -i "error\|warn\|fail" logs/pipeline-cron.log | tail -20
 
 5. `logs/pipeline_*.log` 에서 단계 진행 확인:
    ```
-   Gemini PLAN 생성 완료
+   Claude 메타프롬프트 기획 완료
    Claude 구현 완료
    Codex QA 리뷰 완료
    ```

@@ -17,13 +17,38 @@
 src/
 ├── app/                    # Next.js App Router (페이지)
 │   ├── (auth)/             # 인증 관련 페이지 그룹
-│   ├── (dashboard)/        # 대시보드 페이지 그룹
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/        # 대시보드 레이아웃 그룹
+│   │   ├── delivery/[engagementId]/    ← 메인 플로우: 딜리버리 콘솔
+│   │   ├── admin/                      # 관리자 패널
+│   │   │   ├── audit/
+│   │   │   ├── contracts/
+│   │   │   ├── control-tower/
+│   │   │   ├── ops/{containers, env, tables/[table]}/
+│   │   │   ├── pm/[id]/composition/
+│   │   │   ├── recommendations/
+│   │   │   ├── registry/{agents, hooks, mcps, prototype-catalog, prototype-tags, skills}/
+│   │   │   ├── roi-standards/
+│   │   │   ├── settings/
+│   │   │   └── users/
+│   │   ├── guide/[slug]/                # 가이드/문서
+│   │   ├── onboarding/{maturity, preset}/
+│   │   ├── projects/[projectId]/        # 프로젝트
+│   │   │   ├── ai-team/
+│   │   │   ├── contracts/
+│   │   │   ├── dashboard/
+│   │   │   ├── insights/
+│   │   │   └── settings/
+│   │   ├── settings/{anthropic, linear, members}/
+│   │   └── layout.tsx
 │   └── api/                # API 라우트 (Auth.js)
 ├── components/
 │   ├── ui/                 # shadcn/ui 원시 컴포넌트 (수정 금지)
 │   ├── layout/             # 레이아웃 컴포넌트 (sidebar, header)
 │   ├── admin/              # 관리자 전용 컴포넌트
 │   │   └── registry/       # 레지스트리 관리 컴포넌트 (Admin only)
+│   ├── delivery/           # 딜리버리 콘솔 컴포넌트
 │   ├── projects/           # 프로젝트 관련 컴포넌트
 │   └── common/             # 공통 컴포넌트
 ├── hooks/                  # 커스텀 훅 (use-*.ts)
@@ -31,6 +56,8 @@ src/
 ├── lib/                    # 유틸리티 (api-client, auth, utils)
 └── types/                  # 타입 정의 (contracts에서 import 우선)
 ```
+
+**딜리버리 콘솔이 메인 플로우**: `(dashboard)/delivery/[engagementId]/`에서 SI 인게이지먼트를 설계·실행·추적합니다.
 
 ## Coding Rules
 
