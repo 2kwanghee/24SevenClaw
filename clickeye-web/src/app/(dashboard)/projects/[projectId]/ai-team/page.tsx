@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   Plus,
@@ -42,21 +43,9 @@ import { useProject } from "@/hooks/use-projects";
 import type { LinearSyncHint, PushToLinearResponse } from "@/lib/api-client";
 import type { OrchestratorPhase } from "@/lib/api-client";
 
-const PHASE_LABELS: Record<string, string> = {
-  requested: "요청됨",
-  decomposed: "분해됨",
-  assigned: "배정됨",
-  drafting: "초안 작성",
-  reviewing: "리뷰 중",
-  integrating: "통합 중",
-  validating: "검증 중",
-  approved: "승인됨",
-  transitioning: "전환 중",
-  completed: "완료",
-};
-
 export default function AITeamDashboardPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const tPhase = useTranslations("delivery.phase");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [linearHint, setLinearHint] = useState<LinearSyncHint | null>(null);
@@ -309,7 +298,7 @@ export default function AITeamDashboardPage() {
               >
                 {s.title}
                 <span className="ml-1.5 rounded bg-[var(--bg-hover)] px-1 py-0.5 text-[10px] text-[var(--text-muted)]">
-                  {PHASE_LABELS[s.phase] ?? s.phase}
+                  {tPhase.has(s.phase) ? tPhase(s.phase) : s.phase}
                 </span>
               </button>
               <button
@@ -375,7 +364,7 @@ export default function AITeamDashboardPage() {
               <div className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
                 <span className="text-xs text-[var(--text-muted)]">현재 단계</span>
                 <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                  {PHASE_LABELS[session.phase] ?? session.phase}
+                  {tPhase.has(session.phase) ? tPhase(session.phase) : session.phase}
                 </span>
               </div>
 
@@ -463,7 +452,7 @@ export default function AITeamDashboardPage() {
                     key={evt.id}
                     className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]"
                   >
-                    {PHASE_LABELS[evt.new_phase] ?? evt.new_phase}
+                    {tPhase.has(evt.new_phase) ? tPhase(evt.new_phase) : evt.new_phase}
                     {evt.message ? ` — ${evt.message}` : ""}
                   </span>
                 ))}
