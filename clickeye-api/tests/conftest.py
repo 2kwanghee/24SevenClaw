@@ -1,3 +1,4 @@
+import os
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -6,8 +7,14 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.pool import NullPool
 
 from app.database import Base, get_db
 from app.main import app
@@ -49,9 +56,11 @@ async def _setup_db(request: pytest.FixtureRequest) -> AsyncIterator[None]:
     """각 테스트 전에 테이블 생성, 후에 삭제.
 
     백그라운드 태스크가 테스트 DB를 사용하도록 세션 팩토리도 교체한다.
-    `no_db` 마커가 있는 테스트(순수 단위 테스트)는 DB 설정을 건너뛴다.
+    `no_db` 마커가 있는 테스트(순수 단위 테스트)와 `pg` 마커가 있는 테스트(실
+    Postgres 통합/마이그레이션 테스트, 아래 pg_engine/pg_session fixture 사용)는
+    SQLite 설정을 건너뛴다.
     """
-    if request.node.get_closest_marker("no_db"):
+    if request.node.get_closest_marker("no_db") or request.node.get_closest_marker("pg"):
         yield
         return
 
@@ -168,3 +177,54 @@ async def auth_headers(client: AsyncClient) -> dict[str, str]:
     )
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 실 Postgres 하이브리드 경로 (pg 마커 전용)
+#
+# 위 SQLite in-memory 단위 경로는 그대로 유지한다(회귀 0). 아래 fixture/훅은
+# `@pytest.mark.pg` 테스트에만 관여하며, TEST_DATABASE_URL(postgresql+asyncpg://)
+# 이 설정된 경우에만 동작한다. 미설정 시 pg 마커 테스트는 collection 단계에서
+# skip 처리된다.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """TEST_DATABASE_URL 미설정 시 `pg` 마커 테스트를 skip 처리한다."""
+    if os.environ.get("TEST_DATABASE_URL"):
+        return
+    skip_pg = pytest.mark.skip(reason="TEST_DATABASE_URL 미설정 — 실 Postgres 통합 테스트 skip")
+    for item in items:
+        if item.get_closest_marker("pg"):
+            item.add_marker(skip_pg)
+
+
+@pytest.fixture(scope="session")
+def pg_database_url() -> str:
+    """실 Postgres 테스트 DB URL. 미설정이면 skip."""
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL 미설정 — 실 Postgres 통합 테스트 skip")
+    return url
+
+
+@pytest.fixture
+async def pg_engine(pg_database_url: str) -> AsyncIterator[AsyncEngine]:
+    """실 Postgres async 엔진 (pg 마커 테스트 전용).
+
+    기존 SQLite in-memory 엔진(test_engine)과 완전히 분리된 별도 엔진이다.
+    NullPool 로 커넥션을 매번 새로 열어 테스트 간 상태를 격리한다.
+    """
+    engine = create_async_engine(pg_database_url, poolclass=NullPool)
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+
+
+@pytest.fixture
+async def pg_session(pg_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    """실 Postgres async 세션 (pg 마커 테스트 전용)."""
+    maker = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as session:
+        yield session

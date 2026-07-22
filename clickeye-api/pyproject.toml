@@ -79,6 +79,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "no_db: 순수 단위 테스트 — DB 설정 건너뜀",
+    "pg: 실 Postgres 필요한 통합/마이그레이션 테스트 (TEST_DATABASE_URL 미설정 시 skip)",
 ]
 
 [dependency-groups]
