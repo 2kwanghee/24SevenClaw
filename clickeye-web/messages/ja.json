@@ -837,6 +837,14 @@
       },
       "acceptNotice": "リファイン仕様でプロジェクトが作成されます。"
     },
+    "callback": {
+      "title": "コールバック送信",
+      "status": {
+        "pending": "送信待ち",
+        "sent": "送信済み",
+        "failed": "送信失敗"
+      }
+    },
     "acceptDialog": {
       "title": "インテーク承認",
       "description": "「{title}」を承認するとプロジェクトが作成されます。続行しますか?",

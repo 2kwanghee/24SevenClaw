@@ -14860,6 +14860,10 @@
             "type": "string",
             "title": "Refine Status"
           },
+          "callback_status": {
+            "type": "string",
+            "title": "Callback Status"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -14889,6 +14893,7 @@
           "project_id",
           "refined_text",
           "refine_status",
+          "callback_status",
           "created_at"
         ],
         "title": "IntakeResponse",

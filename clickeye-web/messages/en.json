@@ -837,6 +837,14 @@
       },
       "acceptNotice": "The project will be created from the refined spec."
     },
+    "callback": {
+      "title": "Callback delivery",
+      "status": {
+        "pending": "Pending",
+        "sent": "Sent",
+        "failed": "Failed"
+      }
+    },
     "acceptDialog": {
       "title": "Accept intake",
       "description": "Accepting \"{title}\" will create a project. Continue?",

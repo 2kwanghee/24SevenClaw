@@ -837,6 +837,14 @@
       },
       "acceptNotice": "Proyek akan dibuat dari spesifikasi yang disempurnakan."
     },
+    "callback": {
+      "title": "Pengiriman callback",
+      "status": {
+        "pending": "Menunggu",
+        "sent": "Terkirim",
+        "failed": "Gagal"
+      }
+    },
     "acceptDialog": {
       "title": "Setujui intake",
       "description": "Menyetujui \"{title}\" akan membuat proyek. Lanjutkan?",

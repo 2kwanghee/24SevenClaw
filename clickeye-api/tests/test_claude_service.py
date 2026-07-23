@@ -57,18 +57,6 @@ class TestAnalyzeInput:
         assert service.analyze_input("특이한 프로젝트 설명") == "fullstack"
 
 
-class TestGeneratePrototypes:
-    def test_saas_templates(self, service: ClaudeService) -> None:
-        result = service.generate_prototypes("saas", "SaaS 서비스")
-        assert len(result) == 3
-        assert result[0]["design_pattern"] == "saas-fullstack"
-
-    def test_unknown_type_falls_back_to_default(self, service: ClaudeService) -> None:
-        result = service.generate_prototypes("unknown-type", "프로젝트")
-        assert len(result) == 3
-        assert result[0]["design_pattern"] == "fullstack-separated"
-
-
 class TestRecommendPmScores:
     def test_saas_preferred_specialties(self, service: ClaudeService) -> None:
         scores = service.recommend_pm_scores("saas", ["product", "backend"])

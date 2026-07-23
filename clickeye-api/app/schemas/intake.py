@@ -74,6 +74,8 @@ class IntakeResponse(BaseModel):
     # A3-full: 로컬 metaprompt 배치 정제 결과 (pending | refined | skipped).
     refined_text: str | None
     refine_status: str
+    # CE-311: 콜백 발송 상태 (none | pending | sent | failed) — 검토 콘솔 뱃지용.
+    callback_status: str
     created_at: datetime | None
 
     model_config = {"from_attributes": True}

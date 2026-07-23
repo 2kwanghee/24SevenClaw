@@ -8,7 +8,9 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Column,
+    DateTime,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -73,6 +75,21 @@ class IntakeRequest(Base, UUIDPKMixin, TimestampMixin):
     priority = Column(String(20), nullable=True)
     # 상태 변경 푸시 대상(A1 은 저장만, 발송은 후속).
     callback_url = Column(String(1000), nullable=True)
+    # CE-311 콜백 재시도 큐: none(콜백 없음) | pending(발송 대기/재시도 중) |
+    # sent(발송 성공) | failed(최대 재시도 초과). accept/reject 시 pending 기록 후
+    # 즉시 1회 시도, 실패 시 백오프(1m→5m→30m→2h→6h) 재시도 — at-least-once 계약.
+    callback_status = Column(
+        String(16),
+        nullable=False,
+        default="none",
+        server_default=text("'none'"),
+    )
+    # 발송 시도 횟수(성공 포함). 최대 6회(초기 1 + 재시도 5) 초과 실패 시 failed.
+    callback_attempts = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    # 다음 재시도 예정 시각 — 워커(60s 폴링)가 due 건만 재발송. sent/failed 면 NULL.
+    callback_next_retry_at = Column(DateTime(timezone=True), nullable=True)
+    # 마지막 발송 실패 사유(관측용, 2000자 절단).
+    callback_last_error = Column(Text, nullable=True)
     # pending_review | accepted | rejected
     status = Column(
         String(20),

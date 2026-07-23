@@ -18,6 +18,7 @@ import hmac
 import json
 import socket
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -512,12 +513,49 @@ def callback_capture(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
                 "url": str(url),
                 "headers": dict(kwargs.get("headers") or {}),
                 "content": kwargs.get("content"),
+                "extensions": dict(kwargs.get("extensions") or {}),
             }
         )
         return httpx.Response(200, request=httpx.Request("POST", str(url)))
 
     monkeypatch.setattr(httpx.AsyncClient, "post", _fake_post)
     return captured
+
+
+@pytest.fixture
+def callback_capture_500(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """callback_capture 와 동일하되 외부 POST 에 500 을 응답한다(재시도 경로 검증용)."""
+    captured: list[dict] = []
+    orig_post = httpx.AsyncClient.post
+
+    async def _fake_post(self: httpx.AsyncClient, url, **kwargs):  # type: ignore[no-untyped-def]
+        if str(url).startswith(("http://test/", "/")):
+            return await orig_post(self, url, **kwargs)
+        captured.append({"url": str(url)})
+        return httpx.Response(500, request=httpx.Request("POST", str(url)))
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", _fake_post)
+    return captured
+
+
+@pytest.fixture
+def record_session(
+    monkeypatch: pytest.MonkeyPatch, db_session: AsyncSession
+) -> None:
+    """콜백 결과 기록(_open_session)이 테스트 SQLite 세션을 쓰도록 대체한다.
+
+    프로덕션은 app.database.async_session 을 열지만, 테스트 in-memory SQLite 는
+    커넥션별 DB 가 분리되므로 요청과 동일한 세션을 비종료 래퍼로 재사용한다.
+    """
+
+    class _SameSession:
+        async def __aenter__(self) -> AsyncSession:
+            return db_session
+
+        async def __aexit__(self, *args: object) -> bool:
+            return False
+
+    monkeypatch.setattr(intake_service_module, "_open_session", lambda: _SameSession())
 
 
 @pytest.fixture
@@ -563,7 +601,11 @@ async def test_accept_sends_signed_callback(
     callback_capture: list[dict],
     public_dns: None,
 ) -> None:
-    """accept 시 callback_url 로 서명된 accepted 페이로드가 POST 된다."""
+    """accept 시 callback_url 로 서명된 accepted 페이로드가 POST 된다.
+
+    CE-311 커넥션 IP 고정: 요청 URL 호스트는 검증된 IP(93.184.216.34)로 치환되고
+    Host 헤더·SNI(sni_hostname extension)는 원 호스트를 유지해야 한다.
+    """
     intake_id, accept_body = await _accept_flow(
         client, db_session, org, _structured_body(), "cbaccept@intake.com"
     )
@@ -571,7 +613,10 @@ async def test_accept_sends_signed_callback(
 
     assert len(callback_capture) == 1
     sent = callback_capture[0]
-    assert sent["url"] == "https://partner.example.com/hook"
+    # IP 고정: 연결 대상은 검증된 IP, 가상호스트/TLS 검증 정보는 원 호스트 유지.
+    assert sent["url"] == "https://93.184.216.34/hook"
+    assert sent["headers"]["Host"] == "partner.example.com"
+    assert sent["extensions"]["sni_hostname"] == "partner.example.com"
 
     payload = json.loads(sent["content"])
     assert payload["intake_id"] == intake_id
@@ -768,3 +813,209 @@ async def test_callback_private_ip_skipped(
     await _accept_flow(client, db_session, org, body, "cbprivate@intake.com")
     await _drain_callback_tasks()
     assert callback_capture == []
+
+
+# ---------------------------------------------------------------------------
+# CE-311: 커넥션 IP 고정 (url fetch) + 콜백 재시도 큐
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def callback_capture_flaky(monkeypatch: pytest.MonkeyPatch) -> dict:
+    """외부 POST 를 처음 N회(기본 2) 500, 이후 200 으로 응답한다(재시도 전이 검증)."""
+    state: dict = {"fail_remaining": 2, "calls": []}
+    orig_post = httpx.AsyncClient.post
+
+    async def _fake_post(self: httpx.AsyncClient, url, **kwargs):  # type: ignore[no-untyped-def]
+        if str(url).startswith(("http://test/", "/")):
+            return await orig_post(self, url, **kwargs)
+        state["calls"].append(str(url))
+        if state["fail_remaining"] > 0:
+            state["fail_remaining"] -= 1
+            return httpx.Response(500, request=httpx.Request("POST", str(url)))
+        return httpx.Response(200, request=httpx.Request("POST", str(url)))
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", _fake_post)
+    return state
+
+
+@pytest.mark.asyncio
+async def test_url_fetch_pins_connection_to_validated_ip(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    service_key: IntakeServiceKey,
+    public_dns: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """url fetch 는 검증된 IP 로 URL 을 치환해 연결하고 Host/SNI 는 원 호스트를 유지한다."""
+    seen: list[httpx.Request] = []
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, headers={"Content-Type": "text/plain"}, text="PINNED OK")
+
+    real_client = httpx.AsyncClient
+
+    def _client_factory(**kwargs):  # type: ignore[no-untyped-def]
+        kwargs["transport"] = httpx.MockTransport(_handler)
+        return real_client(**kwargs)
+
+    monkeypatch.setattr(intake_service_module.httpx, "AsyncClient", _client_factory)
+
+    resp = await client.post(
+        "/api/v1/intake",
+        json={"input_type": "url", "title": "RFP", "source_url": "https://spec.example.com/rfp"},
+        headers=_machine_headers(),
+    )
+    assert resp.status_code == 202
+    intake = await db_session.get(IntakeRequest, uuid.UUID(resp.json()["intake_id"]))
+    assert intake.normalized_text == "PINNED OK"
+
+    assert len(seen) == 1
+    req = seen[0]
+    # 연결 대상 호스트는 검증된 IP(public_dns 가 고정한 93.184.216.34).
+    assert req.url.host == "93.184.216.34"
+    # 가상호스트/TLS 검증 정보는 원 호스트 유지.
+    assert req.headers["Host"] == "spec.example.com"
+    assert req.extensions["sni_hostname"] == "spec.example.com"
+
+
+@pytest.mark.asyncio
+async def test_accept_callback_success_records_sent(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+    callback_capture: list[dict],
+    public_dns: None,
+    record_session: None,
+) -> None:
+    """즉시 발송 성공 → callback_status=sent, attempts=1, next_retry 해제."""
+    intake_id, _ = await _accept_flow(
+        client, db_session, org, _structured_body(), "cbsent@intake.com"
+    )
+    await _drain_callback_tasks()
+
+    intake = await db_session.get(IntakeRequest, uuid.UUID(intake_id))
+    await db_session.refresh(intake)
+    assert intake.callback_status == "sent"
+    assert intake.callback_attempts == 1
+    assert intake.callback_next_retry_at is None
+    assert intake.callback_last_error is None
+
+
+@pytest.mark.asyncio
+async def test_accept_callback_failure_schedules_backoff(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+    callback_capture_500: list[dict],
+    public_dns: None,
+    record_session: None,
+) -> None:
+    """즉시 발송 실패 → pending 유지 + attempts=1 + 1분 백오프 + 오류 기록.
+
+    accept 응답(IntakeResponse)에도 callback_status 가 노출된다.
+    """
+    before = datetime.now(UTC)
+    intake_id, accept_body = await _accept_flow(
+        client, db_session, org, _structured_body(), "cbfail@intake.com"
+    )
+    assert accept_body["callback_status"] == "pending"  # 응답 스키마 노출
+    await _drain_callback_tasks()
+
+    intake = await db_session.get(IntakeRequest, uuid.UUID(intake_id))
+    await db_session.refresh(intake)
+    assert intake.callback_status == "pending"
+    assert intake.callback_attempts == 1
+    assert "500" in (intake.callback_last_error or "")
+    # 1차 실패 백오프 = 60초 (오차 허용 ±30s).
+    next_retry = intake.callback_next_retry_at
+    assert next_retry is not None
+    if next_retry.tzinfo is None:  # SQLite 는 naive 로 반환
+        next_retry = next_retry.replace(tzinfo=UTC)
+    delta = (next_retry - before).total_seconds()
+    assert 30 <= delta <= 120
+
+
+@pytest.mark.asyncio
+async def test_retry_worker_resends_until_sent(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+    callback_capture_flaky: dict,
+    public_dns: None,
+    record_session: None,
+) -> None:
+    """실패(500)×2 후 성공(200): pending 백오프 전이 → 워커 재발송 → sent 확정."""
+    intake_id, _ = await _accept_flow(
+        client, db_session, org, _structured_body(), "cbretry@intake.com"
+    )
+    await _drain_callback_tasks()  # 즉시 시도(1회차) → 500
+
+    intake = await db_session.get(IntakeRequest, uuid.UUID(intake_id))
+    await db_session.refresh(intake)
+    assert intake.callback_status == "pending"
+    assert intake.callback_attempts == 1
+
+    # due 강제 → 워커 폴링 1회차: 2회차 발송(500) → 백오프 5분 스케줄
+    intake.callback_next_retry_at = datetime.now(UTC) - timedelta(seconds=1)
+    await db_session.commit()
+    sent = await intake_service_module.process_due_callbacks(db_session)
+    assert sent == 0
+    await db_session.refresh(intake)
+    assert intake.callback_status == "pending"
+    assert intake.callback_attempts == 2
+
+    # due 강제 → 워커 폴링 2회차: 3회차 발송(200) → sent 확정
+    intake.callback_next_retry_at = datetime.now(UTC) - timedelta(seconds=1)
+    await db_session.commit()
+    sent = await intake_service_module.process_due_callbacks(db_session)
+    assert sent == 1
+    await db_session.refresh(intake)
+    assert intake.callback_status == "sent"
+    assert intake.callback_attempts == 3
+    assert intake.callback_next_retry_at is None
+    assert intake.callback_last_error is None
+    assert len(callback_capture_flaky["calls"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_exhaustion_marks_failed(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+    callback_capture_500: list[dict],
+    public_dns: None,
+    record_session: None,
+) -> None:
+    """총 6회(초기 1 + 재시도 5) 실패 시 failed 확정 — 이후 워커 대상에서 제외."""
+    intake_id, _ = await _accept_flow(
+        client, db_session, org, _structured_body(), "cbexhaust@intake.com"
+    )
+    await _drain_callback_tasks()  # 1회차 실패
+
+    intake = await db_session.get(IntakeRequest, uuid.UUID(intake_id))
+    await db_session.refresh(intake)
+    # 2~6회차: due 강제 폴링으로 소진
+    for expected_attempts in (2, 3, 4, 5, 6):
+        intake.callback_next_retry_at = datetime.now(UTC) - timedelta(seconds=1)
+        await db_session.commit()
+        assert await intake_service_module.process_due_callbacks(db_session) == 0
+        await db_session.refresh(intake)
+        assert intake.callback_attempts == expected_attempts
+
+    assert intake.callback_status == "failed"
+    assert intake.callback_next_retry_at is None
+    # failed 는 폴링 대상에서 제외 — 추가 발송 없음.
+    calls_before = len(callback_capture_500)
+    assert await intake_service_module.process_due_callbacks(db_session) == 0
+    assert len(callback_capture_500) == calls_before

@@ -2556,6 +2556,8 @@ export interface IntakeResponse {
   refined_text: string | null;
   /** pending | refined | skipped */
   refine_status: string;
+  /** CE-311: 콜백 발송 상태 — none | pending | sent | failed */
+  callback_status: string;
   created_at: string | null;
 }
 
