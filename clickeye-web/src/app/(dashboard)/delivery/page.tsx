@@ -8,6 +8,7 @@ import { Boxes, Loader2, AlertTriangle, ChevronRight, Trash2 } from "lucide-reac
 
 import { useProjects, useDeleteProject } from "@/hooks/use-projects";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
+import { LlmChatPanel } from "@/components/delivery/llm-chat-panel";
 import { MockModeToggle } from "@/components/delivery/mock-mode-toggle";
 import { useMockMode } from "@/stores/mock-mode-store";
 import { mockProject } from "@/lib/delivery-mock";
@@ -44,6 +45,9 @@ export default function DeliveryListPage() {
           <MockModeToggle />
         </div>
       </div>
+
+      {/* 조직 어시스턴트 — 포트폴리오 RAG(CE-312): 조직 전체 활성 딜리버리 질의 */}
+      <LlmChatPanel orgMode mock={mock} />
 
       {/* 로딩 */}
       {isLoading && (

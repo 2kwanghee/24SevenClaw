@@ -23,6 +23,18 @@ export function useLlmChat(projectId: string) {
 }
 
 /**
+ * 조직 관점 LLM 어시스턴트 RAG Q&A(포트폴리오, CE-312).
+ * delivery_id = f"org:{org_id}" 로 매핑되며 org 스코프는 서버가 요청자 소속으로 강제한다.
+ * 서버가 활성 딜리버리 목록을 DB 하이브리드로 주입해 실제 진행 중 서비스를 답한다.
+ */
+export function useLlmChatOrg() {
+  const token = useAccessToken();
+  return useMutation({
+    mutationFn: (query: string) => llm.chatOrg(token, query),
+  });
+}
+
+/**
  * 챗 답변 피드백 제출(👍/👎 + 선택 코멘트, P2-MVP).
  * 성공 시 {feedback_id} — 호출 측에서 버튼 비활성 + 감사 문구 처리.
  */

@@ -84,18 +84,28 @@ async def answer_query(
     query: str,
     top_k: int,
     prompt_override: str | None = None,
+    extra_context: str | None = None,
 ) -> tuple[str, list[Source]]:
     """질의 → 답변 + 출처. 히트 0건이면 sLLM 호출 없이 '모름' 단락(격리 보장).
 
     prompt_override: ★내부 평가 전용★ — prompt-evolve 배치가 후보 프롬프트를 시험할 때만.
     미지정 시 챔피언 파일(mtime 캐시) 또는 내장 기본값.
+    extra_context: 확정 사실(권위 컨텍스트, CE-312). 지정 시 RAG 검색결과보다 우선하여
+    컨텍스트 최상단에 '## 확정 사실(우선 신뢰)' 블록으로 주입한다. 이 값이 있으면
+    RAG 히트가 0건이어도 '모름' 단락하지 않고 확정 사실만으로 답변한다.
     """
     vector = (await ollama.embed([query]))[0]
     hits = await qdrant.search(delivery_id, vector, top_k)
-    if not hits:
+    authoritative = (extra_context or "").strip()
+    if not hits and not authoritative:
         return _NO_KNOWLEDGE_CHAT, []
 
-    context = _build_context(hits)
+    context_parts: list[str] = []
+    if authoritative:
+        context_parts.append(f"## 확정 사실(우선 신뢰)\n{authoritative}\n")
+    if hits:
+        context_parts.append(_build_context(hits))
+    context = "\n".join(context_parts)
     prompt = f"컨텍스트:\n{context}\n\n질문: {query}\n\n답변:"
     system = prompt_override or _load_system_prompt()
     answer = await ollama.generate(prompt, system=system)

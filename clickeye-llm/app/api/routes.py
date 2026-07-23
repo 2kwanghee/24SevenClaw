@@ -78,6 +78,8 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             top_k=top_k,
             # ★내부 평가 전용★ — prompt-evolve 배치만 사용. api 프록시는 미전달.
             prompt_override=body.prompt_override,
+            # 확정 사실(권위 컨텍스트, CE-312) — 조직 챗 DB 하이브리드 주입.
+            extra_context=body.extra_context,
         )
     except OllamaError as exc:
         raise HTTPException(status_code=502, detail=f"LLM 백엔드 오류: {exc}") from exc

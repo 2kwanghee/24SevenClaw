@@ -23,8 +23,35 @@ from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.models.user_linear_credentials import UserLinearCredentials
 from app.schemas.project import ProjectCreate, ProjectResetResponse, ProjectResponse, ProjectUpdate
 from app.services.base import BaseService
+from app.services.llm_ingest import enqueue_ingest, enqueue_ingest_ns
 from app.services.rbac_service import RBACService
 from app.utils.db import get_or_404
+
+
+def _ingest_project_kb(project: Project) -> None:
+    """프로젝트 라이프사이클 → clickeye-llm KB 이중 인제스트(포트폴리오 RAG, CE-312).
+
+    비차단·예외삼킴·토글(FEATURE_LLM_AUTOINGEST)은 enqueue_ingest* 내부에 내장 —
+    호출자(프로젝트 CRUD)에 어떤 영향도 주지 않는다(회귀 0).
+    - 프로젝트 KB(str(project.id) 네임스페이스): 이름/상태/설명/요구사항 요약(상세).
+    - 조직 KB(f"org:{organization_id}", organization_id 있을 때만): 이름/상태 요약 메타만.
+    동일 source_id(f"project:{id}")로 재인제스트 → clickeye-llm 이 선삭제 후 재삽입(증분=최신).
+    """
+    name = project.name or ""
+    status = project.status or ""
+    description = project.description or ""
+    requirements = (project.requirements_text or "")[:800]
+    enqueue_ingest(
+        project.id,  # type: ignore[arg-type]  # UUIDPKMixin → UUID
+        f"project:{project.id}",
+        f"[프로젝트] {name} · 상태 {status}\n설명: {description}\n요구사항: {requirements}",
+    )
+    if project.organization_id is not None:
+        enqueue_ingest_ns(
+            f"org:{project.organization_id}",
+            f"project:{project.id}",
+            f"[딜리버리] {name} — 상태 {status}",
+        )
 
 
 def _slugify(text: str) -> str:
@@ -152,6 +179,7 @@ class ProjectService(BaseService):
         self.db.add(project)
         await self.db.commit()
         await self.db.refresh(project)
+        _ingest_project_kb(project)  # CE-312: 포트폴리오 RAG KB 인제스트(비차단)
         return project
 
     async def _authorize_target_org(self, user: User, organization_id: UUID) -> None:
@@ -234,6 +262,7 @@ class ProjectService(BaseService):
         project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
         await self.db.refresh(project)
+        _ingest_project_kb(project)  # CE-312: 변경 반영 재인제스트(증분=최신)
         return project
 
     async def delete(self, project_id: UUID, owner_id: UUID, is_superadmin: bool = False) -> None:
@@ -250,6 +279,7 @@ class ProjectService(BaseService):
         project.status = "deleted"  # type: ignore[assignment]
         project.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.db.commit()
+        _ingest_project_kb(project)  # CE-312: status=deleted 반영 재인제스트(동일 source_id)
 
     async def reset(self, project_id: UUID, owner_id: UUID) -> ProjectResetResponse:
         """프로젝트를 초기 상태로 되돌린다. 식별자/소유자/이름/조직은 보존."""

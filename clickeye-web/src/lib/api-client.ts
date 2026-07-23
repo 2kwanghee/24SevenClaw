@@ -1818,6 +1818,17 @@ export const llm = {
       body: JSON.stringify({ project_id: projectId, query }),
     }),
 
+  /**
+   * 조직 관점 RAG Q&A(포트폴리오, CE-312). delivery_id = f"org:{org_id}".
+   * org 스코프는 서버가 요청자 소속으로 강제(superadmin 만 org_id 지정 가능).
+   * 서버가 활성 딜리버리 목록을 DB 하이브리드로 주입해 사실 정확성을 보장한다.
+   */
+  chatOrg: (token: string, query: string, orgId?: string) =>
+    authRequest<LlmChatResponse>("/api/v1/llm/chat/org", token, {
+      method: "POST",
+      body: JSON.stringify(orgId ? { query, org_id: orgId } : { query }),
+    }),
+
   /** 축적 지식 기반 진행상황 요약. */
   progress: (token: string, projectId: string) =>
     authRequest<LlmProgressResponse>(
