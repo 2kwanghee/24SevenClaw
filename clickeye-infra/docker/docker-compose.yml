@@ -75,6 +75,10 @@ services:
       # clickeye-llm 프록시 대상(profile llm). api·clickeye-llm 이 default 네트워크를
       #   공유하므로 서비스명으로 해석된다. profile llm 미기동 시 프록시는 503 로 degrade.
       CLICKEYE_LLM_URL: http://clickeye-llm:8100
+      # 기능 토글 (기본 off 가 코드 기본값 — 여기서 명시적 on). 끄려면 "false".
+      FEATURE_OPS_PANEL: "true"          # /admin/ops 운영 패널 (superadmin)
+      FEATURE_INTAKE: "true"             # 인테이크 수주 API /api/v1/intake
+      FEATURE_LLM_AUTOINGEST: "true"     # 딜리버리 이벤트 → clickeye-llm KB 자동 인제스트
     # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드. 빈 배관 파일이 항상
     #   존재하므로 plain string 형식 사용(구버전 compose 호환). 기존 environment: 키는 불변
     #   — 실제 관리대상 키 이관은 PR-3(precedence 회피).
