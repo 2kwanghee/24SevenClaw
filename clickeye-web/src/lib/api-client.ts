@@ -1745,6 +1745,70 @@ export const llmLedger = {
   },
 };
 
+// --- LLM Assistant (지식축적형 sLLM 프록시, clickeye-llm) ---
+
+/** RAG 답변의 근거 출처 청크. */
+export interface LlmSource {
+  source_id: string;
+  chunk_index: number;
+  score: number;
+  text: string;
+  metadata: Record<string, unknown>;
+}
+
+/** POST /api/v1/llm/chat 응답. */
+export interface LlmChatResponse {
+  answer: string;
+  sources: LlmSource[];
+  /** 응답 식별자(uuid4) — 피드백 연결 키. */
+  chat_id: string;
+}
+
+/** POST /api/v1/llm/feedback 요청(P2-MVP). project_id 는 메서드 인자로 주입. */
+export interface LlmFeedbackPayload {
+  chat_id?: string | null;
+  query: string;
+  answer: string;
+  rating: "up" | "down";
+  comment?: string | null;
+  sources?: string[] | null;
+}
+
+/** POST /api/v1/llm/feedback 응답. */
+export interface LlmFeedbackResponse {
+  feedback_id: string;
+}
+
+/** GET /api/v1/llm/progress/{project_id} 응답. */
+export interface LlmProgressResponse {
+  delivery_id: string;
+  summary: string;
+  knowledge_items: number;
+}
+
+export const llm = {
+  /** RAG Q&A. delivery_id = projectId 로 매핑되어 프록시된다. */
+  chat: (token: string, projectId: string, query: string) =>
+    authRequest<LlmChatResponse>("/api/v1/llm/chat", token, {
+      method: "POST",
+      body: JSON.stringify({ project_id: projectId, query }),
+    }),
+
+  /** 축적 지식 기반 진행상황 요약. */
+  progress: (token: string, projectId: string) =>
+    authRequest<LlmProgressResponse>(
+      `/api/v1/llm/progress/${encodeURIComponent(projectId)}`,
+      token,
+    ),
+
+  /** 챗 답변 피드백 저장(👍/👎 + 선택 코멘트). */
+  feedback: (token: string, projectId: string, payload: LlmFeedbackPayload) =>
+    authRequest<LlmFeedbackResponse>("/api/v1/llm/feedback", token, {
+      method: "POST",
+      body: JSON.stringify({ project_id: projectId, ...payload }),
+    }),
+};
+
 // --- Linear Credentials ---
 
 export interface LinearCredentialsSave {
@@ -2441,6 +2505,95 @@ export const roi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+};
+
+// --- Intake (인테이크 수주 검토, FEATURE_INTAKE 게이트) ---
+// prefix: /api/v1/intake — 백엔드 feature flag off 시 전 엔드포인트 404(존재 은닉).
+// 목록/승인/반려는 admin+ (control_tower:read/write), 서비스 키 관리는 superadmin 전용.
+
+/** 인테이크 접수 상태 */
+export type IntakeStatus = "pending_review" | "accepted" | "rejected";
+
+/** GET /intake 목록·상세 응답 (clickeye-api app/schemas/intake.py IntakeResponse) */
+export interface IntakeResponse {
+  id: string;
+  service_key_id: string;
+  input_type: string;
+  title: string;
+  payload: Record<string, unknown>;
+  normalized_text: string | null;
+  source_url: string | null;
+  target: Record<string, unknown> | null;
+  priority: string | null;
+  callback_url: string | null;
+  status: string;
+  project_id: string | null;
+  created_at: string | null;
+}
+
+/** 서비스 키 조회 응답 — 해시/평문 미노출 */
+export interface IntakeServiceKeyResponse {
+  id: string;
+  name: string;
+  organization_id: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+/** 발급 직후 1회 한정 평문 키 포함 응답 */
+export interface IntakeServiceKeyCreatedResponse extends IntakeServiceKeyResponse {
+  /** 평문 키 — 이 응답에서만 1회 노출, 재조회 불가 */
+  key: string;
+}
+
+export const intake = {
+  /** 검토 목록 — superadmin 전체 / admin 자기 조직 접수분. status_filter로 상태 필터 */
+  list: (token: string, statusFilter?: IntakeStatus) => {
+    const qs = statusFilter
+      ? `?status_filter=${encodeURIComponent(statusFilter)}`
+      : "";
+    return authRequest<IntakeResponse[]>(`/api/v1/intake${qs}`, token);
+  },
+
+  /** 승인 — Project 생성 + accepted 전이 (응답 project_id 사용) */
+  accept: (token: string, intakeId: string) =>
+    authRequest<IntakeResponse>(`/api/v1/intake/${intakeId}/accept`, token, {
+      method: "POST",
+    }),
+
+  /** 반려 — rejected 전이, 사유(선택)는 payload에 기록 */
+  reject: (token: string, intakeId: string, reason?: string) =>
+    authRequest<IntakeResponse>(`/api/v1/intake/${intakeId}/reject`, token, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason || null }),
+    }),
+};
+
+export const intakeServiceKeys = {
+  /** 발급 — 응답의 key(평문)는 이 1회만 노출된다 */
+  create: (token: string, name: string, organizationId?: string) =>
+    authRequest<IntakeServiceKeyCreatedResponse>(
+      "/api/v1/intake/service-keys",
+      token,
+      {
+        method: "POST",
+        body: JSON.stringify({ name, organization_id: organizationId ?? null }),
+      },
+    ),
+
+  list: (token: string) =>
+    authRequest<IntakeServiceKeyResponse[]>(
+      "/api/v1/intake/service-keys",
+      token,
+    ),
+
+  /** 비활성화 — 이후 해당 키 인증 401, 레코드는 감사용 보존 */
+  deactivate: (token: string, keyId: string) =>
+    authRequest<IntakeServiceKeyResponse>(
+      `/api/v1/intake/service-keys/${keyId}`,
+      token,
+      { method: "DELETE" },
+    ),
 };
 
 export { ApiClientError, NetworkError };

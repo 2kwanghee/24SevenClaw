@@ -27,6 +27,7 @@ import {
   Server,
   KeyRound,
   Database,
+  Inbox,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
 
 const adminItems: NavItem[] = [
   { href: "/admin/control-tower", labelKey: "admin.controlTower", icon: Building2 },
+  { href: "/admin/intake", labelKey: "admin.intake", icon: Inbox },
   { href: "/admin/users", labelKey: "admin.users", icon: Shield },
   { href: "/admin/contracts", labelKey: "admin.contracts", icon: FileText },
   { href: "/admin/pm", labelKey: "admin.pm", icon: Users },

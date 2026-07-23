@@ -66,6 +66,17 @@
     "passwordMismatch": "비밀번호가 일치하지 않습니다"
   },
   "toast": {
+    "intake": {
+      "acceptSuccess": "승인되었습니다. 프로젝트가 생성되었습니다.",
+      "acceptFail": "승인에 실패했습니다",
+      "rejectSuccess": "반려되었습니다",
+      "rejectFail": "반려에 실패했습니다",
+      "keyCreateFail": "서비스 키 발급에 실패했습니다",
+      "keyDeactivateSuccess": "서비스 키가 비활성화되었습니다",
+      "keyDeactivateFail": "서비스 키 비활성화에 실패했습니다",
+      "copySuccess": "클립보드에 복사되었습니다",
+      "copyFail": "복사에 실패했습니다"
+    },
     "generic": {
       "saveSuccess": "저장되었습니다",
       "saveFail": "저장에 실패했습니다",
@@ -492,6 +503,7 @@
     },
     "admin": {
       "controlTower": "컨트롤 타워",
+      "intake": "인테이크",
       "users": "사용자 관리",
       "contracts": "계약 관리",
       "pm": "PM 관리",
@@ -747,6 +759,104 @@
       "label": "목업 데이터",
       "ariaLabel": "목업 데이터 표시",
       "banner": "목업 데이터 표시 중 — 실제 데이터가 아닙니다."
+    },
+    "chat": {
+      "title": "딜리버리 어시스턴트",
+      "sources": "출처",
+      "progressButton": "진행상황 확인",
+      "progressLoading": "불러오는 중…",
+      "progressError": "진행상황을 불러오지 못했습니다.",
+      "knowledgeItems": "축적 지식 {count}건",
+      "unavailable": "LLM 어시스턴트 미가용 — profile llm 미기동일 수 있습니다.",
+      "error": "답변 생성 중 오류가 발생했습니다.",
+      "placeholder": "딜리버리 지식에 대해 질문하세요…",
+      "send": "전송",
+      "hint": "축적된 딜리버리 지식을 바탕으로 답변합니다. Enter 전송 · Shift+Enter 줄바꿈.",
+      "mockTitle": "목업 모드",
+      "mockDesc": "LLM 어시스턴트는 실제 딜리버리에서 사용할 수 있습니다.",
+      "feedback": {
+        "up": "도움이 됐어요",
+        "down": "아쉬워요",
+        "commentPlaceholder": "무엇이 아쉬웠는지 알려주세요 (선택)",
+        "submit": "피드백 제출",
+        "thanks": "피드백 감사합니다. 답변 품질 개선에 활용됩니다.",
+        "fail": "피드백 전송에 실패했습니다."
+      }
+    }
+  },
+  "intake": {
+    "pageTitle": "인테이크 검토",
+    "pageDescription": "외부 서비스가 접수한 요구사항을 검토하고 승인·반려합니다",
+    "featureDisabled": "인테이크 기능이 비활성(FEATURE_INTAKE) 상태입니다. 백엔드 설정에서 활성화하면 접수 목록이 표시됩니다.",
+    "loading": "불러오는 중...",
+    "error": "목록을 불러오지 못했습니다.",
+    "empty": "표시할 접수 건이 없습니다.",
+    "tabs": {
+      "pendingReview": "검토 대기",
+      "accepted": "승인됨",
+      "rejected": "반려됨",
+      "serviceKeys": "서비스 키"
+    },
+    "col": {
+      "title": "제목",
+      "inputType": "유형",
+      "priority": "우선순위",
+      "receivedAt": "수신 시각",
+      "actions": "작업"
+    },
+    "actions": {
+      "accept": "승인",
+      "reject": "반려"
+    },
+    "detail": {
+      "normalizedText": "정규화 본문",
+      "noNormalizedText": "정규화된 본문이 없습니다.",
+      "sourceUrl": "원본 URL",
+      "target": "타깃",
+      "project": "생성된 프로젝트",
+      "openProject": "프로젝트로 이동"
+    },
+    "acceptDialog": {
+      "title": "인테이크 승인",
+      "description": "\"{title}\" 접수를 승인하면 프로젝트가 생성됩니다. 계속할까요?",
+      "cancel": "취소",
+      "confirm": "승인",
+      "pending": "승인 중..."
+    },
+    "rejectDialog": {
+      "title": "인테이크 반려",
+      "description": "\"{title}\" 접수를 반려합니다.",
+      "reasonLabel": "반려 사유 (선택)",
+      "reasonPlaceholder": "반려 사유를 입력하세요",
+      "cancel": "취소",
+      "confirm": "반려",
+      "pending": "반려 중..."
+    },
+    "keys": {
+      "description": "외부 서비스가 인테이크 접수에 사용하는 머신 키를 발급·관리합니다. 평문 키는 발급 직후 1회만 표시됩니다.",
+      "nameLabel": "키 이름",
+      "namePlaceholder": "예: partner-portal",
+      "issue": "발급",
+      "issuing": "발급 중...",
+      "loading": "불러오는 중...",
+      "empty": "발급된 서비스 키가 없습니다.",
+      "active": "활성",
+      "inactive": "비활성",
+      "deactivate": "비활성화",
+      "createdTitle": "서비스 키 발급 완료",
+      "createdWarning": "이 평문 키는 지금 한 번만 표시됩니다. 창을 닫으면 다시 확인할 수 없으니 안전한 곳에 보관하세요.",
+      "copy": "복사",
+      "copied": "복사됨",
+      "done": "확인했습니다",
+      "deactivateTitle": "서비스 키 비활성화",
+      "deactivateDescription": "비활성화하면 이 키로는 더 이상 접수할 수 없습니다. 레코드는 감사용으로 보존됩니다.",
+      "col": {
+        "name": "이름",
+        "organization": "조직",
+        "active": "상태",
+        "createdAt": "생성일",
+        "actions": "작업"
+      }
     }
   },
   "ops": {

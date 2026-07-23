@@ -66,6 +66,17 @@
     "passwordMismatch": "Kata sandi tidak cocok"
   },
   "toast": {
+    "intake": {
+      "acceptSuccess": "Disetujui. Proyek telah dibuat.",
+      "acceptFail": "Gagal menyetujui",
+      "rejectSuccess": "Ditolak",
+      "rejectFail": "Gagal menolak",
+      "keyCreateFail": "Gagal menerbitkan kunci layanan",
+      "keyDeactivateSuccess": "Kunci layanan dinonaktifkan",
+      "keyDeactivateFail": "Gagal menonaktifkan kunci layanan",
+      "copySuccess": "Disalin ke papan klip",
+      "copyFail": "Gagal menyalin"
+    },
     "generic": {
       "saveSuccess": "Tersimpan",
       "saveFail": "Gagal menyimpan",
@@ -492,6 +503,7 @@
     },
     "admin": {
       "controlTower": "Menara kontrol",
+      "intake": "Intake",
       "users": "Manajemen pengguna",
       "contracts": "Kontrak",
       "pm": "Manajemen PM",
@@ -747,6 +759,104 @@
       "label": "Data mock",
       "ariaLabel": "Tampilkan data mock",
       "banner": "Menampilkan data mock — bukan data asli."
+    },
+    "chat": {
+      "title": "Asisten Delivery",
+      "sources": "Sumber",
+      "progressButton": "Periksa progres",
+      "progressLoading": "Memuat…",
+      "progressError": "Gagal memuat progres.",
+      "knowledgeItems": "{count} item pengetahuan",
+      "unavailable": "Asisten LLM tidak tersedia — profil llm mungkin belum berjalan.",
+      "error": "Terjadi kesalahan saat menghasilkan jawaban.",
+      "placeholder": "Tanyakan tentang pengetahuan delivery ini…",
+      "send": "Kirim",
+      "hint": "Jawaban didasarkan pada pengetahuan delivery yang terkumpul. Enter untuk kirim · Shift+Enter untuk baris baru.",
+      "mockTitle": "Mode mock",
+      "mockDesc": "Asisten LLM tersedia pada delivery nyata.",
+      "feedback": {
+        "up": "Membantu",
+        "down": "Kurang membantu",
+        "commentPlaceholder": "Beri tahu kami apa yang kurang (opsional)",
+        "submit": "Kirim umpan balik",
+        "thanks": "Terima kasih atas umpan balik Anda. Ini membantu meningkatkan kualitas jawaban.",
+        "fail": "Gagal mengirim umpan balik."
+      }
+    }
+  },
+  "intake": {
+    "pageTitle": "Tinjauan Intake",
+    "pageDescription": "Tinjau dan setujui atau tolak kebutuhan yang dikirim layanan eksternal",
+    "featureDisabled": "Fitur intake sedang nonaktif (FEATURE_INTAKE). Aktifkan di pengaturan backend untuk melihat daftar pengajuan.",
+    "loading": "Memuat...",
+    "error": "Gagal memuat daftar.",
+    "empty": "Tidak ada pengajuan untuk ditampilkan.",
+    "tabs": {
+      "pendingReview": "Menunggu tinjauan",
+      "accepted": "Disetujui",
+      "rejected": "Ditolak",
+      "serviceKeys": "Kunci layanan"
+    },
+    "col": {
+      "title": "Judul",
+      "inputType": "Tipe",
+      "priority": "Prioritas",
+      "receivedAt": "Diterima pada",
+      "actions": "Aksi"
+    },
+    "actions": {
+      "accept": "Setujui",
+      "reject": "Tolak"
+    },
+    "detail": {
+      "normalizedText": "Teks ternormalisasi",
+      "noNormalizedText": "Tidak ada teks ternormalisasi.",
+      "sourceUrl": "URL sumber",
+      "target": "Target",
+      "project": "Proyek yang dibuat",
+      "openProject": "Buka proyek"
+    },
+    "acceptDialog": {
+      "title": "Setujui intake",
+      "description": "Menyetujui \"{title}\" akan membuat proyek. Lanjutkan?",
+      "cancel": "Batal",
+      "confirm": "Setujui",
+      "pending": "Menyetujui..."
+    },
+    "rejectDialog": {
+      "title": "Tolak intake",
+      "description": "Tolak \"{title}\".",
+      "reasonLabel": "Alasan (opsional)",
+      "reasonPlaceholder": "Masukkan alasan",
+      "cancel": "Batal",
+      "confirm": "Tolak",
+      "pending": "Menolak..."
+    },
+    "keys": {
+      "description": "Terbitkan dan kelola kunci mesin yang digunakan layanan eksternal untuk mengirim intake. Kunci teks polos hanya ditampilkan sekali setelah diterbitkan.",
+      "nameLabel": "Nama kunci",
+      "namePlaceholder": "mis. partner-portal",
+      "issue": "Terbitkan",
+      "issuing": "Menerbitkan...",
+      "loading": "Memuat...",
+      "empty": "Belum ada kunci layanan.",
+      "active": "Aktif",
+      "inactive": "Nonaktif",
+      "deactivate": "Nonaktifkan",
+      "createdTitle": "Kunci layanan diterbitkan",
+      "createdWarning": "Kunci teks polos ini hanya ditampilkan sekali. Setelah jendela ditutup tidak dapat dilihat lagi, simpan di tempat yang aman.",
+      "copy": "Salin",
+      "copied": "Tersalin",
+      "done": "Sudah saya simpan",
+      "deactivateTitle": "Nonaktifkan kunci layanan",
+      "deactivateDescription": "Setelah dinonaktifkan, kunci ini tidak dapat digunakan untuk mengirim intake. Catatan disimpan untuk audit.",
+      "col": {
+        "name": "Nama",
+        "organization": "Organisasi",
+        "active": "Status",
+        "createdAt": "Dibuat",
+        "actions": "Aksi"
+      }
     }
   },
   "ops": {
