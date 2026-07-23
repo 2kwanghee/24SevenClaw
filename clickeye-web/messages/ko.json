@@ -827,6 +827,16 @@
       "project": "생성된 프로젝트",
       "openProject": "프로젝트로 이동"
     },
+    "refine": {
+      "title": "정제 스펙",
+      "refinedText": "정제 스펙",
+      "status": {
+        "pending": "정제 대기",
+        "refined": "정제됨",
+        "skipped": "건너뜀"
+      },
+      "acceptNotice": "정제 스펙으로 프로젝트가 생성됩니다."
+    },
     "acceptDialog": {
       "title": "인테이크 승인",
       "description": "\"{title}\" 접수를 승인하면 프로젝트가 생성됩니다. 계속할까요?",

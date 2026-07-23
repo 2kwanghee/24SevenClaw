@@ -45,6 +45,26 @@ const INPUT_TYPE_COLORS: Record<string, string> = {
   url: "border-emerald-200 bg-emerald-50 text-emerald-700",
 };
 
+// A3-full: 정제 상태 뱃지 — 정제 대기 amber / 정제됨 green / 건너뜀 gray.
+const REFINE_STATUS_COLORS: Record<string, string> = {
+  pending: "border-amber-200 bg-amber-50 text-amber-700",
+  refined: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  skipped:
+    "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
+};
+
+function RefineStatusBadge({ status }: { status: string }) {
+  const t = useTranslations("intake.refine");
+  const known = status === "refined" || status === "skipped" ? status : "pending";
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${REFINE_STATUS_COLORS[known]}`}
+    >
+      {t(`status.${known}`)}
+    </span>
+  );
+}
+
 function InputTypeBadge({ inputType }: { inputType: string }) {
   const color =
     INPUT_TYPE_COLORS[inputType] ??
@@ -142,15 +162,42 @@ function IntakeRow({ item, onAccept, onReject }: IntakeRowProps) {
         <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
           <td colSpan={5} className="px-4 py-4">
             <div className="space-y-3">
-              {/* 정규화 본문 미리보기 */}
+              {/* 정제 스펙 (A3-full) — refined_text 있으면 원문과 나란히 비교 표시 */}
               <div>
-                <p className="mb-1 text-xs font-medium text-[var(--text-muted)]">
-                  {t("detail.normalizedText")}
-                </p>
-                {item.normalized_text ? (
-                  <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-                    {item.normalized_text}
-                  </pre>
+                <div className="mb-1 flex items-center gap-2">
+                  <p className="text-xs font-medium text-[var(--text-muted)]">
+                    {t("refine.title")}
+                  </p>
+                  <RefineStatusBadge status={item.refine_status} />
+                </div>
+                {item.refined_text ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-xs text-[var(--text-muted)]">
+                        {t("detail.normalizedText")}
+                      </p>
+                      <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                        {item.normalized_text ?? t("detail.noNormalizedText")}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs text-[var(--text-muted)]">
+                        {t("refine.refinedText")}
+                      </p>
+                      <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                        {item.refined_text}
+                      </pre>
+                    </div>
+                  </div>
+                ) : item.normalized_text ? (
+                  <div>
+                    <p className="mb-1 text-xs text-[var(--text-muted)]">
+                      {t("detail.normalizedText")}
+                    </p>
+                    <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                      {item.normalized_text}
+                    </pre>
+                  </div>
                 ) : (
                   <p className="text-xs text-[var(--text-muted)]">
                     {t("detail.noNormalizedText")}
@@ -338,6 +385,12 @@ function IntakeListSection({ status }: { status: IntakeStatus }) {
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {t("acceptDialog.description", { title: acceptTarget?.title ?? "" })}
           </p>
+          {acceptTarget?.refined_text && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs leading-relaxed text-emerald-800">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {t("refine.acceptNotice")}
+            </div>
+          )}
           <div className="mt-5 flex gap-3">
             <button
               type="button"

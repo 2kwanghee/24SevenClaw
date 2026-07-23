@@ -131,6 +131,7 @@ related:
 - [x] 키 비활성화 → `DELETE /api/v1/intake/service-keys/{key_id}` → type-to-confirm
 - [x] FEATURE_INTAKE 토글 감지 → 404 시 "기능 사용 안 함" 배너 표시
 - [x] Admin+ 권한 검증 (`RoleGuard roles={["superadmin", "admin"]}`)
+- [x] 정제 스펙 섹션 (CE-310): `refine_status` 뱃지(정제 대기/정제됨/건너뜀) + 원문↔정제 스펙 2컬럼 비교, 승인 다이얼로그에 "정제 스펙으로 프로젝트 생성" 안내. 정제 실행은 로컬 배치 `scripts/intake_refine.sh`(FLOWOPS_INTAKE_REFINE, claude -p + metaprompt) — 서버는 머신 엔드포인트(`GET /intake/refine/pending`, `POST /intake/{id}/refined`)로 조율만
 
 ### 선택/개선 사항
 - [ ] 검색/필터 (타이틀, 우선순위, 입력 타입)

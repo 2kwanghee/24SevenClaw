@@ -827,6 +827,16 @@
       "project": "作成されたプロジェクト",
       "openProject": "プロジェクトを開く"
     },
+    "refine": {
+      "title": "リファイン仕様",
+      "refinedText": "リファイン仕様",
+      "status": {
+        "pending": "リファイン待ち",
+        "refined": "リファイン済み",
+        "skipped": "スキップ"
+      },
+      "acceptNotice": "リファイン仕様でプロジェクトが作成されます。"
+    },
     "acceptDialog": {
       "title": "インテーク承認",
       "description": "「{title}」を承認するとプロジェクトが作成されます。続行しますか?",

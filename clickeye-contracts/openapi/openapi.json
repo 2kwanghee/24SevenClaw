@@ -393,6 +393,266 @@
         }
       }
     },
+    "/api/v1/llm/chat": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Chat",
+        "description": "RAG Q&A 프록시. 프로젝트 접근권 확인 후 clickeye-llm /chat 호출.\n\ndelivery_id = project_id. 응답: {answer, sources[]}.",
+        "operationId": "chat_api_v1_llm_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Chat Api V1 Llm Chat Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/llm/progress/{project_id}": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Progress",
+        "description": "진행상황 요약 프록시. 프로젝트 접근권 확인 후 clickeye-llm /progress 호출.",
+        "operationId": "progress_api_v1_llm_progress__project_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Progress Api V1 Llm Progress  Project Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/llm/feedback": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Feedback",
+        "description": "피드백 저장 프록시. 프로젝트 접근권 확인 후 clickeye-llm /feedback 호출.\n\ndelivery_id = project_id(서버측 강제 — 클라이언트 임의 지정 불가). 응답: {feedback_id}.",
+        "operationId": "feedback_api_v1_llm_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmFeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Feedback Api V1 Llm Feedback Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/llm/ingest": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Ingest",
+        "description": "지식 주입 프록시(내부/테스트). superadmin 전용.",
+        "operationId": "ingest_api_v1_llm_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmIngestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Ingest Api V1 Llm Ingest Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/llm/ingest/pipeline": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Ingest Pipeline",
+        "description": "머신 인제스트 (P1.6) — 파이프라인/웹훅發. X-Governance-Token 보호(JWT 아님).\n\n항상 202(비블로킹 계약 — 호출측 파이프라인을 절대 죽이지 않는다):\n- FEATURE_LLM_AUTOINGEST off → {status: disabled} (에러 아님).\n- project_id 우선, 없으면 team_id → project 역매핑(정확히 1건일 때만).\n- 매핑 실패 → {status: skipped, reason} / 성공 → enqueue(fire-and-forget) 후\n  {status: queued, project_id}.",
+        "operationId": "ingest_pipeline_api_v1_llm_ingest_pipeline_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmPipelineIngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ingest Pipeline Api V1 Llm Ingest Pipeline Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/registry/agents": {
       "get": {
         "tags": [
@@ -8532,6 +8792,515 @@
         }
       }
     },
+    "/api/v1/intake": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Create Intake",
+        "description": "요구사항 정의서(structured/document/url)를 접수한다.\n\nIdempotency-Key 재수신 시 기존 레코드를 그대로 반환한다(202 동일).",
+        "operationId": "create_intake_api_v1_intake_post",
+        "parameters": [
+          {
+            "name": "x-clickeye-service-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Clickeye-Service-Key"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntakeCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Intakes",
+        "description": "검토 목록 — superadmin 전체 / admin 자기 조직 키 접수분만. ?status_filter= 필터.",
+        "operationId": "list_intakes_api_v1_intake_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeResponse"
+                  },
+                  "title": "Response List Intakes Api V1 Intake Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/accept": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Accept Intake",
+        "description": "승인 — Project(딜리버리) 생성 + accepted 전이 + KB 인제스트 훅.",
+        "operationId": "accept_intake_api_v1_intake__intake_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/reject": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Reject Intake",
+        "description": "반려 — rejected 전이, 사유는 payload 에 기록.",
+        "operationId": "reject_intake_api_v1_intake__intake_id__reject_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/IntakeRejectRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/refine/pending": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Refine Pending",
+        "description": "정제 대기 목록 — status=pending_review & refine_status=pending 만 반환한다.",
+        "operationId": "list_refine_pending_api_v1_intake_refine_pending_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRefinePendingItem"
+                  },
+                  "title": "Response List Refine Pending Api V1 Intake Refine Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/refined": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Submit Refined",
+        "description": "정제 결과 제출 — refined + 저장. 공백만이면 skipped. pending_review 아니면 409.",
+        "operationId": "submit_refined_api_v1_intake__intake_id__refined_post",
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefineSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/service-keys": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Service Keys",
+        "description": "서비스 키 목록 — 해시/평문 미노출(응답 스키마 강제).",
+        "operationId": "list_service_keys_api_v1_intake_service_keys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceKeyResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Service Keys Api V1 Intake Service Keys Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Create Service Key",
+        "description": "서비스 키 발급 — 평문 키는 이 응답에서 1회만 노출된다(DB 는 sha256 해시만).",
+        "operationId": "create_service_key_api_v1_intake_service_keys_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceKeyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceKeyCreatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/intake/service-keys/{key_id}": {
+      "delete": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Deactivate Service Key",
+        "description": "서비스 키 비활성화 — 이후 해당 키 인증은 401 (레코드는 감사용으로 보존).",
+        "operationId": "deactivate_service_key_api_v1_intake_service_keys__key_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Key Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceKeyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/governance/evaluate": {
       "post": {
         "tags": [
@@ -12931,6 +13700,17 @@
               }
             ],
             "title": "Metrics"
+          },
+          "linear_team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linear Team Id"
           }
         },
         "type": "object",
@@ -13750,6 +14530,370 @@
         "type": "object",
         "title": "HookUpdate"
       },
+      "IntakeAcceptedResponse": {
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Intake Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intake_id",
+          "status"
+        ],
+        "title": "IntakeAcceptedResponse",
+        "description": "POST /intake 202 응답 — 접수 확인."
+      },
+      "IntakeCreate": {
+        "properties": {
+          "input_type": {
+            "type": "string",
+            "enum": [
+              "structured",
+              "document",
+              "url"
+            ],
+            "title": "Input Type"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "requirements": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirements"
+          },
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntakeDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "input_type",
+          "title"
+        ],
+        "title": "IntakeCreate",
+        "description": "외부 서비스의 인테이크 수주 요청 본문."
+      },
+      "IntakeDocument": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Content"
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Format",
+            "default": "markdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "title": "IntakeDocument",
+        "description": "document 타입 본문 — 원문 텍스트와 포맷."
+      },
+      "IntakeRefinePendingItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "input_type": {
+            "type": "string",
+            "title": "Input Type"
+          },
+          "normalized_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Text"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "input_type",
+          "normalized_text",
+          "target",
+          "priority"
+        ],
+        "title": "IntakeRefinePendingItem",
+        "description": "머신 정제 대기 목록 항목 — 로컬 정제 배치(intake_refine.sh)가 소비한다."
+      },
+      "IntakeRejectRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "title": "IntakeRejectRequest",
+        "description": "반려 사유(선택)."
+      },
+      "IntakeResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "service_key_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Service Key Id"
+          },
+          "input_type": {
+            "type": "string",
+            "title": "Input Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "normalized_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalized Text"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "refined_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refined Text"
+          },
+          "refine_status": {
+            "type": "string",
+            "title": "Refine Status"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "service_key_id",
+          "input_type",
+          "title",
+          "payload",
+          "normalized_text",
+          "source_url",
+          "target",
+          "priority",
+          "callback_url",
+          "status",
+          "project_id",
+          "refined_text",
+          "refine_status",
+          "created_at"
+        ],
+        "title": "IntakeResponse",
+        "description": "인테이크 상세/목록 응답 (검토 콘솔용)."
+      },
       "IntegrationValidateResponse": {
         "properties": {
           "valid": {
@@ -14118,6 +15262,132 @@
         ],
         "title": "LinearValidateRequest"
       },
+      "LlmChatRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "딜리버리(프로젝트) ID. delivery_id 로 매핑."
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "사용자 질문."
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "query"
+        ],
+        "title": "LlmChatRequest"
+      },
+      "LlmFeedbackRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "딜리버리(프로젝트) ID. delivery_id 로 매핑."
+          },
+          "chat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chat Id",
+            "description": "평가 대상 /chat 응답의 chat_id."
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "당시 사용자 질문."
+          },
+          "answer": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Answer",
+            "description": "당시 어시스턴트 답변 원문."
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Rating",
+            "description": "평가(👍 up / 👎 down)."
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment",
+            "description": "선택 코멘트(주로 down 사유)."
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources",
+            "description": "답변에 사용된 source_id 목록."
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "query",
+          "answer",
+          "rating"
+        ],
+        "title": "LlmFeedbackRequest",
+        "description": "챗 답변 피드백(P2-MVP). delivery_id 는 서버가 project_id 로 강제 매핑."
+      },
+      "LlmIngestRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "딜리버리(프로젝트) ID. delivery_id 로 매핑."
+          },
+          "documents": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Documents",
+            "description": "주입 문서 목록(source_id/text 등)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "documents"
+        ],
+        "title": "LlmIngestRequest"
+      },
       "LlmKeySourceTotals": {
         "properties": {
           "key_source": {
@@ -14154,6 +15424,66 @@
         ],
         "title": "LlmKeySourceTotals",
         "description": "key_source(구독시트/조직키)별 토큰·비용 합계."
+      },
+      "LlmPipelineIngestRequest": {
+        "properties": {
+          "team_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id",
+            "description": "Linear team ID(역매핑용, 선택)."
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id",
+            "description": "프로젝트 ID(있으면 우선)."
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source Id",
+            "description": "KB 문서 source_id(증분 갱신 키)."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text",
+            "description": "인제스트할 텍스트."
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_id",
+          "text"
+        ],
+        "title": "LlmPipelineIngestRequest",
+        "description": "파이프라인/웹훅 머신 인제스트 요청 (P1.6).\n\n호출자(bash 파이프라인·Linear 웹훅)는 project_id 를 모를 수 있어 team_id 만\n넘긴다 — 해석(team→project 역매핑)은 API(SSOT)가 수행한다."
       },
       "LlmProjectUsageSummary": {
         "properties": {
@@ -19632,6 +20962,20 @@
         ],
         "title": "QualityMetrics"
       },
+      "RefineSubmit": {
+        "properties": {
+          "refined_text": {
+            "type": "string",
+            "title": "Refined Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refined_text"
+        ],
+        "title": "RefineSubmit",
+        "description": "머신 정제 결과 제출 본문 — 공백만이면 skipped 로 처리된다(규칙은 서비스가 판정)."
+      },
       "RefreshTokenRequest": {
         "properties": {
           "refresh_token": {
@@ -20956,6 +22300,141 @@
           "system_role"
         ],
         "title": "RoleUpdateRequest"
+      },
+      "ServiceKeyCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ServiceKeyCreate",
+        "description": "인테이크 서비스 키 발급 요청."
+      },
+      "ServiceKeyCreatedResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "organization_id",
+          "is_active",
+          "created_at",
+          "key"
+        ],
+        "title": "ServiceKeyCreatedResponse",
+        "description": "발급 직후 1회 한정 평문 키 포함 응답."
+      },
+      "ServiceKeyResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "organization_id",
+          "is_active",
+          "created_at"
+        ],
+        "title": "ServiceKeyResponse",
+        "description": "서비스 키 조회 응답 — 해시/평문 미노출."
       },
       "SessionCreate": {
         "properties": {

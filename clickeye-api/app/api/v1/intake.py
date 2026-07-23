@@ -9,9 +9,10 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.governance import verify_governance_token
 from app.config import settings
 from app.database import get_db
 from app.dependencies import require_permission, require_superadmin
@@ -19,8 +20,10 @@ from app.models.user import User
 from app.schemas.intake import (
     IntakeAcceptedResponse,
     IntakeCreate,
+    IntakeRefinePendingItem,
     IntakeRejectRequest,
     IntakeResponse,
+    RefineSubmit,
     ServiceKeyCreate,
     ServiceKeyCreatedResponse,
     ServiceKeyResponse,
@@ -102,6 +105,38 @@ async def reject_intake(
     """반려 — rejected 전이, 사유는 payload 에 기록."""
     reason = body.reason if body is not None else None
     return await IntakeService(db).reject(intake_id, user, reason)
+
+
+# ---------------------------------------------------------------------------
+# 정제 배치 (머신 — X-Governance-Token, /llm/ingest/pipeline 패턴)
+# ---------------------------------------------------------------------------
+#
+# A3-full: 정제 LLM 실행은 로컬 배치(scripts/intake_refine.sh, claude -p)만 한다.
+# 서버는 대기 목록 제공/결과 저장(상태 조율)만 담당한다 — 실행 플레인 분리.
+
+
+@router.get(
+    "/refine/pending",
+    response_model=list[IntakeRefinePendingItem],
+    dependencies=[Depends(verify_governance_token)],
+)
+async def list_refine_pending(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """정제 대기 목록 — status=pending_review & refine_status=pending 만 반환한다."""
+    return await IntakeService(db).list_refine_pending(limit)
+
+
+@router.post("/{intake_id}/refined", response_model=IntakeResponse)
+async def submit_refined(
+    intake_id: UUID,
+    body: RefineSubmit,
+    _token: None = Depends(verify_governance_token),
+    db: AsyncSession = Depends(get_db),
+):
+    """정제 결과 제출 — refined + 저장. 공백만이면 skipped. pending_review 아니면 409."""
+    return await IntakeService(db).submit_refined(intake_id, body.refined_text)
 
 
 # ---------------------------------------------------------------------------

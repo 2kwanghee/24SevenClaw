@@ -71,9 +71,31 @@ class IntakeResponse(BaseModel):
     callback_url: str | None
     status: str
     project_id: UUID | None
+    # A3-full: 로컬 metaprompt 배치 정제 결과 (pending | refined | skipped).
+    refined_text: str | None
+    refine_status: str
     created_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+class IntakeRefinePendingItem(BaseModel):
+    """머신 정제 대기 목록 항목 — 로컬 정제 배치(intake_refine.sh)가 소비한다."""
+
+    id: UUID
+    title: str
+    input_type: str
+    normalized_text: str | None
+    target: dict[str, Any] | None
+    priority: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class RefineSubmit(BaseModel):
+    """머신 정제 결과 제출 본문 — 공백만이면 skipped 로 처리된다(규칙은 서비스가 판정)."""
+
+    refined_text: str
 
 
 class IntakeRejectRequest(BaseModel):

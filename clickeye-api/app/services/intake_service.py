@@ -360,17 +360,55 @@ class IntakeService:
             )
         return intake
 
+    async def list_refine_pending(self, limit: int = 10) -> list[IntakeRequest]:
+        """정제 대기 목록 — pending_review & refine_status=pending, 오래된 순(FIFO).
+
+        로컬 정제 배치(scripts/intake_refine.sh)가 소비한다. 서버는 LLM 을 호출하지
+        않는다 — 실행 플레인 분리(A3-full).
+        """
+        result = await self.db.execute(
+            select(IntakeRequest)
+            .where(
+                IntakeRequest.status == "pending_review",
+                IntakeRequest.refine_status == "pending",
+            )
+            .order_by(IntakeRequest.created_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def submit_refined(self, intake_id: UUID, refined_text: str) -> IntakeRequest:
+        """정제 결과 저장 — 비공백이면 refined, 공백만이면 skipped(재시도 대상 제외).
+
+        pending_review 아닌 건은 _get_pending 이 409 를 던진다(정제 무의미).
+        """
+        intake = await self._get_pending(intake_id)
+        if refined_text.strip():
+            intake.refined_text = refined_text  # type: ignore[assignment]
+            intake.refine_status = "refined"  # type: ignore[assignment]
+        else:
+            intake.refined_text = None  # type: ignore[assignment]
+            intake.refine_status = "skipped"  # type: ignore[assignment]
+        await self.db.commit()
+        await self.db.refresh(intake)
+        return intake
+
     async def accept(self, intake_id: UUID, user: User) -> IntakeRequest:
-        """승인 — Project 생성(딜리버리 등록) 후 accepted 로 전이 + KB 인제스트 훅."""
+        """승인 — Project 생성(딜리버리 등록) 후 accepted 로 전이 + KB 인제스트 훅.
+
+        A3-full: 요구사항 텍스트는 정제 스펙(refined_text) 우선, 없으면
+        normalized_text 폴백(기존 동작 유지). KB 인제스트 텍스트도 동일 우선.
+        """
         intake = await self._get_pending(intake_id)
         key = await self.db.get(IntakeServiceKey, intake.service_key_id)
 
+        requirements_source = intake.refined_text or intake.normalized_text
         slug = _slugify(str(intake.title)) or f"intake-{intake.id.hex[:8]}"
         project = Project(
             owner_id=user.id,
             name=intake.title,
             slug=slug,
-            requirements_text=intake.normalized_text,
+            requirements_text=requirements_source,
             organization_id=key.organization_id if key is not None else None,
             project_type="intake",
         )
@@ -386,7 +424,7 @@ class IntakeService:
         enqueue_ingest(
             project.id,
             f"intake:{intake.id}",
-            f"[인테이크 수주] {intake.title}\n{intake.normalized_text or ''}",
+            f"[인테이크 수주] {intake.title}\n{requirements_source or ''}",
             metadata={"kind": "intake", "input_type": intake.input_type},
         )
         # A3-lite: 외부 서비스에 승인 상태 푸시(fire-and-forget, 서명 포함).
