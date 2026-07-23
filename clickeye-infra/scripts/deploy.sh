@@ -6,7 +6,8 @@
 #
 # 사용법:
 #   bash deploy.sh            # 인자 없으면 번호 선택형 메뉴
-#   bash deploy.sh up         # 전체 스택 순차 기동(기본)
+#   bash deploy.sh up         # 이미지 재빌드(캐시) 후 전체 스택 순차 기동(기본)
+#   bash deploy.sh up --no-build  # 재빌드 스킵(=DEPLOY_NO_BUILD=true). 코드 무변경 시 빠른 기동
 #   bash deploy.sh down       # 전체 내리기(볼륨 유지)
 #   bash deploy.sh status     # 상태 요약
 #   bash deploy.sh logs [svc] # 로그 tailing
@@ -100,6 +101,19 @@ cmd_up() {
   echo "========================================="
   echo "  ClickEye 로컬 스택 순차 기동"
   echo "========================================="
+
+  # 0. 이미지 재빌드 (코드 변경 반영 — 캐시로 변경분만, 무변경 시 수 초)
+  #    재발 방지: 코드 수정 후 재빌드 누락 → migrate 가 새 마이그레이션을 못 찾는 문제 차단.
+  #    스킵: DEPLOY_NO_BUILD=true bash deploy.sh up  (또는 deploy.sh up --no-build)
+  if [ "${DEPLOY_NO_BUILD:-false}" != "true" ]; then
+    echo ""
+    echo "▶ [0/5] 이미지 재빌드 (변경분만, 캐시 활용)..."
+    docker compose build
+    echo "✅ 이미지 최신화 완료"
+  else
+    echo ""
+    echo "▶ [0/5] 재빌드 스킵 (DEPLOY_NO_BUILD=true)"
+  fi
 
   # 1. PostgreSQL
   echo ""
@@ -227,7 +241,7 @@ show_menu() {
 main() {
   local action="${1:-menu}"
   case "$action" in
-    up)     cmd_up ;;
+    up)     shift || true; [ "${1:-}" = "--no-build" ] && export DEPLOY_NO_BUILD=true; cmd_up ;;
     down)   cmd_down ;;
     status) cmd_status ;;
     logs)   shift || true; cmd_logs "${1:-}" ;;
@@ -235,7 +249,8 @@ main() {
     menu)   show_menu ;;
     *)
       echo "알 수 없는 명령: $action"
-      echo "사용법: bash deploy.sh [up|down|status|logs [svc]|reset]"
+      echo "사용법: bash deploy.sh [up [--no-build]|down|status|logs [svc]|reset]"
+      echo "  up 은 기동 전 이미지를 재빌드한다(캐시). 스킵: up --no-build 또는 DEPLOY_NO_BUILD=true"
       exit 1
       ;;
   esac
