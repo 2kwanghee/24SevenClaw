@@ -23,6 +23,7 @@ import {
   Terminal,
 } from "lucide-react";
 
+import { BentoCard } from "@/components/ui/bento";
 import { PipelineStepper } from "@/components/ai-team/pipeline-stepper";
 import { ReviewDiffViewer } from "@/components/ai-team/review-diff-viewer";
 import { SessionCreateModal } from "@/components/ai-team/session-create-modal";
@@ -348,10 +349,7 @@ export default function AITeamDashboardPage() {
       {session && (
         <div className="space-y-6">
           {/* --- 1계층: 사람 (Human) --- */}
-          <section
-            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-            aria-label="사람 계층"
-          >
+          <BentoCard aria-label="사람 계층">
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-50">
                 <User className="h-3.5 w-3.5 text-amber-600" />
@@ -458,7 +456,7 @@ export default function AITeamDashboardPage() {
                 ))}
               </div>
             )}
-          </section>
+          </BentoCard>
 
           {/* --- 2계층: PM AI --- */}
           <section aria-label="PM AI 계층" className="space-y-4">
@@ -474,7 +472,7 @@ export default function AITeamDashboardPage() {
 
             {/* prompt_template 뷰어 */}
             {session.prompt_template && (
-              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <BentoCard>
                 <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">
@@ -484,12 +482,12 @@ export default function AITeamDashboardPage() {
                 <pre className="max-h-40 overflow-auto rounded-lg bg-[var(--bg-hover)] p-3 text-xs text-[var(--text-secondary)] whitespace-pre-wrap">
                   {session.prompt_template}
                 </pre>
-              </div>
+              </BentoCard>
             )}
 
             {/* 리스크 칩 */}
             {session.risk_flags.length > 0 && (
-              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <BentoCard className="p-4">
                 <h3 className="mb-2 text-xs font-semibold text-[var(--text-muted)]">
                   감지된 리스크
                 </h3>
@@ -504,12 +502,12 @@ export default function AITeamDashboardPage() {
                     </span>
                   ))}
                 </div>
-              </div>
+              </BentoCard>
             )}
 
             {/* 초안/리뷰 (drafting 이상 단계일 때) */}
             {["drafting", "reviewing", "integrating", "validating", "approved", "transitioning", "completed"].includes(session.phase) && reviewRounds.length > 0 && (
-              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <BentoCard>
                 <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
                   {isReviewPhase ? "리뷰 라운드" : "AI 초안"}
                 </h3>
@@ -518,7 +516,7 @@ export default function AITeamDashboardPage() {
                     <ReviewDiffViewer key={round.id} round={round} />
                   ))}
                 </div>
-              </div>
+              </BentoCard>
             )}
           </section>
 
@@ -624,10 +622,7 @@ export default function AITeamDashboardPage() {
           )}
 
           {/* --- 3계층: AI Team --- */}
-          <section
-            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-            aria-label="AI Team 계층"
-          >
+          <BentoCard aria-label="AI Team 계층">
             {(() => {
               const approvedCount = subtasks.filter((s) => s.status === "approved").length;
               const dependencyMap = new Map(subtasks.map((s) => [s.title, s]));
@@ -690,7 +685,7 @@ export default function AITeamDashboardPage() {
                 </>
               );
             })()}
-          </section>
+          </BentoCard>
         </div>
       )}
 

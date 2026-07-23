@@ -15,6 +15,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { BentoCard } from "@/components/ui/bento";
 import { BaseModal } from "@/components/common/base-modal";
 import { ConfirmByTypingDialog } from "@/components/common/confirm-by-typing-dialog";
 import { RoleGuard } from "@/components/common/role-guard";
@@ -359,7 +360,7 @@ function IntakeListSection({ status }: { status: IntakeStatus }) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+      <BentoCard className="overflow-hidden p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -401,7 +402,7 @@ function IntakeListSection({ status }: { status: IntakeStatus }) {
             )}
           </tbody>
         </table>
-      </div>
+      </BentoCard>
 
       {/* 승인 확인 다이얼로그 */}
       <BaseModal
@@ -588,7 +589,7 @@ function ServiceKeysSection() {
           type="button"
           onClick={handleCreate}
           disabled={!name.trim() || createMutation.isPending}
-          className="rounded-lg bg-[var(--text-primary)] px-4 py-2 text-sm font-medium text-[var(--bg-surface)] transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {createMutation.isPending ? t("issuing") : t("issue")}
         </button>
@@ -609,7 +610,7 @@ function ServiceKeysSection() {
 
       {/* 키 목록 */}
       {data && (
-        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <BentoCard className="overflow-hidden p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -683,7 +684,7 @@ function ServiceKeysSection() {
               )}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       {/* 발급된 평문 키 1회 표시 모달 — 명시적 확인으로만 닫힘 */}
@@ -720,7 +721,7 @@ function ServiceKeysSection() {
               setCreatedKey(null);
               setCopied(false);
             }}
-            className="mt-5 w-full rounded-xl bg-[var(--text-primary)] py-2.5 text-sm font-medium text-[var(--bg-surface)] transition-all hover:opacity-90"
+            className="mt-5 w-full rounded-xl bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:bg-[var(--accent-hover)]"
           >
             {t("done")}
           </button>
@@ -763,8 +764,8 @@ function IntakeContent() {
     <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-          <Inbox className="h-5 w-5 text-[var(--text-secondary)]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)]">
+          <Inbox className="h-5 w-5 text-[var(--accent)]" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
@@ -785,7 +786,7 @@ function IntakeContent() {
             onClick={() => setTab(s.id)}
             className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               tab === s.id
-                ? "border-[var(--text-primary)] text-[var(--text-primary)]"
+                ? "border-[var(--accent)] text-[var(--accent)]"
                 : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             }`}
           >
@@ -798,7 +799,7 @@ function IntakeContent() {
             onClick={() => setTab("service-keys")}
             className={`-mb-px ml-auto flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               tab === "service-keys"
-                ? "border-[var(--text-primary)] text-[var(--text-primary)]"
+                ? "border-[var(--accent)] text-[var(--accent)]"
                 : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             }`}
           >

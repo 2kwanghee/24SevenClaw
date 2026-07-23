@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Header } from "@/components/layout/header";
 import {
+  ScanEye,
   Sparkles,
   FolderKanban,
   Boxes,
@@ -158,8 +159,8 @@ export default function DashboardLayout({
       >
         {/* 로고 */}
         <div className="flex h-16 items-center gap-2.5 border-b border-[var(--border-subtle)] px-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--logo-bg)]">
-            <Sparkles className="h-4 w-4 text-[var(--logo-text)]" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]">
+            <ScanEye className="h-4 w-4 text-[var(--accent-fg)]" aria-hidden="true" />
           </div>
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight text-[var(--text-primary)]">

@@ -29,6 +29,7 @@ import {
 } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { PostKeyChangeGuide } from "@/components/credentials/post-key-change-guide";
+import { BentoCard } from "@/components/ui/bento";
 
 /* ── 설정 방법 아코디언 ── */
 
@@ -115,7 +116,7 @@ function TunnelGuide() {
         href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 transition-colors"
+        className="inline-flex items-center gap-1 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
       >
         <ExternalLink className="h-3 w-3" />
         {t("tunnelDocsLink")}
@@ -305,7 +306,7 @@ export default function LinearSettingsPage() {
       )}
 
       {/* 입력 폼 */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-6">
+      <BentoCard className="space-y-6">
         <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
           <Key className="h-4 w-4 text-[var(--text-muted)]" />
           {saved ? t("formTitle_update") : t("formTitle_new")}
@@ -433,7 +434,7 @@ export default function LinearSettingsPage() {
             </button>
           )}
         </div>
-      </div>
+      </BentoCard>
     </div>
     </>
   );

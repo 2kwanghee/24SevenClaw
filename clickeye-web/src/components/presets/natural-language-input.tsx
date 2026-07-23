@@ -83,7 +83,7 @@ export function NaturalLanguageInput({
               "flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium transition-all",
               !text.trim() || isLoading
                 ? "cursor-not-allowed bg-[var(--bg-hover)] text-[var(--text-muted)]"
-                : "bg-zinc-900 text-white hover:bg-zinc-800",
+                : "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]",
             )}
           >
             {isLoading ? (

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Boxes, Loader2, AlertTriangle, ChevronRight, Trash2 } from "lucide-react";
 
 import { useProjects, useDeleteProject } from "@/hooks/use-projects";
+import { BentoGrid, BentoCard } from "@/components/ui/bento";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { LlmChatPanel } from "@/components/delivery/llm-chat-panel";
 import { MockModeToggle } from "@/components/delivery/mock-mode-toggle";
@@ -84,41 +85,45 @@ export default function DeliveryListPage() {
 
       {/* 수주건 목록 */}
       {!isLoading && !isError && engagements.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <BentoGrid className="lg:grid-cols-2">
           {engagements.map((engagement) => (
             <div key={engagement.id} className="group relative">
-              <Link
+              <BentoCard
                 href={`/delivery/${engagement.id}`}
-                className="flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(20,24,33,0.05)] transition-colors hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                size="sm"
+                className="p-4"
+                aria-label={engagement.name}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-                  <Boxes className="h-4.5 w-4.5 text-[var(--text-muted)]" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                      {engagement.name}
-                    </h2>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        engagement.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
-                      }`}
-                    >
-                      {engagement.status === "active"
-                        ? t("list.statusActive")
-                        : t("list.statusArchived")}
-                    </span>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
+                    <Boxes className="h-4.5 w-4.5 text-[var(--text-muted)]" aria-hidden="true" />
                   </div>
-                  {engagement.description && (
-                    <p className="mt-1 line-clamp-2 text-xs text-[var(--text-muted)]">
-                      {engagement.description}
-                    </p>
-                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {engagement.name}
+                      </h2>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          engagement.status === "active"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "bg-[var(--bg-hover)] text-[var(--text-muted)]"
+                        }`}
+                      >
+                        {engagement.status === "active"
+                          ? t("list.statusActive")
+                          : t("list.statusArchived")}
+                      </span>
+                    </div>
+                    {engagement.description && (
+                      <p className="mt-1 line-clamp-2 text-xs text-[var(--text-muted)]">
+                        {engagement.description}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-              </Link>
+              </BentoCard>
 
               {/* 프로젝트 삭제 — 목업 모드에서는 숨김 */}
               {!mock && (
@@ -135,7 +140,7 @@ export default function DeliveryListPage() {
               )}
             </div>
           ))}
-        </div>
+        </BentoGrid>
       )}
 
       {/* 프로젝트 삭제 확인 다이얼로그 */}

@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
+import { BentoCard } from "@/components/ui/bento";
 import { useContractsList, useCreateContract } from "@/hooks/use-contracts";
 import { TYPE_COLORS, TYPE_LABELS } from "@/components/contracts/contract-viewer";
 import type { CentralContractResponse, CentralContractCreateRequest } from "@/lib/api-client";
@@ -451,7 +452,7 @@ function ContractsContent() {
 
       {/* 테이블 */}
       {items && items.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <BentoCard className="block overflow-x-auto p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -481,7 +482,7 @@ function ContractsContent() {
               ))}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       {/* 빈 상태 */}

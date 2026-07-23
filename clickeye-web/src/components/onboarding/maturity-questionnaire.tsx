@@ -211,7 +211,7 @@ export function MaturityQuestionnaire({
             "group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all",
             !allCurrentAnswered || isSubmitting
               ? "cursor-not-allowed bg-zinc-100 text-[var(--text-muted)]"
-              : "bg-zinc-900 text-white shadow-lg hover:bg-zinc-800",
+              : "bg-[var(--accent)] text-[var(--accent-fg)] shadow-lg hover:bg-[var(--accent-hover)]",
           )}
         >
           {isSubmitting

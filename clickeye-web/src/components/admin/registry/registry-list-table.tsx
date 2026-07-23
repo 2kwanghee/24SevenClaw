@@ -14,6 +14,7 @@ import {
   useRegistryItems,
   useDeleteRegistryItem,
 } from "@/hooks/use-registry-admin";
+import { BentoCard } from "@/components/ui/bento";
 import { RegistryEditorDrawer } from "./registry-editor-drawer";
 
 const TYPE_LABELS: Record<RegistryAdminType, string> = {
@@ -137,7 +138,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
       {items.length === 0 ? (
         <div className="py-12 text-center text-sm text-[var(--text-muted)]">항목이 없습니다.</div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
+        <BentoCard className="block overflow-hidden p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -208,7 +209,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
     </>
   );

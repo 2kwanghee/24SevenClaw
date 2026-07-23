@@ -36,8 +36,8 @@ export function PresetCard({
     >
       {/* 선택 표시 */}
       {selected && (
-        <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900">
-          <Check className="h-3 w-3 text-white" />
+        <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]">
+          <Check className="h-3 w-3 text-[var(--accent-fg)]" />
         </div>
       )}
 

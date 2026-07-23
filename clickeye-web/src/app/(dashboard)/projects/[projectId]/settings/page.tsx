@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import { BentoCard } from "@/components/ui/bento";
 import { ProjectForm } from "@/components/projects/project-form";
 import { useProject, useUpdateProject } from "@/hooks/use-projects";
 import { ApiClientError } from "@/lib/api-client";
@@ -64,7 +65,7 @@ export default function ProjectSettingsPage() {
 
       {/* 기본 정보 */}
       <div className="mx-auto max-w-lg space-y-6">
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <BentoCard>
           <h2 className="mb-6 text-lg font-semibold text-[var(--text-primary)]">기본 정보</h2>
 
           {error && (
@@ -108,10 +109,10 @@ export default function ProjectSettingsPage() {
               );
             }}
           />
-        </div>
+        </BentoCard>
 
         {/* 상태 변경 */}
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <BentoCard>
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">프로젝트 상태</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             프로젝트를 보관하거나 다시 활성화할 수 있습니다
@@ -150,7 +151,7 @@ export default function ProjectSettingsPage() {
               </button>
             )}
           </div>
-        </div>
+        </BentoCard>
       </div>
     </div>
   );

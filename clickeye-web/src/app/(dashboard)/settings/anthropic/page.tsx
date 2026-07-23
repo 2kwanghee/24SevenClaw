@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { apiClient, type ProjectResponse } from "@/lib/api-client";
 import { PostKeyChangeGuide } from "@/components/credentials/post-key-change-guide";
 import { CredentialCard } from "@/components/credentials/credential-card";
+import { BentoCard } from "@/components/ui/bento";
 
 export default function AnthropicSettingsPage() {
   const { data: session } = useSession();
@@ -73,7 +74,7 @@ export default function AnthropicSettingsPage() {
           <h2 id="oauth-browser-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             {t("oauthSection")}
           </h2>
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 space-y-4">
+          <BentoCard className="space-y-4">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-[var(--text-muted)]" />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t("oauthNoRegistrationTitle")}</h3>
@@ -93,7 +94,7 @@ export default function AnthropicSettingsPage() {
                 <span>{t("oauthBullet3")}</span>
               </li>
             </ul>
-          </div>
+          </BentoCard>
         </section>
       </div>
     </>

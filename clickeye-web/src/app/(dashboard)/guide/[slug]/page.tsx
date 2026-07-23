@@ -3,6 +3,7 @@ import { getLocale } from "next-intl/server";
 import { getAllGuides, getGuide } from "@/lib/guide-loader";
 import { GuideToc } from "@/components/guide/guide-toc";
 import { MarkdownContent } from "@/components/guide/markdown-content";
+import { BentoCard } from "@/components/ui/bento";
 
 interface GuideSlugPageProps {
   params: Promise<{ slug: string }>;
@@ -25,7 +26,7 @@ export default async function GuideSlugPage({ params }: GuideSlugPageProps) {
       <GuideToc guides={guides} />
 
       <article className="min-w-0 flex-1">
-        <div className="mb-6">
+        <BentoCard className="mb-6">
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             {guide.title}
           </h1>
@@ -34,11 +35,11 @@ export default async function GuideSlugPage({ params }: GuideSlugPageProps) {
               {guide.description}
             </p>
           )}
-        </div>
+        </BentoCard>
 
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+        <BentoCard>
           <MarkdownContent content={guide.content} />
-        </div>
+        </BentoCard>
       </article>
     </div>
   );

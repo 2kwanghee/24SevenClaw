@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AlertTriangle, Boxes, FlaskConical, Trash2 } from "lucide-react";
 
+import { BentoCard } from "@/components/ui/bento";
 import { ConsoleHeader } from "@/components/delivery/console-header";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { DeliveryStepper } from "@/components/delivery/delivery-stepper";
@@ -51,7 +52,7 @@ function CardShell({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[0_1px_2px_rgba(20,24,33,0.05)]">
+    <BentoCard className="overflow-hidden p-0">
       <div className="flex items-center gap-2.5 border-b border-[var(--border-subtle)] px-4 py-3.5">
         <h2 className="text-[13.5px] font-bold tracking-tight text-[var(--text-primary)]">
           {title}
@@ -63,7 +64,7 @@ function CardShell({
         )}
       </div>
       {children}
-    </section>
+    </BentoCard>
   );
 }
 
@@ -268,9 +269,9 @@ export default function DeliveryEngagementPage() {
       {summary?.session && (
         <div className="space-y-4">
           {/* B. 스텝퍼 */}
-          <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4 shadow-[0_1px_2px_rgba(20,24,33,0.05)]">
+          <BentoCard className="px-5 py-4">
             <DeliveryStepper currentPhase={summary.session.phase} />
-          </section>
+          </BentoCard>
 
           {summaryError && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">

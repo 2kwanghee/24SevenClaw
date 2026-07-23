@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { ChevronRight, Database, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { RoleGuard } from "@/components/common/role-guard";
+import { BentoCard, BentoGrid } from "@/components/ui/bento";
 import { useOpsTables } from "@/hooks/use-ops";
 
 export default function AdminOpsTablesPage() {
@@ -36,12 +36,12 @@ export default function AdminOpsTablesPage() {
             {t("listEmpty")}
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <BentoGrid>
             {(data ?? []).map((tb) => (
-              <Link
+              <BentoCard
                 key={tb.key}
                 href={`/admin/ops/tables/${tb.key}`}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 transition-all hover:border-[var(--border-medium)] hover:bg-[var(--bg-hover)]"
+                className="flex-row items-center justify-between gap-3 p-4"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -68,9 +68,9 @@ export default function AdminOpsTablesPage() {
                   </div>
                 </div>
                 <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" />
-              </Link>
+              </BentoCard>
             ))}
-          </div>
+          </BentoGrid>
         )}
       </div>
     </RoleGuard>

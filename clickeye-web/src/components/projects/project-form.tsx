@@ -100,9 +100,9 @@ export function ProjectForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-fg)] shadow-sm transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span className="absolute inset-0 bg-gradient-to-r from-zinc-800 to-zinc-700 opacity-0 transition-opacity group-hover:opacity-100" />
+        <span className="absolute inset-0 bg-[var(--accent-hover)] opacity-0 transition-opacity group-hover:opacity-100" />
         <span className="relative">
           {isSubmitting ? tC("actions.processing") : resolvedSubmitLabel}
         </span>

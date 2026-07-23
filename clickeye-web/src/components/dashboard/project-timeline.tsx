@@ -51,7 +51,7 @@ export function ProjectTimeline({ data }: ProjectTimelineProps) {
                   <div
                     className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
                       isLast
-                        ? "bg-zinc-900 shadow-sm"
+                        ? "bg-[var(--accent)] shadow-sm"
                         : "bg-[var(--border-medium)]"
                     }`}
                   />

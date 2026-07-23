@@ -40,11 +40,11 @@ export function TourWrapper() {
         skip: "건너뛰기",
       }}
       options={{
-        primaryColor: "#18181b",
-        backgroundColor: "#ffffff",
-        textColor: "#09090b",
+        primaryColor: "var(--accent)",
+        backgroundColor: "var(--bg-surface)",
+        textColor: "var(--text-primary)",
         overlayColor: "rgba(0, 0, 0, 0.4)",
-        arrowColor: "#ffffff",
+        arrowColor: "var(--bg-surface)",
         zIndex: 10000,
         showProgress: true,
         skipBeacon: true,
@@ -54,11 +54,13 @@ export function TourWrapper() {
       styles={{
         tooltip: {
           borderRadius: "12px",
-          border: "1px solid #e4e4e7",
+          border: "1px solid var(--border-subtle)",
           boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
           padding: "20px 24px",
         },
         buttonPrimary: {
+          backgroundColor: "var(--accent)",
+          color: "var(--accent-fg)",
           borderRadius: "8px",
           padding: "8px 16px",
           fontSize: "13px",
@@ -67,11 +69,11 @@ export function TourWrapper() {
         buttonBack: {
           marginRight: "8px",
           fontSize: "13px",
-          color: "#52525b",
+          color: "var(--text-secondary)",
         },
         buttonSkip: {
           fontSize: "13px",
-          color: "#a1a1aa",
+          color: "var(--text-muted)",
         },
       }}
     />
