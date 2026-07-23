@@ -97,7 +97,7 @@ export function OverrideEditor({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-all hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? "저장 중..." : "저장"}

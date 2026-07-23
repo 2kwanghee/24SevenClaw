@@ -119,7 +119,7 @@ export function MaturityResult({ result }: MaturityResultProps) {
                 : "";
               router.push(`/onboarding/preset${params}`);
             }}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800"
+            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-[var(--accent-fg)] shadow-lg transition-all hover:bg-[var(--accent-hover)]"
           >
             <Sparkles className="h-4 w-4" />
             {t("viewPresets")}

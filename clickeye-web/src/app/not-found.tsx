@@ -14,7 +14,7 @@ export default function NotFoundPage() {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:bg-[var(--accent-hover)]"
         >
           <Home className="h-4 w-4" />
           홈으로 돌아가기
