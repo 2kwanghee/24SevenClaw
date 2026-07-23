@@ -65,6 +65,25 @@ function RefineStatusBadge({ status }: { status: string }) {
   );
 }
 
+// CE-311: 콜백 발송 상태 뱃지 — sent green / pending amber / failed red, none 은 비표시.
+const CALLBACK_STATUS_COLORS: Record<string, string> = {
+  sent: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  pending: "border-amber-200 bg-amber-50 text-amber-700",
+  failed: "border-red-200 bg-red-50 text-red-700",
+};
+
+function CallbackStatusBadge({ status }: { status: string }) {
+  const t = useTranslations("intake.callback");
+  if (status !== "sent" && status !== "pending" && status !== "failed") return null;
+  return (
+    <span
+      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${CALLBACK_STATUS_COLORS[status]}`}
+    >
+      {t(`status.${status}`)}
+    </span>
+  );
+}
+
 function InputTypeBadge({ inputType }: { inputType: string }) {
   const color =
     INPUT_TYPE_COLORS[inputType] ??
@@ -204,6 +223,16 @@ function IntakeRow({ item, onAccept, onReject }: IntakeRowProps) {
                   </p>
                 )}
               </div>
+
+              {/* CE-311: 콜백 발송 상태 — callback_url 이 있는 건만 표시(none 비표시) */}
+              {item.callback_status !== "none" && (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium text-[var(--text-muted)]">
+                    {t("callback.title")}
+                  </p>
+                  <CallbackStatusBadge status={item.callback_status} />
+                </div>
+              )}
 
               {/* 원본 URL */}
               {item.source_url && (

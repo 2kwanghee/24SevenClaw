@@ -793,6 +793,12 @@
         "thanks": "피드백 감사합니다. 답변 품질 개선에 활용됩니다.",
         "fail": "피드백 전송에 실패했습니다."
       }
+    },
+    "orgChat": {
+      "title": "조직 어시스턴트",
+      "subtitle": "조직 전체의 활성 딜리버리 현황을 물어보세요",
+      "placeholder": "예: 지금 어떤 서비스를 생산 중이야?",
+      "hint": "조직의 활성 딜리버리 현황을 기반으로 답합니다. Enter 전송 · Shift+Enter 줄바꿈."
     }
   },
   "intake": {
@@ -836,6 +842,14 @@
         "skipped": "건너뜀"
       },
       "acceptNotice": "정제 스펙으로 프로젝트가 생성됩니다."
+    },
+    "callback": {
+      "title": "콜백 발송",
+      "status": {
+        "pending": "발송 대기",
+        "sent": "발송됨",
+        "failed": "발송 실패"
+      }
     },
     "acceptDialog": {
       "title": "인테이크 승인",

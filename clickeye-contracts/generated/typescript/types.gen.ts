@@ -806,6 +806,7 @@ export type IntakeResponse = {
     project_id: string | null;
     refined_text: string | null;
     refine_status: string;
+    callback_status: string;
     created_at: string | null;
 };
 
@@ -969,6 +970,17 @@ export type LlmKeySourceTotals = {
     input_tokens: number;
     output_tokens: number;
     cost: string | null;
+};
+
+export type LlmOrgChatRequest = {
+    /**
+     * 사용자 질문(조직 관점).
+     */
+    query: string;
+    /**
+     * 조직 ID. superadmin 만 임의 지정 가능. 그 외는 요청자 소속 조직 강제.
+     */
+    org_id?: string | null;
 };
 
 /**
@@ -2851,6 +2863,33 @@ export type ChatApiV1LlmChatPostResponses = {
 };
 
 export type ChatApiV1LlmChatPostResponse = ChatApiV1LlmChatPostResponses[keyof ChatApiV1LlmChatPostResponses];
+
+export type ChatOrgApiV1LlmChatOrgPostData = {
+    body: LlmOrgChatRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/chat/org';
+};
+
+export type ChatOrgApiV1LlmChatOrgPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChatOrgApiV1LlmChatOrgPostError = ChatOrgApiV1LlmChatOrgPostErrors[keyof ChatOrgApiV1LlmChatOrgPostErrors];
+
+export type ChatOrgApiV1LlmChatOrgPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ChatOrgApiV1LlmChatOrgPostResponse = ChatOrgApiV1LlmChatOrgPostResponses[keyof ChatOrgApiV1LlmChatOrgPostResponses];
 
 export type ProgressApiV1LlmProgressProjectIdGetData = {
     body?: never;

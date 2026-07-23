@@ -793,6 +793,12 @@
         "thanks": "Terima kasih atas umpan balik Anda. Ini membantu meningkatkan kualitas jawaban.",
         "fail": "Gagal mengirim umpan balik."
       }
+    },
+    "orgChat": {
+      "title": "Asisten Organisasi",
+      "subtitle": "Tanyakan tentang delivery aktif di seluruh organisasi Anda",
+      "placeholder": "mis., Layanan apa yang sedang kita produksi sekarang?",
+      "hint": "Jawaban didasarkan pada delivery aktif organisasi Anda. Enter untuk kirim · Shift+Enter untuk baris baru."
     }
   },
   "intake": {
@@ -836,6 +842,14 @@
         "skipped": "Dilewati"
       },
       "acceptNotice": "Proyek akan dibuat dari spesifikasi yang disempurnakan."
+    },
+    "callback": {
+      "title": "Pengiriman callback",
+      "status": {
+        "pending": "Menunggu",
+        "sent": "Terkirim",
+        "failed": "Gagal"
+      }
     },
     "acceptDialog": {
       "title": "Setujui intake",

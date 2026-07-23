@@ -19,6 +19,7 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.governance import verify_governance_token
@@ -27,6 +28,7 @@ from app.core.exceptions import AppError
 from app.core.logging import get_logger
 from app.database import get_db
 from app.dependencies import get_current_user, require_superadmin
+from app.models.project import Project
 from app.models.user import User
 from app.services.llm_ingest import enqueue_ingest, resolve_project_by_team
 from app.services.project_service import ProjectService
@@ -111,6 +113,64 @@ async def chat(
     return await _proxy_post(
         "/chat",
         {"delivery_id": str(body.project_id), "query": body.query},
+        _CHAT_TIMEOUT,
+    )
+
+
+class LlmOrgChatRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="사용자 질문(조직 관점).")
+    org_id: UUID | None = Field(
+        default=None,
+        description="조직 ID. superadmin 만 임의 지정 가능. 그 외는 요청자 소속 조직 강제.",
+    )
+
+
+# 조직 챗 하이브리드 주입용 활성 프로젝트 상한(사실 정확성 vs 컨텍스트 길이 균형).
+_ORG_ACTIVE_PROJECTS_LIMIT = 50
+
+
+@router.post("/chat/org")
+async def chat_org(
+    body: LlmOrgChatRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """조직 관점 RAG Q&A(포트폴리오, CE-312) — DB 하이브리드 + org 네임스페이스 RAG.
+
+    "지금 어떤 서비스 생산 중이야?" 류 질의에 실제 활성 딜리버리를 답한다.
+    - 스코프: 요청자 organization_id 강제. superadmin 은 body.org_id 로 임의 조직 지정 가능.
+      org 미지정/미소속이면 400.
+    - 하이브리드: 해당 org 활성 프로젝트(status != "deleted") 최신순 최대 50건을
+      DB 조회 → extra_context('확정 사실')로 구성해 llm /chat 에 전달(RAG보다 우선).
+    - delivery_id = f"org:{org_id}" (조직 네임스페이스 격리). 미가용 시 503.
+    """
+    role = getattr(user, "system_role", "") or ""
+    is_superadmin = role == "superadmin"
+    org_id = body.org_id if (is_superadmin and body.org_id is not None) else user.organization_id
+    if org_id is None:
+        raise AppError("ORG_REQUIRED", "조직 스코프가 필요합니다(소속 조직 없음).", 400)
+
+    result = await db.execute(
+        select(Project.name, Project.status, Project.updated_at)
+        .where(Project.organization_id == org_id, Project.status != "deleted")
+        .order_by(Project.updated_at.desc())
+        .limit(_ORG_ACTIVE_PROJECTS_LIMIT)
+    )
+    rows = result.all()
+
+    if rows:
+        lines = "\n".join(f"- {name} (상태 {status})" for name, status, _ in rows)
+        extra_context = f"현재 진행 중 딜리버리 {len(rows)}건:\n{lines}"
+    else:
+        extra_context = "현재 진행 중인 딜리버리가 없습니다."
+
+    return await _proxy_post(
+        "/chat",
+        {
+            "delivery_id": f"org:{org_id}",
+            "query": body.query,
+            "extra_context": extra_context,
+        },
         _CHAT_TIMEOUT,
     )
 

@@ -12,13 +12,24 @@ import {
   ThumbsUp,
 } from "lucide-react";
 
-import { useLlmChat, useLlmProgress, useSendLlmFeedback } from "@/hooks/use-llm";
+import {
+  useLlmChat,
+  useLlmChatOrg,
+  useLlmProgress,
+  useSendLlmFeedback,
+} from "@/hooks/use-llm";
 import { ApiClientError, type LlmSource } from "@/lib/api-client";
 
 interface LlmChatPanelProps {
-  projectId: string;
+  /** 딜리버리(프로젝트) 모드에서 필수. orgMode 에서는 사용하지 않는다. */
+  projectId?: string;
   /** 목업 모드에서는 실 API 호출을 막고 안내만 노출한다. */
   mock?: boolean;
+  /**
+   * 조직 어시스턴트 모드(포트폴리오, CE-312). true 면 /llm/chat/org 를 호출하고
+   * 진행상황·피드백(프로젝트 스코프)은 숨긴다. delivery_id 는 서버가 org 로 매핑.
+   */
+  orgMode?: boolean;
 }
 
 /** 에러가 clickeye-llm 미가용(503) 인지 판별한다. */
@@ -26,15 +37,28 @@ function isUnavailable(error: unknown): boolean {
   return error instanceof ApiClientError && error.status === 503;
 }
 
-function CardFrame({ children }: { children: React.ReactNode }) {
+function CardFrame({
+  children,
+  orgMode = false,
+}: {
+  children: React.ReactNode;
+  orgMode?: boolean;
+}) {
   const t = useTranslations("delivery");
   return (
     <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[0_1px_2px_rgba(20,24,33,0.05)]">
       <div className="flex items-center gap-2.5 border-b border-[var(--border-subtle)] px-4 py-3.5">
         <Sparkles className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
-        <h2 className="text-[13.5px] font-bold tracking-tight text-[var(--text-primary)]">
-          {t("chat.title")}
-        </h2>
+        <div className="min-w-0">
+          <h2 className="text-[13.5px] font-bold tracking-tight text-[var(--text-primary)]">
+            {orgMode ? t("orgChat.title") : t("chat.title")}
+          </h2>
+          {orgMode && (
+            <p className="text-[11px] text-[var(--text-muted)]">
+              {t("orgChat.subtitle")}
+            </p>
+          )}
+        </div>
       </div>
       {children}
     </section>
@@ -168,18 +192,30 @@ function FeedbackControls({
   );
 }
 
-export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
+export function LlmChatPanel({
+  projectId,
+  mock = false,
+  orgMode = false,
+}: LlmChatPanelProps) {
   const t = useTranslations("delivery");
   const [query, setQuery] = useState("");
   const [progressRequested, setProgressRequested] = useState(false);
 
-  const chat = useLlmChat(projectId);
-  const progress = useLlmProgress(projectId, !mock && progressRequested);
+  // 두 뮤테이션을 무조건 인스턴스화하고(hook 규칙) 모드에 따라 선택한다.
+  // 뮤테이션은 mutate() 호출 시에만 발화하므로 유휴 인스턴스는 부작용이 없다.
+  const projectChat = useLlmChat(projectId ?? "");
+  const orgChat = useLlmChatOrg();
+  const chat = orgMode ? orgChat : projectChat;
+  // 진행상황은 프로젝트 스코프 — orgMode 에서는 비활성.
+  const progress = useLlmProgress(
+    projectId ?? "",
+    !mock && !orgMode && !!projectId && progressRequested,
+  );
 
   // 목업 모드 — 실 호출 없이 안내만.
   if (mock) {
     return (
-      <CardFrame>
+      <CardFrame orgMode={orgMode}>
         <div className="flex flex-col items-center gap-2 p-6 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-hover)]">
             <FlaskConical className="h-5 w-5 text-[var(--text-muted)]" aria-hidden="true" />
@@ -203,9 +239,10 @@ export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
   const progressUnavailable = isUnavailable(progress.error);
 
   return (
-    <CardFrame>
+    <CardFrame orgMode={orgMode}>
       <div className="flex flex-col gap-3 p-4">
-        {/* 진행상황 확인 */}
+        {/* 진행상황 확인 — 프로젝트 스코프 전용(orgMode 숨김) */}
+        {!orgMode && (
         <div className="flex flex-col gap-2">
           <button
             type="button"
@@ -245,6 +282,7 @@ export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* 답변 영역 */}
         {chat.isPending && (
@@ -271,14 +309,17 @@ export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
               {chat.data.answer}
             </p>
             <SourceList sources={chat.data.sources} />
-            <FeedbackControls
-              key={chat.data.chat_id}
-              projectId={projectId}
-              chatId={chat.data.chat_id}
-              query={chat.variables ?? ""}
-              answer={chat.data.answer}
-              sources={[...new Set(chat.data.sources.map((s) => s.source_id))]}
-            />
+            {/* 피드백은 프로젝트 스코프 전용(orgMode 에는 /feedback 경로 없음) */}
+            {!orgMode && projectId && (
+              <FeedbackControls
+                key={chat.data.chat_id}
+                projectId={projectId}
+                chatId={chat.data.chat_id}
+                query={chat.variables ?? ""}
+                answer={chat.data.answer}
+                sources={[...new Set(chat.data.sources.map((s) => s.source_id))]}
+              />
+            )}
           </div>
         )}
 
@@ -294,8 +335,8 @@ export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
               }
             }}
             rows={2}
-            placeholder={t("chat.placeholder")}
-            aria-label={t("chat.title")}
+            placeholder={orgMode ? t("orgChat.placeholder") : t("chat.placeholder")}
+            aria-label={orgMode ? t("orgChat.title") : t("chat.title")}
             className="min-h-[2.5rem] flex-1 resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
           <button
@@ -309,7 +350,7 @@ export function LlmChatPanel({ projectId, mock = false }: LlmChatPanelProps) {
           </button>
         </div>
         <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
-          {t("chat.hint")}
+          {orgMode ? t("orgChat.hint") : t("chat.hint")}
         </p>
       </div>
     </CardFrame>

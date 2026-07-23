@@ -8,6 +8,16 @@ A3-lite 추가:
   링크로컬·예약·멀티캐스트 대역 및 클라우드 메타데이터 IP(169.254.169.254)를 차단.
 - callback 상태 푸시 — accept/reject 시 callback_url 로 서명된 상태 통지 POST
   (fire-and-forget, llm_ingest 패턴).
+
+CE-311 하드닝:
+- SSRF 커넥션 IP 고정(TOCTOU/DNS 재바인딩 방어) — 검증을 통과한 IP 로 URL 호스트를
+  치환해 연결하고, Host 헤더·SNI(https, httpx `sni_hostname` extension)는 원 호스트를
+  유지한다. TLS 인증서 검증도 원 호스트 기준(SNI hostname)으로 수행되므로 https 도
+  검증 손실 없이 고정된다. url fetch(리다이렉트 hop 포함)와 콜백 발송 양쪽 적용.
+- 콜백 재시도 큐(at-least-once) — accept/reject 시 pending 기록 후 즉시 1회 시도,
+  실패 시 백오프(1m→5m→30m→2h→6h)로 재시도. 총 6회(초기 1 + 재시도 5) 초과 실패 시
+  failed. lifespan 워커(main.py, FEATURE_INTAKE on 일 때만)가 60s 폴링으로 due 건을
+  재발송한다(HMAC 서명·SSRF 가드 동일). Temporal 이관은 후속 과제.
 """
 
 import asyncio
@@ -20,7 +30,8 @@ import logging
 import re
 import secrets
 import socket
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 import httpx
@@ -44,6 +55,13 @@ _ALLOWED_CONTENT_TYPES = ("text/html", "text/plain")
 MAX_REDIRECTS = 3
 # callback 푸시 정책: 타임아웃 10초, fire-and-forget (llm_ingest 패턴).
 CALLBACK_TIMEOUT = 10.0
+# CE-311 콜백 재시도 백오프(초): 1m → 5m → 30m → 2h → 6h.
+CALLBACK_BACKOFF_SECONDS: tuple[int, ...] = (60, 300, 1800, 7200, 21600)
+# 총 허용 발송 시도 횟수 = 초기 1회 + 백오프 재시도 5회. 초과 실패 시 failed 확정.
+CALLBACK_MAX_TOTAL_ATTEMPTS = 1 + len(CALLBACK_BACKOFF_SECONDS)
+# accept/reject 트랜잭션에서 pending 기록 시의 안전망 재시도 시각(초) — 즉시 1회
+# 시도의 결과 기록 자체가 유실돼도 워커가 이 시각 이후 재발송한다(at-least-once).
+CALLBACK_PENDING_SAFETY_SECONDS = 60
 # 클라우드 메타데이터 엔드포인트 — link-local 이지만 위험도가 높아 명시 차단.
 _METADATA_IPS = frozenset({ipaddress.ip_address("169.254.169.254")})
 
@@ -71,14 +89,15 @@ def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     )
 
 
-async def _assert_public_url(url: str) -> None:
-    """URL 호스트를 DNS 해석해 모든 결과 IP 가 공인 대역인지 검증한다.
+async def _resolve_public_ip(url: str) -> str:
+    """URL 호스트를 DNS 해석해 모든 결과 IP 가 공인 대역인지 검증하고, 검증을
+    통과한 IP 하나(IPv4 우선)를 반환한다 — 반환 IP 로 커넥션을 고정한다.
 
     위반 시 SSRFBlockedError("SSRF_BLOCKED: ...") 를 던진다.
 
-    한계(DNS 재바인딩): 검증 시점과 실제 연결 시점의 해석 결과가 다를 수 있어
-    TOCTOU 완화일 뿐 완전 방어가 아니다. 완전 방어는 커넥션 레벨 IP 고정
-    (egress 프록시/커스텀 transport)이 필요 — 후속 과제.
+    DNS 재바인딩(TOCTOU) 방어: 여기서 검증한 IP 를 _pinned_request_parts 로 URL
+    호스트에 치환해 연결하므로, 검증과 연결 사이에 DNS 응답이 내부망 IP 로 바뀌어도
+    실제 커넥션은 검증된 IP 로만 나간다. Host 헤더·SNI 는 원 호스트를 유지한다.
     """
     parsed = httpx.URL(url)
     if parsed.scheme not in ("http", "https"):
@@ -92,11 +111,42 @@ async def _assert_public_url(url: str) -> None:
         )
     except (socket.gaierror, OSError) as exc:
         raise SSRFBlockedError(f"SSRF_BLOCKED: 호스트 해석 실패 '{host}' ({exc})") from exc
+    candidates: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
     for info in infos:
         # sockaddr[0] = IP 문자열 (IPv6 scope id 는 제거 후 파싱).
         ip = ipaddress.ip_address(str(info[4][0]).split("%")[0])
         if _is_blocked_ip(ip):
             raise SSRFBlockedError(f"SSRF_BLOCKED: 비공개 대역 IP {ip} (host={host})")
+        candidates.append(ip)
+    if not candidates:
+        raise SSRFBlockedError(f"SSRF_BLOCKED: 해석 결과 IP 없음 (host={host})")
+    # IPv4 우선(이중 스택 환경 호환) — 없으면 첫 IPv6.
+    for ip in candidates:
+        if isinstance(ip, ipaddress.IPv4Address):
+            return str(ip)
+    return str(candidates[0])
+
+
+def _pinned_request_parts(
+    url: str, ip: str
+) -> tuple[httpx.URL, dict[str, str], dict[str, Any]]:
+    """검증된 IP 로 커넥션을 고정한 요청 구성요소(url, headers, extensions)를 만든다.
+
+    - URL 호스트를 IP 로 치환 → TCP 연결이 검증된 IP 로만 나간다(재해석 없음).
+    - Host 헤더는 원 호스트(:포트 포함)를 유지 → 가상호스트 라우팅 보존.
+    - https 는 httpx/httpcore 의 `sni_hostname` request extension 으로 SNI 를 원
+      호스트로 지정한다. Python ssl 은 인증서 hostname 검증을 server_hostname
+      (= sni_hostname) 기준으로 수행하므로 TLS 검증 손실 없이 IP 고정이 성립한다.
+    """
+    parsed = httpx.URL(url)
+    host = parsed.host
+    host_header = host if parsed.port is None else f"{host}:{parsed.port}"
+    pinned_url = parsed.copy_with(host=ip)
+    headers = {"Host": host_header}
+    extensions: dict[str, Any] = {}
+    if parsed.scheme == "https":
+        extensions["sni_hostname"] = host
+    return pinned_url, headers, extensions
 
 
 def _hash_key(raw: str) -> str:
@@ -133,14 +183,18 @@ async def _fetch_url_text(url: str) -> str:
     수동으로 최대 MAX_REDIRECTS 회 추적하며 각 Location 호스트를 재검증한다.
     본문은 스트리밍으로 FETCH_MAX_BYTES 까지만 읽는다(초과분 절단).
 
-    한계: DNS 재바인딩(TOCTOU)은 완전히 못 막는다 — 검증과 실제 연결 사이에
-    해석 결과가 바뀔 수 있어, 완전 방어는 egress 프록시/커넥션 IP 고정 필요(후속).
+    CE-311 커넥션 IP 고정(DNS 재바인딩 방어): 매 hop 마다 검증을 통과한 IP 로 URL
+    호스트를 치환해 연결한다(Host 헤더·SNI 는 원 호스트, _pinned_request_parts 참조).
+    검증→연결 사이 DNS 재해석 창구가 사라지므로 TOCTOU 재바인딩이 차단된다.
     """
     current_url = url
     async with httpx.AsyncClient(timeout=FETCH_TIMEOUT, follow_redirects=False) as client:
         for _hop in range(MAX_REDIRECTS + 1):
-            await _assert_public_url(current_url)
-            async with client.stream("GET", current_url) as resp:
+            ip = await _resolve_public_ip(current_url)
+            pinned_url, pin_headers, pin_extensions = _pinned_request_parts(current_url, ip)
+            async with client.stream(
+                "GET", pinned_url, headers=pin_headers, extensions=pin_extensions
+            ) as resp:
                 if resp.status_code in (301, 302, 303, 307, 308):
                     location = resp.headers.get("location")
                     if not location:
@@ -167,8 +221,19 @@ async def _fetch_url_text(url: str) -> str:
         raise SSRFBlockedError(f"SSRF_BLOCKED: 리다이렉트 한도({MAX_REDIRECTS}회) 초과")
 
 
-async def _post_callback(callback_url: str, secret: str, body: dict) -> None:
-    """콜백 전송 코루틴 — 실패는 warning 로그만 남기고 삼킨다(llm_ingest 패턴).
+def _build_callback_body(intake: IntakeRequest) -> dict:
+    """콜백 페이로드 — 재시도 시에도 현재 상태 기준으로 재생성한다(timestamp 갱신)."""
+    return {
+        "intake_id": str(intake.id),
+        "status": intake.status,
+        "project_id": str(intake.project_id) if intake.project_id else None,
+        "title": intake.title,
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
+
+
+async def _send_callback(callback_url: str, secret: str, body: dict) -> None:
+    """콜백 1회 발송 — 실패 시 예외를 던진다(재시도 판단은 호출부 책임).
 
     서명 스펙: X-ClickEye-Signature = HMAC-SHA256 hexdigest,
       key     = 해당 인테이크를 접수한 서비스 키의 key_hash 문자열
@@ -177,54 +242,173 @@ async def _post_callback(callback_url: str, secret: str, body: dict) -> None:
     외부 서비스 검증법: 자신이 보관한 평문 서비스 키를 sha256 hexdigest 한 값을
     시크릿으로 삼아 수신 본문 bytes 의 HMAC-SHA256 을 계산, 헤더와 비교하면 된다.
 
-    SSRF 가드: 콜백 대상 URL 도 _assert_public_url 로 재검증 — 내부망 콜백 차단.
+    SSRF 가드(CE-311): 콜백 대상도 DNS 해석·공인 대역 검증 후 그 IP 로 커넥션을
+    고정한다(Host/SNI 원 호스트 유지) — 내부망 콜백·DNS 재바인딩 차단.
+    """
+    ip = await _resolve_public_ip(callback_url)
+    pinned_url, pin_headers, pin_extensions = _pinned_request_parts(callback_url, ip)
+    raw = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
+    signature = hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
+    async with httpx.AsyncClient(timeout=CALLBACK_TIMEOUT) as client:
+        resp = await client.post(
+            pinned_url,
+            content=raw,
+            headers={
+                **pin_headers,
+                "Content-Type": "application/json",
+                "X-ClickEye-Signature": signature,
+            },
+            extensions=pin_extensions,
+        )
+        resp.raise_for_status()
+
+
+def _apply_callback_result(intake: IntakeRequest, ok: bool, error: str | None) -> None:
+    """발송 시도 1회의 결과를 IntakeRequest 콜백 컬럼에 반영한다(커밋은 호출부).
+
+    성공 → sent(재시도 종료). 실패 → attempts 증가 후 백오프 스케줄:
+    1m→5m→30m→2h→6h, 총 CALLBACK_MAX_TOTAL_ATTEMPTS(6)회 초과 실패 시 failed 확정.
+    """
+    attempts = int(intake.callback_attempts or 0) + 1
+    intake.callback_attempts = attempts  # type: ignore[assignment]
+    if ok:
+        intake.callback_status = "sent"  # type: ignore[assignment]
+        intake.callback_next_retry_at = None  # type: ignore[assignment]
+        intake.callback_last_error = None  # type: ignore[assignment]
+        return
+    intake.callback_last_error = (error or "")[:2000]  # type: ignore[assignment]
+    if attempts >= CALLBACK_MAX_TOTAL_ATTEMPTS:
+        intake.callback_status = "failed"  # type: ignore[assignment]
+        intake.callback_next_retry_at = None  # type: ignore[assignment]
+        return
+    backoff = CALLBACK_BACKOFF_SECONDS[min(attempts - 1, len(CALLBACK_BACKOFF_SECONDS) - 1)]
+    intake.callback_status = "pending"  # type: ignore[assignment]
+    intake.callback_next_retry_at = datetime.now(UTC) + timedelta(  # type: ignore[assignment]
+        seconds=backoff
+    )
+
+
+def _open_session() -> Any:
+    """백그라운드 기록용 세션 컨텍스트 — 지연 import(테스트에서 대체 가능)."""
+    from app.database import async_session  # noqa: PLC0415 — 앱 기동 순서/테스트 주입 대응
+
+    return async_session()
+
+
+async def _record_callback_result(intake_id: UUID, ok: bool, error: str | None) -> None:
+    """fire-and-forget 발송 결과를 별도 세션으로 DB 에 기록한다. 예외 비전파.
+
+    기록 실패 시 row 는 accept/reject 트랜잭션이 남긴 pending(+안전망 재시도 시각)
+    그대로 유지되어 워커가 재발송한다 — at-least-once 는 지켜진다(중복 가능, 멱등은
+    수신측 intake_id 기준 처리 권장).
     """
     try:
-        await _assert_public_url(callback_url)
-        raw = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
-        signature = hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
-        async with httpx.AsyncClient(timeout=CALLBACK_TIMEOUT) as client:
-            resp = await client.post(
-                callback_url,
-                content=raw,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-ClickEye-Signature": signature,
-                },
-            )
-            resp.raise_for_status()
-    except Exception as exc:  # noqa: BLE001 — 콜백 실패는 원 요청에 절대 전파 금지
-        logger.warning("인테이크 콜백 실패(무시): url=%s err=%s", callback_url, exc)
+        async with _open_session() as db:
+            intake = await db.get(IntakeRequest, intake_id)
+            if intake is None or intake.callback_status not in ("pending",):
+                return
+            _apply_callback_result(intake, ok, error)
+            await db.commit()
+    except Exception as exc:  # noqa: BLE001 — 기록 실패는 원 요청에 절대 전파 금지
+        logger.warning("인테이크 콜백 결과 기록 실패(무시): intake_id=%s err=%s", intake_id, exc)
+
+
+async def _attempt_callback(intake_id: UUID, callback_url: str, secret: str, body: dict) -> None:
+    """즉시 1회 발송 시도 코루틴 — 결과를 DB 에 기록하고 예외는 삼킨다."""
+    try:
+        await _send_callback(callback_url, secret, body)
+        ok, error = True, None
+    except Exception as exc:  # noqa: BLE001 — 콜백 실패는 재시도 큐가 흡수
+        ok, error = False, f"{type(exc).__name__}: {exc}"
+        logger.warning("인테이크 콜백 실패(재시도 예약): url=%s err=%s", callback_url, exc)
+    await _record_callback_result(intake_id, ok, error)
+
+
+def _mark_callback_pending(intake: IntakeRequest, key: IntakeServiceKey | None) -> None:
+    """accept/reject 트랜잭션 안에서 콜백 발송 대기 상태를 기록한다(커밋은 호출부).
+
+    callback_url 없음/키 없음 → none 유지. 안전망 next_retry_at(+60s)을 함께 기록해
+    즉시 시도의 결과 기록이 유실돼도 워커가 재발송한다.
+    """
+    if not intake.callback_url or key is None:
+        return
+    intake.callback_status = "pending"  # type: ignore[assignment]
+    intake.callback_attempts = 0  # type: ignore[assignment]
+    intake.callback_next_retry_at = datetime.now(UTC) + timedelta(  # type: ignore[assignment]
+        seconds=CALLBACK_PENDING_SAFETY_SECONDS
+    )
+    intake.callback_last_error = None  # type: ignore[assignment]
 
 
 def _enqueue_callback(intake: IntakeRequest, key: IntakeServiceKey | None) -> None:
     """accept/reject 상태 콜백을 fire-and-forget 으로 예약한다. 예외 비전파.
 
     - callback_url 없음 / 서비스 키 조회 실패 → 조용히 no-op.
-    - 이벤트 루프 없음(sync 컨텍스트) → 비차단 원칙상 스킵(warning).
+    - 이벤트 루프 없음(sync 컨텍스트) → 비차단 원칙상 스킵(warning) — pending 은
+      이미 기록돼 있으므로 재시도 워커가 발송을 이어받는다.
     """
     try:
         if not intake.callback_url or key is None:
             return
-        body = {
-            "intake_id": str(intake.id),
-            "status": intake.status,
-            "project_id": str(intake.project_id) if intake.project_id else None,
-            "title": intake.title,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
+        body = _build_callback_body(intake)
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             logger.warning("이벤트 루프 없음 — 인테이크 콜백 스킵: intake_id=%s", intake.id)
             return
         task = loop.create_task(
-            _post_callback(str(intake.callback_url), str(key.key_hash), body)
+            _attempt_callback(intake.id, str(intake.callback_url), str(key.key_hash), body)
         )
         _callback_tasks.add(task)
         task.add_done_callback(_callback_tasks.discard)
     except Exception as exc:  # noqa: BLE001 — 예약 실패도 호출자에게 전파 금지
         logger.warning("인테이크 콜백 예약 실패(무시): intake_id=%s err=%s", intake.id, exc)
+
+
+async def process_due_callbacks(db: AsyncSession, limit: int = 20) -> int:
+    """next_retry_at 이 도래한 pending 콜백을 재발송한다. 발송 성공 건수를 반환.
+
+    lifespan 재시도 워커(main.py, 60s 폴링)가 호출한다 — 서명/SSRF 가드는 즉시
+    발송 경로(_send_callback)와 동일하다. Temporal 이관은 후속 과제.
+    """
+    now = datetime.now(UTC)
+    rows = (
+        await db.execute(
+            select(IntakeRequest)
+            .where(
+                IntakeRequest.callback_status == "pending",
+                IntakeRequest.callback_next_retry_at.is_not(None),
+                IntakeRequest.callback_next_retry_at <= now,
+            )
+            .order_by(IntakeRequest.callback_next_retry_at.asc())
+            .limit(limit)
+        )
+    ).scalars().all()
+    sent = 0
+    for intake in rows:
+        key = await db.get(IntakeServiceKey, intake.service_key_id)
+        if key is None or not intake.callback_url:
+            # 재시도 불가능 상태 — 즉시 failed 확정(무한 폴링 방지).
+            intake.callback_status = "failed"  # type: ignore[assignment]
+            intake.callback_next_retry_at = None  # type: ignore[assignment]
+            intake.callback_last_error = "콜백 재시도 불가: 서비스 키/URL 없음"  # type: ignore[assignment]
+            continue
+        try:
+            await _send_callback(
+                str(intake.callback_url), str(key.key_hash), _build_callback_body(intake)
+            )
+            _apply_callback_result(intake, True, None)
+            sent += 1
+        except Exception as exc:  # noqa: BLE001 — 개별 실패는 다음 백오프로 이월
+            _apply_callback_result(intake, False, f"{type(exc).__name__}: {exc}")
+            logger.warning(
+                "인테이크 콜백 재시도 실패: intake_id=%s attempts=%s err=%s",
+                intake.id,
+                intake.callback_attempts,
+                exc,
+            )
+    await db.commit()
+    return sent
 
 
 class IntakeService:
@@ -417,6 +601,8 @@ class IntakeService:
 
         intake.project_id = project.id
         intake.status = "accepted"  # type: ignore[assignment]
+        # CE-311: 콜백 발송 대기 상태를 같은 트랜잭션에 기록(at-least-once 안전망).
+        _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
 
@@ -441,10 +627,12 @@ class IntakeService:
             "rejected_by": str(user.id),
         }
         intake.status = "rejected"  # type: ignore[assignment]
+        # CE-311: 콜백 발송 대기 상태를 같은 트랜잭션에 기록(at-least-once 안전망).
+        key = await self.db.get(IntakeServiceKey, intake.service_key_id)
+        _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
         # A3-lite: 외부 서비스에 반려 상태 푸시(fire-and-forget, 서명 포함).
-        key = await self.db.get(IntakeServiceKey, intake.service_key_id)
         _enqueue_callback(intake, key)
         return intake
 

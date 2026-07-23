@@ -793,6 +793,12 @@
         "thanks": "Thanks for your feedback. It helps improve answer quality.",
         "fail": "Failed to send feedback."
       }
+    },
+    "orgChat": {
+      "title": "Org Assistant",
+      "subtitle": "Ask about active deliveries across your organization",
+      "placeholder": "e.g., What services are we producing right now?",
+      "hint": "Answers are grounded in your organization's active deliveries. Enter to send · Shift+Enter for newline."
     }
   },
   "intake": {
@@ -836,6 +842,14 @@
         "skipped": "Skipped"
       },
       "acceptNotice": "The project will be created from the refined spec."
+    },
+    "callback": {
+      "title": "Callback delivery",
+      "status": {
+        "pending": "Pending",
+        "sent": "Sent",
+        "failed": "Failed"
+      }
     },
     "acceptDialog": {
       "title": "Accept intake",

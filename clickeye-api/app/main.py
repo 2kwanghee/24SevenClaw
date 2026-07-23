@@ -138,17 +138,50 @@ async def _queue_monitor_loop() -> None:
         await asyncio.sleep(_CHECK_INTERVAL)
 
 
+# CE-311 인테이크 콜백 재시도 워커 폴링 주기(초).
+_INTAKE_CALLBACK_POLL_INTERVAL = 60
+
+
+async def _intake_callback_retry_loop() -> None:
+    """due 상태의 인테이크 콜백(pending)을 60s 주기로 재발송한다.
+
+    FEATURE_INTAKE on 일 때만 lifespan 이 기동한다(off 면 태스크 자체가 없음 — 회귀 0).
+    발송 로직/서명/SSRF 가드는 intake_service.process_due_callbacks 가 SSOT.
+    Temporal 이관은 후속 과제.
+    """
+    from app.database import async_session
+    from app.services.intake_service import process_due_callbacks
+
+    intake_logger = logging.getLogger("intake_callback_retry")
+    await asyncio.sleep(_INTAKE_CALLBACK_POLL_INTERVAL)  # 서버 기동 직후 1분 대기
+    while True:
+        try:
+            async with async_session() as db:
+                sent = await process_due_callbacks(db)
+            if sent:
+                intake_logger.info("인테이크 콜백 재발송 성공 %d건", sent)
+        except Exception as exc:
+            intake_logger.error("인테이크 콜백 재시도 워커 오류: %s", exc)
+        await asyncio.sleep(_INTAKE_CALLBACK_POLL_INTERVAL)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 시작 시 초기화
     setup_logging()
     await init_redis()
     monitor_task = asyncio.create_task(_queue_monitor_loop())
+    # CE-311: 인테이크 콜백 재시도 워커 — FEATURE_INTAKE on 일 때만 기동(회귀 0).
+    intake_retry_task: asyncio.Task[None] | None = None
+    if settings.feature_intake:
+        intake_retry_task = asyncio.create_task(_intake_callback_retry_loop())
     # 프리셋 시드 자동 로드 (최초 기동 시에만 삽입, 이미 존재하면 건너뜀)
     await _seed_presets_on_startup()
     yield
     # 종료 시 정리
     monitor_task.cancel()
+    if intake_retry_task is not None:
+        intake_retry_task.cancel()
     await close_redis()
 
 

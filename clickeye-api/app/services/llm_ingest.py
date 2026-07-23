@@ -95,13 +95,16 @@ async def resolve_project_by_team(db: "AsyncSession", team_id: str) -> UUID | No
     return None
 
 
-def enqueue_ingest(
-    project_id: UUID,
+def enqueue_ingest_ns(
+    delivery_id: str,
     source_id: str,
     text: str,
     metadata: dict[str, Any] | None = None,
 ) -> None:
-    """KB 인제스트를 fire-and-forget 으로 예약한다. 어떤 경우에도 예외를 던지지 않는다.
+    """임의 네임스페이스(delivery_id 문자열)로 KB 인제스트를 fire-and-forget 예약한다.
+
+    프로젝트 네임스페이스(str(project_id))·조직 네임스페이스(f"org:{org_id}") 등
+    격리 키를 자유롭게 지정할 수 있는 하위 계층. 어떤 경우에도 예외를 던지지 않는다.
 
     - 토글 off / URL 미설정 / 빈 텍스트 → 조용히 no-op.
     - 실행 중 이벤트 루프가 없으면(sync 컨텍스트) 비차단 원칙상 스킵(warning).
@@ -121,9 +124,22 @@ def enqueue_ingest(
             return
 
         task = loop.create_task(
-            _post_ingest(str(project_id), source_id, normalized, metadata)
+            _post_ingest(delivery_id, source_id, normalized, metadata)
         )
         _background_tasks.add(task)
         task.add_done_callback(_background_tasks.discard)
     except Exception as exc:  # noqa: BLE001 — 예약 실패도 호출자에게 전파 금지
         logger.warning("인제스트 예약 실패(무시): source_id=%s err=%s", source_id, exc)
+
+
+def enqueue_ingest(
+    project_id: UUID,
+    source_id: str,
+    text: str,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    """프로젝트(딜리버리) 네임스페이스 KB 인제스트. delivery_id = str(project_id).
+
+    enqueue_ingest_ns 로 위임하는 편의 래퍼(기존 호출자 계약 불변).
+    """
+    enqueue_ingest_ns(str(project_id), source_id, text, metadata)

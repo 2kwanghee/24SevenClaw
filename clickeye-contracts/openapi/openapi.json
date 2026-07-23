@@ -442,6 +442,55 @@
         ]
       }
     },
+    "/api/v1/llm/chat/org": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Chat Org",
+        "description": "조직 관점 RAG Q&A(포트폴리오, CE-312) — DB 하이브리드 + org 네임스페이스 RAG.\n\n\"지금 어떤 서비스 생산 중이야?\" 류 질의에 실제 활성 딜리버리를 답한다.\n- 스코프: 요청자 organization_id 강제. superadmin 은 body.org_id 로 임의 조직 지정 가능.\n  org 미지정/미소속이면 400.\n- 하이브리드: 해당 org 활성 프로젝트(status != \"deleted\") 최신순 최대 50건을\n  DB 조회 → extra_context('확정 사실')로 구성해 llm /chat 에 전달(RAG보다 우선).\n- delivery_id = f\"org:{org_id}\" (조직 네임스페이스 격리). 미가용 시 503.",
+        "operationId": "chat_org_api_v1_llm_chat_org_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmOrgChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Chat Org Api V1 Llm Chat Org Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/llm/progress/{project_id}": {
       "get": {
         "tags": [
@@ -14860,6 +14909,10 @@
             "type": "string",
             "title": "Refine Status"
           },
+          "callback_status": {
+            "type": "string",
+            "title": "Callback Status"
+          },
           "created_at": {
             "anyOf": [
               {
@@ -14889,6 +14942,7 @@
           "project_id",
           "refined_text",
           "refine_status",
+          "callback_status",
           "created_at"
         ],
         "title": "IntakeResponse",
@@ -15424,6 +15478,34 @@
         ],
         "title": "LlmKeySourceTotals",
         "description": "key_source(구독시트/조직키)별 토큰·비용 합계."
+      },
+      "LlmOrgChatRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "사용자 질문(조직 관점)."
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id",
+            "description": "조직 ID. superadmin 만 임의 지정 가능. 그 외는 요청자 소속 조직 강제."
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "LlmOrgChatRequest"
       },
       "LlmPipelineIngestRequest": {
         "properties": {

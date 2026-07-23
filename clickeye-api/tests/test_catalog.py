@@ -1,7 +1,18 @@
-"""카탈로그 API 테스트."""
+"""카탈로그 API 테스트.
+
+agents/skills 는 DB SSOT(registry 모델)이므로 테스트 카탈로그 시드가 필요하다 —
+conftest.seeded_catalog(tests/catalog_test_data.seed_catalog_db)를 모듈 전체에
+autouse 로 주입한다(프로덕션 코드 무변경). platforms/pipelines 는 JSON 파일 기반.
+"""
 
 import pytest
 from httpx import AsyncClient
+
+
+@pytest.fixture(autouse=True)
+async def _seed_registry(seeded_catalog: None) -> None:
+    """공개 agents 7 / skills 6 시드 — DB SSOT 카탈로그 엔드포인트 전제 데이터."""
+    return
 
 
 @pytest.mark.asyncio
@@ -81,11 +92,22 @@ async def test_catalog_agents_slugs(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_catalog_skills_slugs(client: AsyncClient) -> None:
-    """6개 스킬 slug 검증."""
+    """6개 공개 스킬 slug 검증 — 테스트 카탈로그 계약(catalog_test_data._SKILLS).
+
+    (구 통합 스킬 세트 telegram/github/slack/jira 는 폐기 — jira 는 031 마이그레이션
+    에서 비공개 처리. 현 계약은 개발 워크플로 스킬 중심.)
+    """
     resp = await client.get("/api/v1/catalog/skills")
     data = resp.json()
     ids = {item["id"] for item in data["items"]}
-    expected = {"linear", "telegram", "github", "slack", "jira", "notion"}
+    expected = {
+        "linear",
+        "notion",
+        "tdd-smart-coding",
+        "harness-gate",
+        "ai-critique",
+        "ralph-loop",
+    }
     assert ids == expected
 
 

@@ -30,6 +30,14 @@ class ChatRequest(BaseModel):
     delivery_id: str = Field(..., description="질의 대상 딜리버리 네임스페이스.")
     query: str = Field(..., description="사용자 질문.")
     top_k: int | None = Field(default=None, description="검색 반환 개수(미지정 시 config 기본).")
+    extra_context: str | None = Field(
+        default=None,
+        description=(
+            "확정 사실(권위 컨텍스트). 지정 시 RAG 검색결과보다 우선하여 컨텍스트 최상단에 "
+            "'## 확정 사실(우선 신뢰)' 블록으로 주입한다. 조직 챗의 DB 하이브리드(활성 "
+            "프로젝트 목록) 등 사실 정확성이 필요한 질의에 사용(CE-312)."
+        ),
+    )
     prompt_override: str | None = Field(
         default=None,
         description=(
