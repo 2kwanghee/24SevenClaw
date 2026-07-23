@@ -616,6 +616,144 @@ async def test_reject_sends_rejected_callback(
     assert "X-ClickEye-Signature" in callback_capture[0]["headers"]
 
 
+# ---------------------------------------------------------------------------
+# A3-full: metaprompt 정제 연동 (머신 pending 조회 / refined 제출 / accept 우선순위)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_response_exposes_refine_fields(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    service_key: IntakeServiceKey,
+) -> None:
+    """검토 콘솔 응답에 refined_text/refine_status 가 노출된다(초기 pending/None)."""
+    await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    sa_headers, sa_uid = await _register_and_login(client, "refinefields@intake.com")
+    await _set_role(db_session, sa_uid, "superadmin")
+    rows = (await client.get("/api/v1/intake", headers=sa_headers)).json()
+    assert rows[0]["refine_status"] == "pending"
+    assert rows[0]["refined_text"] is None
+
+
+@pytest.mark.asyncio
+async def test_refine_pending_machine_list_requires_token(
+    client: AsyncClient,
+    intake_enabled: None,
+    service_key: IntakeServiceKey,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """토큰 설정 시 헤더 필수(401), 일치하면 200 — verify_governance_token 재사용."""
+    await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    monkeypatch.setattr(settings, "governance_service_token", "refine-token")
+
+    no_token = await client.get("/api/v1/intake/refine/pending")
+    assert no_token.status_code == 401
+
+    ok = await client.get(
+        "/api/v1/intake/refine/pending",
+        headers={"X-Governance-Token": "refine-token"},
+    )
+    assert ok.status_code == 200
+    items = ok.json()
+    assert len(items) == 1
+    item = items[0]
+    assert set(item) == {"id", "title", "input_type", "normalized_text", "target", "priority"}
+    assert item["title"] == "쇼핑몰 구축"
+    assert "회원가입" in item["normalized_text"]
+
+
+@pytest.mark.asyncio
+async def test_submit_refined_transitions_and_leaves_pending_list(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    service_key: IntakeServiceKey,
+) -> None:
+    """refined 제출 → refine_status=refined 저장 + pending 목록에서 제외된다."""
+    resp = await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    intake_id = resp.json()["intake_id"]
+
+    submitted = await client.post(
+        f"/api/v1/intake/{intake_id}/refined",
+        json={"refined_text": "## 목표\n정제된 구현 스펙"},
+    )
+    assert submitted.status_code == 200
+    body = submitted.json()
+    assert body["refine_status"] == "refined"
+    assert body["refined_text"] == "## 목표\n정제된 구현 스펙"
+    assert body["status"] == "pending_review"  # 검토 게이트는 그대로
+
+    pending = (await client.get("/api/v1/intake/refine/pending")).json()
+    assert pending == []
+
+
+@pytest.mark.asyncio
+async def test_submit_empty_refined_marks_skipped(
+    client: AsyncClient,
+    intake_enabled: None,
+    service_key: IntakeServiceKey,
+) -> None:
+    """공백만 제출 → refined_text 미저장(None) + skipped (다음 배치 재선택 제외)."""
+    resp = await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    intake_id = resp.json()["intake_id"]
+
+    submitted = await client.post(
+        f"/api/v1/intake/{intake_id}/refined", json={"refined_text": "   \n\t "}
+    )
+    assert submitted.status_code == 200
+    assert submitted.json()["refine_status"] == "skipped"
+    assert submitted.json()["refined_text"] is None
+    assert (await client.get("/api/v1/intake/refine/pending")).json() == []
+
+
+@pytest.mark.asyncio
+async def test_accept_prefers_refined_text(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+) -> None:
+    """accept 는 refined_text 를 Project.requirements_text 로 우선 사용한다."""
+    resp = await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    intake_id = resp.json()["intake_id"]
+    refined = "## 목표\n쇼핑몰 구축 구현 스펙 (정제본)"
+    await client.post(f"/api/v1/intake/{intake_id}/refined", json={"refined_text": refined})
+
+    headers, uid = await _register_and_login(client, "refinedaccept@intake.com")
+    await _set_role(db_session, uid, "admin", organization_id=org.id)
+    accepted = await client.post(f"/api/v1/intake/{intake_id}/accept", headers=headers)
+    assert accepted.status_code == 200
+
+    project = await db_session.get(Project, uuid.UUID(accepted.json()["project_id"]))
+    assert project.requirements_text == refined  # normalized_text 아님
+
+
+@pytest.mark.asyncio
+async def test_submit_refined_non_pending_409(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    intake_enabled: None,
+    org: Organization,
+    service_key: IntakeServiceKey,
+) -> None:
+    """accepted 등 pending_review 아닌 건에 refined 제출 → 409."""
+    resp = await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
+    intake_id = resp.json()["intake_id"]
+    headers, uid = await _register_and_login(client, "refined409@intake.com")
+    await _set_role(db_session, uid, "admin", organization_id=org.id)
+    assert (
+        await client.post(f"/api/v1/intake/{intake_id}/accept", headers=headers)
+    ).status_code == 200
+
+    conflict = await client.post(
+        f"/api/v1/intake/{intake_id}/refined", json={"refined_text": "늦은 정제"}
+    )
+    assert conflict.status_code == 409
+
+
 @pytest.mark.asyncio
 async def test_callback_private_ip_skipped(
     client: AsyncClient,

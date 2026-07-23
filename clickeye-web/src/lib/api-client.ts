@@ -2552,6 +2552,10 @@ export interface IntakeResponse {
   callback_url: string | null;
   status: string;
   project_id: string | null;
+  /** A3-full: 로컬 metaprompt 배치 정제 결과 (서버는 조율만) */
+  refined_text: string | null;
+  /** pending | refined | skipped */
+  refine_status: string;
   created_at: string | null;
 }
 

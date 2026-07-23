@@ -827,6 +827,16 @@
       "project": "Proyek yang dibuat",
       "openProject": "Buka proyek"
     },
+    "refine": {
+      "title": "Spesifikasi penyempurnaan",
+      "refinedText": "Spesifikasi penyempurnaan",
+      "status": {
+        "pending": "Menunggu penyempurnaan",
+        "refined": "Telah disempurnakan",
+        "skipped": "Dilewati"
+      },
+      "acceptNotice": "Proyek akan dibuat dari spesifikasi yang disempurnakan."
+    },
     "acceptDialog": {
       "title": "Setujui intake",
       "description": "Menyetujui \"{title}\" akan membuat proyek. Lanjutkan?",

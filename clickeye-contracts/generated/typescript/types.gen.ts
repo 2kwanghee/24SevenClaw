@@ -585,6 +585,7 @@ export type GovernanceEvaluateRequest = {
     metrics?: {
         [key: string]: unknown;
     } | null;
+    linear_team_id?: string | null;
 };
 
 /**
@@ -728,6 +729,86 @@ export type HookUpdate = {
     output_file?: string | null;
 };
 
+/**
+ * POST /intake 202 응답 — 접수 확인.
+ */
+export type IntakeAcceptedResponse = {
+    intake_id: string;
+    status: string;
+};
+
+/**
+ * 외부 서비스의 인테이크 수주 요청 본문.
+ */
+export type IntakeCreate = {
+    input_type: 'structured' | 'document' | 'url';
+    title: string;
+    requirements?: {
+        [key: string]: unknown;
+    } | null;
+    document?: IntakeDocument | null;
+    source_url?: string | null;
+    target?: {
+        [key: string]: unknown;
+    } | null;
+    priority?: string | null;
+    callback_url?: string | null;
+};
+
+/**
+ * document 타입 본문 — 원문 텍스트와 포맷.
+ */
+export type IntakeDocument = {
+    content: string;
+    format?: string;
+};
+
+/**
+ * 머신 정제 대기 목록 항목 — 로컬 정제 배치(intake_refine.sh)가 소비한다.
+ */
+export type IntakeRefinePendingItem = {
+    id: string;
+    title: string;
+    input_type: string;
+    normalized_text: string | null;
+    target: {
+        [key: string]: unknown;
+    } | null;
+    priority: string | null;
+};
+
+/**
+ * 반려 사유(선택).
+ */
+export type IntakeRejectRequest = {
+    reason?: string | null;
+};
+
+/**
+ * 인테이크 상세/목록 응답 (검토 콘솔용).
+ */
+export type IntakeResponse = {
+    id: string;
+    service_key_id: string;
+    input_type: string;
+    title: string;
+    payload: {
+        [key: string]: unknown;
+    };
+    normalized_text: string | null;
+    source_url: string | null;
+    target: {
+        [key: string]: unknown;
+    } | null;
+    priority: string | null;
+    callback_url: string | null;
+    status: string;
+    project_id: string | null;
+    refined_text: string | null;
+    refine_status: string;
+    created_at: string | null;
+};
+
 export type IntegrationValidateResponse = {
     valid: boolean;
     message: string;
@@ -822,6 +903,64 @@ export type LinearValidateRequest = {
     team_id: string;
 };
 
+export type LlmChatRequest = {
+    /**
+     * 딜리버리(프로젝트) ID. delivery_id 로 매핑.
+     */
+    project_id: string;
+    /**
+     * 사용자 질문.
+     */
+    query: string;
+};
+
+/**
+ * 챗 답변 피드백(P2-MVP). delivery_id 는 서버가 project_id 로 강제 매핑.
+ */
+export type LlmFeedbackRequest = {
+    /**
+     * 딜리버리(프로젝트) ID. delivery_id 로 매핑.
+     */
+    project_id: string;
+    /**
+     * 평가 대상 /chat 응답의 chat_id.
+     */
+    chat_id?: string | null;
+    /**
+     * 당시 사용자 질문.
+     */
+    query: string;
+    /**
+     * 당시 어시스턴트 답변 원문.
+     */
+    answer: string;
+    /**
+     * 평가(👍 up / 👎 down).
+     */
+    rating: 'up' | 'down';
+    /**
+     * 선택 코멘트(주로 down 사유).
+     */
+    comment?: string | null;
+    /**
+     * 답변에 사용된 source_id 목록.
+     */
+    sources?: Array<string> | null;
+};
+
+export type LlmIngestRequest = {
+    /**
+     * 딜리버리(프로젝트) ID. delivery_id 로 매핑.
+     */
+    project_id: string;
+    /**
+     * 주입 문서 목록(source_id/text 등).
+     */
+    documents: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
 /**
  * key_source(구독시트/조직키)별 토큰·비용 합계.
  */
@@ -830,6 +969,34 @@ export type LlmKeySourceTotals = {
     input_tokens: number;
     output_tokens: number;
     cost: string | null;
+};
+
+/**
+ * 파이프라인/웹훅 머신 인제스트 요청 (P1.6).
+ *
+ * 호출자(bash 파이프라인·Linear 웹훅)는 project_id 를 모를 수 있어 team_id 만
+ * 넘긴다 — 해석(team→project 역매핑)은 API(SSOT)가 수행한다.
+ */
+export type LlmPipelineIngestRequest = {
+    /**
+     * Linear team ID(역매핑용, 선택).
+     */
+    team_id?: string | null;
+    /**
+     * 프로젝트 ID(있으면 우선).
+     */
+    project_id?: string | null;
+    /**
+     * KB 문서 source_id(증분 갱신 키).
+     */
+    source_id: string;
+    /**
+     * 인제스트할 텍스트.
+     */
+    text: string;
+    metadata?: {
+        [key: string]: unknown;
+    } | null;
 };
 
 /**
@@ -1797,6 +1964,13 @@ export type QualityMetrics = {
     review_completion_rate: number;
 };
 
+/**
+ * 머신 정제 결과 제출 본문 — 공백만이면 skipped 로 처리된다(규칙은 서비스가 판정).
+ */
+export type RefineSubmit = {
+    refined_text: string;
+};
+
 export type RefreshTokenRequest = {
     refresh_token: string;
 };
@@ -2063,6 +2237,37 @@ export type RoiStandardUpdate = {
 
 export type RoleUpdateRequest = {
     system_role: 'superadmin' | 'admin' | 'member' | 'viewer';
+};
+
+/**
+ * 인테이크 서비스 키 발급 요청.
+ */
+export type ServiceKeyCreate = {
+    name: string;
+    organization_id?: string | null;
+};
+
+/**
+ * 발급 직후 1회 한정 평문 키 포함 응답.
+ */
+export type ServiceKeyCreatedResponse = {
+    id: string;
+    name: string;
+    organization_id: string | null;
+    is_active: boolean;
+    created_at: string | null;
+    key: string;
+};
+
+/**
+ * 서비스 키 조회 응답 — 해시/평문 미노출.
+ */
+export type ServiceKeyResponse = {
+    id: string;
+    name: string;
+    organization_id: string | null;
+    is_active: boolean;
+    created_at: string | null;
 };
 
 export type SessionCreate = {
@@ -2619,6 +2824,146 @@ export type ProjectSummaryApiV1LlmLedgerSummaryGetResponses = {
 };
 
 export type ProjectSummaryApiV1LlmLedgerSummaryGetResponse = ProjectSummaryApiV1LlmLedgerSummaryGetResponses[keyof ProjectSummaryApiV1LlmLedgerSummaryGetResponses];
+
+export type ChatApiV1LlmChatPostData = {
+    body: LlmChatRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/chat';
+};
+
+export type ChatApiV1LlmChatPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChatApiV1LlmChatPostError = ChatApiV1LlmChatPostErrors[keyof ChatApiV1LlmChatPostErrors];
+
+export type ChatApiV1LlmChatPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ChatApiV1LlmChatPostResponse = ChatApiV1LlmChatPostResponses[keyof ChatApiV1LlmChatPostResponses];
+
+export type ProgressApiV1LlmProgressProjectIdGetData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/llm/progress/{project_id}';
+};
+
+export type ProgressApiV1LlmProgressProjectIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProgressApiV1LlmProgressProjectIdGetError = ProgressApiV1LlmProgressProjectIdGetErrors[keyof ProgressApiV1LlmProgressProjectIdGetErrors];
+
+export type ProgressApiV1LlmProgressProjectIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ProgressApiV1LlmProgressProjectIdGetResponse = ProgressApiV1LlmProgressProjectIdGetResponses[keyof ProgressApiV1LlmProgressProjectIdGetResponses];
+
+export type FeedbackApiV1LlmFeedbackPostData = {
+    body: LlmFeedbackRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/feedback';
+};
+
+export type FeedbackApiV1LlmFeedbackPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type FeedbackApiV1LlmFeedbackPostError = FeedbackApiV1LlmFeedbackPostErrors[keyof FeedbackApiV1LlmFeedbackPostErrors];
+
+export type FeedbackApiV1LlmFeedbackPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type FeedbackApiV1LlmFeedbackPostResponse = FeedbackApiV1LlmFeedbackPostResponses[keyof FeedbackApiV1LlmFeedbackPostResponses];
+
+export type IngestApiV1LlmIngestPostData = {
+    body: LlmIngestRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/ingest';
+};
+
+export type IngestApiV1LlmIngestPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IngestApiV1LlmIngestPostError = IngestApiV1LlmIngestPostErrors[keyof IngestApiV1LlmIngestPostErrors];
+
+export type IngestApiV1LlmIngestPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type IngestApiV1LlmIngestPostResponse = IngestApiV1LlmIngestPostResponses[keyof IngestApiV1LlmIngestPostResponses];
+
+export type IngestPipelineApiV1LlmIngestPipelinePostData = {
+    body: LlmPipelineIngestRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/ingest/pipeline';
+};
+
+export type IngestPipelineApiV1LlmIngestPipelinePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IngestPipelineApiV1LlmIngestPipelinePostError = IngestPipelineApiV1LlmIngestPipelinePostErrors[keyof IngestPipelineApiV1LlmIngestPipelinePostErrors];
+
+export type IngestPipelineApiV1LlmIngestPipelinePostResponses = {
+    /**
+     * Successful Response
+     */
+    202: {
+        [key: string]: unknown;
+    };
+};
+
+export type IngestPipelineApiV1LlmIngestPipelinePostResponse = IngestPipelineApiV1LlmIngestPipelinePostResponses[keyof IngestPipelineApiV1LlmIngestPipelinePostResponses];
 
 export type ListAgentsApiV1AdminRegistryAgentsGetData = {
     body?: never;
@@ -6593,6 +6938,244 @@ export type RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPo
 };
 
 export type RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponse = RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponses[keyof RegisterInitialTasksApiV1IntegrationsProjectsProjectIdInitialTasksPostResponses];
+
+export type ListIntakesApiV1IntakeGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status_filter?: string | null;
+    };
+    url: '/api/v1/intake';
+};
+
+export type ListIntakesApiV1IntakeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListIntakesApiV1IntakeGetError = ListIntakesApiV1IntakeGetErrors[keyof ListIntakesApiV1IntakeGetErrors];
+
+export type ListIntakesApiV1IntakeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<IntakeResponse>;
+};
+
+export type ListIntakesApiV1IntakeGetResponse = ListIntakesApiV1IntakeGetResponses[keyof ListIntakesApiV1IntakeGetResponses];
+
+export type CreateIntakeApiV1IntakePostData = {
+    body: IntakeCreate;
+    headers?: {
+        'x-clickeye-service-key'?: string | null;
+        'idempotency-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/intake';
+};
+
+export type CreateIntakeApiV1IntakePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateIntakeApiV1IntakePostError = CreateIntakeApiV1IntakePostErrors[keyof CreateIntakeApiV1IntakePostErrors];
+
+export type CreateIntakeApiV1IntakePostResponses = {
+    /**
+     * Successful Response
+     */
+    202: IntakeAcceptedResponse;
+};
+
+export type CreateIntakeApiV1IntakePostResponse = CreateIntakeApiV1IntakePostResponses[keyof CreateIntakeApiV1IntakePostResponses];
+
+export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostData = {
+    body?: never;
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/accept';
+};
+
+export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostError = AcceptIntakeApiV1IntakeIntakeIdAcceptPostErrors[keyof AcceptIntakeApiV1IntakeIntakeIdAcceptPostErrors];
+
+export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostResponse = AcceptIntakeApiV1IntakeIntakeIdAcceptPostResponses[keyof AcceptIntakeApiV1IntakeIntakeIdAcceptPostResponses];
+
+export type RejectIntakeApiV1IntakeIntakeIdRejectPostData = {
+    body?: IntakeRejectRequest | null;
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/reject';
+};
+
+export type RejectIntakeApiV1IntakeIntakeIdRejectPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RejectIntakeApiV1IntakeIntakeIdRejectPostError = RejectIntakeApiV1IntakeIntakeIdRejectPostErrors[keyof RejectIntakeApiV1IntakeIntakeIdRejectPostErrors];
+
+export type RejectIntakeApiV1IntakeIntakeIdRejectPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type RejectIntakeApiV1IntakeIntakeIdRejectPostResponse = RejectIntakeApiV1IntakeIntakeIdRejectPostResponses[keyof RejectIntakeApiV1IntakeIntakeIdRejectPostResponses];
+
+export type ListRefinePendingApiV1IntakeRefinePendingGetData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/api/v1/intake/refine/pending';
+};
+
+export type ListRefinePendingApiV1IntakeRefinePendingGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListRefinePendingApiV1IntakeRefinePendingGetError = ListRefinePendingApiV1IntakeRefinePendingGetErrors[keyof ListRefinePendingApiV1IntakeRefinePendingGetErrors];
+
+export type ListRefinePendingApiV1IntakeRefinePendingGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<IntakeRefinePendingItem>;
+};
+
+export type ListRefinePendingApiV1IntakeRefinePendingGetResponse = ListRefinePendingApiV1IntakeRefinePendingGetResponses[keyof ListRefinePendingApiV1IntakeRefinePendingGetResponses];
+
+export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostData = {
+    body: RefineSubmit;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/refined';
+};
+
+export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostError = SubmitRefinedApiV1IntakeIntakeIdRefinedPostErrors[keyof SubmitRefinedApiV1IntakeIntakeIdRefinedPostErrors];
+
+export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponse = SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses[keyof SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses];
+
+export type ListServiceKeysApiV1IntakeServiceKeysGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/intake/service-keys';
+};
+
+export type ListServiceKeysApiV1IntakeServiceKeysGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<ServiceKeyResponse>;
+};
+
+export type ListServiceKeysApiV1IntakeServiceKeysGetResponse = ListServiceKeysApiV1IntakeServiceKeysGetResponses[keyof ListServiceKeysApiV1IntakeServiceKeysGetResponses];
+
+export type CreateServiceKeyApiV1IntakeServiceKeysPostData = {
+    body: ServiceKeyCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/intake/service-keys';
+};
+
+export type CreateServiceKeyApiV1IntakeServiceKeysPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateServiceKeyApiV1IntakeServiceKeysPostError = CreateServiceKeyApiV1IntakeServiceKeysPostErrors[keyof CreateServiceKeyApiV1IntakeServiceKeysPostErrors];
+
+export type CreateServiceKeyApiV1IntakeServiceKeysPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: ServiceKeyCreatedResponse;
+};
+
+export type CreateServiceKeyApiV1IntakeServiceKeysPostResponse = CreateServiceKeyApiV1IntakeServiceKeysPostResponses[keyof CreateServiceKeyApiV1IntakeServiceKeysPostResponses];
+
+export type DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteData = {
+    body?: never;
+    path: {
+        key_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/service-keys/{key_id}';
+};
+
+export type DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteError = DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteErrors[keyof DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteErrors];
+
+export type DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: ServiceKeyResponse;
+};
+
+export type DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteResponse = DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteResponses[keyof DeactivateServiceKeyApiV1IntakeServiceKeysKeyIdDeleteResponses];
 
 export type EvaluateGovernanceApiV1GovernanceEvaluatePostData = {
     body: GovernanceEvaluateRequest;

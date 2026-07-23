@@ -827,6 +827,16 @@
       "project": "Created project",
       "openProject": "Open project"
     },
+    "refine": {
+      "title": "Refined spec",
+      "refinedText": "Refined spec",
+      "status": {
+        "pending": "Awaiting refinement",
+        "refined": "Refined",
+        "skipped": "Skipped"
+      },
+      "acceptNotice": "The project will be created from the refined spec."
+    },
     "acceptDialog": {
       "title": "Accept intake",
       "description": "Accepting \"{title}\" will create a project. Continue?",

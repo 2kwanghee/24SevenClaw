@@ -58,6 +58,16 @@ class IntakeRequest(Base, UUIDPKMixin, TimestampMixin):
     payload = Column(JSON, nullable=False, default=dict)
     # 정규화된 요구사항 텍스트 — accept 시 Project.requirements_text 로 전파.
     normalized_text = Column(Text, nullable=True)
+    # A3-full: 로컬 metaprompt 배치(scripts/intake_refine.sh)가 정제한 구현 스펙.
+    # 서버는 저장/조율만 한다(실행 플레인 분리 — LLM 호출은 로컬 배치 전용).
+    refined_text = Column(Text, nullable=True)
+    # pending | refined | skipped — 정제 배치 처리 상태. accept 는 refined_text 우선 사용.
+    refine_status = Column(
+        String(16),
+        nullable=False,
+        default="pending",
+        server_default=text("'pending'"),
+    )
     source_url = Column(String(1000), nullable=True)
     target = Column(JSON, nullable=True)
     priority = Column(String(20), nullable=True)
