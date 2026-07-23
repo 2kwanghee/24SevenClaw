@@ -57,7 +57,7 @@ export function ContainersTable() {
         ) : (containers.data ?? []).length === 0 ? (
           <EmptyRow message={t("empty")} />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)]">
+          <BentoCard className="block overflow-x-auto p-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
