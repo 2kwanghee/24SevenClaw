@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { RoleGuard } from "@/components/common/role-guard";
+import { BentoCard } from "@/components/ui/bento";
 import {
   pmProfiles,
   type PMProfileWithMetrics,
@@ -111,7 +112,7 @@ function PMListPage() {
 
       {/* 생성 다이얼로그 */}
       {showCreate && (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 space-y-4">
+        <BentoCard className="space-y-4">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">새 PM 프로필 생성</h2>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -177,7 +178,7 @@ function PMListPage() {
               취소
             </button>
           </div>
-        </div>
+        </BentoCard>
       )}
 
       {/* 로딩/에러 */}
@@ -193,7 +194,7 @@ function PMListPage() {
 
       {/* PM 목록 */}
       {data && (
-        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
+        <BentoCard className="block overflow-hidden p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -290,7 +291,7 @@ function PMListPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
     </div>
   );

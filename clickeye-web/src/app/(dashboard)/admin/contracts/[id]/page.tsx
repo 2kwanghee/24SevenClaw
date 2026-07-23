@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
+import { BentoCard } from "@/components/ui/bento";
 import { ContractViewer } from "@/components/contracts/contract-viewer";
 import { ContractAuditTable } from "@/components/contracts/contract-audit-table";
 import {
@@ -311,18 +312,18 @@ function ContractDetailContent() {
       </div>
 
       {/* 콘텐츠 영역 */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <BentoCard>
         {isEditing ? (
           <EditForm contract={contract} onCancel={() => setIsEditing(false)} />
         ) : (
           <ContractViewer contract={contract} />
         )}
-      </div>
+      </BentoCard>
 
       {/* 감사 로그 */}
-      <div className="mt-8 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+      <BentoCard className="mt-8">
         <ContractAuditTable contractId={contract.id} />
-      </div>
+      </BentoCard>
     </div>
   );
 }
