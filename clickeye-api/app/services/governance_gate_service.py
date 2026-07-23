@@ -44,7 +44,7 @@ class GovernanceGateService:
 
         # 원격 HTTP 는 git 이 없을 수 있고 접근해서도 안 된다. files 미지정(None)이면
         # 커널이 os.getcwd() 에서 git diff 를 시도하므로 빈 목록으로 강제(git 미접근 불변식).
-        return kernel_evaluate(
+        result = kernel_evaluate(
             base=req.base,
             head=req.head,
             files=req.files or [],
@@ -53,6 +53,34 @@ class GovernanceGateService:
             usage=usage,
             metrics=req.metrics,
         )
+
+        # KB 자동 인제스트 (P1.5/P1.6, 토글 off 시 no-op, 비차단). project_id 명시가 우선.
+        # P1.6: project_id 미지정 + linear_team_id 가 있으면 team→project 역매핑을 시도해
+        # **인제스트 용도로만** 사용한다 — 위 트리아지 예산 축(req.project_id 기반 usage
+        # 조회)에는 불개입(기존 로직 불변). 역매핑 실패(0/복수건)면 스킵(오염 방지).
+        ingest_project_id = req.project_id
+        if ingest_project_id is None and req.linear_team_id and self.db is not None:
+            from app.config import settings  # noqa: PLC0415
+
+            if settings.feature_llm_autoingest:  # off 면 DB 조회 자체를 생략(회귀 0)
+                from app.services.llm_ingest import resolve_project_by_team  # noqa: PLC0415
+
+                ingest_project_id = await resolve_project_by_team(self.db, req.linear_team_id)
+
+        if ingest_project_id is not None:
+            from app.services.llm_ingest import enqueue_ingest  # noqa: PLC0415
+
+            failures = result.get("failures") or []
+            enqueue_ingest(
+                ingest_project_id,
+                source_id=f"governance:{req.head}",
+                text=f"[거버넌스 평가] head={req.head} verdict={result.get('verdict')} "
+                f"tier={result.get('tier')} merge_decision={result.get('merge_decision')}"
+                + (f" — failures: {', '.join(failures)}" if failures else ""),
+                metadata={"kind": "governance"},
+            )
+
+        return result
 
     def get_policy(self) -> dict[str, Any]:
         """전역 머지-게이트 정책 요약을 커널에서 읽어 반환한다(읽기 전용, DB 미사용).

@@ -26,6 +26,12 @@ class GovernanceEvaluateRequest(BaseModel):
     project_id: UUID | None = None
     usage: dict[str, Any] | None = None
     metrics: dict[str, Any] | None = None
+    # ── team→project 역매핑(P1.6, 선택·하위호환) ─────────────────────────────
+    # 파이프라인/웹훅 호출자는 project_id 를 모르고 Linear team_id 만 안다. project_id
+    # 미지정 + 이 값이 있으면 서비스가 project_linear_credentials 로 역매핑해 **KB
+    # 인제스트 용도로만** 사용한다(위 project_id 의 트리아지 예산(usage 조회) 축에는
+    # 불개입 — 기존 로직 불변).
+    linear_team_id: str | None = None
 
 
 class GovernanceEvaluateResponse(BaseModel):

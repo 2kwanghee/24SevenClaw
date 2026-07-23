@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import AppError
 from app.models.artifact import Artifact, ArtifactEvent
 from app.schemas.artifact import ArtifactCreate, ArtifactTransitionRequest
+from app.services.llm_ingest import enqueue_ingest
 
 # 허용된 상태 전이 맵 (contracts와 동기화)
 ARTIFACT_TRANSITIONS: dict[str, list[str]] = {
@@ -36,6 +37,14 @@ class ArtifactService:
         self.db.add(artifact)
         await self.db.commit()
         await self.db.refresh(artifact)
+        # KB 자동 인제스트 (P1.5, 토글 off 시 no-op, 비차단)
+        enqueue_ingest(
+            project_id,
+            source_id=f"artifact:{artifact.id}",
+            text=f"[산출물 생성] {artifact.name} ({artifact.artifact_type}): "
+            f"{artifact.description or '설명 없음'} — 상태 {artifact.status}",
+            metadata={"kind": "artifact", "status": str(artifact.status)},
+        )
         return artifact
 
     async def get(self, artifact_id: UUID) -> Artifact:
@@ -109,6 +118,15 @@ class ArtifactService:
         await self.db.commit()
         await self.db.refresh(artifact)
         await self.db.refresh(event)
+        # KB 자동 인제스트 — 동일 source_id 재수집으로 산출물 최신 상태 1문서 유지
+        enqueue_ingest(
+            artifact.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+            source_id=f"artifact:{artifact.id}",
+            text=f"[산출물 상태전이] {artifact.name} ({artifact.artifact_type}): "
+            f"{old_status} → {new_status}"
+            + (f" — {data.message}" if data.message else ""),
+            metadata={"kind": "artifact", "status": str(new_status)},
+        )
         return artifact, event
 
     async def bulk_transition(

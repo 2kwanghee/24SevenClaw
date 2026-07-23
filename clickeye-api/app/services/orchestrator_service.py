@@ -32,6 +32,7 @@ from app.schemas.orchestrator import (
     SubTaskUpdate,
 )
 from app.services.artifact_service import ArtifactService
+from app.services.llm_ingest import enqueue_ingest
 
 logger = logging.getLogger(__name__)
 
@@ -269,6 +270,14 @@ class OrchestratorService:
         await self.db.commit()
         await self.db.refresh(session)
         await self.db.refresh(event)
+        # KB 자동 인제스트 (P1.5, 토글 off 시 no-op, 비차단) — 세션 최신 단계 1문서 유지
+        enqueue_ingest(
+            session.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+            source_id=f"orchestrator:{session.id}",
+            text=f"[진행] 세션 {session.title} 단계 {event.old_phase}→{event.new_phase}"
+            + (f" — {data.message}" if data.message else ""),
+            metadata={"kind": "orchestrator", "phase": str(session.phase)},
+        )
         return session, event
 
     # === 서브태스크 관리 ===
@@ -304,6 +313,17 @@ class OrchestratorService:
 
         await self.db.commit()
         await self.db.refresh(subtask)
+        # KB 자동 인제스트 — 세션 경유 project_id 조회 (subtask.session_id → session)
+        session = await self.db.get(OrchestratorSession, subtask.session_id)
+        if session is not None:
+            enqueue_ingest(
+                session.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+                source_id=f"orchestrator:{session.id}:subtask:{subtask.id}",
+                text=f"[진행] 세션 {session.title} 서브태스크 "
+                f"[{subtask.assigned_role}] {subtask.title} 상태 {subtask.status}"
+                + (f" — 결과: {subtask.result_summary}" if subtask.result_summary else ""),
+                metadata={"kind": "subtask", "status": str(subtask.status)},
+            )
         return subtask
 
     async def get_subtasks(self, session_id: UUID) -> list[SubTask]:

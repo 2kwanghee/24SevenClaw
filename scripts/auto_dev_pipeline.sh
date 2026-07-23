@@ -23,6 +23,12 @@ cd "$PROJECT_DIR"
 # 모듈 토글 로드
 source "$PROJECT_DIR/scripts/pipeline_config.sh" 2>/dev/null || true
 
+# LINEAR_TEAM_ID 로드 — pipeline_config 는 FLOWOPS_* 만 export 하므로 여기서 보강.
+# 거버넌스 evaluate 페이로드·LLM 머신 인제스트(P1.6)의 team→project 역매핑에 사용. 없으면 빈 값.
+if [ -z "${LINEAR_TEAM_ID:-}" ] && [ -f "$PROJECT_DIR/.env" ]; then
+  LINEAR_TEAM_ID="$(grep -E '^LINEAR_TEAM_ID=' "$PROJECT_DIR/.env" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]')" || LINEAR_TEAM_ID=""
+fi
+
 LOCK_FILE=".ralph/.pipeline_lock"
 TASK_MAPPING=".ralph/.task_mapping.json"
 
@@ -391,10 +397,11 @@ $(cat .ralph/PROMPT.md)"
       # 변경 파일 목록 계산(원격 호출자는 git 접근 불가 → 명시 전달). 커널과 동일 three-dot(merge-base) 사용.
       GATE_FILES=$(safe_git diff --name-only "main...${BRANCH}" 2>>"$CLAUDE_LOG" || true)
       # JSON 페이로드 구성(jq 우선, 없으면 python3 로 안전 직렬화)
+      # linear_team_id(P1.6): 서버가 team→project 역매핑해 KB 인제스트에만 사용(하위호환 — 빈 값이면 null).
       if command -v jq >/dev/null 2>&1; then
-        GATE_PAYLOAD=$(printf '%s\n' "$GATE_FILES" | jq -R . | jq -s --arg h "$BRANCH" '{base:"main", head:$h, files:[.[]|select(.!="")], plan_text:null}' 2>>"$CLAUDE_LOG" || echo '')
+        GATE_PAYLOAD=$(printf '%s\n' "$GATE_FILES" | jq -R . | jq -s --arg h "$BRANCH" --arg t "${LINEAR_TEAM_ID:-}" '{base:"main", head:$h, files:[.[]|select(.!="")], plan_text:null, linear_team_id:(if $t=="" then null else $t end)}' 2>>"$CLAUDE_LOG" || echo '')
       else
-        GATE_PAYLOAD=$(GATE_BRANCH="$BRANCH" GATE_FILES="$GATE_FILES" python3 -c 'import os,json;fs=[f for f in os.environ.get("GATE_FILES","").splitlines() if f];print(json.dumps({"base":"main","head":os.environ["GATE_BRANCH"],"files":fs,"plan_text":None}))' 2>>"$CLAUDE_LOG" || echo '')
+        GATE_PAYLOAD=$(GATE_BRANCH="$BRANCH" GATE_FILES="$GATE_FILES" GATE_TEAM="${LINEAR_TEAM_ID:-}" python3 -c 'import os,json;fs=[f for f in os.environ.get("GATE_FILES","").splitlines() if f];print(json.dumps({"base":"main","head":os.environ["GATE_BRANCH"],"files":fs,"plan_text":None,"linear_team_id":os.environ.get("GATE_TEAM") or None}))' 2>>"$CLAUDE_LOG" || echo '')
       fi
       GATE_URL="${FLOWOPS_GOVERNANCE_SERVICE_URL%/}/api/v1/governance/evaluate"
       # curl 실패(연결/타임아웃)가 set -e 로 스크립트를 죽이지 않게 rc 캡처. 응답 마지막 줄=HTTP 코드.
@@ -505,6 +512,22 @@ $(cat .ralph/PROMPT.md)"
       # 머지된 브랜치 정리
       safe_git branch -d "$BRANCH" 2>/dev/null || true
       safe_git push origin --delete "$BRANCH" 2>/dev/null || true
+
+      # ── [P1.6] LLM 머신 인제스트: 머지 결과를 clickeye-llm KB 로 전송(비차단) ──
+      # 명시적 opt-in(FLOWOPS_TEMPORAL 패턴): 미설정=off. 서버가 team→project 역매핑.
+      # 실패해도 파이프라인 절대 안 죽음(|| true) — 202/skip/오류 모두 무시.
+      if is_enabled "FLOWOPS_LLM_INGEST" 2>/dev/null && [ -n "${FLOWOPS_LLM_INGEST:-}" ] \
+        && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
+        INGEST_URL="${FLOWOPS_GOVERNANCE_SERVICE_URL%/}/api/v1/llm/ingest/pipeline"
+        INGEST_PAYLOAD=$(INGEST_TEAM="${LINEAR_TEAM_ID:-}" INGEST_KEY="$ISSUE_KEY" INGEST_TITLE="$TITLE" INGEST_TIER="${GATE_TIER:-LOW}" INGEST_STAT="$MERGE_DIFF_STAT" python3 -c 'import os,json;print(json.dumps({"team_id":os.environ.get("INGEST_TEAM") or None,"source_id":"pipeline:"+os.environ["INGEST_KEY"],"text":"[파이프라인] "+os.environ["INGEST_KEY"]+" "+os.environ["INGEST_TITLE"]+" — 머지 성공(main 직접 머지, tier="+os.environ.get("INGEST_TIER","LOW")+")\n"+os.environ.get("INGEST_STAT",""),"metadata":{"kind":"pipeline","issue_key":os.environ["INGEST_KEY"]}}))' 2>>"$CLAUDE_LOG" || echo '')
+        if [ -n "$INGEST_PAYLOAD" ]; then
+          curl -sS -m "${FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT:-10}" -X POST "$INGEST_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Governance-Token: ${GOVERNANCE_SERVICE_TOKEN:-}" \
+            -d "$INGEST_PAYLOAD" >/dev/null 2>>"$CLAUDE_LOG" || true
+          log "LLM 머신 인제스트 전송(비차단): pipeline:${ISSUE_KEY}"
+        fi
+      fi
     else
       log "ERROR: 머지 실패. PR 생성으로 대체합니다."
       safe_git merge --abort 2>/dev/null || true

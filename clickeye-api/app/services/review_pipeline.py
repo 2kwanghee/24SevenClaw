@@ -25,6 +25,7 @@ from app.schemas.review_pipeline import (
     ReviewSubmit,
 )
 from app.services.artifact_service import ArtifactService
+from app.services.llm_ingest import enqueue_ingest
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +162,17 @@ class ReviewPipelineService:
 
         await self.db.commit()
         await self.db.refresh(review_round)
+        # KB 자동 인제스트 (P1.5, 토글 off 시 no-op, 비차단) — session 경유 project_id
+        session = await self._get_session(review_round.session_id)  # type: ignore[arg-type]
+        enqueue_ingest(
+            session.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+            source_id=f"review:{round_id}",
+            text=f"[리뷰] 세션 {session.title} 라운드 {review_round.round_number} "
+            f"리뷰 제출({data.review_type}"
+            + (f", 점수 {data.review_score}" if data.review_score is not None else "")
+            + f") — 서브 AI {data.sub_ai_role}",
+            metadata={"kind": "review", "status": "review_completed"},
+        )
         return review_round
 
     # === diff 조회 ===
@@ -250,6 +262,15 @@ class ReviewPipelineService:
 
         await self.db.commit()
         await self.db.refresh(review_round)
+        # KB 자동 인제스트 — 동일 source_id 재수집으로 라운드 최신 결과 1문서 유지
+        session = await self._get_session(review_round.session_id)  # type: ignore[arg-type]
+        enqueue_ingest(
+            session.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+            source_id=f"review:{round_id}",
+            text=f"[리뷰] 세션 {session.title} 라운드 {review_round.round_number} "
+            f"병합 완료(전략 {data.merge_strategy})",
+            metadata={"kind": "review", "status": "merged"},
+        )
         return review_round
 
     # === 거절 (reviewing → drafting 사이클) ===
@@ -283,6 +304,15 @@ class ReviewPipelineService:
 
         await self.db.commit()
         await self.db.refresh(review_round)
+        # KB 자동 인제스트 — 반려 사유를 KB 최신 상태로 반영
+        session = await self._get_session(review_round.session_id)  # type: ignore[arg-type]
+        enqueue_ingest(
+            session.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
+            source_id=f"review:{round_id}",
+            text=f"[리뷰] 세션 {session.title} 라운드 {review_round.round_number} "
+            f"반려 — 사유: {reason}",
+            metadata={"kind": "review", "status": "rejected"},
+        )
         return review_round
 
     # === 리뷰 라운드 조회 ===
