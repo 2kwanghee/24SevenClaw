@@ -77,6 +77,16 @@ class Settings(BaseSettings):
     # 프론트엔드 URL (redirect 대상)
     frontend_url: str = "http://localhost:3000"
 
+    # clickeye-llm (지식축적형 sLLM, profile llm, 포트 8100) 프록시 대상 URL.
+    # 기본값은 docker compose 서비스명(api·clickeye-llm 이 default 네트워크 공유).
+    # 로컬 uvicorn 직접 실행 시 env 로 override: CLICKEYE_LLM_URL=http://localhost:8100
+    clickeye_llm_url: str = "http://clickeye-llm:8100"
+
+    # clickeye-llm KB 자동 인제스트 (P1.5). 기본 off — off 면 enqueue_ingest 가 즉시
+    # no-op(회귀 0). on 시 산출물/거버넌스/오케스트레이션/리뷰 이벤트를 fire-and-forget
+    # 으로 POST {clickeye_llm_url}/ingest 전송. delivery_id = str(project_id).
+    feature_llm_autoingest: bool = False
+
     # 거버넌스 게이트 HTTP 노출용 머신 토큰. None/빈값이면 dev 개방(인증 없음),
     # 설정 시 POST /governance/evaluate 는 X-Governance-Token 헤더 일치를 요구.
     governance_service_token: str | None = None
@@ -89,6 +99,10 @@ class Settings(BaseSettings):
     governance_triage_budget_cost_warn: float = 0.0
     governance_triage_budget_token_limit: float = 0.0
     governance_triage_budget_token_warn: float = 0.0
+
+    # 인테이크 수주 API (Chunk A1). 기본 off — OFF 시 전 /intake endpoint 404
+    # (킬스위치, 회귀 0). on 시 외부 서비스가 X-ClickEye-Service-Key 로 요구사항을 접수.
+    feature_intake: bool = False
 
     # LLM 게이트웨이 (CE-299, "로깅만"). 기본 off — flag on 시에만 대표 호출처를
     # 게이트웨이 경유로 라우팅해 usage 를 원장에 기록. off 면 기존 경로 그대로(회귀 0).

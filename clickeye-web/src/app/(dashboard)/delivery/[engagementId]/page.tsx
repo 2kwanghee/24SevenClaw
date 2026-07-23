@@ -14,6 +14,7 @@ import { IssueBoard } from "@/components/delivery/issue-board";
 import { ReviewList } from "@/components/delivery/review-list";
 import { CostCard } from "@/components/delivery/cost-card";
 import { GovernancePolicyPanel } from "@/components/delivery/governance-policy-panel";
+import { LlmChatPanel } from "@/components/delivery/llm-chat-panel";
 import { MockModeToggle } from "@/components/delivery/mock-mode-toggle";
 import {
   useSessionList,
@@ -324,6 +325,8 @@ export default function DeliveryEngagementPage() {
                 isError={governanceError}
                 overrides={contractOverrides}
               />
+              {/* G. LLM 어시스턴트 — 딜리버리 지식 Q&A + 진행상황 (clickeye-llm 프록시) */}
+              <LlmChatPanel projectId={projectId} mock={mock} />
             </aside>
           </div>
 

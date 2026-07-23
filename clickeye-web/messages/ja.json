@@ -67,6 +67,17 @@
     "passwordMismatch": "パスワードが一致しません"
   },
   "toast": {
+    "intake": {
+      "acceptSuccess": "承認しました。プロジェクトが作成されました。",
+      "acceptFail": "承認に失敗しました",
+      "rejectSuccess": "却下しました",
+      "rejectFail": "却下に失敗しました",
+      "keyCreateFail": "サービスキーの発行に失敗しました",
+      "keyDeactivateSuccess": "サービスキーを無効化しました",
+      "keyDeactivateFail": "サービスキーの無効化に失敗しました",
+      "copySuccess": "クリップボードにコピーしました",
+      "copyFail": "コピーに失敗しました"
+    },
     "generic": {
       "saveSuccess": "保存しました",
       "saveFail": "保存に失敗しました",
@@ -497,6 +508,7 @@
     },
     "admin": {
       "controlTower": "コントロールタワー",
+      "intake": "インテーク",
       "users": "ユーザー管理",
       "contracts": "コントラクト",
       "pm": "PM管理",
@@ -758,6 +770,104 @@
       "ariaLabel": "{name} を削除",
       "success": "プロジェクトを削除しました",
       "fail": "プロジェクトの削除に失敗しました"
+    },
+    "chat": {
+      "title": "デリバリーアシスタント",
+      "sources": "出典",
+      "progressButton": "進捗を確認",
+      "progressLoading": "読み込み中…",
+      "progressError": "進捗を読み込めませんでした。",
+      "knowledgeItems": "蓄積ナレッジ {count}件",
+      "unavailable": "LLMアシスタントは利用できません — llm プロファイルが未起動の可能性があります。",
+      "error": "回答の生成中にエラーが発生しました。",
+      "placeholder": "このデリバリーのナレッジについて質問してください…",
+      "send": "送信",
+      "hint": "蓄積されたデリバリーナレッジに基づいて回答します。Enterで送信 · Shift+Enterで改行。",
+      "mockTitle": "モックモード",
+      "mockDesc": "LLMアシスタントは実際のデリバリーで利用できます。",
+      "feedback": {
+        "up": "役に立った",
+        "down": "役に立たなかった",
+        "commentPlaceholder": "改善点を教えてください（任意）",
+        "submit": "フィードバックを送信",
+        "thanks": "フィードバックありがとうございます。回答品質の改善に活用されます。",
+        "fail": "フィードバックの送信に失敗しました。"
+      }
+    }
+  },
+  "intake": {
+    "pageTitle": "インテークレビュー",
+    "pageDescription": "外部サービスから受け付けた要求事項を確認し、承認・却下します",
+    "featureDisabled": "インテーク機能は無効(FEATURE_INTAKE)です。バックエンド設定で有効化すると受付一覧が表示されます。",
+    "loading": "読み込み中...",
+    "error": "一覧を取得できませんでした。",
+    "empty": "表示する受付はありません。",
+    "tabs": {
+      "pendingReview": "レビュー待ち",
+      "accepted": "承認済み",
+      "rejected": "却下済み",
+      "serviceKeys": "サービスキー"
+    },
+    "col": {
+      "title": "タイトル",
+      "inputType": "種類",
+      "priority": "優先度",
+      "receivedAt": "受信日時",
+      "actions": "操作"
+    },
+    "actions": {
+      "accept": "承認",
+      "reject": "却下"
+    },
+    "detail": {
+      "normalizedText": "正規化テキスト",
+      "noNormalizedText": "正規化テキストはありません。",
+      "sourceUrl": "元URL",
+      "target": "ターゲット",
+      "project": "作成されたプロジェクト",
+      "openProject": "プロジェクトを開く"
+    },
+    "acceptDialog": {
+      "title": "インテーク承認",
+      "description": "「{title}」を承認するとプロジェクトが作成されます。続行しますか?",
+      "cancel": "キャンセル",
+      "confirm": "承認",
+      "pending": "承認中..."
+    },
+    "rejectDialog": {
+      "title": "インテーク却下",
+      "description": "「{title}」を却下します。",
+      "reasonLabel": "却下理由(任意)",
+      "reasonPlaceholder": "却下理由を入力してください",
+      "cancel": "キャンセル",
+      "confirm": "却下",
+      "pending": "却下中..."
+    },
+    "keys": {
+      "description": "外部サービスがインテーク受付に使用するマシンキーを発行・管理します。平文キーは発行直後に1回だけ表示されます。",
+      "nameLabel": "キー名",
+      "namePlaceholder": "例: partner-portal",
+      "issue": "発行",
+      "issuing": "発行中...",
+      "loading": "読み込み中...",
+      "empty": "発行済みのサービスキーはありません。",
+      "active": "有効",
+      "inactive": "無効",
+      "deactivate": "無効化",
+      "createdTitle": "サービスキー発行完了",
+      "createdWarning": "この平文キーは今回のみ表示されます。ウィンドウを閉じると再確認できないため、安全な場所に保管してください。",
+      "copy": "コピー",
+      "copied": "コピー済み",
+      "done": "確認しました",
+      "deactivateTitle": "サービスキーの無効化",
+      "deactivateDescription": "無効化すると、このキーでは受付できなくなります。レコードは監査用に保持されます。",
+      "col": {
+        "name": "名前",
+        "organization": "組織",
+        "active": "状態",
+        "createdAt": "作成日",
+        "actions": "操作"
+      }
     }
   },
   "ops": {

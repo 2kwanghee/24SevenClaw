@@ -67,6 +67,17 @@
     "passwordMismatch": "Passwords do not match"
   },
   "toast": {
+    "intake": {
+      "acceptSuccess": "Accepted. A project has been created.",
+      "acceptFail": "Failed to accept",
+      "rejectSuccess": "Rejected",
+      "rejectFail": "Failed to reject",
+      "keyCreateFail": "Failed to issue service key",
+      "keyDeactivateSuccess": "Service key deactivated",
+      "keyDeactivateFail": "Failed to deactivate service key",
+      "copySuccess": "Copied to clipboard",
+      "copyFail": "Failed to copy"
+    },
     "generic": {
       "saveSuccess": "Saved",
       "saveFail": "Failed to save",
@@ -497,6 +508,7 @@
     },
     "admin": {
       "controlTower": "Control tower",
+      "intake": "Intake",
       "users": "User management",
       "contracts": "Contracts",
       "pm": "PM management",
@@ -758,6 +770,104 @@
       "ariaLabel": "Delete {name}",
       "success": "Project deleted",
       "fail": "Failed to delete project"
+    },
+    "chat": {
+      "title": "Delivery Assistant",
+      "sources": "Sources",
+      "progressButton": "Check progress",
+      "progressLoading": "Loading…",
+      "progressError": "Failed to load progress.",
+      "knowledgeItems": "{count} knowledge items",
+      "unavailable": "LLM assistant unavailable — the llm profile may not be running.",
+      "error": "An error occurred while generating the answer.",
+      "placeholder": "Ask about this delivery's knowledge…",
+      "send": "Send",
+      "hint": "Answers are grounded in accumulated delivery knowledge. Enter to send · Shift+Enter for newline.",
+      "mockTitle": "Mock mode",
+      "mockDesc": "The LLM assistant is available on real deliveries.",
+      "feedback": {
+        "up": "Helpful",
+        "down": "Not helpful",
+        "commentPlaceholder": "Tell us what was off (optional)",
+        "submit": "Submit feedback",
+        "thanks": "Thanks for your feedback. It helps improve answer quality.",
+        "fail": "Failed to send feedback."
+      }
+    }
+  },
+  "intake": {
+    "pageTitle": "Intake Review",
+    "pageDescription": "Review and accept or reject requirements submitted by external services",
+    "featureDisabled": "The intake feature is disabled (FEATURE_INTAKE). Enable it in the backend settings to see submissions.",
+    "loading": "Loading...",
+    "error": "Failed to load the list.",
+    "empty": "No submissions to display.",
+    "tabs": {
+      "pendingReview": "Pending review",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "serviceKeys": "Service keys"
+    },
+    "col": {
+      "title": "Title",
+      "inputType": "Type",
+      "priority": "Priority",
+      "receivedAt": "Received at",
+      "actions": "Actions"
+    },
+    "actions": {
+      "accept": "Accept",
+      "reject": "Reject"
+    },
+    "detail": {
+      "normalizedText": "Normalized text",
+      "noNormalizedText": "No normalized text.",
+      "sourceUrl": "Source URL",
+      "target": "Target",
+      "project": "Created project",
+      "openProject": "Open project"
+    },
+    "acceptDialog": {
+      "title": "Accept intake",
+      "description": "Accepting \"{title}\" will create a project. Continue?",
+      "cancel": "Cancel",
+      "confirm": "Accept",
+      "pending": "Accepting..."
+    },
+    "rejectDialog": {
+      "title": "Reject intake",
+      "description": "Reject \"{title}\".",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Enter a reason",
+      "cancel": "Cancel",
+      "confirm": "Reject",
+      "pending": "Rejecting..."
+    },
+    "keys": {
+      "description": "Issue and manage machine keys external services use to submit intakes. The plaintext key is shown only once right after issuance.",
+      "nameLabel": "Key name",
+      "namePlaceholder": "e.g. partner-portal",
+      "issue": "Issue",
+      "issuing": "Issuing...",
+      "loading": "Loading...",
+      "empty": "No service keys issued.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "deactivate": "Deactivate",
+      "createdTitle": "Service key issued",
+      "createdWarning": "This plaintext key is shown only once. It cannot be viewed again after closing this window, so store it somewhere safe.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "done": "I have saved it",
+      "deactivateTitle": "Deactivate service key",
+      "deactivateDescription": "Once deactivated, this key can no longer submit intakes. The record is kept for auditing.",
+      "col": {
+        "name": "Name",
+        "organization": "Organization",
+        "active": "Status",
+        "createdAt": "Created",
+        "actions": "Actions"
+      }
     }
   },
   "ops": {

@@ -27,6 +27,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -164,6 +165,60 @@ def trigger_confirmer():
     threading.Thread(target=_reap, args=(proc, lf), daemon=True).start()
 
 
+def _env_value(key: str) -> str:
+    """환경변수 → 루트 .env 순으로 단일 키를 읽는다(미존재 시 빈 문자열)."""
+    val = os.getenv(key)
+    if val is not None:
+        return val
+    env_path = os.path.join(PROJECT_DIR, ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith(f"{key}="):
+                    return line.split("=", 1)[1].strip()
+    return ""
+
+
+def ingest_to_llm(data: dict, identifier: str, state_name: str):
+    """상태전이 이벤트를 clickeye-llm KB 로 머신 인제스트 (P1.6).
+
+    명시적 opt-in: FLOWOPS_LLM_INGEST 미설정/false = off (회귀 0).
+    서버(API)가 team_id → project 역매핑을 수행하고, 실패는 log 만 남기고 무시한다
+    (웹훅 처리에 절대 영향 없음). source_id=linear:<identifier> — 동일 이슈 재이벤트는
+    최신 상태 1문서로 갱신된다(clickeye-llm 선삭제 계약).
+    """
+    try:
+        if _env_value("FLOWOPS_LLM_INGEST").strip().lower() not in ("true", "1", "on", "yes"):
+            return
+        base_url = _env_value("FLOWOPS_GOVERNANCE_SERVICE_URL").rstrip("/")
+        if not base_url:
+            return
+        # Linear Issue webhook 페이로드의 팀 식별자: data.teamId(현행) → data.team.id(방어).
+        team = data.get("team") or {}
+        team_id = data.get("teamId") or (team.get("id") if isinstance(team, dict) else None)
+        title = data.get("title", "?")
+        payload = {
+            "team_id": team_id,
+            "source_id": f"linear:{identifier}",
+            "text": f"[Linear] {identifier} '{title}' → 상태 {state_name}",
+            "metadata": {"kind": "linear_webhook", "state": state_name},
+        }
+        req = urllib.request.Request(
+            f"{base_url}/api/v1/llm/ingest/pipeline",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "X-Governance-Token": _env_value("GOVERNANCE_SERVICE_TOKEN"),
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            log(f"LLM-INGEST: {identifier} → HTTP {resp.status}")
+    except Exception as e:
+        log(f"WARN: LLM 인제스트 실패(무시): {e}")
+
+
 class WebhookHandler(BaseHTTPRequestHandler):
     """Linear Webhook HTTP 핸들러."""
 
@@ -222,6 +277,12 @@ class WebhookHandler(BaseHTTPRequestHandler):
         state_name = state.get("name", "?") if isinstance(state, dict) else "?"
 
         log(f"EVENT: {action} {identifier} '{title}' → {state_name}")
+
+        # [P1.6] 상태전이를 KB 로 머신 인제스트 (FLOWOPS_LLM_INGEST opt-in, 비차단 스레드 1회)
+        if action in ("create", "update") and state_name != "?":
+            threading.Thread(
+                target=ingest_to_llm, args=(data, identifier, state_name), daemon=True
+            ).start()
 
         # 상태별 트리거 (DayQueued / NightQueued / Queued 모두 처리)
         if state_name in ("DayQueued", "NightQueued", "Queued") and action in ("update", "create"):

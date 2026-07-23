@@ -78,6 +78,7 @@ version: ...       # 선택
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
 | [pages/delivery/console.md](pages/delivery/console.md) | 딜리버리 콘솔 (인게이지먼트 설계·실행·추적, 메인 플로우) | current |
+| [pages/admin/intake.md](pages/admin/intake.md) | 인테이크 검토 콘솔 (외부 서비스 수주 인테이크 검수·승인·반려) | implemented |
 | [pages/admin/ops.md](pages/admin/ops.md) | Superadmin 운영 패널 (컨테이너/env/테이블 관리, CE-305) | implemented |
 
 > 개별 페이지 스펙(landing/auth/delivery/guide/projects/onboarding/admin/settings)은 [pages/README.md](pages/README.md) 참조. (구 solutions/download 스펙은 딜리버리 전환으로 제거됨)
