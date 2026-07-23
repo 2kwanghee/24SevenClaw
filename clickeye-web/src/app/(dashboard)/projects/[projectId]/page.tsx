@@ -27,6 +27,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { BentoCard } from "@/components/ui/bento";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { ResetProjectDialog } from "@/components/projects/reset-project-dialog";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -141,7 +142,7 @@ export default function ProjectDetailPage() {
 
       {isEditing ? (
         /* 수정 모드 */
-        <div className="mx-auto max-w-lg rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <BentoCard className="mx-auto max-w-lg">
 
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">{tD("editTitle")}</h2>
@@ -184,11 +185,11 @@ export default function ProjectDetailPage() {
               );
             }}
           />
-        </div>
+        </BentoCard>
       ) : (
         /* 상세 보기 */
         <>
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <BentoCard>
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3">
@@ -257,7 +258,7 @@ export default function ProjectDetailPage() {
               {tD("statusMeta", { status: isActive ? tD("statusActive") : tD("statusArchived") })}
             </div>
           </div>
-        </div>
+        </BentoCard>
 
         {/* Linear 연동 프리플라이트 카드 */}
         <LinearPreflightCard
@@ -268,7 +269,7 @@ export default function ProjectDetailPage() {
         />
 
         {/* 위험 구역 */}
-        <div className="mt-6 rounded-2xl border border-red-200 bg-[var(--bg-surface)] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <BentoCard className="mt-6 border-red-200">
           <h2 className="mb-1 text-base font-semibold text-red-700">{tD("dangerZoneTitle")}</h2>
           <p className="mb-5 text-xs text-[var(--text-muted)]">{tD("dangerZoneDesc")}</p>
 
@@ -321,7 +322,7 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
-        </div>
+        </BentoCard>
         </>
       )}
 

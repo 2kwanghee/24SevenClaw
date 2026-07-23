@@ -23,6 +23,7 @@ import {
 } from "@/hooks/use-ops";
 import type { OpsTableColumn } from "@/lib/api-client";
 import { ConfirmByTypingDialog } from "@/components/common/confirm-by-typing-dialog";
+import { BentoCard } from "@/components/ui/bento";
 
 interface TableCrudProps {
   tableKey: string;
@@ -253,7 +254,7 @@ export function TableCrud({ tableKey }: TableCrudProps) {
           {t("noRows")}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)]">
+        <BentoCard className="block overflow-x-auto p-0">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -319,7 +320,7 @@ export function TableCrud({ tableKey }: TableCrudProps) {
               })}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       {/* 페이지네이션 */}

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { useOpsContainers, useOpsPorts } from "@/hooks/use-ops";
 import type { OpsContainer, OpsPort } from "@/lib/api-client";
+import { BentoCard } from "@/components/ui/bento";
 
 function stateTone(state: string): string {
   const s = state.toLowerCase();
@@ -99,7 +100,7 @@ export function ContainersTable() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </BentoCard>
         )}
       </section>
 
@@ -121,7 +122,7 @@ export function ContainersTable() {
         ) : (ports.data ?? []).length === 0 ? (
           <EmptyRow message={t("empty")} />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)]">
+          <BentoCard className="block overflow-x-auto p-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -165,7 +166,7 @@ export function ContainersTable() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </BentoCard>
         )}
       </section>
     </div>

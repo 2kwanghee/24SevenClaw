@@ -4,12 +4,12 @@ import { Suspense, useCallback, useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   ScrollText,
-  Search,
   ChevronLeft,
   ChevronRight,
   Filter,
 } from "lucide-react";
 
+import { BentoCard } from "@/components/ui/bento";
 import { RoleGuard } from "@/components/common/role-guard";
 import { useAuditLog } from "@/hooks/use-rbac";
 import type { AuditLogResponse } from "@/lib/api-client";
@@ -119,8 +119,8 @@ function AuditContent() {
       {/* 헤더 */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-            <ScrollText className="h-5 w-5 text-[var(--text-secondary)]" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)]">
+            <ScrollText className="h-5 w-5 text-[var(--accent)]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">감사 로그</h1>
@@ -208,7 +208,7 @@ function AuditContent() {
 
       {/* 테이블 */}
       {logs && (
-        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <BentoCard className="overflow-x-auto p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -238,7 +238,7 @@ function AuditContent() {
               ))}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       {/* 빈 상태 */}

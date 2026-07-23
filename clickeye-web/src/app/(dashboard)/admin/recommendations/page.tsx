@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { BarChart3, AlertCircle, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+import { BentoCard, BentoGrid } from "@/components/ui/bento";
 import { RoleGuard } from "@/components/common/role-guard";
 import { adminPMRecommendations, type PMRecommendationLogResponse } from "@/lib/api-client";
 
@@ -120,8 +121,8 @@ function RecommendationsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-            <BarChart3 className="h-5 w-5 text-[var(--text-secondary)]" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-soft)]">
+            <BarChart3 className="h-5 w-5 text-[var(--accent)]" />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-[var(--text-primary)]">PM 추천 로그</h1>
@@ -140,22 +141,19 @@ function RecommendationsPage() {
 
       {/* 요약 카드 */}
       {data && (
-        <div className="grid grid-cols-3 gap-4">
+        <BentoGrid className="lg:grid-cols-4">
           {[
             { label: "전체 추천", value: data.total, color: "text-[var(--text-primary)]" },
             { label: "Claude 기반", value: claudeCount, color: "text-[var(--text-secondary)]" },
             { label: "Fallback", value: fallbackCount, color: "text-amber-700" },
             { label: "평균 레이턴시", value: `${avgLatency}ms`, color: "text-[var(--text-secondary)]" },
           ].map((card) => (
-            <div
-              key={card.label}
-              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4"
-            >
+            <BentoCard key={card.label} className="p-4">
               <p className="text-xs text-[var(--text-muted)]">{card.label}</p>
               <p className={`mt-1 text-xl font-semibold ${card.color}`}>{card.value}</p>
-            </div>
+            </BentoCard>
           ))}
-        </div>
+        </BentoGrid>
       )}
 
       {/* 필터 */}
@@ -191,7 +189,7 @@ function RecommendationsPage() {
       )}
 
       {data && (
-        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
+        <BentoCard className="overflow-hidden p-0">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)]">
@@ -216,7 +214,7 @@ function RecommendationsPage() {
               )}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
     </div>
   );

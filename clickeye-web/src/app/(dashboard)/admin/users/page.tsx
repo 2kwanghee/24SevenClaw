@@ -5,6 +5,7 @@ import { Users, ChevronDown, Ban, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { BentoCard } from "@/components/ui/bento";
 import { RoleGuard } from "@/components/common/role-guard";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { ConfirmByTypingDialog } from "@/components/common/confirm-by-typing-dialog";
@@ -259,8 +260,8 @@ function UsersContent() {
     <div>
       {/* 헤더 */}
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-hover)]">
-          <Users className="h-5 w-5 text-[var(--text-secondary)]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)]">
+          <Users className="h-5 w-5 text-[var(--accent)]" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">사용자 관리</h1>
@@ -292,7 +293,7 @@ function UsersContent() {
       {/* 테이블 */}
       {users && (
         <>
-          <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+          <BentoCard className="overflow-hidden p-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -326,7 +327,7 @@ function UsersContent() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </BentoCard>
 
           <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
             총 {users.length}명

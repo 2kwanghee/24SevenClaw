@@ -17,6 +17,7 @@ import {
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
+import { BentoCard } from "@/components/ui/bento";
 import { RoleGuard } from "@/components/common/role-guard";
 import { OverrideEditor } from "@/components/contracts/override-editor";
 import { TYPE_COLORS, TYPE_LABELS } from "@/components/contracts/contract-viewer";
@@ -55,7 +56,7 @@ function OverrideCard({
     : "로딩 중...";
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <BentoCard className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span
@@ -126,7 +127,7 @@ function OverrideCard({
       <div className="mt-2 text-[10px] text-[var(--text-muted)]">
         수정: {new Date(override.updated_at).toLocaleString("ko-KR")}
       </div>
-    </div>
+    </BentoCard>
   );
 }
 
