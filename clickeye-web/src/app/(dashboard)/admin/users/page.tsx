@@ -1,12 +1,15 @@
 "use client";
 
 import { Suspense, useRef, useState } from "react";
-import { Shield, Users, ChevronDown } from "lucide-react";
+import { Users, ChevronDown, Ban, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { RoleGuard } from "@/components/common/role-guard";
-import { useAdminUsers, useUpdateUserRole } from "@/hooks/use-rbac";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { ConfirmByTypingDialog } from "@/components/common/confirm-by-typing-dialog";
+import { useAdminUsers, useUpdateUserRole, useDeleteUser } from "@/hooks/use-rbac";
+import { useMe } from "@/hooks/use-me";
 import type { SystemRole, UserAdminResponse } from "@/lib/api-client";
 
 const ROLE_LABELS: Record<SystemRole, string> = {
@@ -117,7 +120,21 @@ function RoleSelect({ userId, currentRole }: RoleSelectProps) {
   );
 }
 
-function UserRow({ user }: { user: UserAdminResponse }) {
+interface UserRowProps {
+  user: UserAdminResponse;
+  isSelf: boolean;
+  isSuperadmin: boolean;
+  onDeactivate: (user: UserAdminResponse) => void;
+  onHardDelete: (user: UserAdminResponse) => void;
+}
+
+function UserRow({
+  user,
+  isSelf,
+  isSuperadmin,
+  onDeactivate,
+  onHardDelete,
+}: UserRowProps) {
   const initials = user.display_name
     ? user.display_name.charAt(0).toUpperCase()
     : "U";
@@ -154,8 +171,37 @@ function UserRow({ user }: { user: UserAdminResponse }) {
       <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
         {new Date(user.created_at).toLocaleDateString("ko-KR")}
       </td>
-      <td className="px-4 py-3 text-right">
-        <RoleSelect userId={user.id} currentRole={user.system_role} />
+      <td className="px-4 py-3">
+        <div className="flex items-center justify-end gap-2">
+          <RoleSelect userId={user.id} currentRole={user.system_role} />
+
+          {/* 비활성화(소프트) — 활성 사용자 & 본인 아님 */}
+          {user.is_active && !isSelf && (
+            <button
+              type="button"
+              onClick={() => onDeactivate(user)}
+              aria-label={`${user.display_name} 비활성화`}
+              title="비활성화"
+              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+            >
+              <Ban className="h-3.5 w-3.5" />
+              비활성화
+            </button>
+          )}
+
+          {/* 삭제(하드) — superadmin 전용, 본인 행에는 노출하지 않음 */}
+          {isSuperadmin && !isSelf && (
+            <button
+              type="button"
+              onClick={() => onHardDelete(user)}
+              aria-label={`${user.display_name} 삭제`}
+              title="삭제 (물리)"
+              className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-[var(--bg-surface)] p-1.5 text-red-600 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -163,6 +209,51 @@ function UserRow({ user }: { user: UserAdminResponse }) {
 
 function UsersContent() {
   const { data: users, isLoading, error } = useAdminUsers();
+  const { data: me } = useMe();
+  const deleteUser = useDeleteUser();
+  const tT = useTranslations("toast.users");
+
+  const isSuperadmin = me?.system_role === "superadmin";
+
+  // 확인 다이얼로그 대상 (소프트: 비활성화 / 하드: 물리 삭제)
+  const [softTarget, setSoftTarget] = useState<UserAdminResponse | null>(null);
+  const [hardTarget, setHardTarget] = useState<UserAdminResponse | null>(null);
+
+  const handleDeactivate = () => {
+    if (!softTarget) return;
+    const name = softTarget.display_name;
+    deleteUser.mutate(
+      { userId: softTarget.id },
+      {
+        onSuccess: () => {
+          toast.success(tT("deactivateSuccess", { name }));
+          setSoftTarget(null);
+        },
+        onError: (err) => {
+          toast.error(err.message || tT("deactivateFail"));
+          setSoftTarget(null);
+        },
+      },
+    );
+  };
+
+  const handleHardDelete = () => {
+    if (!hardTarget) return;
+    const name = hardTarget.display_name;
+    deleteUser.mutate(
+      { userId: hardTarget.id, hard: true },
+      {
+        onSuccess: () => {
+          toast.success(tT("deleteSuccess", { name }));
+          setHardTarget(null);
+        },
+        onError: (err) => {
+          toast.error(err.message || tT("deleteFail"));
+          setHardTarget(null);
+        },
+      },
+    );
+  };
 
   return (
     <div>
@@ -218,13 +309,20 @@ function UsersContent() {
                     가입일
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                    역할 변경
+                    관리
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <UserRow key={user.id} user={user} />
+                  <UserRow
+                    key={user.id}
+                    user={user}
+                    isSelf={user.id === me?.id}
+                    isSuperadmin={isSuperadmin}
+                    onDeactivate={setSoftTarget}
+                    onHardDelete={setHardTarget}
+                  />
                 ))}
               </tbody>
             </table>
@@ -243,6 +341,45 @@ function UsersContent() {
           <p className="text-sm text-[var(--text-muted)]">등록된 사용자가 없습니다</p>
         </div>
       )}
+
+      {/* 비활성화(소프트) 확인 다이얼로그 */}
+      <ConfirmDialog
+        open={softTarget !== null}
+        tone="warning"
+        title="사용자 비활성화"
+        description={
+          <>
+            <strong className="text-[var(--text-secondary)]">
+              {softTarget?.display_name}
+            </strong>{" "}
+            ({softTarget?.email}) 사용자를 비활성화합니다. 계정은 보존되지만 로그인할 수 없게 됩니다.
+          </>
+        }
+        confirmLabel="비활성화"
+        isPending={deleteUser.isPending}
+        onConfirm={handleDeactivate}
+        onCancel={() => setSoftTarget(null)}
+      />
+
+      {/* 삭제(하드) 확인 다이얼로그 — 이메일 재입력 */}
+      <ConfirmByTypingDialog
+        open={hardTarget !== null}
+        title="사용자 영구 삭제"
+        description={
+          <>
+            <strong className="text-[var(--text-secondary)]">
+              {hardTarget?.display_name}
+            </strong>{" "}
+            ({hardTarget?.email}) 사용자를 <strong className="text-red-600">물리적으로 삭제</strong>합니다.
+            이 작업은 되돌릴 수 없습니다.
+          </>
+        }
+        confirmPhrase={hardTarget?.email ?? ""}
+        confirmLabel="영구 삭제"
+        isPending={deleteUser.isPending}
+        onConfirm={handleHardDelete}
+        onCancel={() => setHardTarget(null)}
+      />
     </div>
   );
 }

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Boxes, FlaskConical } from "lucide-react";
+import { toast } from "sonner";
+import { AlertTriangle, Boxes, FlaskConical, Trash2 } from "lucide-react";
 
 import { ConsoleHeader } from "@/components/delivery/console-header";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { DeliveryStepper } from "@/components/delivery/delivery-stepper";
 import { IssueBoard } from "@/components/delivery/issue-board";
 import { ReviewList } from "@/components/delivery/review-list";
@@ -21,7 +23,7 @@ import {
   useSyncLinearStates,
   useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
-import { useProject } from "@/hooks/use-projects";
+import { useProject, useDeleteProject } from "@/hooks/use-projects";
 import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
 import { useGovernancePolicy } from "@/hooks/use-governance";
 import { useProjectOverrides } from "@/hooks/use-contracts";
@@ -67,9 +69,12 @@ function CardShell({
 
 export default function DeliveryEngagementPage() {
   const t = useTranslations("delivery");
+  const router = useRouter();
   const { engagementId } = useParams<{ engagementId: string }>();
   const projectId = engagementId;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const deleteProject = useDeleteProject();
 
   const mock = useMockMode((s) => s.enabled);
 
@@ -160,8 +165,19 @@ export default function DeliveryEngagementPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-4">
-      {/* 목업 데이터 토글 */}
-      <div className="flex items-center justify-end">
+      {/* 목업 데이터 토글 + 프로젝트 삭제 */}
+      <div className="flex items-center justify-end gap-2">
+        {/* 프로젝트 삭제 — 목업 모드에서는 숨김 */}
+        {!mock && project && (
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {t("deleteProject.action")}
+          </button>
+        )}
         <MockModeToggle />
       </div>
 
@@ -333,6 +349,27 @@ export default function DeliveryEngagementPage() {
           </div>
         </div>
       )}
+
+      {/* 프로젝트 삭제 확인 다이얼로그 — 성공 시 목록으로 이동 */}
+      <DeleteProjectDialog
+        projectName={project?.name ?? engagementName}
+        isOpen={deleteOpen}
+        isDeleting={deleteProject.isPending}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          deleteProject.mutate(projectId, {
+            onSuccess: () => {
+              toast.success(t("deleteProject.success"));
+              setDeleteOpen(false);
+              router.push("/delivery");
+            },
+            onError: (err) => {
+              toast.error(err.message || t("deleteProject.fail"));
+              setDeleteOpen(false);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

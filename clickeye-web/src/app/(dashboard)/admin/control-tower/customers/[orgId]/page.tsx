@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import {
   Building2,
   ChevronLeft,
@@ -12,12 +13,16 @@ import {
   Pause,
   Play,
   Archive,
+  Trash2,
 } from "lucide-react";
 import {
+  apiClient,
   controlTower,
   type CustomerDetail,
   type CtProjectOverview,
 } from "@/lib/api-client";
+import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
+import { useMe } from "@/hooks/use-me";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "운영 중",
@@ -34,7 +39,10 @@ const STATUS_COLOR: Record<string, string> = {
 export default function CustomerDetailPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const { data: session } = useSession();
+  const { data: me } = useMe();
   const router = useRouter();
+
+  const isSuperadmin = me?.system_role === "superadmin";
 
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [projects, setProjects] = useState<CtProjectOverview[]>([]);
@@ -42,6 +50,25 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [featureLoading, setFeatureLoading] = useState(false);
+  // 프로젝트 삭제 (superadmin 전용)
+  const [deleteTarget, setDeleteTarget] = useState<CtProjectOverview | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteProject() {
+    if (!session?.accessToken || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      await apiClient.projects.delete(session.accessToken as string, deleteTarget.id);
+      toast.success("프로젝트를 삭제했습니다");
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "프로젝트 삭제에 실패했습니다");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function load() {
     if (!session?.accessToken || !orgId) return;
@@ -253,42 +280,67 @@ export default function CustomerDetailPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {projects.map((proj) => (
-              <button
+              <div
                 key={proj.id}
-                onClick={() =>
-                  router.push(`/projects/${proj.id}/ai-team`)
-                }
-                className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4 text-left shadow-sm transition hover:border-[var(--accent)] hover:shadow-md"
+                className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4 shadow-sm transition hover:border-[var(--accent)] hover:shadow-md"
               >
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-[var(--text-primary)]">{proj.name}</span>
-                    <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
-                      {proj.project_type ?? "legacy"}
-                    </span>
-                  </div>
-                  <div className="flex gap-3 text-sm text-[var(--text-muted)]">
-                    <div className="flex items-center gap-1">
-                      <Layers className="h-3.5 w-3.5" />
-                      <span>세션 {proj.session_count}개</span>
+                <button
+                  onClick={() =>
+                    router.push(`/projects/${proj.id}/ai-team`)
+                  }
+                  className="flex flex-1 items-center justify-between text-left"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-[var(--text-primary)]">{proj.name}</span>
+                      <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+                        {proj.project_type ?? "legacy"}
+                      </span>
                     </div>
-                    {proj.active_session_count > 0 && (
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <PlayCircle className="h-3.5 w-3.5" />
-                        <span>진행 중 {proj.active_session_count}건</span>
+                    <div className="flex gap-3 text-sm text-[var(--text-muted)]">
+                      <div className="flex items-center gap-1">
+                        <Layers className="h-3.5 w-3.5" />
+                        <span>세션 {proj.session_count}개</span>
                       </div>
-                    )}
-                    {proj.owner_name && (
-                      <span className="text-[var(--text-muted)]">소유: {proj.owner_name}</span>
-                    )}
+                      {proj.active_session_count > 0 && (
+                        <div className="flex items-center gap-1 text-blue-500">
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          <span>진행 중 {proj.active_session_count}건</span>
+                        </div>
+                      )}
+                      {proj.owner_name && (
+                        <span className="text-[var(--text-muted)]">소유: {proj.owner_name}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <ArrowRight className="h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
-              </button>
+                  <ArrowRight className="h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
+                </button>
+
+                {/* 프로젝트 삭제 — superadmin 전용 */}
+                {isSuperadmin && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(proj)}
+                    aria-label={`${proj.name} 삭제`}
+                    className="flex-shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* 프로젝트 삭제 확인 다이얼로그 (superadmin) */}
+      <DeleteProjectDialog
+        projectName={deleteTarget?.name ?? ""}
+        isOpen={deleteTarget !== null}
+        isDeleting={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteProject()}
+      />
     </div>
   );
 }

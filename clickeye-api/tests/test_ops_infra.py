@@ -121,8 +121,14 @@ async def test_ports_success_for_superadmin(
 
 
 @pytest.mark.asyncio
-async def test_flag_off_returns_404(client: AsyncClient, db_session: AsyncSession) -> None:
-    """flag off (기본값) → superadmin 이어도 404 (킬스위치)."""
+async def test_flag_off_returns_404(
+    client: AsyncClient, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """flag off → superadmin 이어도 404 (킬스위치).
+
+    ambient env(.env 의 FEATURE_OPS_PANEL) 오염 방지 — 플래그 off 를 명시적으로 강제.
+    """
+    monkeypatch.setattr(settings, "feature_ops_panel", False)
     headers, uid = await _register_and_login(client, "super3@ops.com")
     await _set_role(db_session, uid, "superadmin")
     resp = await client.get("/api/v1/admin/ops/containers", headers=headers)
