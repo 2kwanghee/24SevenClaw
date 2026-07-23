@@ -209,7 +209,7 @@ export function RegistryListTable({ type }: RegistryListTableProps) {
               ))}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
     </>
   );
