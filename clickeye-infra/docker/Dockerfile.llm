@@ -1,0 +1,43 @@
+# ClickEye LLM 이미지 (지식축적형 sLLM 진행 어시스턴트)
+#
+# 빌드 컨텍스트 = 레포 루트(../../) — 다른 ClickEye 이미지(Dockerfile.api)와 동일한 관례.
+#   clickeye-llm 은 governance editable 의존이 없는 독립 서비스라 레포 레이아웃 미러는 불필요.
+#   컨테이너 안에서는 clickeye-llm 프로젝트만 /app 에 둔다.
+#
+# 멀티스테이지: uv sync(builder) → 런타임 슬림 이미지. non-root 실행.
+
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+RUN pip install uv
+
+# uv 가상환경을 /app/.venv 에 고정 (CMD 의 /app/.venv/bin/... 경로 불변).
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+
+# 1) 의존성 메타만 먼저 복사(레이어 캐시: 소스보다 의존성 우선).
+COPY clickeye-llm/pyproject.toml clickeye-llm/uv.lock ./
+
+# 2) 의존성 설치(프로젝트 자체 제외). 소스 없이도 캐시 가능.
+RUN uv sync --frozen --no-dev --no-install-project
+
+# 3) 앱 소스(자주 바뀌는 레이어는 마지막).
+COPY clickeye-llm/app ./app
+
+# 4) 프로젝트(app) 설치 — 소스가 준비된 뒤 완료.
+RUN uv sync --frozen --no-dev
+
+FROM python:3.12-slim
+
+WORKDIR /app
+RUN useradd -m -r appuser
+
+# venv + 소스 복사(/app/.venv, /app/app, /app/pyproject.toml).
+COPY --from=builder /app /app
+
+USER appuser
+EXPOSE 8100
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]

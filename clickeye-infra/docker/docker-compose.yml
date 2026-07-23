@@ -72,6 +72,9 @@ services:
       DEBUG: "true"
       # 관리형 env 파일의 컨테이너 내부 경로(PR-2~ 백엔드가 참조). 배관 단계에서 export.
       MANAGED_ENV_PATH: /app/managed/api.env
+      # clickeye-llm 프록시 대상(profile llm). api·clickeye-llm 이 default 네트워크를
+      #   공유하므로 서비스명으로 해석된다. profile llm 미기동 시 프록시는 503 로 degrade.
+      CLICKEYE_LLM_URL: http://clickeye-llm:8100
     # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드. 빈 배관 파일이 항상
     #   존재하므로 plain string 형식 사용(구버전 compose 호환). 기존 environment: 키는 불변
     #   — 실제 관리대상 키 이관은 PR-3(precedence 회피).
@@ -199,6 +202,64 @@ services:
     profiles:
       - ops
 
+  # ── 지식축적형 sLLM (clickeye-llm P1) ──
+  # 전부 profiles: [llm] 뒤 → 기본 `docker compose up` 에서 미기동(회귀 0).
+  # RAG 스택: qdrant(벡터 DB) + clickeye-llm(FastAPI). LLM/임베딩은 호스트 ollama(스위처블).
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: clickeye-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrantdata:/qdrant/storage
+    healthcheck:
+      # qdrant 이미지에 curl/wget 이 없어 bash /dev/tcp 로 REST 포트 오픈만 확인.
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    profiles:
+      - llm
+
+  clickeye-llm:
+    build:
+      # 다른 이미지와 동일하게 컨텍스트 = 레포 루트(../../).
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.llm
+    container_name: clickeye-llm
+    ports:
+      - "8100:8100"
+    environment:
+      # ★모델 스위처블★ — 코드 변경 없이 env 로만 백엔드 교체.
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LLM_MODEL: phi3:mini
+      EMBED_MODEL: nomic-embed-text
+      QDRANT_URL: http://qdrant:6333
+      LOG_LEVEL: INFO
+    # WSL/Linux 에서 컨테이너 → 호스트 ollama(11434) 접근용.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 챔피언 프롬프트 스왑 반영(P2-full): 호스트 prompts/ → 컨테이너 /app/prompts
+    #   (Dockerfile.llm WORKDIR=/app, rag_prompt_path 상대 해석). 배치가 호스트에서
+    #   파일 스왑 → mtime 캐시로 재기동 없이 반영.
+    volumes:
+      - ../../clickeye-llm/prompts:/app/prompts
+    depends_on:
+      # qdrant healthcheck 결합을 피해 service_started 로 완만히 대기(기동 순서만 보장).
+      qdrant:
+        condition: service_started
+    healthcheck:
+      # 슬림 이미지에 curl 이 없어 python urllib 로 /health 확인(Dockerfile HEALTHCHECK 와 동일 방식).
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - llm
+
 networks:
   # 운영 패널 전용 내부망(CE-305): dockerproxy 는 여기에만 접속(호스트/외부 미노출).
   #   internal: true → 외부 게이트웨이 없음(소켓 프록시 격리). api 는 default+ops-net 겸용.
@@ -208,3 +269,4 @@ networks:
 volumes:
   pgdata:
   redisdata:
+  qdrantdata:

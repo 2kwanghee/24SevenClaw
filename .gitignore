@@ -12,6 +12,8 @@ node_modules/
 .ralph/.iteration_count
 .ralph/.pipeline_result.json
 .ralph/.task_list.tmp
+# llm-prompt-evolve 배치 후보(전이 산출물 — 챔피언/ledger 만 추적)
+clickeye-llm/prompts/candidates/
 .worktrees/
 logs/
 .env
