@@ -1,7 +1,7 @@
 ---
 title: Linear 실시간 연동 가이드 (딜리버리 콘솔)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-07-22
 related:
   - scripts/linear_watcher.py
