@@ -12,6 +12,7 @@ import {
   useUpdatePrototypeTag,
   useDeletePrototypeTag,
 } from "@/hooks/use-prototype-catalog-admin";
+import { BentoCard } from "@/components/ui/bento";
 
 type TagFormState = {
   slug: string;
@@ -140,7 +141,7 @@ export function PrototypeTagsTable() {
       {isLoading && <div className="py-12 text-center text-xs text-[var(--text-muted)]">로딩 중...</div>}
       {error && <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-700"><AlertCircle size={14} />{error.message}</div>}
       {!isLoading && !error && (
-        <div className="rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+        <BentoCard className="block overflow-hidden p-0">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -194,7 +195,7 @@ export function PrototypeTagsTable() {
               ))}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
       <TagEditorDrawer tag={editTag} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import type { PrototypeCatalogEntry } from "@/lib/api-client";
 import { useCatalogEntries, useDeleteCatalogEntry } from "@/hooks/use-prototype-catalog-admin";
+import { BentoCard } from "@/components/ui/bento";
 import { PrototypeCatalogEditorDrawer } from "./prototype-catalog-editor-drawer";
 
 export function PrototypeCatalogTable() {
@@ -71,7 +72,7 @@ export function PrototypeCatalogTable() {
       )}
 
       {!isLoading && !error && (
-        <div className="rounded-xl border border-[var(--border-subtle)] overflow-hidden">
+        <BentoCard className="block overflow-hidden p-0">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-hover)]">
@@ -165,7 +166,7 @@ export function PrototypeCatalogTable() {
               )}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       <PrototypeCatalogEditorDrawer

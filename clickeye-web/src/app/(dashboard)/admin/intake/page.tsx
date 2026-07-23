@@ -684,7 +684,7 @@ function ServiceKeysSection() {
               )}
             </tbody>
           </table>
-        </div>
+        </BentoCard>
       )}
 
       {/* 발급된 평문 키 1회 표시 모달 — 명시적 확인으로만 닫힘 */}
@@ -721,7 +721,7 @@ function ServiceKeysSection() {
               setCreatedKey(null);
               setCopied(false);
             }}
-            className="mt-5 w-full rounded-xl bg-[var(--text-primary)] py-2.5 text-sm font-medium text-[var(--bg-surface)] transition-all hover:opacity-90"
+            className="mt-5 w-full rounded-xl bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--accent-fg)] transition-all hover:bg-[var(--accent-hover)]"
           >
             {t("done")}
           </button>

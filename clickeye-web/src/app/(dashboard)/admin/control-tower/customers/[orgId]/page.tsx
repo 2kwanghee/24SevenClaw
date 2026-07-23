@@ -21,6 +21,7 @@ import {
   type CustomerDetail,
   type CtProjectOverview,
 } from "@/lib/api-client";
+import { BentoCard } from "@/components/ui/bento";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { useMe } from "@/hooks/use-me";
 
@@ -157,7 +158,7 @@ export default function CustomerDetailPage() {
       </div>
 
       {/* 고객사 정보 카드 */}
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm">
+      <BentoCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
             <Building2 className="h-7 w-7 text-[var(--accent)]" />
@@ -227,10 +228,10 @@ export default function CustomerDetailPage() {
             <span>담당 PM: {customer.account_manager_name}</span>
           )}
         </div>
-      </div>
+      </BentoCard>
 
       {/* 기능 플래그 */}
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 shadow-sm">
+      <BentoCard>
         <h2 className="mb-4 text-base font-semibold text-[var(--text-primary)]">기능 설정</h2>
         <div className="flex items-center justify-between">
           <div>
@@ -264,7 +265,7 @@ export default function CustomerDetailPage() {
             />
           </button>
         </div>
-      </div>
+      </BentoCard>
 
       {/* 프로젝트 목록 */}
       <div>

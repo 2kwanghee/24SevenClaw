@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Building2, Users, Layers, Search, RefreshCw } from "lucide-react";
+import { BentoCard, BentoGrid } from "@/components/ui/bento";
 import { controlTower, type CustomerSummary } from "@/lib/api-client";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -97,23 +98,23 @@ export default function ControlTowerPage() {
 
       {/* 고객사 카드 그리드 */}
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <BentoGrid>
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-xl bg-[var(--bg-base)]" />
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-[var(--bg-base)]" />
           ))}
-        </div>
+        </BentoGrid>
       ) : customers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--border-subtle)] py-16 text-[var(--text-muted)]">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[var(--border-subtle)] py-16 text-[var(--text-muted)]">
           <Building2 className="h-10 w-10" />
           <p className="text-sm">고객사가 없습니다</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <BentoGrid>
           {customers.map((c) => (
-            <button
+            <BentoCard
               key={c.id}
               onClick={() => router.push(`/admin/control-tower/customers/${c.id}`)}
-              className="flex flex-col gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 text-left shadow-sm transition hover:border-[var(--accent)] hover:shadow-md"
+              className="gap-4 p-5 hover:border-[var(--accent)]"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -147,9 +148,9 @@ export default function ControlTowerPage() {
                   담당: {c.account_manager_name}
                 </p>
               )}
-            </button>
+            </BentoCard>
           ))}
-        </div>
+        </BentoGrid>
       )}
     </div>
   );
