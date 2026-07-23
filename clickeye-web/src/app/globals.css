@@ -50,10 +50,10 @@
   --border-subtle: #e4e4e7;
   --border-medium: #d4d4d8;
 
-  /* Nav */
-  --nav-active-bg: #f4f4f5;
+  /* Nav — 활성 상태는 accent 로 통일 (배경 accent-soft, 아이콘 accent) */
+  --nav-active-bg: var(--accent-soft);
   --nav-active-text: #09090b;
-  --nav-active-icon: #09090b;
+  --nav-active-icon: var(--accent);
 
   /* Accent (ink) */
   --accent-bg: #f4f4f5;
@@ -63,8 +63,9 @@
   --logo-bg: #18181b;
   --logo-text: #fafafa;
 
-  /* Brand accent — deep cyan (정의만; 화면 교체는 단계 2) */
+  /* Brand accent — teal/deep-cyan (강조 SSOT, 라이트) */
   --accent: #0e7490;
+  --accent-hover: #0c6579;
   --accent-soft: #d7eef2;
   --accent-fg: #ffffff;
 }
@@ -94,10 +95,10 @@
   --border-subtle: #22333a;
   --border-medium: #2f444c;
 
-  /* Nav */
-  --nav-active-bg: #1b292d;
+  /* Nav — 활성 상태 accent 통일 */
+  --nav-active-bg: var(--accent-soft);
   --nav-active-text: #e8eef0;
-  --nav-active-icon: #e8eef0;
+  --nav-active-icon: var(--accent);
 
   /* Accent (ink) */
   --accent-bg: #1b292d;
@@ -107,8 +108,9 @@
   --logo-bg: #e8eef0;
   --logo-text: #0b1416;
 
-  /* Brand accent — deep cyan (dark) */
+  /* Brand accent — teal/deep-cyan (강조 SSOT, 다크) */
   --accent: #22b8cf;
+  --accent-hover: #38c9de;
   --accent-soft: #0c2a30;
   --accent-fg: #06171b;
 }

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { FolderKanban, Calendar, ArrowUpRight, Cpu, ThumbsUp, FileCheck, AlertTriangle } from "lucide-react";
 
 import type { ProjectResponse } from "@/lib/api-client";
+import { BentoCard } from "@/components/ui/bento";
 
 export interface ProjectKpiSummary {
   automationRate: number;
@@ -27,10 +27,7 @@ export function ProjectCard({ project, kpi }: ProjectCardProps) {
   });
 
   return (
-    <Link
-      href={`/projects/${project.id}`}
-      className="group relative rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 transition-all hover:border-zinc-300 hover:bg-[var(--bg-hover)] hover:shadow-lg"
-    >
+    <BentoCard href={`/projects/${project.id}`} aria-label={project.name}>
       {/* 호버 시 화살표 */}
       <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-[var(--text-muted)] opacity-0 transition-all group-hover:text-[var(--text-secondary)] group-hover:opacity-100" />
 
@@ -101,6 +98,6 @@ export function ProjectCard({ project, kpi }: ProjectCardProps) {
           </div>
         )}
       </div>
-    </Link>
+    </BentoCard>
   );
 }
