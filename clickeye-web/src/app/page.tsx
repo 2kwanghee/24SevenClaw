@@ -13,6 +13,7 @@ import {
   Server,
   GitBranch,
 } from "lucide-react";
+import { BentoGrid, BentoCard } from "@/components/ui/bento";
 
 /* -- 딜리버리 보드 시그니처 데이터 (예시) -- */
 
@@ -351,12 +352,9 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <BentoGrid className="mt-14">
             {capabilities.map((cap) => (
-              <div
-                key={cap.key}
-                className="group rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 transition-colors hover:border-[var(--border-medium)]"
-              >
+              <BentoCard key={cap.key}>
                 <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--accent-soft)]">
                   <cap.icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
                 </div>
@@ -366,9 +364,9 @@ export default function Home() {
                 <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
                   {t(`capabilities.${cap.key}.desc`)}
                 </p>
-              </div>
+              </BentoCard>
             ))}
-          </div>
+          </BentoGrid>
         </div>
       </section>
 

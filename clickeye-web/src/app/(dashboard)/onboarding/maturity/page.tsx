@@ -11,6 +11,7 @@ import {
 } from "@/hooks/use-maturity-assessment";
 import { MaturityQuestionnaire } from "@/components/onboarding/maturity-questionnaire";
 import { MaturityResult } from "@/components/onboarding/maturity-result";
+import { BentoCard } from "@/components/ui/bento";
 import type { MaturityAssessmentResponse } from "@/lib/api-client";
 
 export default function MaturityAssessmentPage() {
@@ -28,7 +29,7 @@ export default function MaturityAssessmentPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-700" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
         <span className="ml-2 text-sm text-[var(--text-muted)]">{t("loadingQuestions")}</span>
       </div>
     );
@@ -40,7 +41,7 @@ export default function MaturityAssessmentPage() {
       {!result && (
         <div className="mb-8">
           <div className="mb-1 flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-zinc-700" />
+            <ClipboardList className="h-5 w-5 text-[var(--accent)]" />
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">{t("title")}</h1>
           </div>
           <p className="text-sm text-[var(--text-muted)]">{t("subtitle")}</p>
@@ -70,16 +71,16 @@ export default function MaturityAssessmentPage() {
           isSubmitting={submitMutation.isPending}
         />
       ) : (
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-12 text-center">
+          <BentoCard className="items-center py-12 text-center">
           <p className="text-sm text-[var(--text-muted)]">{t("questionsError")}</p>
           <button
             type="button"
             onClick={() => router.push("/delivery")}
-            className="mt-4 text-sm text-zinc-700 hover:text-[var(--text-primary)]"
+            className="mt-4 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]"
           >
             {t("goToWizard")}
           </button>
-        </div>
+        </BentoCard>
       )}
     </div>
   );
