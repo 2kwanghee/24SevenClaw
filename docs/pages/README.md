@@ -2,11 +2,12 @@
 title: 페이지 스펙 기반 개발 파이프라인 (인덱스)
 category: page
 status: current
-last_updated: 2026-07-22
+last_updated: 2026-07-23
 related:
   - clickeye-web/src/app
   - docs/pages/_template.md
   - docs/pages/admin/ops.md
+  - docs/pages/admin/intake.md
 ---
 
 # 페이지 스펙 기반 개발 파이프라인
@@ -51,6 +52,7 @@ docs/pages/
 │   ├── users.md                    → /admin/users
 │   ├── contracts-list.md           → /admin/contracts
 │   ├── contracts-detail.md         → /admin/contracts/[id]
+│   ├── intake.md                   → /admin/intake
 │   ├── audit.md                    → /admin/audit
 │   ├── pm-management.md            → /admin/pm (+[id], /composition)
 │   ├── registry.md                 → /admin/registry (agents/skills/mcps/hooks/prototype-catalog/prototype-tags)
