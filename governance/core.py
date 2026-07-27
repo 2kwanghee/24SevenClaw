@@ -20,71 +20,62 @@
 from __future__ import annotations
 
 import os
-import re
 import subprocess
 
-# ── 토글 ───────────────────────────────────────────────────────────────────
-_FALSEY = {"false", "0", "off", "no"}
-
-
-def is_enabled(key: str) -> bool:
-    """pipeline_config.sh 의 is_enabled 과 동일 의미. 미설정/빈값은 on."""
-    val = os.environ.get(key, "")
-    if val == "":
-        return True
-    return val.strip().lower() not in _FALSEY
-
-
-# ⚠️ is_opt_in 은 is_enabled 와 **의도적으로 반대(divergence)** 다.
-#   is_enabled  → 미설정/빈값 = True  (기존 게이트 항목은 기본 on)
-#   is_opt_in   → 미설정/그 외 = False, 명시적 opt-in 값만 True (신규 트리아지는 기본 off)
-# 트리아지 토글에는 반드시 is_opt_in 을 써야 회귀 0(기본 off)이 보장된다. 실수로
-# is_enabled 를 쓰면 기본 on 이 되어 오늘의 ON dict 를 오염(신규 키 유입)시킨다.
-_TRUTHY = {"1", "true", "on", "yes"}
-
-
-def is_opt_in(key: str) -> bool:
-    """명시적 opt-in 값(1/true/on/yes, 소문자)만 True. 미설정/그 외는 False."""
-    return os.environ.get(key, "").strip().lower() in _TRUTHY
-
-
-def _env_float(key: str, default: float) -> float:
-    """FLOWOPS_GOVERNANCE_* float 임계값 읽기. 미설정/파싱불가면 default(결정적)."""
-    raw = os.environ.get(key, "").strip()
-    if not raw:
-        return default
-    try:
-        return float(raw)
-    except ValueError:
-        return default
-
-
-# ── 정책 상수 ──────────────────────────────────────────────────────────────
-# API 계약면: 여기가 바뀌면 OpenAPI 스펙이 따라 갱신되어야 한다.
-CONTRACT_SURFACE_PREFIXES = (
-    "clickeye-api/app/api/",
-    "clickeye-api/app/schemas/",
-    "clickeye-api/app/models/",
-    "clickeye-api/app/ws/",
-)
-OPENAPI_SPEC = "clickeye-contracts/openapi/openapi.json"
-GENERATED_CLIENT_PREFIX = "clickeye-contracts/generated/"
-CONTRACTS_PREFIX = "clickeye-contracts/"
-
-# 위험(HIGH) 경로 — 변경 시 직접머지 금지, PR 경로로 강등.
-HIGH_PREFIXES = (
-    "clickeye-contracts/",
-    "clickeye-infra/",
-)
-HIGH_PATH_PATTERNS = (
-    re.compile(r"auth", re.IGNORECASE),
-    re.compile(r"(secur|secret|crypto|password|token|rbac|permission|credential)", re.IGNORECASE),
+from governance.policy import (
+    TRIAGE_THRESHOLD_DEFAULTS,
+    Policy,
+    PolicyError,
+    is_enabled,
+    is_opt_in,
 )
 
-ISSUE_KEY_RE = re.compile(r"^[A-Z0-9]+-\d+$")
-# 브랜치 문자열 어디서든 Linear 이슈 키를 탐색(대문자/숫자 세그먼트-숫자).
-# lowercase 세그먼트(web/api 등)는 매치하지 않고, 24S-142 처럼 숫자로 시작하는 키도 매치.
-ISSUE_KEY_SEARCH_RE = re.compile(r"[A-Z0-9]+-\d+")
+# ── 하위호환 재노출 ─────────────────────────────────────────────────────────
+# 토글 리더(is_enabled/is_opt_in)와 정책 상수의 **정의는 governance.policy 로 이전**했다.
+# 여기서는 기존 심볼 계약을 보존하기 위해 재노출만 한다:
+#   - `from governance.core import is_enabled, HIGH_PREFIXES, ...` (pre_merge_gate.py)
+#   - `from governance.core import *`                              (동 파일 레거시 경로)
+#
+# ⚠️ 판정 로직은 이 상수들을 **더 이상 읽지 않는다.** 각 check 함수는 주입된 `Policy`
+#    인스턴스를 읽는다. 여기 값을 바꿔도 판정은 바뀌지 않으므로, 기본 정책을 수정하려면
+#    governance/policy.py 의 DEFAULT_* 를 고쳐야 한다.
+_DEFAULTS = Policy.default()
+
+CONTRACT_SURFACE_PREFIXES = _DEFAULTS.contract_surface_prefixes
+OPENAPI_SPEC = _DEFAULTS.openapi_spec
+GENERATED_CLIENT_PREFIX = _DEFAULTS.generated_client_prefix
+CONTRACTS_PREFIX = _DEFAULTS.contracts_prefix
+HIGH_PREFIXES = _DEFAULTS.high_prefixes
+HIGH_PATH_PATTERNS = _DEFAULTS.high_path_patterns
+ISSUE_KEY_RE = _DEFAULTS.issue_key_re
+ISSUE_KEY_SEARCH_RE = _DEFAULTS.issue_key_search_re
+
+__all__ = [
+    "CONTRACTS_PREFIX",
+    "CONTRACT_SURFACE_PREFIXES",
+    "GENERATED_CLIENT_PREFIX",
+    "HIGH_PATH_PATTERNS",
+    "HIGH_PREFIXES",
+    "ISSUE_KEY_RE",
+    "ISSUE_KEY_SEARCH_RE",
+    "OPENAPI_SPEC",
+    "Policy",
+    "PolicyError",
+    "assess_budget",
+    "assess_rate",
+    "check_contract_drift",
+    "check_plan_trace",
+    "check_ticket_ref",
+    "classify_risk",
+    "compute_risk_score",
+    "evaluate",
+    "extract_issue_key",
+    "get_changed_files",
+    "is_enabled",
+    "is_opt_in",
+    "policy_summary",
+    "triage_band",
+]
 
 
 # ── diff 수집 ──────────────────────────────────────────────────────────────
@@ -105,35 +96,39 @@ def get_changed_files(base: str, head: str, *, project_dir: str) -> list[str]:
     return []
 
 
-def extract_issue_key(head: str) -> str | None:
-    """브랜치에서 Linear 이슈 키(대문자/숫자-숫자)를 탐색.
+def extract_issue_key(head: str, *, policy: Policy | None = None) -> str | None:
+    """브랜치에서 이슈 키를 탐색. 탐색 정규식은 정책(`issue_key_search`)이 정한다.
 
     ralph/CE-123·feature/web/CE-302-desc → CE-302. 슬래시 없으면 None(skip).
     슬래시는 있으나 키가 없으면 마지막 세그먼트를 반환(형식 불량으로 차단됨).
     """
+    pol = policy or Policy.default()
     if "/" not in head:
         return None
-    m = ISSUE_KEY_SEARCH_RE.search(head)
+    m = pol.issue_key_search_re.search(head)
     if m:
         return m.group(0)
     return head.rsplit("/", 1)[-1].strip() or None
 
 
 # ── 검증기 ─────────────────────────────────────────────────────────────────
-def check_contract_drift(files: list[str]) -> dict:
+# 각 검증기는 `policy` 키워드를 받는다. 미지정 시 `Policy.default()`(=오늘의 ClickEye 정책,
+# 토글은 env 재독)로 동작하므로 기존 호출부(`check_contract_drift(files)`)는 그대로 유효하다.
+def check_contract_drift(files: list[str], *, policy: Policy | None = None) -> dict:
     """API 계약면 변경 ↔ openapi.json/generated client 동반 여부."""
-    if not is_enabled("FLOWOPS_GOVERNANCE_CONTRACT"):
+    pol = policy or Policy.default()
+    if not pol.enabled("FLOWOPS_GOVERNANCE_CONTRACT"):
         return {"status": "skip", "detail": "FLOWOPS_GOVERNANCE_CONTRACT=off"}
 
-    spec_touched = OPENAPI_SPEC in files
-    generated_touched = any(f.startswith(GENERATED_CLIENT_PREFIX) for f in files)
-    surface_changed = [f for f in files if f.startswith(CONTRACT_SURFACE_PREFIXES)]
+    spec_touched = pol.openapi_spec in files
+    generated_touched = any(f.startswith(pol.generated_client_prefix) for f in files)
+    surface_changed = [f for f in files if f.startswith(pol.contract_surface_prefixes)]
     contracts_changed = [
         f
         for f in files
-        if f.startswith(CONTRACTS_PREFIX)
-        and f != OPENAPI_SPEC
-        and not f.startswith(GENERATED_CLIENT_PREFIX)
+        if f.startswith(pol.contracts_prefix)
+        and f != pol.openapi_spec
+        and not f.startswith(pol.generated_client_prefix)
     ]
 
     # API 계약면이 바뀌었는데 스펙이 안 따라옴 → drift
@@ -159,16 +154,22 @@ def check_contract_drift(files: list[str]) -> dict:
     return {"status": "pass", "detail": "계약면 변경 없음"}
 
 
-def check_ticket_ref(issue_key: str | None) -> dict:
-    """브랜치에서 추출한 이슈 키의 형태 검증. 키 없으면 skip(pass)."""
-    if not is_enabled("FLOWOPS_GOVERNANCE_TICKET"):
+def check_ticket_ref(issue_key: str | None, *, policy: Policy | None = None) -> dict:
+    """브랜치에서 추출한 이슈 키의 형태 검증. 키 없으면 skip(pass).
+
+    기대 형태는 정책(`issue_key_shape`)이 정한다 — 프로젝트마다 다르다. 기본값
+    `^[A-Z0-9]+-\\d+$` 는 Linear 키(CE-313·24S-142)용이며, 예컨대 `TASK-GATE-001` 같은
+    3세그먼트 키를 쓰는 프로젝트는 자기 shape 를 프로파일에 지정해야 한다.
+    """
+    pol = policy or Policy.default()
+    if not pol.enabled("FLOWOPS_GOVERNANCE_TICKET"):
         return {"status": "skip", "detail": "FLOWOPS_GOVERNANCE_TICKET=off"}
     if not issue_key:
         return {"status": "skip", "detail": "브랜치에 이슈 키 없음 → skip"}
-    if not ISSUE_KEY_RE.match(issue_key):
+    if not pol.issue_key_re.match(issue_key):
         return {
             "status": "fail",
-            "detail": f"이슈 키 형태 불량: '{issue_key}' (기대 `^[A-Z0-9]+-\\d+$`)",
+            "detail": f"이슈 키 형태 불량: '{issue_key}' (기대 `{pol.issue_key_re.pattern}`)",
         }
     return {"status": "pass", "detail": f"이슈 키 {issue_key}"}
 
@@ -179,6 +180,7 @@ def check_plan_trace(
     *,
     project_dir: str | None = None,
     plan_text: str | None = None,
+    policy: Policy | None = None,
 ) -> dict:
     """정제 스펙/PLAN 존재 시 비자명성·연관성 점검(권고, 비블로킹). 없으면 skip.
 
@@ -186,7 +188,8 @@ def check_plan_trace(
     - `plan_text` 없이 `project_dir` 도 없으면(원격 HTTP, git/.ralph 미접근) skip.
     - `plan_text` 없이 `project_dir` 만 있으면 <project_dir>/.ralph 에서 산출물을 읽는다.
     """
-    if not is_enabled("FLOWOPS_GOVERNANCE_TRACE"):
+    pol = policy or Policy.default()
+    if not pol.enabled("FLOWOPS_GOVERNANCE_TRACE"):
         return {"status": "skip", "detail": "FLOWOPS_GOVERNANCE_TRACE=off"}
 
     detail_source: str | None = None
@@ -231,13 +234,14 @@ def check_plan_trace(
 
 
 # ── 위험분류 ───────────────────────────────────────────────────────────────
-def classify_risk(files: list[str]) -> dict:
+def classify_risk(files: list[str], *, policy: Policy | None = None) -> dict:
+    pol = policy or Policy.default()
     reasons = []
     for f in files:
-        if f.startswith(HIGH_PREFIXES):
+        if f.startswith(pol.high_prefixes):
             reasons.append(f)
             continue
-        for pat in HIGH_PATH_PATTERNS:
+        for pat in pol.high_path_patterns:
             if pat.search(f):
                 reasons.append(f)
                 break
@@ -249,8 +253,13 @@ def classify_risk(files: list[str]) -> dict:
 # 항목 G(P2). 순수·결정적(시각/네트워크 없음). 기본 off(is_opt_in)이며 report-only 는
 # 코어 서브셋 {merge_decision,tier,verdict,failures} 를 절대 바꾸지 않는다(순수 관측).
 # 임계 env 는 전부 FLOWOPS_GOVERNANCE_ 접두 → 테스트 픽스처가 자동 클리어(회귀 격리).
-TRIAGE_SCORE_REVIEW_DEFAULT = 0.40  # risk_score 이 값 이상 → review 밴드
-TRIAGE_SCORE_BLOCK_DEFAULT = 0.80   # risk_score 이 값 이상 → block 밴드
+# 임계 기본값의 정의는 governance.policy.TRIAGE_THRESHOLD_DEFAULTS 로 이전했다(재노출).
+TRIAGE_SCORE_REVIEW_DEFAULT = TRIAGE_THRESHOLD_DEFAULTS[
+    "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW"
+]  # risk_score 이 값 이상 → review 밴드
+TRIAGE_SCORE_BLOCK_DEFAULT = TRIAGE_THRESHOLD_DEFAULTS[
+    "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK"
+]  # risk_score 이 값 이상 → block 밴드
 # risk_score 구성 가중치(포화·결정적). 표면 최소화를 위해 env 노출 없이 상수 고정.
 _RISK_FILE_SCALE = 40.0      # 변경 파일 수 정규화 분모
 _RISK_FILE_CAP = 0.30        # 파일 수 기여 상한
@@ -311,13 +320,14 @@ def compute_risk_score(
     return round(min(score, 1.0), 3), reasons
 
 
-def assess_budget(usage: dict | None) -> dict:
+def assess_budget(usage: dict | None, *, policy: Policy | None = None) -> dict:
     """예산(누적 토큰/비용) 상태. usage 없으면 skip(비블로킹).
 
     usage 계약(FastAPI 가 원장 요약을 float 로 정규화해 주입):
       {"cost": float|None, "tokens": int}
     한도/경고 임계는 env(FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_*). <=0(미설정)이면 해당 축 비활성.
     """
+    pol = policy or Policy.default()
     if not usage:
         return {"status": "skip", "reasons": ["usage 없음 → 예산 skip(비블로킹)"]}
 
@@ -326,10 +336,10 @@ def assess_budget(usage: dict | None) -> dict:
     cost = usage.get("cost")
     tokens = usage.get("tokens")
 
-    cost_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_LIMIT", 0.0)
-    cost_warn = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_WARN", 0.0)
-    token_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_LIMIT", 0.0)
-    token_warn = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_WARN", 0.0)
+    cost_limit = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_LIMIT")
+    cost_warn = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_COST_WARN")
+    token_limit = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_LIMIT")
+    token_warn = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET_TOKEN_WARN")
 
     if _is_num(cost):
         if cost_limit > 0 and cost >= cost_limit:
@@ -351,7 +361,7 @@ def assess_budget(usage: dict | None) -> dict:
     return {"status": status, "reasons": reasons}
 
 
-def assess_rate(usage: dict | None) -> dict:
+def assess_rate(usage: dict | None, *, policy: Policy | None = None) -> dict:
     """레이트(TPM/RPM) 상태 — **전방 훅(forward hook)**.
 
     원장에 윈도우 카운터가 없어(실측은 CE-297 대기) usage 에 rpm/tpm 키가 없으면
@@ -367,10 +377,11 @@ def assess_rate(usage: dict | None) -> dict:
             "status": "skip",
             "reasons": ["레이트 윈도우 카운터 부재(CE-297 대기) → skip(전방 훅)"],
         }
+    pol = policy or Policy.default()
     reasons: list[str] = []
     status = "ok"
-    rpm_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_RATE_RPM_LIMIT", 0.0)
-    tpm_limit = _env_float("FLOWOPS_GOVERNANCE_TRIAGE_RATE_TPM_LIMIT", 0.0)
+    rpm_limit = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_RATE_RPM_LIMIT")
+    tpm_limit = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_RATE_TPM_LIMIT")
     if _is_num(rpm) and rpm_limit > 0 and rpm >= rpm_limit:
         status = _worse_status(status, "block")
         reasons.append(f"rpm={rpm}>=limit {rpm_limit}")
@@ -382,18 +393,17 @@ def assess_rate(usage: dict | None) -> dict:
     return {"status": status, "reasons": reasons}
 
 
-def triage_band(score: float, budget: dict, rate: dict) -> tuple[str, list[str]]:
+def triage_band(
+    score: float, budget: dict, rate: dict, *, policy: Policy | None = None
+) -> tuple[str, list[str]]:
     """3단 밴드 결정: auto|review|block. 축 = risk_score + budget + rate.
 
     밴드 강도 auto<review<block. 어느 축이든 block 이면 block, review 면 최소 review.
     """
+    pol = policy or Policy.default()
     reasons: list[str] = []
-    review_th = _env_float(
-        "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW", TRIAGE_SCORE_REVIEW_DEFAULT
-    )
-    block_th = _env_float(
-        "FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK", TRIAGE_SCORE_BLOCK_DEFAULT
-    )
+    review_th = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW")
+    block_th = pol.threshold("FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK")
 
     band = "auto"
     if score >= block_th:
@@ -424,11 +434,19 @@ def evaluate(
     plan_text: str | None = None,
     usage: dict | None = None,
     metrics: dict | None = None,
+    policy: Policy | None = None,
 ) -> dict:
-    issue_key = extract_issue_key(head)
+    """거버넌스 종합 판정.
+
+    `policy` 미지정 시 `Policy.default()`(오늘의 ClickEye 정책, 토글 env 재독)로 동작한다 →
+    기존 호출부(파이프라인·CI·HTTP)는 변경 없이 같은 결과를 얻는다. 프로젝트별 정책을
+    적용하려면 `DeliveryProfile.policy` → `Policy.from_dict()` 산출물을 주입한다.
+    """
+    pol = policy or Policy.default()
+    issue_key = extract_issue_key(head, policy=pol)
 
     # 마스터 off → 거버넌스 우회(회귀 0)
-    if not is_enabled("FLOWOPS_GOVERNANCE"):
+    if not pol.enabled("FLOWOPS_GOVERNANCE"):
         return {
             "governance": "off",
             "issue_key": issue_key,
@@ -448,13 +466,13 @@ def evaluate(
         files = get_changed_files(base, head, project_dir=pdir)
 
     checks = {
-        "contract_drift": check_contract_drift(files),
-        "ticket_ref": check_ticket_ref(issue_key),
+        "contract_drift": check_contract_drift(files, policy=pol),
+        "ticket_ref": check_ticket_ref(issue_key, policy=pol),
         "plan_trace": check_plan_trace(
-            issue_key, files, project_dir=project_dir, plan_text=plan_text
+            issue_key, files, project_dir=project_dir, plan_text=plan_text, policy=pol
         ),
     }
-    risk = classify_risk(files)
+    risk = classify_risk(files, policy=pol)
     tier = risk["tier"]
 
     # 블로킹: contract-drift / ticket-ref 만 (plan-trace 는 권고)
@@ -469,7 +487,7 @@ def evaluate(
 
     if failures:
         verdict, merge_decision = "fail", "block"
-    elif tier == "HIGH" and is_enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"):
+    elif tier == "HIGH" and pol.enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"):
         verdict, merge_decision = "pass", "pr"
     else:
         verdict, merge_decision = "pass", "direct"
@@ -490,11 +508,11 @@ def evaluate(
     # ── 트리아지 오버레이(항목 G, opt-in) ────────────────────────────────────
     # 기본 off(is_opt_in). off 면 위 base result 를 그대로 반환 → 오늘의 ON dict 와
     # 바이트 동일(신규 키 0). 마스터 off 는 위에서 이미 단락되어 여기 도달하지 않는다.
-    if is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE"):
+    if pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE"):
         score, score_reasons = compute_risk_score(files, tier, metrics)
-        budget = assess_budget(usage)
-        rate = assess_rate(usage)
-        band, band_reasons = triage_band(score, budget, rate)
+        budget = assess_budget(usage, policy=pol)
+        rate = assess_rate(usage, policy=pol)
+        band, band_reasons = triage_band(score, budget, rate, policy=pol)
         # 관측 키 추가(코어 서브셋은 report-only 에서 불변 — 순수 관측).
         result["triage"] = band
         result["risk_score"] = score
@@ -502,7 +520,7 @@ def evaluate(
         result["triage_reasons"] = score_reasons + band_reasons + rate["reasons"]
         # 집행(강등)은 별도 opt-in 일 때만. 강등만(승격/새 값 없음).
         # report-only(비enforce)는 failures 포함 코어 서브셋 불변 — 아래 블록에 도달 안 함.
-        if is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"):
+        if pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"):
             if band == "block":
                 result["verdict"] = "fail"
                 result["merge_decision"] = "block"
@@ -516,17 +534,17 @@ def evaluate(
 
 
 # ── 정책 요약(읽기 전용 노출) ────────────────────────────────────────────────
-def policy_summary() -> dict:
-    """전역 머지-게이트 정책을 직렬화 가능한 dict 로 요약한다(순수·additive).
+def policy_summary(policy: Policy | None = None) -> dict:
+    """머지-게이트 정책을 직렬화 가능한 dict 로 요약한다(순수·additive).
 
-    evaluate() 와 로직을 공유하지 않고 커널 상수/토글 함수만 읽어 노출한다. HTTP
-    어댑터(FastAPI `GET /governance/policy`)가 이 값을 그대로 스키마로 감싸 반환하므로
-    정책의 이중관리가 발생하지 않는다. stdlib 전용이며 어떤 기존 로직도 변경하지 않는다.
+    evaluate() 와 로직을 공유하지 않고 주입된 정책만 읽어 노출한다. HTTP 어댑터(FastAPI
+    `GET /governance/policy`)가 이 값을 그대로 스키마로 감싸 반환하므로 정책의 이중관리가
+    발생하지 않는다. stdlib 전용이며 어떤 기존 로직도 변경하지 않는다.
 
-    토글 상태는 **이 함수가 실행되는 프로세스의 환경변수 기준**이다(API 서버 env). 따라서
-    파이프라인/CI 프로세스의 실제 적용값과 다를 수 있으며 source_note 로 이를 명시한다.
-    블로킹 룰(contract-drift/ticket-ref)과 권고 룰(plan-trace)의 mode·enabled, 고위험
-    경로(prefixes/patterns), 위험강등(risk-demote) 여부를 함께 노출한다.
+    `policy` 미지정 시 `Policy.default()` — 즉 토글 상태는 **이 함수가 실행되는 프로세스의
+    환경변수 기준**(API 서버 env)이며 파이프라인/CI 의 실제 적용값과 다를 수 있다. 프로젝트
+    정책(`DeliveryProfile`)을 주입하면 그 정책이 정본이 되고 env 는 조회되지 않는다.
+    `source_note` 가 어느 경우인지 명시한다.
 
     evaluate() 실효값 정합: 마스터(FLOWOPS_GOVERNANCE) off 면 evaluate() 가 즉시 단락하여
     모든 룰이 무력화되므로, gate_rules[].enabled 와 risk_demote_to_pr 는 마스터 AND 개별
@@ -534,25 +552,26 @@ def policy_summary() -> dict:
     마스터 플래그 자체를 그대로 노출한다. 트리아지 집행축(triage_enforce)은 evaluate() 의
     실제 조건(마스터 on + _TRIAGE + _TRIAGE_ENFORCE 모두 opt-in)일 때만 파생 룰로 포함한다.
     """
-    master = is_enabled("FLOWOPS_GOVERNANCE")
+    pol = policy or Policy.default()
+    master = pol.enabled("FLOWOPS_GOVERNANCE")
     gate_rules = [
         {
             "key": "contract_drift",
             "label": "계약 드리프트",
             "mode": "block",
-            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
+            "enabled": master and pol.enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
         },
         {
             "key": "ticket_ref",
             "label": "티켓 참조",
             "mode": "block",
-            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_TICKET"),
+            "enabled": master and pol.enabled("FLOWOPS_GOVERNANCE_TICKET"),
         },
         {
             "key": "plan_trace",
             "label": "플랜 추적성",
             "mode": "warn",
-            "enabled": master and is_enabled("FLOWOPS_GOVERNANCE_TRACE"),
+            "enabled": master and pol.enabled("FLOWOPS_GOVERNANCE_TRACE"),
         },
     ]
     # 트리아지 집행(band==block→차단, band==review→direct 강등 to pr)은 마스터 on +
@@ -560,8 +579,8 @@ def policy_summary() -> dict:
     # 때만 파생 블로킹 룰을 노출한다(거짓 보고 금지 — 비활성 시엔 아예 포함하지 않음).
     triage_enforce_active = (
         master
-        and is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE")
-        and is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE")
+        and pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE")
+        and pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE")
     )
     if triage_enforce_active:
         gate_rules.append(
@@ -573,28 +592,31 @@ def policy_summary() -> dict:
             }
         )
     toggles = {
-        # 마스터 + 기존 게이트 항목(기본 on, is_enabled 로 읽음).
+        # 마스터 + 기존 게이트 항목(기본 on, is_enabled 의미).
         "FLOWOPS_GOVERNANCE": master,
-        "FLOWOPS_GOVERNANCE_CONTRACT": is_enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
-        "FLOWOPS_GOVERNANCE_TICKET": is_enabled("FLOWOPS_GOVERNANCE_TICKET"),
-        "FLOWOPS_GOVERNANCE_TRACE": is_enabled("FLOWOPS_GOVERNANCE_TRACE"),
-        "FLOWOPS_GOVERNANCE_RISK_DEMOTE": is_enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
-        # 트리아지(신규, 기본 off, is_opt_in 로 읽음).
-        "FLOWOPS_GOVERNANCE_TRIAGE": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE"),
-        "FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"),
-        "FLOWOPS_GOVERNANCE_TRIAGE_BUDGET": is_opt_in("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET"),
+        "FLOWOPS_GOVERNANCE_CONTRACT": pol.enabled("FLOWOPS_GOVERNANCE_CONTRACT"),
+        "FLOWOPS_GOVERNANCE_TICKET": pol.enabled("FLOWOPS_GOVERNANCE_TICKET"),
+        "FLOWOPS_GOVERNANCE_TRACE": pol.enabled("FLOWOPS_GOVERNANCE_TRACE"),
+        "FLOWOPS_GOVERNANCE_RISK_DEMOTE": pol.enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
+        # 트리아지(기본 off, is_opt_in 의미).
+        "FLOWOPS_GOVERNANCE_TRIAGE": pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE"),
+        "FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE": pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE"),
+        "FLOWOPS_GOVERNANCE_TRIAGE_BUDGET": pol.opt_in("FLOWOPS_GOVERNANCE_TRIAGE_BUDGET"),
     }
     return {
         "governance_enabled": master,
         "gate_rules": gate_rules,
         "high_risk": {
-            "prefixes": list(HIGH_PREFIXES),
-            "patterns": [p.pattern for p in HIGH_PATH_PATTERNS],
+            "prefixes": list(pol.high_prefixes),
+            "patterns": [p.pattern for p in pol.high_path_patterns],
         },
         "toggles": toggles,
-        "risk_demote_to_pr": master and is_enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
+        "risk_demote_to_pr": master and pol.enabled("FLOWOPS_GOVERNANCE_RISK_DEMOTE"),
         "source_note": (
             "토글 상태는 API 서버 env 기준값(파이프라인/CI와 다를 수 있음). "
             "마스터 off 시 모든 룰 무력화. 게이트 룰·고위험 경로 자체는 항상 정확."
+            if pol.live
+            else "토글·임계값은 주입된 프로젝트 정책(DeliveryProfile) 기준값이며 env 를 "
+            "조회하지 않는다. 마스터 off 시 모든 룰 무력화."
         ),
     }
