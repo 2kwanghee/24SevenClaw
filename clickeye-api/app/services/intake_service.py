@@ -685,12 +685,13 @@ class IntakeService:
         normalized_text 폴백(기존 동작 유지). KB 인제스트 텍스트도 동일 우선.
         """
         intake = await self._get_pending(intake_id)
-        intake = await self._accept_core(intake, owner=user)
-        await self._record_event(
-            intake, "accepted", actor_type="human", actor_id=user.id,
-            detail=f"사람 수락 — Project 생성({intake.project_id})",
+        return await self._accept_core(
+            intake,
+            owner=user,
+            event_type="accepted",
+            actor_type="human",
+            actor_id=user.id,  # type: ignore[arg-type]  # 레거시 Column 타이핑
         )
-        return intake
 
     async def machine_accept(self, intake_id: UUID) -> IntakeRequest:
         """기계 수락 (다프로젝트화 P6, D-12) — 사람 확인 없이 accepted 로 전이.
@@ -731,14 +732,19 @@ class IntakeService:
                 "기계 수락 소유자(활성 superadmin)가 없습니다.",
                 409,
             )
-        intake = await self._accept_core(intake, owner=owner)
-        await self._record_event(
-            intake, "machine_accepted", actor_type="machine",
-            detail=f"기계 수락(D-12) — Project 생성({intake.project_id}), 소유자={owner.email}",
+        return await self._accept_core(
+            intake, owner=owner, event_type="machine_accepted", actor_type="machine"
         )
-        return intake
 
-    async def _accept_core(self, intake: IntakeRequest, *, owner: User) -> IntakeRequest:
+    async def _accept_core(
+        self,
+        intake: IntakeRequest,
+        *,
+        owner: User,
+        event_type: str = "accepted",
+        actor_type: str = "human",
+        actor_id: UUID | None = None,
+    ) -> IntakeRequest:
         """accept/machine_accept 공통 본체 — Project 생성·전이·콜백·KB 인제스트."""
         key = await self.db.get(IntakeServiceKey, intake.service_key_id)
 
@@ -761,6 +767,15 @@ class IntakeService:
         _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
+
+        # P9 기록면 — 반드시 _enqueue_callback **이전**에. 콜백 백그라운드 태스크가
+        # (테스트의 공유 세션 등에서) 세션을 잡은 뒤 이벤트 커밋이 끼어들면 세션
+        # 동시성 충돌로 콜백 기록이 유실된다(실측).
+        await self._record_event(
+            intake, event_type, actor_type=actor_type, actor_id=actor_id,
+            detail=f"{'기계 수락(D-12)' if event_type == 'machine_accepted' else '사람 수락'} "
+            f"— Project 생성({project.id}), 소유자={owner.email}",
+        )
 
         # P1.5 KB 인제스트 훅 — 토글 off 면 no-op, 예외 비전파(fire-and-forget).
         enqueue_ingest(
@@ -927,8 +942,12 @@ class IntakeService:
         _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
+        # 이벤트는 _enqueue_callback 이전(세션 동시성 — _accept_core 주석 참조).
         await self._record_event(
-            intake, "rejected", actor_type="human", actor_id=user.id,
+            intake,
+            "rejected",
+            actor_type="human",
+            actor_id=user.id,  # type: ignore[arg-type]  # 레거시 Column 타이핑
             detail=f"반려 — {reason or '(사유 없음)'}",
         )
         # A3-lite: 외부 서비스에 반려 상태 푸시(fire-and-forget, 서명 포함).
