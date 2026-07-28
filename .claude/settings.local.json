@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cp tests/test_generate.py /tmp/tg.bak)",
       "Bash(cp tests/test_generate_pm.py /tmp/tgpm.bak)",
-      "Bash(grep -nE \"await await|no_db\\\\s*$\" tests/test_generate.py)"
+      "Bash(grep -nE \"await await|no_db\\\\s*$\" tests/test_generate.py)",
+      "Bash(grep -iE \"\\\\.\\(png|jpg|jpeg|webp|gif|html\\)$\")"
     ]
   },
   "enabledMcpjsonServers": [
