@@ -91,6 +91,41 @@ class GovernanceHighRisk(BaseModel):
     patterns: list[str]
 
 
+# ── 제어면 수신(다프로젝트화 P2) ─────────────────────────────────────────────
+# 서비스 #2(기획)가 자동 생성한 제어면 YAML 을 제출하는 계약. 인증은 인테이크와 동일한
+# X-ClickEye-Service-Key 머신 헤더(IntakeService.authenticate_key 재사용).
+class ControlPlaneSubmitRequest(BaseModel):
+    project_id: UUID
+    # 서비스 #2 생성 YAML **원문**. 서버는 safe_load → ControlPlane.from_dict(fail-closed)
+    # 로 검증하고, 원문 그대로를 DeliveryProfile.source_yaml 에 보존한다(원문이 미러 정본).
+    control_yaml: str = Field(..., min_length=1)
+
+
+class ControlPlaneSubmitResponse(BaseModel):
+    """수리(accept) 응답 — 서비스 #2 가 자기 기록에 남길 수 있는 수신 증거."""
+
+    project_id: UUID
+    schema_version: str
+    tier: str
+    # sha256:<hex> 콘텐츠 해시 — 서비스 #2 는 자기가 보낸 원문의 해시와 대조해
+    # 전송 무결성을 확인할 수 있다(D-14 v1).
+    source_signature: str
+    # 검증기가 병합·기본값 승계를 마친 뒤의 유효 제어면(관측용).
+    effective: dict[str, Any]
+
+
+class ControlPlaneRejection(BaseModel):
+    """거부(422) 상세 — 서비스 #2 콜백에 그대로 실을 수 있는 기계 소비형.
+
+    fail-closed 검증기는 첫 위반에서 멈추므로 reasons 는 보통 1건이다. 배열로 두는
+    이유는 후속 버전에서 다중 사유 수집이 가능해질 때 계약을 깨지 않기 위함이다.
+    """
+
+    code: str  # "CONTROL_PLANE_INVALID" | "PROJECT_NOT_FOUND"
+    reasons: list[str]
+    schema_supported: list[str]  # 서버가 지원하는 schema_version 목록 — 버전 협상 힌트
+
+
 class GovernancePolicyResponse(BaseModel):
     """전역 머지-게이트 정책 요약. 커널(governance.core.policy_summary)의 SSOT 노출."""
 
