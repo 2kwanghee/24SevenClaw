@@ -9225,6 +9225,202 @@
         }
       }
     },
+    "/api/v1/intake/issue/pending": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Issue Pending",
+        "description": "발급 대기 목록 — 정제 완료(refined) & 미발급(tickets_status=none), FIFO.\n\naccepted 는 항상 포함되고, pending_review 는 기계 수락 opt-in\n(FLOWOPS_INTAKE_AUTO_ACCEPT)일 때만 포함된다 — 배치는 응답의 status 로\nauto-accept 선행 여부를 분기한다. 필터는 서버가 강제한다(fail-closed).",
+        "operationId": "list_issue_pending_api_v1_intake_issue_pending_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeIssuePendingItem"
+                  },
+                  "title": "Response List Issue Pending Api V1 Intake Issue Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/auto-accept": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Auto Accept Intake",
+        "description": "기계 수락 — 사람 확인 없이 accepted 전이 + Project 생성 (D-12).\n\n안전장치는 서비스가 강제한다: opt-in 토글 off → 403, 정제 미완료 → 409,\n기계 소유자(활성 superadmin) 부재 → 409. 콜백(at-least-once)은 사람 수락과 동일.",
+        "operationId": "auto_accept_intake_api_v1_intake__intake_id__auto_accept_post",
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/tickets": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Record Issued Tickets",
+        "description": "발급 원장 확정 — 배치가 Linear 발급을 **전량 성공**한 뒤에만 호출한다.\n\n멱등: 이미 issued 면 no-op 으로 기존 기록을 반환(재실행·재시도 안전).\n부분 발급 기록은 계약상 불가(min 1 + 배치의 all-or-nothing 규약).\n발급 완료는 콜백으로 서비스 #2 에 푸시된다(tickets_status/tickets 포함).",
+        "operationId": "record_issued_tickets_api_v1_intake__intake_id__tickets_post",
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketsRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intake/service-keys": {
       "get": {
         "tags": [
@@ -14928,6 +15124,81 @@
         "title": "IntakeDocument",
         "description": "document 타입 본문 — 원문 텍스트와 포맷."
       },
+      "IntakeIssuePendingItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "refined_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refined Text"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "project_id",
+          "refined_text",
+          "target",
+          "priority"
+        ],
+        "title": "IntakeIssuePendingItem",
+        "description": "머신 발급 대기 목록 항목 — 무인 발급 배치(intake_issue.sh)가 소비한다.\n\nstatus 로 배치의 다음 행동이 갈린다: pending_review 면 auto-accept 를 먼저 호출\n(기계 수락 opt-in 일 때만 목록에 나타난다), accepted 면 바로 분해·발급."
+      },
       "IntakeRefinePendingItem": {
         "properties": {
           "id": {
@@ -15177,6 +15448,43 @@
           "message"
         ],
         "title": "IntegrationValidateResponse"
+      },
+      "IssuedTicket": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "identifier": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Identifier"
+          },
+          "issue_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Issue Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "identifier",
+          "issue_id",
+          "title"
+        ],
+        "title": "IssuedTicket",
+        "description": "발급 원장 1건 — 분해 로컬 키(depends_on 추적)와 Linear 식별자의 대응."
       },
       "LinearConnectionStatus": {
         "properties": {
@@ -24104,6 +24412,24 @@
         ],
         "title": "TableSchema",
         "description": "테이블 스키마(컬럼 디스크립터 집합) 응답."
+      },
+      "TicketsRecordRequest": {
+        "properties": {
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/IssuedTicket"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Tickets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tickets"
+        ],
+        "title": "TicketsRecordRequest",
+        "description": "발급 결과 확정 본문 — 전량 발급 성공 시에만 호출된다(부분 발급 기록 금지)."
       },
       "TokenResponse": {
         "properties": {

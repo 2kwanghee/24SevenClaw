@@ -796,6 +796,24 @@ export type IntakeDocument = {
 };
 
 /**
+ * 머신 발급 대기 목록 항목 — 무인 발급 배치(intake_issue.sh)가 소비한다.
+ *
+ * status 로 배치의 다음 행동이 갈린다: pending_review 면 auto-accept 를 먼저 호출
+ * (기계 수락 opt-in 일 때만 목록에 나타난다), accepted 면 바로 분해·발급.
+ */
+export type IntakeIssuePendingItem = {
+    id: string;
+    title: string;
+    status: string;
+    project_id: string | null;
+    refined_text: string | null;
+    target: {
+        [key: string]: unknown;
+    } | null;
+    priority: string | null;
+};
+
+/**
  * 머신 정제 대기 목록 항목 — 로컬 정제 배치(intake_refine.sh)가 소비한다.
  */
 export type IntakeRefinePendingItem = {
@@ -845,6 +863,16 @@ export type IntakeResponse = {
 export type IntegrationValidateResponse = {
     valid: boolean;
     message: string;
+};
+
+/**
+ * 발급 원장 1건 — 분해 로컬 키(depends_on 추적)와 Linear 식별자의 대응.
+ */
+export type IssuedTicket = {
+    key: string;
+    identifier: string;
+    issue_id: string;
+    title: string;
 };
 
 export type LinearConnectionStatus = {
@@ -2625,6 +2653,13 @@ export type TableSchema = {
      * 컬럼 디스크립터 목록
      */
     columns: Array<TableColumnSchema>;
+};
+
+/**
+ * 발급 결과 확정 본문 — 전량 발급 성공 시에만 호출된다(부분 발급 기록 금지).
+ */
+export type TicketsRecordRequest = {
+    tickets: Array<IssuedTicket>;
 };
 
 export type TokenResponse = {
@@ -7179,6 +7214,96 @@ export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses = {
 };
 
 export type SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponse = SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses[keyof SubmitRefinedApiV1IntakeIntakeIdRefinedPostResponses];
+
+export type ListIssuePendingApiV1IntakeIssuePendingGetData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/api/v1/intake/issue/pending';
+};
+
+export type ListIssuePendingApiV1IntakeIssuePendingGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListIssuePendingApiV1IntakeIssuePendingGetError = ListIssuePendingApiV1IntakeIssuePendingGetErrors[keyof ListIssuePendingApiV1IntakeIssuePendingGetErrors];
+
+export type ListIssuePendingApiV1IntakeIssuePendingGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<IntakeIssuePendingItem>;
+};
+
+export type ListIssuePendingApiV1IntakeIssuePendingGetResponse = ListIssuePendingApiV1IntakeIssuePendingGetResponses[keyof ListIssuePendingApiV1IntakeIssuePendingGetResponses];
+
+export type AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/auto-accept';
+};
+
+export type AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostError = AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostErrors[keyof AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostErrors];
+
+export type AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostResponse = AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostResponses[keyof AutoAcceptIntakeApiV1IntakeIntakeIdAutoAcceptPostResponses];
+
+export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostData = {
+    body: TicketsRecordRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/tickets';
+};
+
+export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostError = RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostErrors[keyof RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostErrors];
+
+export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponse = RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses[keyof RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses];
 
 export type ListServiceKeysApiV1IntakeServiceKeysGetData = {
     body?: never;

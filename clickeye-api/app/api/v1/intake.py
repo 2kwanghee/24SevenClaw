@@ -16,10 +16,12 @@ from app.api.v1.governance import verify_governance_token
 from app.config import settings
 from app.database import get_db
 from app.dependencies import require_permission, require_superadmin
+from app.models.intake import IntakeRequest
 from app.models.user import User
 from app.schemas.intake import (
     IntakeAcceptedResponse,
     IntakeCreate,
+    IntakeIssuePendingItem,
     IntakeRefinePendingItem,
     IntakeRejectRequest,
     IntakeResponse,
@@ -27,6 +29,7 @@ from app.schemas.intake import (
     ServiceKeyCreate,
     ServiceKeyCreatedResponse,
     ServiceKeyResponse,
+    TicketsRecordRequest,
 )
 from app.services.intake_service import IntakeService
 
@@ -137,6 +140,64 @@ async def submit_refined(
 ):
     """정제 결과 제출 — refined + 저장. 공백만이면 skipped. pending_review 아니면 409."""
     return await IntakeService(db).submit_refined(intake_id, body.refined_text)
+
+
+# ---------------------------------------------------------------------------
+# 티켓 전량 자동 발급 (머신 — X-Governance-Token, 정제 배치와 동일 패턴 · P6, D-12)
+# ---------------------------------------------------------------------------
+#
+# 분해 LLM 실행은 로컬 배치(scripts/intake_issue.sh, claude -p 구독 세션)만 한다.
+# 서버는 대기 목록 제공/기계 수락/발급 원장 기록(상태 조율)만 담당한다.
+
+
+@router.get(
+    "/issue/pending",
+    response_model=list[IntakeIssuePendingItem],
+    dependencies=[Depends(verify_governance_token)],
+)
+async def list_issue_pending(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+) -> list[IntakeRequest]:
+    """발급 대기 목록 — 정제 완료(refined) & 미발급(tickets_status=none), FIFO.
+
+    accepted 는 항상 포함되고, pending_review 는 기계 수락 opt-in
+    (FLOWOPS_INTAKE_AUTO_ACCEPT)일 때만 포함된다 — 배치는 응답의 status 로
+    auto-accept 선행 여부를 분기한다. 필터는 서버가 강제한다(fail-closed).
+    """
+    return await IntakeService(db).list_issue_pending(limit)
+
+
+@router.post("/{intake_id}/auto-accept", response_model=IntakeResponse)
+async def auto_accept_intake(
+    intake_id: UUID,
+    _token: None = Depends(verify_governance_token),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeRequest:
+    """기계 수락 — 사람 확인 없이 accepted 전이 + Project 생성 (D-12).
+
+    안전장치는 서비스가 강제한다: opt-in 토글 off → 403, 정제 미완료 → 409,
+    기계 소유자(활성 superadmin) 부재 → 409. 콜백(at-least-once)은 사람 수락과 동일.
+    """
+    return await IntakeService(db).machine_accept(intake_id)
+
+
+@router.post("/{intake_id}/tickets", response_model=IntakeResponse)
+async def record_issued_tickets(
+    intake_id: UUID,
+    body: TicketsRecordRequest,
+    _token: None = Depends(verify_governance_token),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeRequest:
+    """발급 원장 확정 — 배치가 Linear 발급을 **전량 성공**한 뒤에만 호출한다.
+
+    멱등: 이미 issued 면 no-op 으로 기존 기록을 반환(재실행·재시도 안전).
+    부분 발급 기록은 계약상 불가(min 1 + 배치의 all-or-nothing 규약).
+    발급 완료는 콜백으로 서비스 #2 에 푸시된다(tickets_status/tickets 포함).
+    """
+    return await IntakeService(db).record_issued_tickets(
+        intake_id, [t.model_dump() for t in body.tickets]
+    )
 
 
 # ---------------------------------------------------------------------------
