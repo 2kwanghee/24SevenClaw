@@ -98,11 +98,17 @@ def incomplete_blockers(issue: dict) -> list[str]:
     return blockers
 
 
-def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
+def fetch_queued_issues(
+    api_key: str, team_id: str, title_prefix: str | None = None
+) -> list[dict]:
     """큐 상태 이슈를 조회하고 부모 이슈는 활성 리프 태스크로 확장해 반환한다.
 
     DayQueued/NightQueued/Queued 상태로 들어온 부모 이슈도 자동으로 자식 리프까지 펼쳐
     하나의 평면 리스트로 만든다. 자식이 없는 일반 이슈는 그대로 단일 항목으로 유지.
+
+    title_prefix(P5 다프로젝트): 지정 시 해당 접두사로 시작하는 이슈만 수집 —
+    프로젝트 러너가 자기 프로젝트의 발급 티켓(`[수주:<intake8>]` 접두사, P6 규약)만
+    집게 하여, 러너 간 티켓 중복 수거를 막는다. 미지정이면 기존 전체(회귀 0).
     """
     query = """
     query($teamId: ID!) {
@@ -137,6 +143,10 @@ def fetch_queued_issues(api_key: str, team_id: str) -> list[dict]:
     if not data:
         return []
     nodes = data.get("issues", {}).get("nodes", [])
+
+    # P5 프로젝트 필터 — 확장 전에 적용(발급기는 부모·리프 모두에 접두사를 붙인다).
+    if title_prefix:
+        nodes = [n for n in nodes if (n.get("title") or "").startswith(title_prefix)]
 
     # 부모 이슈 → 활성 리프 태스크로 확장 (중복 제거)
     # 자식이 없는 일반 이슈는 expand_to_leaves가 [issue]로 반환하므로 백워드 호환.
@@ -330,12 +340,15 @@ def main():
                         help="처리할 이슈 수 제한 (0=전체, 1=순차 실행용)")
     parser.add_argument("--use-gpt-plan", action="store_true",
                         help="ChatGPT FC로 구조화된 fix_plan 생성 (fallback: 기존 방식)")
+    parser.add_argument("--title-prefix", default=None,
+                        help="P5 다프로젝트: 이 접두사로 시작하는 이슈만 수집 "
+                             "(프로젝트 러너용, 미지정=전체)")
     args = parser.parse_args()
 
     api_key, team_id = get_env()
 
     # 1. DayQueued/NightQueued 이슈 조회
-    issues = fetch_queued_issues(api_key, team_id)
+    issues = fetch_queued_issues(api_key, team_id, title_prefix=args.title_prefix)
     if not issues:
         print("EMPTY: DayQueued/NightQueued 이슈 없음.")
         sys.exit(2)

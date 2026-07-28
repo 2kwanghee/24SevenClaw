@@ -185,7 +185,10 @@ while true; do
   log "── DayQueued/NightQueued 이슈 감지 중... ──"
 
   # 1개만 가져오기
-  WATCHER_OUTPUT=$(python3 scripts/linear_watcher.py --per-task --limit 1 2>&1) || WATCHER_EXIT=$?
+  # P5 다프로젝트: WATCHER_TITLE_PREFIX 설정 시 해당 프로젝트 티켓만 수집(러너 경유).
+  # 미설정이면 기존 전체 수집 그대로(회귀 0).
+  WATCHER_OUTPUT=$(python3 scripts/linear_watcher.py --per-task --limit 1 \
+    ${WATCHER_TITLE_PREFIX:+--title-prefix "$WATCHER_TITLE_PREFIX"} 2>&1) || WATCHER_EXIT=$?
   WATCHER_EXIT=${WATCHER_EXIT:-0}
 
   echo "$WATCHER_OUTPUT"
