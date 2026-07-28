@@ -60,6 +60,55 @@ safe_git() {
   git "$@"
 }
 
+# ── [P1 완주 오케스트레이터] 실패 무유실 (docs/multiproject-delivery.md §6-1, D-13) ──
+# FLOWOPS_COMPLETION 은 opt-in(미설정=off) — 거버넌스 트리아지와 동일 관례. off 면
+# handle_task_failure 가 1을 반환해 기존 Backlog 경로가 그대로 수행된다(회귀 0).
+FAILED_THIS_RUN=""   # 이번 런에서 실패한 키 목록(공백 구분) — 즉시 재수거 무한루프 방지
+
+is_completion_enabled() {
+  case "${FLOWOPS_COMPLETION:-}" in
+    1|true|on|yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 실패 처리. 반환 0 = 처리됨(토글 on: 재시도 복귀 또는 터미널 — 호출자는 기존 Backlog 경로를
+# 건너뜀) / 1 = 미처리(토글 off — 호출자가 기존 Backlog 경로 수행).
+handle_task_failure() {
+  local issue_key="$1" issue_id="$2" task_mode="$3" reason="$4"
+  is_completion_enabled || return 1
+  FAILED_THIS_RUN="${FAILED_THIS_RUN} ${issue_key}"
+  if python3 scripts/retry_ledger.py record-failure --issue "$issue_key" --reason "$reason"; then
+    # exit 0 = 재시도 가능 → 원래 Queued 상태로 복귀. webhook _check_and_retrigger 가
+    # Queued 계열만 조회하므로 이 복귀만으로 재수거된다(webhook 무변경).
+    local back_state="DayQueued"
+    [ "$task_mode" = "night" ] && back_state="NightQueued"
+    python3 scripts/linear_tracker.py update --issue-id "$issue_id" --status "$back_state" 2>/dev/null || true
+    log "완주 오케스트레이터: ${issue_key} → ${back_state} 복귀 (재시도 예약)"
+    return 0
+  fi
+  # exit 3 = 한도 소진 · 터미널 → Backlog + 정지 코멘트. 최종 HALT 보고는 런 종료 시 일괄.
+  python3 scripts/linear_tracker.py update --issue-id "$issue_id" --status "Backlog" 2>/dev/null || true
+  python3 - "$issue_id" "$reason" <<'PY' 2>/dev/null || true
+import sys
+sys.path.insert(0, "scripts")
+from linear_client import get_env, linear_request
+issue_id, reason = sys.argv[1], sys.argv[2]
+api_key, _ = get_env()
+body = (
+    "🛑 **완주 오케스트레이터 — 자동 재시도 한도 소진(정지)**\n\n"
+    f"사람 개입이 필요합니다.\n마지막 실패 사유: {reason}"
+)
+linear_request(
+    api_key,
+    "mutation($issueId:String!,$body:String!){commentCreate(input:{issueId:$issueId,body:$body}){comment{id}}}",
+    {"issueId": issue_id, "body": body},
+)
+PY
+  log "완주 오케스트레이터: ${issue_key} 터미널 — Backlog + 정지 코멘트 (HALT 보고 대상)"
+  return 0
+}
+
 # ── 파라미터 ──
 MAX_ITERATIONS=30
 MAX_TURNS=""
@@ -168,6 +217,13 @@ for title, meta in m.items():
 
   IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TASK_MODE TITLE <<< "$TASK_INFO"
 
+  # [P1 완주] 이번 런에서 이미 실패해 Queued 복귀된 이슈를 즉시 재수거하면 무한루프
+  # → 런을 종료하고 webhook 재트리거(다음 런)로 이월한다. MIN_TRIGGER_INTERVAL 이 완충.
+  if [ -n "$FAILED_THIS_RUN" ] && printf '%s\n' $FAILED_THIS_RUN | grep -qx "$ISSUE_KEY"; then
+    log "완주 오케스트레이터: ${ISSUE_KEY} 는 이번 런에서 이미 실패 — 런 종료(다음 트리거로 이월)"
+    break
+  fi
+
   COMPLETED=$((COMPLETED + 1))
   log ""
   log "══════════════════════════════════════"
@@ -194,8 +250,10 @@ for title, meta in m.items():
   fi
   safe_git checkout -b "$BRANCH" 2>/dev/null || safe_git checkout "$BRANCH" 2>/dev/null || {
     log "ERROR: 브랜치 생성 실패: $BRANCH"
-    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
-    log "Linear 상태: Backlog (브랜치 생성 실패)"
+    if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "브랜치 생성 실패: $BRANCH"; then
+      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+      log "Linear 상태: Backlog (브랜치 생성 실패)"
+    fi
     FAILED=$((FAILED + 1))
     continue
   }
@@ -205,8 +263,10 @@ for title, meta in m.items():
   cp ".ralph/tasks/${ISSUE_KEY}.md" ".ralph/fix_plan.md" 2>/dev/null || {
     log "ERROR: fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"
     safe_git checkout main 2>/dev/null || true
-    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
-    log "Linear 상태: Backlog (fix_plan 없음)"
+    if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "fix_plan 없음: .ralph/tasks/${ISSUE_KEY}.md"; then
+      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+      log "Linear 상태: Backlog (fix_plan 없음)"
+    fi
     FAILED=$((FAILED + 1))
     continue
   }
@@ -437,7 +497,9 @@ $(cat .ralph/PROMPT.md)"
     if [ "$GATE_RC" -eq 2 ] || [ "$GATE_DECISION" = "block" ]; then
       log "ERROR: 거버넌스 검증 실패 → 머지 차단 ($GATE_FAILS)"
       safe_git checkout main 2>/dev/null || true
-      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "거버넌스 차단: ${GATE_FAILS}"; then
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+      fi
       if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
         python3 scripts/telegram_notify.py --message "🚫 거버넌스 차단 ${ISSUE_KEY}: ${GATE_FAILS}" 2>/dev/null || true
       fi
@@ -575,6 +637,11 @@ $(cat .ralph/PROMPT.md)"
   rm -f .ralph/PLAN.md .ralph/TASK.md .ralph/REVIEW.md
   rm -f ".ralph/refined/${ISSUE_KEY}.md"
 
+  # [P1 완주] 성공 시 실패 이력 정리 — 다음 실패는 1회차부터(누적 이월 금지)
+  if is_completion_enabled; then
+    python3 scripts/retry_ledger.py clear --issue "$ISSUE_KEY" 2>/dev/null || true
+  fi
+
   log "태스크 완료: $TITLE"
 
   # 완료 이슈 기록
@@ -602,7 +669,9 @@ PR을 머지해주세요.
 done
 
 # ── 실패 이슈 Backlog 이동 ──
-if [ "$FAILED" -gt 0 ] && [ -f "$TASK_MAPPING" ]; then
+# [P1 완주] 토글 on 이면 개별 실패 처리(재시도 복귀/터미널)가 이미 상태를 정했으므로
+# 일괄 Backlog 이동을 건너뛴다 — 여기서 옮기면 Queued 복귀가 무효화된다.
+if ! is_completion_enabled && [ "$FAILED" -gt 0 ] && [ -f "$TASK_MAPPING" ]; then
   log "실패 ${FAILED}건 → Linear Backlog 이동"
   python3 -c "
 import json, subprocess, sys
@@ -623,6 +692,27 @@ log ""
 log "══════════════════════════════════════"
 log "  파이프라인 결과: 완료 ${COMPLETED}건, 실패 ${FAILED}건"
 log "══════════════════════════════════════"
+
+# ── [P1 완주] 정지(HALT) 판정 — 터미널 실패가 있으면 "완료"가 아니라 정지로 보고 ──
+if is_completion_enabled; then
+  HALT_JSON=$(python3 scripts/retry_ledger.py status --json 2>/dev/null || echo '{}')
+  HALT_COUNT=$(printf '%s' "$HALT_JSON" | python3 -c "import sys,json;print(len(json.load(sys.stdin).get('terminal',{})))" 2>/dev/null || echo 0)
+  if [ "${HALT_COUNT:-0}" -gt 0 ]; then
+    HALT_LINES=$(printf '%s' "$HALT_JSON" | python3 -c "
+import sys, json
+t = json.load(sys.stdin).get('terminal', {})
+for k, v in t.items():
+    print(f\"- {k}: {v.get('attempts','?')}회 실패, 사유: {v.get('last_reason','?')}\")
+" 2>/dev/null || echo "(요약 실패)")
+    log "🛑 정지(HALT): 재시도 한도 소진 ${HALT_COUNT}건 — 사람 개입 필요"
+    log "$HALT_LINES"
+    if is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
+      # Telegram 마크다운 엔티티 파싱 400 방지 — 평문(백틱·별표 금지)으로 보낸다
+      python3 scripts/telegram_notify.py --message "🛑 파이프라인 정지(HALT) — 재시도 한도 소진 ${HALT_COUNT}건, 사람 개입 필요
+${HALT_LINES}" 2>/dev/null || true
+    fi
+  fi
+fi
 
 # 처리된 작업이 있을 때만 Telegram 알림 발송
 if [ $((COMPLETED + FAILED)) -gt 0 ] && is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
