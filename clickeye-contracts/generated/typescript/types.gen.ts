@@ -473,6 +473,39 @@ export type DecomposeResponse = {
 };
 
 /**
+ * 딜리버리 이벤트 1건 — append-only 전이 이력의 조회 표현.
+ *
+ * intake_id/project_id 는 타임라인 응답이 이미 문맥으로 갖고 있어 생략한다.
+ */
+export type DeliveryEventItem = {
+    id: string;
+    event_type: string;
+    actor_type: string;
+    actor_id: string | null;
+    detail: string | null;
+    meta: {
+        [key: string]: unknown;
+    } | null;
+    created_at: string | null;
+};
+
+/**
+ * 무인 체인 단계별 집계 — 대시보드 헤더 1행 데이터.
+ *
+ * 버킷은 상호배타가 아니다(total 은 모수, 나머지는 각 단계의 잔량/결과).
+ * 정의는 `IntakeService.get_overview` 주석 참조 — 그쪽이 SSOT 다.
+ */
+export type DeliveryOverviewResponse = {
+    total: number;
+    pending_refine: number;
+    pending_issue: number;
+    implementing: number;
+    verified: number;
+    gate_failed: number;
+    rejected: number;
+};
+
+/**
  * diff 생성 결과.
  */
 export type DiffResult = {
@@ -863,6 +896,21 @@ export type IntakeResponse = {
     }> | null;
     tickets_issued_at?: string | null;
     created_at: string | null;
+};
+
+/**
+ * 인테이크 1건의 전이 타임라인 — 상태 스냅샷 + 이력.
+ *
+ * events 는 created_at 오름차순(발생 순서)이다 — 대시보드가 위에서 아래로
+ * 체인 진행을 읽는다.
+ */
+export type IntakeTimelineResponse = {
+    intake_id: string;
+    title: string;
+    status: string;
+    refine_status: string;
+    tickets_status: string;
+    events: Array<DeliveryEventItem>;
 };
 
 /**
@@ -7397,6 +7445,49 @@ export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses = {
 };
 
 export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponse = RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses[keyof RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses];
+
+export type GetDeliveryOverviewApiV1IntakeOverviewGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/intake/overview';
+};
+
+export type GetDeliveryOverviewApiV1IntakeOverviewGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeliveryOverviewResponse;
+};
+
+export type GetDeliveryOverviewApiV1IntakeOverviewGetResponse = GetDeliveryOverviewApiV1IntakeOverviewGetResponses[keyof GetDeliveryOverviewApiV1IntakeOverviewGetResponses];
+
+export type GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetData = {
+    body?: never;
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/timeline';
+};
+
+export type GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetError = GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetErrors[keyof GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetErrors];
+
+export type GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeTimelineResponse;
+};
+
+export type GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetResponse = GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetResponses[keyof GetIntakeTimelineApiV1IntakeIntakeIdTimelineGetResponses];
 
 export type ListServiceKeysApiV1IntakeServiceKeysGetData = {
     body?: never;

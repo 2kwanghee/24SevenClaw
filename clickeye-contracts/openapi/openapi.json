@@ -9557,6 +9557,82 @@
         }
       }
     },
+    "/api/v1/intake/overview": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Get Delivery Overview",
+        "description": "무인 체인 단계별 집계 — 대시보드 헤더 1행.\n\n버킷은 상호배타가 아니다(total 은 반려 제외 모수, 나머지는 단계별 잔량/결과).\n정의의 SSOT 는 `IntakeService.get_overview` 주석이다.",
+        "operationId": "get_delivery_overview_api_v1_intake_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/intake/{intake_id}/timeline": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Get Intake Timeline",
+        "description": "인테이크 전이 타임라인 — 상태 스냅샷 + 이벤트(발생 순서). 없으면 404.\n\n실패 전이(verification_failed·callback_failed)도 그대로 노출한다 — 정지 원인\n추적이 이 API 의 존재 이유다(D-9).",
+        "operationId": "get_intake_timeline_api_v1_intake__intake_id__timeline_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeTimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intake/service-keys": {
       "get": {
         "tags": [
@@ -13925,6 +14001,126 @@
         ],
         "title": "DecomposeResponse"
       },
+      "DeliveryEventItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_type",
+          "actor_type",
+          "actor_id",
+          "detail",
+          "meta",
+          "created_at"
+        ],
+        "title": "DeliveryEventItem",
+        "description": "딜리버리 이벤트 1건 — append-only 전이 이력의 조회 표현.\n\nintake_id/project_id 는 타임라인 응답이 이미 문맥으로 갖고 있어 생략한다."
+      },
+      "DeliveryOverviewResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pending_refine": {
+            "type": "integer",
+            "title": "Pending Refine"
+          },
+          "pending_issue": {
+            "type": "integer",
+            "title": "Pending Issue"
+          },
+          "implementing": {
+            "type": "integer",
+            "title": "Implementing"
+          },
+          "verified": {
+            "type": "integer",
+            "title": "Verified"
+          },
+          "gate_failed": {
+            "type": "integer",
+            "title": "Gate Failed"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "pending_refine",
+          "pending_issue",
+          "implementing",
+          "verified",
+          "gate_failed",
+          "rejected"
+        ],
+        "title": "DeliveryOverviewResponse",
+        "description": "무인 체인 단계별 집계 — 대시보드 헤더 1행 데이터.\n\n버킷은 상호배타가 아니다(total 은 모수, 나머지는 각 단계의 잔량/결과).\n정의는 `IntakeService.get_overview` 주석 참조 — 그쪽이 SSOT 다."
+      },
       "DiffResult": {
         "properties": {
           "round_id": {
@@ -15598,6 +15794,49 @@
         ],
         "title": "IntakeResponse",
         "description": "인테이크 상세/목록 응답 (검토 콘솔용)."
+      },
+      "IntakeTimelineResponse": {
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Intake Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "refine_status": {
+            "type": "string",
+            "title": "Refine Status"
+          },
+          "tickets_status": {
+            "type": "string",
+            "title": "Tickets Status"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryEventItem"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intake_id",
+          "title",
+          "status",
+          "refine_status",
+          "tickets_status",
+          "events"
+        ],
+        "title": "IntakeTimelineResponse",
+        "description": "인테이크 1건의 전이 타임라인 — 상태 스냅샷 + 이력.\n\nevents 는 created_at 오름차순(발생 순서)이다 — 대시보드가 위에서 아래로\n체인 진행을 읽는다."
       },
       "IntakeVerifyPendingItem": {
         "properties": {

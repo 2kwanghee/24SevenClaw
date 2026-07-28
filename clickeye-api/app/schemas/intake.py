@@ -173,6 +173,55 @@ class VerificationRecordRequest(BaseModel):
     report: str = Field(..., min_length=1, max_length=20000)
 
 
+# ── 기록면 조회: 타임라인·집계 (다프로젝트화 P9, D-8·D-9) ────────────────────
+class DeliveryEventItem(BaseModel):
+    """딜리버리 이벤트 1건 — append-only 전이 이력의 조회 표현.
+
+    intake_id/project_id 는 타임라인 응답이 이미 문맥으로 갖고 있어 생략한다.
+    """
+
+    id: UUID
+    event_type: str
+    actor_type: str
+    actor_id: UUID | None
+    detail: str | None
+    meta: dict[str, Any] | None
+    created_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class IntakeTimelineResponse(BaseModel):
+    """인테이크 1건의 전이 타임라인 — 상태 스냅샷 + 이력.
+
+    events 는 created_at 오름차순(발생 순서)이다 — 대시보드가 위에서 아래로
+    체인 진행을 읽는다.
+    """
+
+    intake_id: UUID
+    title: str
+    status: str
+    refine_status: str
+    tickets_status: str
+    events: list[DeliveryEventItem]
+
+
+class DeliveryOverviewResponse(BaseModel):
+    """무인 체인 단계별 집계 — 대시보드 헤더 1행 데이터.
+
+    버킷은 상호배타가 아니다(total 은 모수, 나머지는 각 단계의 잔량/결과).
+    정의는 `IntakeService.get_overview` 주석 참조 — 그쪽이 SSOT 다.
+    """
+
+    total: int
+    pending_refine: int
+    pending_issue: int
+    implementing: int
+    verified: int
+    gate_failed: int
+    rejected: int
+
+
 class ServiceKeyCreate(BaseModel):
     """인테이크 서비스 키 발급 요청."""
 

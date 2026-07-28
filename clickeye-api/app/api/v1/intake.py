@@ -19,12 +19,15 @@ from app.dependencies import require_permission, require_superadmin
 from app.models.intake import IntakeRequest
 from app.models.user import User
 from app.schemas.intake import (
+    DeliveryEventItem,
+    DeliveryOverviewResponse,
     IntakeAcceptedResponse,
     IntakeCreate,
     IntakeIssuePendingItem,
     IntakeRefinePendingItem,
     IntakeRejectRequest,
     IntakeResponse,
+    IntakeTimelineResponse,
     IntakeVerifyPendingItem,
     RefineSubmit,
     ServiceKeyCreate,
@@ -244,6 +247,52 @@ async def record_verification(
     """
     return await IntakeService(db).record_verification(
         intake_id, passed=body.passed, report=body.report
+    )
+
+
+# ---------------------------------------------------------------------------
+# 기록면 조회 — 타임라인·집계 (사람, JWT control_tower:read · P9)
+# ---------------------------------------------------------------------------
+#
+# 무인 체인의 전이 이력(DeliveryEvent)은 append-only 다. 여기서는 읽기만 하고,
+# 기록은 서비스의 전이 메서드 내부(_record_event)에서만 일어난다.
+#
+# 라우트 등록 순서: 리터럴 경로(/overview)를 `/{intake_id}/...` 패턴보다 먼저 등록한다
+# — 위 /refine/pending·/issue/pending·/verify/pending 과 동일 원칙.
+
+
+@router.get("/overview", response_model=DeliveryOverviewResponse)
+async def get_delivery_overview(
+    _user: User = Depends(require_permission("control_tower:read")),
+    db: AsyncSession = Depends(get_db),
+) -> DeliveryOverviewResponse:
+    """무인 체인 단계별 집계 — 대시보드 헤더 1행.
+
+    버킷은 상호배타가 아니다(total 은 반려 제외 모수, 나머지는 단계별 잔량/결과).
+    정의의 SSOT 는 `IntakeService.get_overview` 주석이다.
+    """
+    return DeliveryOverviewResponse(**await IntakeService(db).get_overview())
+
+
+@router.get("/{intake_id}/timeline", response_model=IntakeTimelineResponse)
+async def get_intake_timeline(
+    intake_id: UUID,
+    _user: User = Depends(require_permission("control_tower:read")),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeTimelineResponse:
+    """인테이크 전이 타임라인 — 상태 스냅샷 + 이벤트(발생 순서). 없으면 404.
+
+    실패 전이(verification_failed·callback_failed)도 그대로 노출한다 — 정지 원인
+    추적이 이 API 의 존재 이유다(D-9).
+    """
+    intake, events = await IntakeService(db).get_timeline(intake_id)
+    return IntakeTimelineResponse(
+        intake_id=intake.id,
+        title=str(intake.title),
+        status=str(intake.status),
+        refine_status=str(intake.refine_status),
+        tickets_status=str(intake.tickets_status or "none"),
+        events=[DeliveryEventItem.model_validate(event) for event in events],
     )
 
 

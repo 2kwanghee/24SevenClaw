@@ -36,7 +36,7 @@ from uuid import UUID
 
 import httpx
 from governance.policy import is_opt_in
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
@@ -953,6 +953,97 @@ class IntakeService:
         # A3-lite: 외부 서비스에 반려 상태 푸시(fire-and-forget, 서명 포함).
         _enqueue_callback(intake, key)
         return intake
+
+    # ------------------------------------------------------------------
+    # 기록면 조회 (P9) — 타임라인·집계. 전이 메서드와 달리 순수 읽기다.
+    # ------------------------------------------------------------------
+
+    async def get_timeline(self, intake_id: UUID) -> tuple[IntakeRequest, list[DeliveryEvent]]:
+        """인테이크 1건 + 전이 이력(발생 순서)을 반환한다. 없으면 404.
+
+        정렬은 created_at 오름차순 — 이벤트는 append-only 이므로 이 순서가 곧
+        체인 진행 순서다(수신→정제→수락→발급→검증).
+        """
+        intake = await self.db.get(IntakeRequest, intake_id)
+        if intake is None:
+            raise AppError("INTAKE_NOT_FOUND", "인테이크를 찾을 수 없습니다.", 404)
+        result = await self.db.execute(
+            select(DeliveryEvent)
+            .where(DeliveryEvent.intake_id == intake_id)
+            .order_by(DeliveryEvent.created_at.asc())
+        )
+        return intake, list(result.scalars().all())
+
+    async def get_overview(self) -> dict[str, int]:
+        """무인 체인 단계별 집계 (P9) — 대시보드 헤더 1행 데이터.
+
+        버킷 정의(**상호배타가 아니다** — total 은 모수, 나머지는 단계별 잔량/결과):
+          total          반려를 제외한 전체 인테이크(진행 중 + 완주). 반려는 체인에서
+                         빠진 건이므로 모수에서 제외한다.
+          pending_refine 정제 대기 — status=pending_review & refine_status=pending
+                         (list_refine_pending 과 동일 조건)
+          pending_issue  발급 대기 — refine_status=refined & tickets_status=none &
+                         status in (accepted, pending_review). 기계 수락 opt-in 여부와
+                         무관하게 센다 — 토글이 대기 잔량을 숨기면 감시가 무의미해진다
+                         (list_issue_pending 의 opt-in 필터와 의도적으로 다름).
+          implementing   구현 중 — tickets_status=issued (발급 후 검증 전)
+          verified       완주 — tickets_status=verified (무인 딜리버리 최종 상태)
+          gate_failed    정합성 게이트 실패 — tickets_status=gate_failed
+          rejected       반려 — status=rejected (total 에 포함되지 않는다)
+
+        (status, refine_status, tickets_status) 조합별 count 를 1회 쿼리로 받아
+        파이썬에서 버킷을 계산한다 — 버킷 수만큼 count 쿼리를 날리지 않는다.
+        """
+        rows = (
+            await self.db.execute(
+                select(
+                    IntakeRequest.status,
+                    IntakeRequest.refine_status,
+                    IntakeRequest.tickets_status,
+                    func.count().label("n"),
+                ).group_by(
+                    IntakeRequest.status,
+                    IntakeRequest.refine_status,
+                    IntakeRequest.tickets_status,
+                )
+            )
+        ).all()
+        counts = dict.fromkeys(
+            (
+                "total",
+                "pending_refine",
+                "pending_issue",
+                "implementing",
+                "verified",
+                "gate_failed",
+                "rejected",
+            ),
+            0,
+        )
+        for status_value, refine_value, tickets_value, count_value in rows:
+            status_s = str(status_value)
+            refine_s = str(refine_value)
+            tickets_s = str(tickets_value or "none")
+            n = int(count_value)
+            if status_s == "rejected":
+                counts["rejected"] += n
+                continue
+            counts["total"] += n
+            if status_s == "pending_review" and refine_s == "pending":
+                counts["pending_refine"] += n
+            if (
+                refine_s == "refined"
+                and tickets_s == "none"
+                and status_s in ("accepted", "pending_review")
+            ):
+                counts["pending_issue"] += n
+            if tickets_s == "issued":
+                counts["implementing"] += n
+            elif tickets_s == "verified":
+                counts["verified"] += n
+            elif tickets_s == "gate_failed":
+                counts["gate_failed"] += n
+        return counts
 
     async def list_intakes(
         self, user: User, status_filter: str | None = None
