@@ -857,6 +857,11 @@ export type IntakeResponse = {
     refined_text: string | null;
     refine_status: string;
     callback_status: string;
+    tickets_status?: string;
+    tickets?: Array<{
+        [key: string]: unknown;
+    }> | null;
+    tickets_issued_at?: string | null;
     created_at: string | null;
 };
 

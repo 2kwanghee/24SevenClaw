@@ -1,7 +1,7 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: needs-revision
+status: current
 last_updated: 2026-07-28
 related:
   - clickeye-api/app/models/intake.py
@@ -282,6 +282,12 @@ Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 �
 **요구:** 인테이크 정제 완료 → 티켓 전량 자동 발급(사람 확인 없음). 발급 결과는 기록면에
 남기고, 발급 자체가 실패하면 서비스 #2 로 거부 콜백한다.
 
+→ ✅ **구현 완료(2026-07-28, P6).** `machine_accept`(opt-in `FLOWOPS_INTAKE_AUTO_ACCEPT`,
+서버 강제) + 발급 배치 `scripts/intake_issue.sh`(claude -p 구독 분해) +
+`scripts/linear_issuer.py`(fail-closed 검증·3상 발급 — 부분 실패 = 실행 0건) +
+발급 원장(`tickets_status` 멱등 앵커) + 콜백 확장. depends_on → blockedBy 배선으로
+순차 A-Z 는 watcher 기존 코드 무변경 성립.
+
 ---
 
 ## 7. 결정 (ADR)
@@ -315,7 +321,7 @@ Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 �
 | **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | ✅ 강제 모드 완료 (2026-07-28). 잔존 경로 처분(gpt_pr_review·fix_plan_generator 종량 확정, codex=구독, gemini=레거시)은 별도 결정 대기 |
 | **P4** | **시트 풀 + 계정별 토큰 모니터링** — 레지스트리·배정·`seat_id` 원장·시트별 레이트 (§5) | P3 다음 |
 | **P5** | **다프로젝트 동시 실행** — 락 세분화·작업 경로 격리·`--limit 1` 해제 (§5-3) | P4 다음 |
-| **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | P1 다음 |
+| **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | ✅ 완료 (2026-07-28) — 기계수락(opt-in)·분해 배치·3상 발급기·원장/콜백 |
 | **P7** | **정합성 테스트 게이트** — 전 티켓 완주 후 통합 검증 (§6-2) | P1·P6 다음 |
 | **P8** | 집행면 게이트 엔진 + 룰 플러그인 | 아래 전제조건 |
 | **P9** | 기록면 1급화 + 대시보드 | P4 다음 |

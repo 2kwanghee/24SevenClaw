@@ -76,6 +76,10 @@ class IntakeResponse(BaseModel):
     refine_status: str
     # CE-311: 콜백 발송 상태 (none | pending | sent | failed) — 검토 콘솔 뱃지용.
     callback_status: str
+    # P6: 티켓 발급 관측 (none | issued) + 발급 원장 — 배치/콘솔이 결과를 확인한다.
+    tickets_status: str = "none"
+    tickets: list[dict[str, Any]] | None = None
+    tickets_issued_at: datetime | None = None
     created_at: datetime | None
 
     model_config = {"from_attributes": True}

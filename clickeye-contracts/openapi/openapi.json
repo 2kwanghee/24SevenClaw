@@ -15396,6 +15396,38 @@
             "type": "string",
             "title": "Callback Status"
           },
+          "tickets_status": {
+            "type": "string",
+            "title": "Tickets Status",
+            "default": "none"
+          },
+          "tickets": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tickets"
+          },
+          "tickets_issued_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tickets Issued At"
+          },
           "created_at": {
             "anyOf": [
               {
