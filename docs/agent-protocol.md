@@ -1,7 +1,7 @@
 ---
 title: 통신 프로토콜
 category: architecture
-status: current
+status: needs-revision
 last_updated: 2026-07-28
 related:
   - clickeye-api/app/api/v1/governance.py
