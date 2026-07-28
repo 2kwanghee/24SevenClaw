@@ -16,8 +16,20 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.schemas.anthropic_credentials import AnthropicCredentialsResponse, AnthropicCredentialsSave
+from app.schemas.seat import SeatRegisterRequest, SeatResponse
+from app.services.seat_service import SeatService
 
 router = APIRouter(prefix="/me/anthropic-credentials", tags=["anthropic-credentials"])
+
+
+def _seat_response(seat: UserAnthropicCredentials) -> SeatResponse:
+    """시트 응답 조립 — 토큰(평문/마스킹)은 어떤 경우에도 담지 않는다."""
+    return SeatResponse(
+        seat_id=seat.id,
+        seat_status=str(seat.seat_status),
+        created_at=seat.created_at or datetime.now(UTC),
+        updated_at=seat.updated_at,
+    )
 
 
 async def _get_creds(
@@ -98,6 +110,41 @@ async def get_anthropic_credentials(
         credential_type=credential_type,
         updated_at=creds.updated_at or creds.created_at,
     )
+
+
+@router.put("/seat", response_model=SeatResponse, status_code=status.HTTP_200_OK)
+async def register_seat(
+    data: SeatRegisterRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SeatResponse:
+    """본인 구독 시트 등록/교체 (다프로젝트화 P4).
+
+    평문 OAuth 토큰(`claude setup-token` 산출물)을 수신해 Fernet 암호화 저장하고
+    상태를 active 로 초기화한다. 응답에 토큰은 포함되지 않는다.
+    사용자당 시트 1개(본인 계정) — 재호출은 교체다.
+    """
+    seat = await SeatService(db).register(user.id, data.oauth_token)  # type: ignore[arg-type]
+    return _seat_response(seat)
+
+
+@router.get("/seat", response_model=SeatResponse)
+async def get_seat(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SeatResponse:
+    """본인 구독 시트 상태 조회 (토큰 미노출). 미등록이면 404."""
+    seat = await SeatService(db).get_seat_or_404(user.id)  # type: ignore[arg-type]
+    return _seat_response(seat)
+
+
+@router.delete("/seat", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_seat(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """본인 구독 시트 해제. 미등록이면 404."""
+    await SeatService(db).delete(user.id)  # type: ignore[arg-type]
 
 
 @router.delete("/", status_code=status.HTTP_204_NO_CONTENT)

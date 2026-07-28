@@ -13,6 +13,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    ForeignKey,
     Integer,
     Numeric,
     String,
@@ -48,6 +49,14 @@ class LlmUsageLedger(Base):
     # 파이프라인 태스크/프로젝트 상관관계 (nullable — in-API 호출은 프로젝트 없이 발생 가능)
     project_id = Column(Uuid, nullable=True, index=True)
     task_id = Column(String(128), nullable=True)  # Runner 프로토콜 상관관계
+    # 계정별 토큰 모니터링 축(D-8) — 어느 구독 시트가 소비했는지. meta 에 밀어넣지 않는
+    # 1급 컬럼이다. 시트 삭제 시 원장 행은 남고 축만 끊긴다(SET NULL).
+    seat_id = Column(
+        Uuid,
+        ForeignKey("user_anthropic_credentials.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     provider: Column[LlmProvider] = Column(Enum(LlmProvider, name="llm_provider"), nullable=False)
     key_source: Column[LlmKeySource] = Column(
         Enum(LlmKeySource, name="llm_key_source"), nullable=False

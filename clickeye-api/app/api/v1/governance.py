@@ -29,9 +29,12 @@ from app.schemas.governance import (
     GovernanceEvaluateResponse,
     GovernancePolicyResponse,
 )
+from app.schemas.seat import SeatTokenRequest, SeatTokenResponse
 from app.services.control_plane_service import ControlPlaneService
 from app.services.governance_gate_service import GovernanceGateService
 from app.services.intake_service import IntakeService
+from app.services.project_service import ProjectService
+from app.services.seat_service import SeatService
 
 router = APIRouter(prefix="/governance", tags=["governance"])
 
@@ -139,6 +142,31 @@ async def submit_control_plane(
         source_signature=str(profile.source_signature),
         effective=plane.to_dict(),
     )
+
+
+@router.post(
+    "/seat-token",
+    response_model=SeatTokenResponse,
+    dependencies=[Depends(verify_governance_token)],
+    responses={
+        404: {"description": "프로젝트 없음 또는 사용할 시트 없음"},
+        409: {"description": "시트가 active 아님(exhausted|blocked)"},
+    },
+)
+async def issue_seat_token(
+    req: SeatTokenRequest,
+    db: AsyncSession = Depends(get_db),
+) -> SeatTokenResponse:
+    """프로젝트 실행용 구독 시트 토큰을 머신에게 발급한다 (다프로젝트화 P4).
+
+    파이프라인 러너가 `CLAUDE_CODE_OAUTH_TOKEN` 으로 주입할 평문 토큰을 반환하는
+    유일한 경로다. 우선순위는 프로젝트 배정 시트(settings.seat_user_id) → 프로젝트
+    소유자 시트이며, active 가 아닌 시트는 409 로 거부한다(조용한 우회 금지).
+    인증은 다른 머신 엔드포인트와 동일한 X-Governance-Token 헤더.
+    """
+    project = await ProjectService(db).get_for_admin(req.project_id)
+    seat, token = await SeatService(db).resolve_token_for_project(project)
+    return SeatTokenResponse(seat_id=seat.id, user_id=seat.user_id, token=token)
 
 
 @router.get(

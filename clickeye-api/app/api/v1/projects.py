@@ -14,8 +14,10 @@ from app.schemas.project import (
     ProjectResponse,
     ProjectUpdate,
 )
+from app.schemas.seat import ProjectSeatAssignRequest, ProjectSeatAssignResponse
 from app.services.preview_service import generate_preview
 from app.services.project_service import ProjectService, annotate_key_status
+from app.services.seat_service import SeatService
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -100,6 +102,31 @@ async def delete_project(
         owner_id=user.id,  # type: ignore[arg-type]
         is_superadmin=is_superadmin,
     )
+
+
+@router.put("/{project_id}/seat", response_model=ProjectSeatAssignResponse)
+async def assign_project_seat(
+    project_id: UUID,
+    data: ProjectSeatAssignRequest,
+    user: User = Depends(require_permission("project:update")),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectSeatAssignResponse:
+    """프로젝트에 구독 시트를 배정하거나 해제한다 (다프로젝트화 P4).
+
+    배정은 `Project.settings.seat_user_id`(v1)에 기록되고, 미배정 프로젝트는 실행 시
+    소유자 시트로 폴백한다. seat_user_id=null 이면 배정 해제.
+    소유자 스코프가 기본이며 superadmin 만 타 조직 프로젝트를 배정할 수 있다
+    (delete_project 와 동일한 관례 — 새 권한을 만들지 않는다).
+    """
+    service = ProjectService(db)
+    is_superadmin = (getattr(user, "system_role", "") or "") == "superadmin"
+    if is_superadmin:
+        project = await service.get_for_admin(project_id)
+    else:
+        project = await service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
+
+    seat_user_id = await SeatService(db).assign_to_project(project, data.seat_user_id)
+    return ProjectSeatAssignResponse(project_id=project_id, seat_user_id=seat_user_id)
 
 
 @router.post("/{project_id}/reset", response_model=ProjectResetResponse)

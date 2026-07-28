@@ -3356,6 +3356,65 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/seat": {
+      "put": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Assign Project Seat",
+        "description": "프로젝트에 구독 시트를 배정하거나 해제한다 (다프로젝트화 P4).\n\n배정은 `Project.settings.seat_user_id`(v1)에 기록되고, 미배정 프로젝트는 실행 시\n소유자 시트로 폴백한다. seat_user_id=null 이면 배정 해제.\n소유자 스코프가 기본이며 superadmin 만 타 조직 프로젝트를 배정할 수 있다\n(delete_project 와 동일한 관례 — 새 권한을 만들지 않는다).",
+        "operationId": "assign_project_seat_api_v1_projects__project_id__seat_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectSeatAssignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSeatAssignResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/reset": {
       "post": {
         "tags": [
@@ -8522,6 +8581,96 @@
         }
       }
     },
+    "/api/v1/me/anthropic-credentials/seat": {
+      "get": {
+        "tags": [
+          "anthropic-credentials"
+        ],
+        "summary": "Get Seat",
+        "description": "본인 구독 시트 상태 조회 (토큰 미노출). 미등록이면 404.",
+        "operationId": "get_seat_api_v1_me_anthropic_credentials_seat_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "anthropic-credentials"
+        ],
+        "summary": "Register Seat",
+        "description": "본인 구독 시트 등록/교체 (다프로젝트화 P4).\n\n평문 OAuth 토큰(`claude setup-token` 산출물)을 수신해 Fernet 암호화 저장하고\n상태를 active 로 초기화한다. 응답에 토큰은 포함되지 않는다.\n사용자당 시트 1개(본인 계정) — 재호출은 교체다.",
+        "operationId": "register_seat_api_v1_me_anthropic_credentials_seat_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "anthropic-credentials"
+        ],
+        "summary": "Delete Seat",
+        "description": "본인 구독 시트 해제. 미등록이면 404.",
+        "operationId": "delete_seat_api_v1_me_anthropic_credentials_seat_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/linear-credentials/": {
       "get": {
         "tags": [
@@ -9884,6 +10033,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ControlPlaneRejection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/governance/seat-token": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Issue Seat Token",
+        "description": "프로젝트 실행용 구독 시트 토큰을 머신에게 발급한다 (다프로젝트화 P4).\n\n파이프라인 러너가 `CLAUDE_CODE_OAUTH_TOKEN` 으로 주입할 평문 토큰을 반환하는\n유일한 경로다. 우선순위는 프로젝트 배정 시트(settings.seat_user_id) → 프로젝트\n소유자 시트이며, active 가 아닌 시트는 409 로 거부한다(조용한 우회 금지).\n인증은 다른 머신 엔드포인트와 동일한 X-Governance-Token 헤더.",
+        "operationId": "issue_seat_token_api_v1_governance_seat_token_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatTokenResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "프로젝트 없음 또는 사용할 시트 없음"
+          },
+          "409": {
+            "description": "시트가 active 아님(exhausted|blocked)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -20516,6 +20731,51 @@
         ],
         "title": "ProjectResponse"
       },
+      "ProjectSeatAssignRequest": {
+        "properties": {
+          "seat_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat User Id",
+            "description": "배정할 시트 소유자의 user_id. null 이면 배정 해제(소유자 시트 폴백)"
+          }
+        },
+        "type": "object",
+        "title": "ProjectSeatAssignRequest"
+      },
+      "ProjectSeatAssignResponse": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "seat_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat User Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id"
+        ],
+        "title": "ProjectSeatAssignResponse"
+      },
       "ProjectTransferRequest": {
         "properties": {
           "to_organization_id": {
@@ -23371,6 +23631,101 @@
           "system_role"
         ],
         "title": "RoleUpdateRequest"
+      },
+      "SeatRegisterRequest": {
+        "properties": {
+          "oauth_token": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Oauth Token",
+            "description": "`claude setup-token` 산출 OAuth 토큰(평문 — 저장 시 Fernet 암호화)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "oauth_token"
+        ],
+        "title": "SeatRegisterRequest"
+      },
+      "SeatResponse": {
+        "properties": {
+          "seat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Seat Id"
+          },
+          "seat_status": {
+            "type": "string",
+            "title": "Seat Status",
+            "description": "active | exhausted | blocked"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seat_id",
+          "seat_status",
+          "created_at"
+        ],
+        "title": "SeatResponse",
+        "description": "시트 상태 응답 — 토큰(평문/마스킹 모두) 미노출."
+      },
+      "SeatTokenRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id"
+        ],
+        "title": "SeatTokenRequest"
+      },
+      "SeatTokenResponse": {
+        "properties": {
+          "seat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Seat Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seat_id",
+          "user_id",
+          "token"
+        ],
+        "title": "SeatTokenResponse",
+        "description": "머신 수령 응답 — 복호화된 평문 토큰을 담는 유일한 스키마."
       },
       "ServiceKeyCreate": {
         "properties": {

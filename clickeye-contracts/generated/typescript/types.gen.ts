@@ -1849,6 +1849,18 @@ export type ProjectResponse = {
     updated_at: string;
 };
 
+export type ProjectSeatAssignRequest = {
+    /**
+     * 배정할 시트 소유자의 user_id. null 이면 배정 해제(소유자 시트 폴백)
+     */
+    seat_user_id?: string | null;
+};
+
+export type ProjectSeatAssignResponse = {
+    project_id: string;
+    seat_user_id?: string | null;
+};
+
 export type ProjectTransferRequest = {
     to_organization_id: string;
 };
@@ -2380,6 +2392,39 @@ export type RoiStandardUpdate = {
 
 export type RoleUpdateRequest = {
     system_role: 'superadmin' | 'admin' | 'member' | 'viewer';
+};
+
+export type SeatRegisterRequest = {
+    /**
+     * `claude setup-token` 산출 OAuth 토큰(평문 — 저장 시 Fernet 암호화)
+     */
+    oauth_token: string;
+};
+
+/**
+ * 시트 상태 응답 — 토큰(평문/마스킹 모두) 미노출.
+ */
+export type SeatResponse = {
+    seat_id: string;
+    /**
+     * active | exhausted | blocked
+     */
+    seat_status: string;
+    created_at: string;
+    updated_at?: string | null;
+};
+
+export type SeatTokenRequest = {
+    project_id: string;
+};
+
+/**
+ * 머신 수령 응답 — 복호화된 평문 토큰을 담는 유일한 스키마.
+ */
+export type SeatTokenResponse = {
+    seat_id: string;
+    user_id: string;
+    token: string;
 };
 
 /**
@@ -4453,6 +4498,33 @@ export type UpdateProjectApiV1ProjectsProjectIdPatchResponses = {
 };
 
 export type UpdateProjectApiV1ProjectsProjectIdPatchResponse = UpdateProjectApiV1ProjectsProjectIdPatchResponses[keyof UpdateProjectApiV1ProjectsProjectIdPatchResponses];
+
+export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutData = {
+    body: ProjectSeatAssignRequest;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/seat';
+};
+
+export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutError = AssignProjectSeatApiV1ProjectsProjectIdSeatPutErrors[keyof AssignProjectSeatApiV1ProjectsProjectIdSeatPutErrors];
+
+export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectSeatAssignResponse;
+};
+
+export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutResponse = AssignProjectSeatApiV1ProjectsProjectIdSeatPutResponses[keyof AssignProjectSeatApiV1ProjectsProjectIdSeatPutResponses];
 
 export type ResetProjectApiV1ProjectsProjectIdResetPostData = {
     body?: never;
@@ -6949,6 +7021,63 @@ export type SaveAnthropicCredentialsApiV1MeAnthropicCredentialsPostResponses = {
 
 export type SaveAnthropicCredentialsApiV1MeAnthropicCredentialsPostResponse = SaveAnthropicCredentialsApiV1MeAnthropicCredentialsPostResponses[keyof SaveAnthropicCredentialsApiV1MeAnthropicCredentialsPostResponses];
 
+export type DeleteSeatApiV1MeAnthropicCredentialsSeatDeleteData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/anthropic-credentials/seat';
+};
+
+export type DeleteSeatApiV1MeAnthropicCredentialsSeatDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteSeatApiV1MeAnthropicCredentialsSeatDeleteResponse = DeleteSeatApiV1MeAnthropicCredentialsSeatDeleteResponses[keyof DeleteSeatApiV1MeAnthropicCredentialsSeatDeleteResponses];
+
+export type GetSeatApiV1MeAnthropicCredentialsSeatGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/anthropic-credentials/seat';
+};
+
+export type GetSeatApiV1MeAnthropicCredentialsSeatGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatResponse;
+};
+
+export type GetSeatApiV1MeAnthropicCredentialsSeatGetResponse = GetSeatApiV1MeAnthropicCredentialsSeatGetResponses[keyof GetSeatApiV1MeAnthropicCredentialsSeatGetResponses];
+
+export type RegisterSeatApiV1MeAnthropicCredentialsSeatPutData = {
+    body: SeatRegisterRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/anthropic-credentials/seat';
+};
+
+export type RegisterSeatApiV1MeAnthropicCredentialsSeatPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RegisterSeatApiV1MeAnthropicCredentialsSeatPutError = RegisterSeatApiV1MeAnthropicCredentialsSeatPutErrors[keyof RegisterSeatApiV1MeAnthropicCredentialsSeatPutErrors];
+
+export type RegisterSeatApiV1MeAnthropicCredentialsSeatPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatResponse;
+};
+
+export type RegisterSeatApiV1MeAnthropicCredentialsSeatPutResponse = RegisterSeatApiV1MeAnthropicCredentialsSeatPutResponses[keyof RegisterSeatApiV1MeAnthropicCredentialsSeatPutResponses];
+
 export type DeleteLinearCredentialsApiV1MeLinearCredentialsDeleteData = {
     body?: never;
     path?: never;
@@ -7620,6 +7749,42 @@ export type SubmitControlPlaneApiV1GovernanceControlPlanePutResponses = {
 };
 
 export type SubmitControlPlaneApiV1GovernanceControlPlanePutResponse = SubmitControlPlaneApiV1GovernanceControlPlanePutResponses[keyof SubmitControlPlaneApiV1GovernanceControlPlanePutResponses];
+
+export type IssueSeatTokenApiV1GovernanceSeatTokenPostData = {
+    body: SeatTokenRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/governance/seat-token';
+};
+
+export type IssueSeatTokenApiV1GovernanceSeatTokenPostErrors = {
+    /**
+     * 프로젝트 없음 또는 사용할 시트 없음
+     */
+    404: unknown;
+    /**
+     * 시트가 active 아님(exhausted|blocked)
+     */
+    409: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IssueSeatTokenApiV1GovernanceSeatTokenPostError = IssueSeatTokenApiV1GovernanceSeatTokenPostErrors[keyof IssueSeatTokenApiV1GovernanceSeatTokenPostErrors];
+
+export type IssueSeatTokenApiV1GovernanceSeatTokenPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatTokenResponse;
+};
+
+export type IssueSeatTokenApiV1GovernanceSeatTokenPostResponse = IssueSeatTokenApiV1GovernanceSeatTokenPostResponses[keyof IssueSeatTokenApiV1GovernanceSeatTokenPostResponses];
 
 export type GetGovernancePolicyApiV1GovernancePolicyGetData = {
     body?: never;
