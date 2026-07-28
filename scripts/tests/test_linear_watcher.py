@@ -213,6 +213,91 @@ def test_fetch_queued_dedupes_overlapping_children():
     assert result[0]["id"] == "c1"
 
 
+# ── title_prefix 프로젝트 필터 (P5 다프로젝트) ────────────────────────────────
+
+
+def _prefix_fixtures() -> tuple[dict, dict, dict]:
+    """프로젝트 A 티켓 2건 + 프로젝트 B 티켓 1건 (발급 접두사 규약 `[수주:<intake8>] `)."""
+    a1 = _issue("a1", "CE-320", title="[수주:3be49b62] 로그인 화면 구현")
+    a2 = _issue("a2", "CE-321", title="[수주:3be49b62] 세션 만료 처리")
+    b1 = _issue("b1", "CE-400", title="[수주:9f0c1122] 결제 연동")
+    return a1, a2, b1
+
+
+def _fake_request_returning(nodes: list[dict]):
+    """최상위 폴링은 nodes 를, 자식 조회는 빈 목록을 반환하는 linear_request 대역."""
+
+    def fake_linear_request(_k, _q, vars):
+        if "parentId" in vars:
+            return {"issues": {"nodes": []}}
+        return {"issues": {"nodes": nodes}}
+
+    return fake_linear_request
+
+
+def test_fetch_queued_title_prefix_keeps_only_matching():
+    """title_prefix 지정 시 해당 접두사 티켓만 수집한다 (러너 간 상호 배제)."""
+    a1, a2, b1 = _prefix_fixtures()
+
+    with patch.object(
+        linear_watcher, "linear_request", side_effect=_fake_request_returning([a1, b1, a2])
+    ):
+        result = linear_watcher.fetch_queued_issues(
+            "k", "t", title_prefix="[수주:3be49b62] "
+        )
+
+    assert [r["identifier"] for r in result] == ["CE-320", "CE-321"]
+
+
+def test_fetch_queued_title_prefix_excludes_other_project():
+    """다른 프로젝트 접두사만 지정하면 상대 프로젝트 티켓은 하나도 안 집힌다."""
+    a1, a2, b1 = _prefix_fixtures()
+
+    with patch.object(
+        linear_watcher, "linear_request", side_effect=_fake_request_returning([a1, a2])
+    ):
+        result = linear_watcher.fetch_queued_issues(
+            "k", "t", title_prefix="[수주:9f0c1122] "
+        )
+
+    assert result == []
+
+
+def test_fetch_queued_without_title_prefix_collects_all():
+    """미지정(기본)이면 접두사 무관 전체 수집 — 기존 단일 프로젝트 회귀 0."""
+    a1, a2, b1 = _prefix_fixtures()
+
+    with patch.object(
+        linear_watcher, "linear_request", side_effect=_fake_request_returning([a1, b1, a2])
+    ):
+        result = linear_watcher.fetch_queued_issues("k", "t")
+
+    assert {r["identifier"] for r in result} == {"CE-320", "CE-321", "CE-400"}
+
+
+def test_fetch_queued_title_prefix_applies_before_expansion():
+    """필터는 확장 전에 적용된다 — 접두사가 안 맞는 부모의 자식은 조회조차 안 한다."""
+    a1, _a2, b1 = _prefix_fixtures()
+    a_child = _issue("ac1", "CE-322", title="[수주:3be49b62] 하위 태스크", state="Backlog")
+    b_child = _issue("bc1", "CE-401", title="[수주:9f0c1122] 하위 태스크", state="Backlog")
+
+    queried_parents: list[str] = []
+
+    def fake_fetch_children(_k, _t, parent_id):
+        queried_parents.append(parent_id)
+        return {"a1": [a_child], "b1": [b_child]}.get(parent_id, [])
+
+    with patch.object(
+        linear_watcher, "linear_request", side_effect=_fake_request_returning([a1, b1])
+    ), patch.object(linear_watcher, "fetch_children", side_effect=fake_fetch_children):
+        result = linear_watcher.fetch_queued_issues(
+            "k", "t", title_prefix="[수주:3be49b62] "
+        )
+
+    assert [r["identifier"] for r in result] == ["CE-322"]
+    assert "b1" not in queried_parents  # 제외된 프로젝트는 자식 조회 비용도 안 든다
+
+
 # ── extract_task_info / save_task_mapping 통합 ────────────────────────────────
 
 
