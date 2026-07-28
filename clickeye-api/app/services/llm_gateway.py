@@ -26,6 +26,9 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+# 토글 의미(SSOT)는 거버넌스 커널의 is_opt_in 을 재사용한다 — 미설정=off, 명시 opt-in 만 on.
+# API 는 이미 거버넌스 커널에 의존한다(governance_gate_service 의 Policy 주입 경로).
+from governance.policy import is_opt_in
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -38,6 +41,21 @@ from app.services.claude_service import ClaudeService
 from app.services.llm_ledger_service import LlmLedgerService
 
 logger = logging.getLogger(__name__)
+
+# ── 구독형 전용 강제 (다프로젝트화 P3, D-10) ────────────────────────────────
+# 핵심가치: 모든 설계·개발·구현은 내부 OAuth 구독 토큰만 — 종량(크레딧) API 금지.
+# 이 토글이 켜지면 게이트웨이는 분류기가 아니라 **강제기**가 된다: org_api_key 로
+# 해석되는 호출과 OpenAI 폴백(무조건 종량)을 실행 전에 거부한다(fail-closed).
+# P2 에서 제어면 YAML 의 auto_stop_conditions.cost_incurring_operation 으로 이관 예정.
+SUBSCRIPTION_ONLY_ENV = "FLOWOPS_SUBSCRIPTION_ONLY"
+
+
+class SubscriptionOnlyError(RuntimeError):
+    """구독형 전용 모드(D-10) 위반 — 종량 키 경로 호출이 실행 전에 거부됐다.
+
+    서버 in-API SDK 호출은 OAuth 구독 세션을 쓸 수 없으므로, 이 예외는 대개
+    "이 작업은 서버가 아니라 로컬 실행 플레인(claude -p 배치)으로 가야 한다"는 신호다.
+    """
 
 # 전역 동시성 세마포어 — in-API LLM 호출 총량 상한. 모듈 로드 시 1회 생성.
 _semaphore = asyncio.Semaphore(settings.llm_gateway_max_concurrency)
@@ -251,6 +269,8 @@ async def call(
     # 명시 key_source 우선, 없으면 실제 사용 키 기준 해석(svc 의 실키/전역 설정).
     resolved_key_source = key_source or _resolve_key_source(service=svc)
     ledger = LlmLedgerService(db)
+    # 구독형 전용 강제(D-10) — 호출 시점에 env 재독(opt-in, 미설정=off → 기본 경로 회귀 0).
+    subscription_only = is_opt_in(SUBSCRIPTION_ONLY_ENV)
 
     # 라우팅 결정을 원장 meta 에 기록(추적성). 기존 meta 보존 + 가산.
     route_meta: dict[str, Any] = {"tier": decision.tier, "reason": decision.reason}
@@ -267,6 +287,14 @@ async def call(
         input_tokens = 0
         output_tokens = 0
         try:
+            # 구독형 전용(D-10): 종량(org_api_key) 경로는 **실행 전** 거부(fail-closed).
+            # 거부는 아래 outer except 가 원장 error 행으로 기록한다(D-9 — 관측 필수).
+            if subscription_only and resolved_key_source is not LlmKeySource.subscription_seat:
+                raise SubscriptionOnlyError(
+                    f"구독형 전용 모드({SUBSCRIPTION_ONLY_ENV}=on): 종량 키 경로"
+                    f"({resolved_key_source.value}) 호출 거부 — request_kind={request_kind}. "
+                    "이 작업은 로컬 실행 플레인(구독 세션 배치)으로 라우팅해야 한다."
+                )
             try:
                 # Anthropic 우선 — usage 를 얻기 위해 원시 Message 를 캡처한다.
                 client = svc._get_client()  # noqa: SLF001 — claude_service 패턴 재사용
@@ -287,6 +315,14 @@ async def call(
                     and svc._openai_api_key  # noqa: SLF001
                 ):
                     raise
+                # 구독형 전용(D-10): OpenAI 폴백은 무조건 종량 → 실행 전 거부.
+                # 이 분기가 없으면 "Anthropic 키 부재(subscription_seat 분류) → 유료
+                # OpenAI 폴백 실행"이라는 조용한 종량 누수가 강제 모드를 우회한다.
+                if subscription_only:
+                    raise SubscriptionOnlyError(
+                        f"구독형 전용 모드({SUBSCRIPTION_ONLY_ENV}=on): OpenAI 폴백(종량) "
+                        f"거부 — request_kind={request_kind}"
+                    ) from exc
                 # OpenAI 폴백 — 텍스트만 반환(usage 미제공 → 토큰 0, 비용 None).
                 # 실제 OpenAI 모델명을 기록해 claude-* 모델명 오기를 방지한다.
                 # TODO(CE-299, P2): OpenAI usage(토큰) 캡처 — 현재 폴백은 0토큰 기록.
@@ -295,6 +331,10 @@ async def call(
                 )
                 provider = LlmProvider.openai
                 used_model = svc._openai_model  # noqa: SLF001
+                # 위장 기록 수정: 폴백 실사용 = 종량 키(OpenAI 조직 키) 사용이다.
+                # 종전에는 Anthropic 키 부재로 subscription_seat 로 분류된 채 유료 폴백이
+                # cost=None(무료 위장)으로 기록됐다. 실제 사용 키 기준으로 정정한다.
+                resolved_key_source = LlmKeySource.org_api_key
         except Exception as exc:
             # 실패 원장 기록은 자체 try로 감싸 원 LLM 예외를 절대 마스킹하지 않는다.
             try:

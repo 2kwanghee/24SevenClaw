@@ -165,9 +165,11 @@ scripts/prompt-evolve-eval.sh:117      unset ANTHROPIC_API_KEY
 | 종량 경로 **거부** | ❌ 없음 |
 | 종량 경로 **기록** | ✅ 있음 |
 
-→ 게이트웨이에 **`subscription_only` 강제 모드**가 필요하다. 활성 시 `org_api_key` 로 해석되는
-호출을 **실행 전에 거부**한다(fail-closed). 이는 `auto_stop_conditions` 의
-`cost_incurring_operation` 과 같은 의미이므로 제어면 YAML 이 정본이 된다.
+→ ✅ **구현 완료(2026-07-28, P3)** — `FLOWOPS_SUBSCRIPTION_ONLY`(opt-in) 활성 시 `org_api_key`
+해석 호출과 OpenAI 폴백(무조건 종량)을 **실행 전 거부**(`SubscriptionOnlyError`), 거부도 원장에
+error 행으로 기록(D-9). 부수 발견·수정: Anthropic 키 부재 시 유료 OpenAI 폴백이
+`subscription_seat`·cost=None 으로 **무료 위장 기록**되던 누수 — 폴백 실사용 시 `org_api_key` 로
+정정. 토글은 P2 에서 제어면 YAML `auto_stop_conditions.cost_incurring_operation` 으로 이관.
 
 ### 4-3. 감사 대상 — 종량 잔존 경로
 
@@ -310,7 +312,7 @@ Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 �
 | **P0** | 거버넌스 정책 외부화(`Policy` 주입) | ✅ 커널 완료(219 passed). `DeliveryProfile` 은 §3-1 에 맞춰 역할 재정의 필요 |
 | **P1** | **완주 오케스트레이터** — 실패 무유실·재개·재시도 한도·정지 보고 (§6-1) | ✅ 완료 (2026-07-28) — `scripts/retry_ledger.py` + `auto_dev_pipeline.sh` 실패 4경로 원장 경유. 토글 `FLOWOPS_COMPLETION`(opt-in), webhook 무변경 |
 | **P2** | **YAML 제어면 계약** — 스키마·버전·서명·fail-closed·거부 콜백 (§3) | P1 과 병행 가능 |
-| **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | P1 과 병행 가능 |
+| **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | ✅ 강제 모드 완료 (2026-07-28). 잔존 경로 처분(gpt_pr_review·fix_plan_generator 종량 확정, codex=구독, gemini=레거시)은 별도 결정 대기 |
 | **P4** | **시트 풀 + 계정별 토큰 모니터링** — 레지스트리·배정·`seat_id` 원장·시트별 레이트 (§5) | P3 다음 |
 | **P5** | **다프로젝트 동시 실행** — 락 세분화·작업 경로 격리·`--limit 1` 해제 (§5-3) | P4 다음 |
 | **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | P1 다음 |
