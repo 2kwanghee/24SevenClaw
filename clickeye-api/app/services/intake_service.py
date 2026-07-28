@@ -40,6 +40,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
+from app.models.delivery_event import DeliveryEvent
 from app.models.intake import IntakeRequest, IntakeServiceKey
 from app.models.project import Project
 from app.models.user import User
@@ -326,6 +327,24 @@ async def _record_callback_result(intake_id: UUID, ok: bool, error: str | None) 
                 return
             _apply_callback_result(intake, ok, error)
             await db.commit()
+            # P9 기록면: 콜백 **종결**(sent/failed)만 이벤트로 남긴다 — pending 재시도는
+            # 소음이다. 별도 커밋: 이벤트 실패가 콜백 상태 기록을 되돌리지 않는다.
+            final_status = str(intake.callback_status)
+            if final_status in ("sent", "failed"):
+                try:
+                    db.add(
+                        DeliveryEvent(
+                            intake_id=intake.id,
+                            project_id=intake.project_id,
+                            event_type=f"callback_{final_status}",
+                            actor_type="system",
+                            detail=(error or "발송 성공")[:2000],
+                            meta={"attempts": int(intake.callback_attempts or 0)},
+                        )
+                    )
+                    await db.commit()
+                except Exception:  # noqa: BLE001
+                    logger.exception("콜백 이벤트 기록 실패(콜백 상태는 유효): %s", intake_id)
     except Exception as exc:  # noqa: BLE001 — 기록 실패는 원 요청에 절대 전파 금지
         logger.warning("인테이크 콜백 결과 기록 실패(무시): intake_id=%s err=%s", intake_id, exc)
 
@@ -435,6 +454,59 @@ class IntakeService:
         self.db = db
 
     # ------------------------------------------------------------------
+    # 기록면 (P9, D-8·D-9) — 전이 이력 append-only
+    # ------------------------------------------------------------------
+
+    async def _record_event(
+        self,
+        intake: IntakeRequest,
+        event_type: str,
+        *,
+        actor_type: str = "system",
+        actor_id: UUID | None = None,
+        detail: str | None = None,
+        meta: dict[str, Any] | None = None,
+    ) -> None:
+        """딜리버리 이벤트 기록 — **순수 계측**. 전이(주 경로) 커밋 이후에 별도
+        트랜잭션으로 기록하고, 실패해도 전이를 절대 깨뜨리지 않는다(로그만).
+
+        원칙(D-9): 실패 전이(verification_failed 등)도 성공과 동일하게 기록한다 —
+        기록되지 않는 실패는 사후에 없던 일이 된다.
+
+        커밋/롤백은 expire_on_commit 으로 intake 의 ORM 속성을 만료시킨다 — 호출자가
+        intake 를 응답으로 직렬화하므로(라우터 response_model) 마지막에 refresh 로
+        복원한다. 이것이 없으면 직렬화 시점 lazy-load 가 MissingGreenlet 으로 터진다.
+        """
+        try:
+            self.db.add(
+                DeliveryEvent(
+                    intake_id=intake.id,
+                    project_id=intake.project_id,
+                    event_type=event_type,
+                    actor_type=actor_type,
+                    actor_id=actor_id,
+                    detail=(detail or "")[:2000] or None,
+                    meta=meta,
+                )
+            )
+            await self.db.commit()
+        except Exception:  # noqa: BLE001 — 계측 실패는 주 경로에 비전파
+            logger.exception(
+                "딜리버리 이벤트 기록 실패(전이는 유효): intake=%s type=%s",
+                intake.id,
+                event_type,
+            )
+            try:
+                await self.db.rollback()
+            except Exception:  # noqa: BLE001
+                logger.exception("이벤트 기록 롤백 실패")
+        finally:
+            try:
+                await self.db.refresh(intake)
+            except Exception:  # noqa: BLE001 — 복원 실패도 주 경로 비전파(직렬화가 판정)
+                logger.exception("이벤트 기록 후 intake refresh 실패: %s", intake.id)
+
+    # ------------------------------------------------------------------
     # 서비스 키
     # ------------------------------------------------------------------
 
@@ -542,6 +614,11 @@ class IntakeService:
         self.db.add(intake)
         await self.db.commit()
         await self.db.refresh(intake)
+        # 멱등 재수신(위 existing 반환 경로)은 이벤트를 남기지 않는다 — 신규 접수만.
+        await self._record_event(
+            intake, "received", actor_type="machine",
+            detail=f"수신({data.input_type}): {data.title}",
+        )
         return intake
 
     # ------------------------------------------------------------------
@@ -592,6 +669,13 @@ class IntakeService:
             intake.refine_status = "skipped"  # type: ignore[assignment]
         await self.db.commit()
         await self.db.refresh(intake)
+        refined = str(intake.refine_status) == "refined"
+        await self._record_event(
+            intake,
+            "refined" if refined else "refine_skipped",
+            actor_type="machine",
+            detail=f"정제 {'완료' if refined else 'skip(빈 출력)'} — {len(refined_text.strip())}자",
+        )
         return intake
 
     async def accept(self, intake_id: UUID, user: User) -> IntakeRequest:
@@ -601,7 +685,12 @@ class IntakeService:
         normalized_text 폴백(기존 동작 유지). KB 인제스트 텍스트도 동일 우선.
         """
         intake = await self._get_pending(intake_id)
-        return await self._accept_core(intake, owner=user)
+        intake = await self._accept_core(intake, owner=user)
+        await self._record_event(
+            intake, "accepted", actor_type="human", actor_id=user.id,
+            detail=f"사람 수락 — Project 생성({intake.project_id})",
+        )
+        return intake
 
     async def machine_accept(self, intake_id: UUID) -> IntakeRequest:
         """기계 수락 (다프로젝트화 P6, D-12) — 사람 확인 없이 accepted 로 전이.
@@ -642,7 +731,12 @@ class IntakeService:
                 "기계 수락 소유자(활성 superadmin)가 없습니다.",
                 409,
             )
-        return await self._accept_core(intake, owner=owner)
+        intake = await self._accept_core(intake, owner=owner)
+        await self._record_event(
+            intake, "machine_accepted", actor_type="machine",
+            detail=f"기계 수락(D-12) — Project 생성({intake.project_id}), 소유자={owner.email}",
+        )
+        return intake
 
     async def _accept_core(self, intake: IntakeRequest, *, owner: User) -> IntakeRequest:
         """accept/machine_accept 공통 본체 — Project 생성·전이·콜백·KB 인제스트."""
@@ -739,6 +833,12 @@ class IntakeService:
         _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
+        await self._record_event(
+            intake, "tickets_issued", actor_type="machine",
+            detail=f"티켓 전량 발급 — {len(tickets)}건: "
+            + ", ".join(t.get("identifier", "?") for t in tickets[:10]),
+            meta={"count": len(tickets)},
+        )
         _enqueue_callback(intake, key)
         return intake
 
@@ -802,6 +902,13 @@ class IntakeService:
         _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
+        await self._record_event(
+            intake,
+            "verification_passed" if passed else "verification_failed",
+            actor_type="machine",
+            detail=(report or "").splitlines()[0][:200] if report else None,
+            meta={"passed": passed},
+        )
         _enqueue_callback(intake, key)
         return intake
 
@@ -820,6 +927,10 @@ class IntakeService:
         _mark_callback_pending(intake, key)
         await self.db.commit()
         await self.db.refresh(intake)
+        await self._record_event(
+            intake, "rejected", actor_type="human", actor_id=user.id,
+            detail=f"반려 — {reason or '(사유 없음)'}",
+        )
         # A3-lite: 외부 서비스에 반려 상태 푸시(fire-and-forget, 서명 포함).
         _enqueue_callback(intake, key)
         return intake
