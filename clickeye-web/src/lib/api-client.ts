@@ -2569,7 +2569,60 @@ export interface IntakeResponse {
   refine_status: string;
   /** CE-311: 콜백 발송 상태 — none | pending | sent | failed */
   callback_status: string;
+  /** P6: 티켓 발급/검증 상태 — none | issued | verified | gate_failed */
+  tickets_status: string;
+  /** P6: 발급 원장 — 미발급이면 null */
+  tickets: IntakeTicketItem[] | null;
+  /** P6: 티켓 발급 시각 */
+  tickets_issued_at: string | null;
   created_at: string | null;
+}
+
+/** P6: 발급 원장 1건 — 무인 체인이 발급한 Linear 이슈 참조 */
+export interface IntakeTicketItem {
+  key: string;
+  identifier: string;
+  issue_id: string;
+  title: string;
+}
+
+/**
+ * P9: 딜리버리 이벤트 1건 — append-only 전이 이력의 조회 표현.
+ * intake_id/project_id 는 타임라인 응답이 문맥으로 갖고 있어 생략된다.
+ */
+export interface DeliveryEventItem {
+  id: string;
+  event_type: string;
+  /** human | machine | system */
+  actor_type: string;
+  actor_id: string | null;
+  detail: string | null;
+  meta: Record<string, unknown> | null;
+  created_at: string | null;
+}
+
+/** P9: 인테이크 1건의 전이 타임라인 — 상태 스냅샷 + 이력(created_at 오름차순) */
+export interface IntakeTimelineResponse {
+  intake_id: string;
+  title: string;
+  status: string;
+  refine_status: string;
+  tickets_status: string;
+  events: DeliveryEventItem[];
+}
+
+/**
+ * P9: 무인 체인 단계별 집계 — 콘솔 헤더 1행 데이터.
+ * 버킷은 상호배타가 아니다(total 은 모수, 나머지는 각 단계의 잔량/결과).
+ */
+export interface DeliveryOverviewResponse {
+  total: number;
+  pending_refine: number;
+  pending_issue: number;
+  implementing: number;
+  verified: number;
+  gate_failed: number;
+  rejected: number;
 }
 
 /** 서비스 키 조회 응답 — 해시/평문 미노출 */
@@ -2608,6 +2661,17 @@ export const intake = {
       method: "POST",
       body: JSON.stringify({ reason: reason || null }),
     }),
+
+  /** P9: 무인 체인 단계별 집계 — 콘솔 헤더 1행 */
+  overview: (token: string) =>
+    authRequest<DeliveryOverviewResponse>("/api/v1/intake/overview", token),
+
+  /** P9: 전이 타임라인 — events 는 발생 순(오름차순) */
+  timeline: (token: string, intakeId: string) =>
+    authRequest<IntakeTimelineResponse>(
+      `/api/v1/intake/${intakeId}/timeline`,
+      token,
+    ),
 };
 
 export const intakeServiceKeys = {

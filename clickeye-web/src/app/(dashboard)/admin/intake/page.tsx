@@ -16,6 +16,11 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { BentoCard } from "@/components/ui/bento";
+import {
+  ChainOverviewHeader,
+  ChainStageBadge,
+  IntakeTimeline,
+} from "@/components/admin/intake-chain";
 import { BaseModal } from "@/components/common/base-modal";
 import { ConfirmByTypingDialog } from "@/components/common/confirm-by-typing-dialog";
 import { RoleGuard } from "@/components/common/role-guard";
@@ -131,7 +136,13 @@ function IntakeRow({ item, onAccept, onReject }: IntakeRowProps) {
         onClick={() => setExpanded((v) => !v)}
       >
         <td className="px-4 py-3">
-          <p className="text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
+          {/* P9: 제목 + 무인 체인 단계 배지 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              {item.title}
+            </p>
+            <ChainStageBadge item={item} />
+          </div>
         </td>
         <td className="px-4 py-3">
           <InputTypeBadge inputType={item.input_type} />
@@ -282,6 +293,11 @@ function IntakeRow({ item, onAccept, onReject }: IntakeRowProps) {
                   </Link>
                 </div>
               )}
+
+              {/* P9: 무인 딜리버리 체인 전이 타임라인 + 발급 원장 (행 확장 시 조회) */}
+              <div className="border-t border-[var(--border-subtle)] pt-3">
+                <IntakeTimeline item={item} />
+              </div>
             </div>
           </td>
         </tr>
@@ -776,6 +792,9 @@ function IntakeContent() {
           </p>
         </div>
       </div>
+
+      {/* P9: 무인 체인 단계별 집계 — 보조 정보(로딩/실패 시 본 기능을 막지 않음) */}
+      <ChainOverviewHeader />
 
       {/* 탭 */}
       <div className="flex gap-2 border-b border-[var(--border-subtle)]">

@@ -851,6 +851,46 @@
         "failed": "Gagal"
       }
     },
+    "chain": {
+      "title": "Rantai pengiriman tanpa awak",
+      "description": "{total} masukan — status tahap penyaringan, penerbitan dan verifikasi",
+      "stage": {
+        "pending": "Menunggu penyaringan",
+        "refine_skipped": "Penyaringan dilewati",
+        "refined": "Menunggu penerbitan",
+        "issued": "Sedang dikerjakan",
+        "verified": "Terverifikasi",
+        "gate_failed": "Gate gagal",
+        "rejected": "Ditolak"
+      },
+      "event": {
+        "received": "Diterima",
+        "refined": "Penyaringan selesai",
+        "refine_skipped": "Penyaringan dilewati",
+        "accepted": "Diterima (manusia)",
+        "machine_accepted": "Diterima (mesin)",
+        "rejected": "Ditolak",
+        "tickets_issued": "Tiket diterbitkan",
+        "verification_passed": "Verifikasi lulus",
+        "verification_failed": "Verifikasi gagal",
+        "callback_sent": "Callback terkirim",
+        "callback_failed": "Callback gagal"
+      },
+      "timeline": {
+        "title": "Timeline transisi",
+        "loading": "Memuat timeline...",
+        "error": "Gagal memuat timeline.",
+        "empty": "Belum ada peristiwa transisi.",
+        "actor": {
+          "human": "Manusia",
+          "machine": "Mesin",
+          "system": "Sistem"
+        }
+      },
+      "tickets": {
+        "title": "{count} tiket diterbitkan"
+      }
+    },
     "acceptDialog": {
       "title": "Setujui intake",
       "description": "Menyetujui \"{title}\" akan membuat proyek. Lanjutkan?",

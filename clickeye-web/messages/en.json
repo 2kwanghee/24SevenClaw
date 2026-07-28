@@ -851,6 +851,46 @@
         "failed": "Failed"
       }
     },
+    "chain": {
+      "title": "Unattended delivery chain",
+      "description": "{total} intakes — progress across refine, issue and verification",
+      "stage": {
+        "pending": "Awaiting refine",
+        "refine_skipped": "Refine skipped",
+        "refined": "Awaiting issue",
+        "issued": "Implementing",
+        "verified": "Verified",
+        "gate_failed": "Gate failed",
+        "rejected": "Rejected"
+      },
+      "event": {
+        "received": "Received",
+        "refined": "Refined",
+        "refine_skipped": "Refine skipped",
+        "accepted": "Accepted (human)",
+        "machine_accepted": "Accepted (machine)",
+        "rejected": "Rejected",
+        "tickets_issued": "Tickets issued",
+        "verification_passed": "Verification passed",
+        "verification_failed": "Verification failed",
+        "callback_sent": "Callback sent",
+        "callback_failed": "Callback failed"
+      },
+      "timeline": {
+        "title": "Transition timeline",
+        "loading": "Loading timeline...",
+        "error": "Failed to load the timeline.",
+        "empty": "No transition events recorded.",
+        "actor": {
+          "human": "Human",
+          "machine": "Machine",
+          "system": "System"
+        }
+      },
+      "tickets": {
+        "title": "{count} issued tickets"
+      }
+    },
     "acceptDialog": {
       "title": "Accept intake",
       "description": "Accepting \"{title}\" will create a project. Continue?",

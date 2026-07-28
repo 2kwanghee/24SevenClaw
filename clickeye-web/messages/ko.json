@@ -851,6 +851,46 @@
         "failed": "발송 실패"
       }
     },
+    "chain": {
+      "title": "무인 딜리버리 체인",
+      "description": "접수 {total}건 — 정제·발급·검증 단계별 현황",
+      "stage": {
+        "pending": "정제 대기",
+        "refine_skipped": "정제 생략",
+        "refined": "발급 대기",
+        "issued": "구현 중",
+        "verified": "검증 완료",
+        "gate_failed": "게이트 실패",
+        "rejected": "반려"
+      },
+      "event": {
+        "received": "수신",
+        "refined": "정제 완료",
+        "refine_skipped": "정제 skip",
+        "accepted": "사람 수락",
+        "machine_accepted": "기계 수락",
+        "rejected": "반려",
+        "tickets_issued": "티켓 발급",
+        "verification_passed": "검증 통과",
+        "verification_failed": "검증 실패",
+        "callback_sent": "콜백 발송",
+        "callback_failed": "콜백 실패"
+      },
+      "timeline": {
+        "title": "전이 타임라인",
+        "loading": "타임라인을 불러오는 중...",
+        "error": "타임라인을 불러오지 못했습니다.",
+        "empty": "기록된 전이 이벤트가 없습니다.",
+        "actor": {
+          "human": "사람",
+          "machine": "기계",
+          "system": "시스템"
+        }
+      },
+      "tickets": {
+        "title": "발급 티켓 {count}건"
+      }
+    },
     "acceptDialog": {
       "title": "인테이크 승인",
       "description": "\"{title}\" 접수를 승인하면 프로젝트가 생성됩니다. 계속할까요?",

@@ -851,6 +851,46 @@
         "failed": "送信失敗"
       }
     },
+    "chain": {
+      "title": "無人デリバリーチェーン",
+      "description": "受付 {total} 件 — 精製・発行・検証の段階別状況",
+      "stage": {
+        "pending": "精製待ち",
+        "refine_skipped": "精製スキップ",
+        "refined": "発行待ち",
+        "issued": "実装中",
+        "verified": "検証完了",
+        "gate_failed": "ゲート失敗",
+        "rejected": "却下"
+      },
+      "event": {
+        "received": "受信",
+        "refined": "精製完了",
+        "refine_skipped": "精製スキップ",
+        "accepted": "人による受理",
+        "machine_accepted": "機械による受理",
+        "rejected": "却下",
+        "tickets_issued": "チケット発行",
+        "verification_passed": "検証通過",
+        "verification_failed": "検証失敗",
+        "callback_sent": "コールバック送信",
+        "callback_failed": "コールバック失敗"
+      },
+      "timeline": {
+        "title": "遷移タイムライン",
+        "loading": "タイムラインを読み込み中...",
+        "error": "タイムラインを読み込めませんでした。",
+        "empty": "記録された遷移イベントがありません。",
+        "actor": {
+          "human": "人",
+          "machine": "機械",
+          "system": "システム"
+        }
+      },
+      "tickets": {
+        "title": "発行チケット {count} 件"
+      }
+    },
     "acceptDialog": {
       "title": "インテーク承認",
       "description": "「{title}」を承認するとプロジェクトが作成されます。続行しますか?",

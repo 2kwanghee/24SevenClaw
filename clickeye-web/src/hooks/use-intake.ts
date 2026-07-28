@@ -53,6 +53,33 @@ export function useRejectIntake() {
   });
 }
 
+/**
+ * P9: 무인 체인 단계별 집계 — 콘솔 헤더용.
+ * 헤더는 보조 정보이므로 실패해도 조용히 넘긴다(호출부에서 미표시 처리).
+ */
+export function useIntakeOverview() {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...INTAKE_KEY, "overview"],
+    queryFn: () => intake.overview(token),
+    enabled: !!token,
+    retry: false,
+  });
+}
+
+/** P9: 인테이크 1건 전이 타임라인 — 행 확장 시에만 enabled */
+export function useIntakeTimeline(intakeId: string, enabled = true) {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...INTAKE_KEY, "timeline", intakeId],
+    queryFn: () => intake.timeline(token, intakeId),
+    enabled: !!token && enabled,
+    retry: false,
+  });
+}
+
 /** 서비스 키 목록 — superadmin 전용 화면에서만 enabled=true 로 호출 */
 export function useIntakeServiceKeys(enabled = true) {
   const token = useAccessToken();
