@@ -35,6 +35,7 @@ from typing import Any
 from uuid import UUID
 
 import httpx
+from governance.policy import is_opt_in
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +54,10 @@ FETCH_MAX_BYTES = 2 * 1024 * 1024
 _ALLOWED_CONTENT_TYPES = ("text/html", "text/plain")
 # 수동 리다이렉트 추적 상한 (각 hop 마다 SSRF 재검증).
 MAX_REDIRECTS = 3
+
+# 기계 수락(P6, D-12) opt-in 토글 — 미설정=off. governance.policy.is_opt_in 의미.
+# P2 제어면 YAML 의 global.mode(AUTO) 로 이관될 자리 — 키 이름 고정.
+AUTO_ACCEPT_ENV = "FLOWOPS_INTAKE_AUTO_ACCEPT"
 # callback 푸시 정책: 타임아웃 10초, fire-and-forget (llm_ingest 패턴).
 CALLBACK_TIMEOUT = 10.0
 # CE-311 콜백 재시도 백오프(초): 1m → 5m → 30m → 2h → 6h.
@@ -222,14 +227,22 @@ async def _fetch_url_text(url: str) -> str:
 
 
 def _build_callback_body(intake: IntakeRequest) -> dict:
-    """콜백 페이로드 — 재시도 시에도 현재 상태 기준으로 재생성한다(timestamp 갱신)."""
-    return {
+    """콜백 페이로드 — 재시도 시에도 현재 상태 기준으로 재생성한다(timestamp 갱신).
+
+    P6: 티켓 발급 정보를 additive 로 포함한다 — tickets_status 는 항상,
+    tickets 원장은 발급된 경우에만. 기존 소비자(서비스 #2)는 미지 키 무시 전제.
+    """
+    body = {
         "intake_id": str(intake.id),
         "status": intake.status,
         "project_id": str(intake.project_id) if intake.project_id else None,
         "title": intake.title,
+        "tickets_status": str(intake.tickets_status or "none"),
         "timestamp": datetime.now(UTC).isoformat(),
     }
+    if intake.tickets:
+        body["tickets"] = intake.tickets
+    return body
 
 
 async def _send_callback(callback_url: str, secret: str, body: dict) -> None:
@@ -584,12 +597,57 @@ class IntakeService:
         normalized_text 폴백(기존 동작 유지). KB 인제스트 텍스트도 동일 우선.
         """
         intake = await self._get_pending(intake_id)
+        return await self._accept_core(intake, owner=user)
+
+    async def machine_accept(self, intake_id: UUID) -> IntakeRequest:
+        """기계 수락 (다프로젝트화 P6, D-12) — 사람 확인 없이 accepted 로 전이.
+
+        무인 발급 배치(scripts/intake_issue.sh)가 호출한다. 안전장치:
+        - opt-in 토글 `FLOWOPS_INTAKE_AUTO_ACCEPT`(미설정=off) — 꺼져 있으면 403.
+          서버가 강제한다(fail-closed) — 배치의 자율 판단에 맡기지 않는다.
+        - 정제 완료(refine_status=refined)만 수락한다 — 원문만 있는 인테이크의
+          기계 수락은 품질 게이트(메타프롬프팅)를 건너뛰므로 거부.
+        - 소유자는 최선임(생성 오래된 순) 활성 superadmin — 결정적이며, 기계 수주
+          프로젝트는 시스템 운영자가 소유한다. 없으면 409(수락 불가).
+        """
+        if not is_opt_in(AUTO_ACCEPT_ENV):
+            raise AppError(
+                "INTAKE_AUTO_ACCEPT_DISABLED",
+                f"기계 수락이 비활성화되어 있습니다({AUTO_ACCEPT_ENV} opt-in 필요).",
+                403,
+            )
+        intake = await self._get_pending(intake_id)
+        if str(intake.refine_status) != "refined":
+            raise AppError(
+                "INTAKE_NOT_REFINED",
+                f"정제 완료(refined) 인테이크만 기계 수락할 수 있습니다. "
+                f"(현재: {intake.refine_status})",
+                409,
+            )
+        owner = (
+            await self.db.execute(
+                select(User)
+                .where(User.system_role == "superadmin", User.is_active.is_(True))
+                .order_by(User.created_at.asc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if owner is None:
+            raise AppError(
+                "INTAKE_NO_MACHINE_OWNER",
+                "기계 수락 소유자(활성 superadmin)가 없습니다.",
+                409,
+            )
+        return await self._accept_core(intake, owner=owner)
+
+    async def _accept_core(self, intake: IntakeRequest, *, owner: User) -> IntakeRequest:
+        """accept/machine_accept 공통 본체 — Project 생성·전이·콜백·KB 인제스트."""
         key = await self.db.get(IntakeServiceKey, intake.service_key_id)
 
         requirements_source = intake.refined_text or intake.normalized_text
         slug = _slugify(str(intake.title)) or f"intake-{intake.id.hex[:8]}"
         project = Project(
-            owner_id=user.id,
+            owner_id=owner.id,
             name=intake.title,
             slug=slug,
             requirements_text=requirements_source,
@@ -614,6 +672,69 @@ class IntakeService:
             metadata={"kind": "intake", "input_type": intake.input_type},
         )
         # A3-lite: 외부 서비스에 승인 상태 푸시(fire-and-forget, 서명 포함).
+        _enqueue_callback(intake, key)
+        return intake
+
+    async def list_issue_pending(self, limit: int = 10) -> list[IntakeRequest]:
+        """티켓 발급 대기 목록 (P6) — 정제 완료 & 미발급, 오래된 순(FIFO).
+
+        무인 발급 배치(scripts/intake_issue.sh)가 소비한다. refine 배치와 동일하게
+        서버는 LLM 을 호출하지 않는다 — 분해는 로컬 구독 세션 몫(실행 플레인 분리).
+
+        상태 필터는 서버가 강제한다(fail-closed):
+        - accepted 는 항상 포함(사람이 이미 수락 → 발급만 남음).
+        - pending_review 는 **기계 수락 opt-in 일 때만** 포함 — 배치는 이 건들에 대해
+          먼저 auto-accept 를 호출해야 한다(응답의 status 로 구분).
+        """
+        allowed_statuses = ["accepted"]
+        if is_opt_in(AUTO_ACCEPT_ENV):
+            allowed_statuses.append("pending_review")
+        result = await self.db.execute(
+            select(IntakeRequest)
+            .where(
+                IntakeRequest.refine_status == "refined",
+                IntakeRequest.tickets_status == "none",
+                IntakeRequest.status.in_(allowed_statuses),
+            )
+            .order_by(IntakeRequest.created_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def record_issued_tickets(
+        self, intake_id: UUID, tickets: list[dict[str, Any]]
+    ) -> IntakeRequest:
+        """발급 원장 기록 (P6) — 배치가 Linear 발급을 마친 뒤 결과를 확정한다.
+
+        멱등: 이미 issued 면 **no-op 으로 기존 기록을 반환**한다 — 배치 재실행/콜백
+        재시도가 중복 발급 기록을 만들지 않는다. 발급의 멱등성 앵커는 tickets_status
+        이고, 배치는 발급 전 목록 조회(list_issue_pending)가 빈 것으로 재발급을 막는다.
+
+        전제: accepted + project_id 존재(티켓은 프로젝트에 속한다). 그 외 409.
+        """
+        intake = await self.db.get(IntakeRequest, intake_id)
+        if intake is None:
+            raise AppError("INTAKE_NOT_FOUND", "인테이크를 찾을 수 없습니다.", 404)
+        if str(intake.tickets_status) == "issued":
+            return intake  # 멱등 no-op
+        if str(intake.status) != "accepted" or intake.project_id is None:
+            raise AppError(
+                "INTAKE_NOT_ACCEPTED",
+                f"accepted + 프로젝트 연결 상태에서만 발급 기록이 가능합니다. "
+                f"(현재: {intake.status})",
+                409,
+            )
+        if not tickets:
+            raise AppError("INTAKE_TICKETS_EMPTY", "발급 원장이 비어 있습니다.", 422)
+
+        intake.tickets = list(tickets)  # type: ignore[assignment]
+        intake.tickets_status = "issued"  # type: ignore[assignment]
+        intake.tickets_issued_at = datetime.now(UTC)  # type: ignore[assignment]
+        # 발급 완료를 서비스 #2 에 푸시 — accept/reject 와 동일한 at-least-once 콜백 큐.
+        key = await self.db.get(IntakeServiceKey, intake.service_key_id)
+        _mark_callback_pending(intake, key)
+        await self.db.commit()
+        await self.db.refresh(intake)
         _enqueue_callback(intake, key)
         return intake
 

@@ -106,6 +106,42 @@ class IntakeRejectRequest(BaseModel):
     reason: str | None = Field(default=None, max_length=1000)
 
 
+# ── 티켓 전량 자동 발급 (다프로젝트화 P6, D-12) ─────────────────────────────
+class IntakeIssuePendingItem(BaseModel):
+    """머신 발급 대기 목록 항목 — 무인 발급 배치(intake_issue.sh)가 소비한다.
+
+    status 로 배치의 다음 행동이 갈린다: pending_review 면 auto-accept 를 먼저 호출
+    (기계 수락 opt-in 일 때만 목록에 나타난다), accepted 면 바로 분해·발급.
+    """
+
+    id: UUID
+    title: str
+    status: str
+    project_id: UUID | None
+    # 분해(claude -p) 입력 — 정제 완료 건만 목록에 오르므로 실질 비 None.
+    refined_text: str | None
+    # 발급 상태(DayQueued/NightQueued) 선택 힌트 — 서비스 #2 가 target 에 실은 값.
+    target: dict[str, Any] | None
+    priority: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class IssuedTicket(BaseModel):
+    """발급 원장 1건 — 분해 로컬 키(depends_on 추적)와 Linear 식별자의 대응."""
+
+    key: str = Field(..., min_length=1, max_length=32)  # 분해 결과 로컬 키 (T1, T2…)
+    identifier: str = Field(..., min_length=1, max_length=50)  # Linear 표시 키 (CE-###)
+    issue_id: str = Field(..., min_length=1, max_length=100)  # Linear 내부 UUID
+    title: str = Field(..., min_length=1, max_length=500)
+
+
+class TicketsRecordRequest(BaseModel):
+    """발급 결과 확정 본문 — 전량 발급 성공 시에만 호출된다(부분 발급 기록 금지)."""
+
+    tickets: list[IssuedTicket] = Field(..., min_length=1)
+
+
 class ServiceKeyCreate(BaseModel):
     """인테이크 서비스 키 발급 요청."""
 
