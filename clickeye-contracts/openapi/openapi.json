@@ -9421,6 +9421,142 @@
         }
       }
     },
+    "/api/v1/intake/verify/pending": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Verify Pending",
+        "description": "검증 대기 목록 — 발급 완료(tickets_status=issued) 건, FIFO.\n\n응답에 발급 원장(tickets)을 포함한다 — 배치는 원장의 issue_id 전량을 Linear\n상태와 대조해 완주를 판정하고, 완주 전에는 게이트를 실행하지 않는다.\ngate_failed 는 목록에 오지 않는다(재검증은 명시 재제출로만 — 무한 재실행 방지).",
+        "operationId": "list_verify_pending_api_v1_intake_verify_pending_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeVerifyPendingItem"
+                  },
+                  "title": "Response List Verify Pending Api V1 Intake Verify Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/intake/{intake_id}/verified": {
+      "post": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "Record Verification",
+        "description": "정합성 게이트 결과 확정 — issued|gate_failed → verified|gate_failed 전이.\n\nverified 는 무인 딜리버리의 최종 상태(멱등 no-op·하향 불가). report 는 필수 —\n증거 없는 통과 주장은 스키마가 거부한다. 결과는 콜백으로 서비스 #2 에 푸시된다\n(body.verification — 체인 ⑥ 최종 통보).",
+        "operationId": "record_verification_api_v1_intake__intake_id__verified_post",
+        "parameters": [
+          {
+            "name": "intake_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Intake Id"
+            }
+          },
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intake/service-keys": {
       "get": {
         "tags": [
@@ -15462,6 +15598,68 @@
         ],
         "title": "IntakeResponse",
         "description": "인테이크 상세/목록 응답 (검토 콘솔용)."
+      },
+      "IntakeVerifyPendingItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "tickets": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tickets"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "project_id",
+          "tickets",
+          "target"
+        ],
+        "title": "IntakeVerifyPendingItem",
+        "description": "머신 검증 대기 목록 항목 — 검증 배치(delivery_verify.sh)가 소비한다.\n\ntickets(발급 원장)를 포함한다 — 배치는 원장의 issue_id 전량을 Linear 상태와\n대조해 완주를 판정한다(전량 Done 이전에는 게이트를 실행하지 않는다)."
       },
       "IntegrationValidateResponse": {
         "properties": {
@@ -24766,6 +24964,27 @@
           "value"
         ],
         "title": "VariantCountUpdateRequest"
+      },
+      "VerificationRecordRequest": {
+        "properties": {
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "report": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Report"
+          }
+        },
+        "type": "object",
+        "required": [
+          "passed",
+          "report"
+        ],
+        "title": "VerificationRecordRequest",
+        "description": "정합성 게이트 결과 본문 — passed 여부와 실행 리포트(게이트별 exit/로그 요약).\n\nreport 는 필수다 — \"통과했다\"는 주장에는 증거가 따라야 한다(빈 리포트 금지)."
       },
       "WeeklyThroughput": {
         "properties": {

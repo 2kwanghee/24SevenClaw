@@ -25,11 +25,13 @@ from app.schemas.intake import (
     IntakeRefinePendingItem,
     IntakeRejectRequest,
     IntakeResponse,
+    IntakeVerifyPendingItem,
     RefineSubmit,
     ServiceKeyCreate,
     ServiceKeyCreatedResponse,
     ServiceKeyResponse,
     TicketsRecordRequest,
+    VerificationRecordRequest,
 )
 from app.services.intake_service import IntakeService
 
@@ -197,6 +199,51 @@ async def record_issued_tickets(
     """
     return await IntakeService(db).record_issued_tickets(
         intake_id, [t.model_dump() for t in body.tickets]
+    )
+
+
+# ---------------------------------------------------------------------------
+# 정합성 테스트 게이트 (머신 — X-Governance-Token · P7)
+# ---------------------------------------------------------------------------
+#
+# 완주 판정(원장 티켓 전량 Done)과 게이트 실행은 로컬 배치(scripts/delivery_verify.sh)
+# 몫이다 — 게이트 명령은 프로젝트 워크스페이스에서 돌아야 하므로 서버가 실행할 수 없다.
+# 서버는 대기 목록 제공/결과 확정(상태 조율)만 담당한다.
+
+
+@router.get(
+    "/verify/pending",
+    response_model=list[IntakeVerifyPendingItem],
+    dependencies=[Depends(verify_governance_token)],
+)
+async def list_verify_pending(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+) -> list[IntakeRequest]:
+    """검증 대기 목록 — 발급 완료(tickets_status=issued) 건, FIFO.
+
+    응답에 발급 원장(tickets)을 포함한다 — 배치는 원장의 issue_id 전량을 Linear
+    상태와 대조해 완주를 판정하고, 완주 전에는 게이트를 실행하지 않는다.
+    gate_failed 는 목록에 오지 않는다(재검증은 명시 재제출로만 — 무한 재실행 방지).
+    """
+    return await IntakeService(db).list_verify_pending(limit)
+
+
+@router.post("/{intake_id}/verified", response_model=IntakeResponse)
+async def record_verification(
+    intake_id: UUID,
+    body: VerificationRecordRequest,
+    _token: None = Depends(verify_governance_token),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeRequest:
+    """정합성 게이트 결과 확정 — issued|gate_failed → verified|gate_failed 전이.
+
+    verified 는 무인 딜리버리의 최종 상태(멱등 no-op·하향 불가). report 는 필수 —
+    증거 없는 통과 주장은 스키마가 거부한다. 결과는 콜백으로 서비스 #2 에 푸시된다
+    (body.verification — 체인 ⑥ 최종 통보).
+    """
+    return await IntakeService(db).record_verification(
+        intake_id, passed=body.passed, report=body.report
     )
 
 

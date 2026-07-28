@@ -865,6 +865,24 @@ export type IntakeResponse = {
     created_at: string | null;
 };
 
+/**
+ * 머신 검증 대기 목록 항목 — 검증 배치(delivery_verify.sh)가 소비한다.
+ *
+ * tickets(발급 원장)를 포함한다 — 배치는 원장의 issue_id 전량을 Linear 상태와
+ * 대조해 완주를 판정한다(전량 Done 이전에는 게이트를 실행하지 않는다).
+ */
+export type IntakeVerifyPendingItem = {
+    id: string;
+    title: string;
+    project_id: string | null;
+    tickets: Array<{
+        [key: string]: unknown;
+    }> | null;
+    target: {
+        [key: string]: unknown;
+    } | null;
+};
+
 export type IntegrationValidateResponse = {
     valid: boolean;
     message: string;
@@ -2738,6 +2756,16 @@ export type VariantCountUpdateRequest = {
      * 프로토타입 제안 개수 (2-5)
      */
     value: number;
+};
+
+/**
+ * 정합성 게이트 결과 본문 — passed 여부와 실행 리포트(게이트별 exit/로그 요약).
+ *
+ * report 는 필수다 — "통과했다"는 주장에는 증거가 따라야 한다(빈 리포트 금지).
+ */
+export type VerificationRecordRequest = {
+    passed: boolean;
+    report: string;
 };
 
 export type WeeklyThroughput = {
@@ -7309,6 +7337,66 @@ export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses = {
 };
 
 export type RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponse = RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses[keyof RecordIssuedTicketsApiV1IntakeIntakeIdTicketsPostResponses];
+
+export type ListVerifyPendingApiV1IntakeVerifyPendingGetData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/api/v1/intake/verify/pending';
+};
+
+export type ListVerifyPendingApiV1IntakeVerifyPendingGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListVerifyPendingApiV1IntakeVerifyPendingGetError = ListVerifyPendingApiV1IntakeVerifyPendingGetErrors[keyof ListVerifyPendingApiV1IntakeVerifyPendingGetErrors];
+
+export type ListVerifyPendingApiV1IntakeVerifyPendingGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<IntakeVerifyPendingItem>;
+};
+
+export type ListVerifyPendingApiV1IntakeVerifyPendingGetResponse = ListVerifyPendingApiV1IntakeVerifyPendingGetResponses[keyof ListVerifyPendingApiV1IntakeVerifyPendingGetResponses];
+
+export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostData = {
+    body: VerificationRecordRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path: {
+        intake_id: string;
+    };
+    query?: never;
+    url: '/api/v1/intake/{intake_id}/verified';
+};
+
+export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostError = RecordVerificationApiV1IntakeIntakeIdVerifiedPostErrors[keyof RecordVerificationApiV1IntakeIntakeIdVerifiedPostErrors];
+
+export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponse = RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses[keyof RecordVerificationApiV1IntakeIntakeIdVerifiedPostResponses];
 
 export type ListServiceKeysApiV1IntakeServiceKeysGetData = {
     body?: never;
