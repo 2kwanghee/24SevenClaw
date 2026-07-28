@@ -67,6 +67,31 @@ def test_unknown_issue_id_is_remaining_not_done():
     assert c["remaining"] == [{"identifier": "CE-902", "state": "UNKNOWN"}]
 
 
+def test_state_type_wins_over_name(monkeypatch=None):
+    """E2E 실증 결함 회귀 테스트: 팀 커스텀 완료 상태(Confirm, type=completed)를
+    이름 셋에 없어도 완주로 인정한다 — type 이 있으면 type 이 우선."""
+    states = {
+        "iid-1": {"name": "Done", "type": "completed"},
+        "iid-2": {"name": "Confirm", "type": "completed"},   # 커스텀 완료명
+        "iid-3": {"name": "Dropped", "type": "canceled"},    # 커스텀 취소명
+    }
+    c = dv.classify_completion(LEDGER, states)
+    assert c["complete"] is True
+    assert c["done"] == ["CE-901", "CE-902"]
+    assert c["absorbed"] == ["CE-903(Dropped)"]
+
+
+def test_type_aware_nonterminal_remains():
+    states = {
+        "iid-1": {"name": "Done", "type": "completed"},
+        "iid-2": {"name": "Queued", "type": "unstarted"},
+        "iid-3": {"name": "Done", "type": "completed"},
+    }
+    c = dv.classify_completion(LEDGER, states)
+    assert c["complete"] is False
+    assert c["remaining"] == [{"identifier": "CE-902", "state": "Queued"}]
+
+
 # ── 2. 게이트 실행 (실 서브프로세스 — 목킹 없음) ─────────────────────────────
 
 

@@ -38,8 +38,13 @@ sys.path.insert(0, "scripts")
 
 from linear_client import get_env, linear_request  # noqa: E402
 
-# linear_watcher.py 와 동일 기준 — 판정 기준이 둘이 되면 완주의 정의가 갈라진다.
-DONE_STATES = frozenset({"Done"})
+# 완주 판정은 **state type 기준**이다(E2E 실증 결함 수정): 팀마다 완료 상태의
+# 이름이 다르다 — 예: ClickEye 팀은 Done 외에 Confirm(type=completed)을 쓴다.
+# 이름 기준이면 Confirm 으로 옮겨진 티켓이 영구 미완주가 된다.
+# 이름 셋은 type 정보가 없는 입력(레거시/테스트 주입)의 폴백이다.
+DONE_TYPES = frozenset({"completed"})
+ABSORBED_TYPES = frozenset({"canceled", "duplicate"})
+DONE_STATES = frozenset({"Done", "Confirm"})
 ABSORBED_STATES = frozenset({"Canceled", "Duplicate"})
 TERMINAL_STATES = DONE_STATES | ABSORBED_STATES
 
@@ -61,22 +66,33 @@ EXIT_NO_GATES = 5
 
 
 def classify_completion(
-    ledger: list[dict[str, Any]], states_by_id: dict[str, str]
+    ledger: list[dict[str, Any]], states_by_id: dict[str, Any]
 ) -> dict[str, Any]:
     """원장 × Linear 상태 → 완주 분류. 미지 issue_id(조회 실패)는 잔존으로 취급한다
-    — 상태를 모르는 티켓을 완료로 가정하면 미완주가 통과로 위장된다(fail-closed)."""
+    — 상태를 모르는 티켓을 완료로 가정하면 미완주가 통과로 위장된다(fail-closed).
+
+    상태 값은 `{"name": …, "type": …}` dict(fetch_states 산출) 또는 이름 문자열
+    (레거시/테스트 주입)을 받는다. **type 이 있으면 type 이 우선**한다 — 팀별
+    상태명 커스텀(예: Confirm=completed)에 견고해야 한다(E2E 실증).
+    """
     done: list[str] = []
     absorbed: list[str] = []
     remaining: list[dict[str, str]] = []
     for t in ledger:
-        state = states_by_id.get(t["issue_id"])
-        ident = t.get("identifier", t["issue_id"])
-        if state in DONE_STATES:
-            done.append(ident)
-        elif state in ABSORBED_STATES:
-            absorbed.append(f"{ident}({state})")
+        raw = states_by_id.get(t["issue_id"])
+        if isinstance(raw, dict):
+            name = raw.get("name") or ""
+            stype = raw.get("type") or ""
         else:
-            remaining.append({"identifier": ident, "state": state or "UNKNOWN"})
+            name, stype = (raw or ""), ""
+        ident = t.get("identifier", t["issue_id"])
+
+        if (stype in DONE_TYPES) or (not stype and name in DONE_STATES):
+            done.append(ident)
+        elif (stype in ABSORBED_TYPES) or (not stype and name in ABSORBED_STATES):
+            absorbed.append(f"{ident}({name})")
+        else:
+            remaining.append({"identifier": ident, "state": name or "UNKNOWN"})
     return {
         "complete": not remaining,
         "done": done,
@@ -86,19 +102,28 @@ def classify_completion(
     }
 
 
-def fetch_states(issue_ids: list[str]) -> dict[str, str]:
-    """Linear 에서 issue_id → 상태명 조회. 조회 누락분은 classify 가 잔존 처리한다."""
+def fetch_states(issue_ids: list[str]) -> dict[str, dict[str, str]]:
+    """Linear 에서 issue_id → {name, type} 조회. 조회 누락분은 classify 가 잔존 처리.
+
+    type 을 함께 가져오는 이유: 완주 판정은 type 기준이다(classify_completion 참조).
+    """
     api_key, _team_id = get_env()
     query = """
     query($ids: [ID!]!) {
         issues(filter: { id: { in: $ids } }) {
-            nodes { id state { name } }
+            nodes { id state { name type } }
         }
     }
     """
     data = linear_request(api_key, query, {"ids": issue_ids}) or {}
     nodes = ((data.get("issues") or {}).get("nodes")) or []
-    return {n["id"]: ((n.get("state") or {}).get("name") or "") for n in nodes}
+    return {
+        n["id"]: {
+            "name": ((n.get("state") or {}).get("name") or ""),
+            "type": ((n.get("state") or {}).get("type") or ""),
+        }
+        for n in nodes
+    }
 
 
 # ── 2) 게이트 실행 ───────────────────────────────────────────────────────────

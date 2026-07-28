@@ -33,7 +33,7 @@
 POST /intake/{id}/tickets 로 확정한다.
 
 사용:
-  python3 scripts/linear_issuer.py --input decomposition.json --state NightQueued \
+  python3 scripts/linear_issuer.py --input decomposition.json --state Queued \
       [--title-prefix "[수주] "] [--dry-run]
 """
 
@@ -266,8 +266,8 @@ def issue_all(
 def main() -> int:
     p = argparse.ArgumentParser(description="분해 JSON → Linear 티켓 전량 발급 (P6)")
     p.add_argument("--input", required=True, help="분해 JSON 파일 경로 (- 는 stdin)")
-    p.add_argument("--state", default="NightQueued", choices=VALID_STATES,
-                   help="발급 목표 상태 (기본 NightQueued)")
+    p.add_argument("--state", default="Queued", choices=VALID_STATES,
+                   help="발급 목표 상태 (기본 Queued — E2E 실증: 팀에 따라 Day/NightQueued 가 없다)")
     p.add_argument("--title-prefix", default="", help="티켓 제목 접두사")
     p.add_argument("--dry-run", action="store_true",
                    help="검증+위상 계획만 출력, 네트워크 호출 없음")

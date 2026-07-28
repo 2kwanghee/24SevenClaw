@@ -26,7 +26,7 @@
 #   FLOWOPS_INTAKE_ISSUE=true scripts/intake_issue.sh    # live (야간 배치)
 #
 # env 오버라이드: API_URL(기본 http://localhost:8000) · GOVERNANCE_SERVICE_TOKEN ·
-#   MAX_ITEMS(기본 3) · CLAUDE_TIMEOUT(기본 600초) · ISSUE_STATE(기본 NightQueued)
+#   MAX_ITEMS(기본 3) · CLAUDE_TIMEOUT(기본 600초) · ISSUE_STATE(기본 Queued)
 
 set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -39,7 +39,7 @@ DRY_RUN=false
 API_URL="${API_URL:-http://localhost:8000}"
 MAX_ITEMS="${MAX_ITEMS:-3}"
 CLAUDE_TIMEOUT="${CLAUDE_TIMEOUT:-600}"
-ISSUE_STATE="${ISSUE_STATE:-NightQueued}"
+ISSUE_STATE="${ISSUE_STATE:-Queued}"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 die() { echo "ERROR: $*" >&2; exit 2; }
