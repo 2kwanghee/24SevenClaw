@@ -29,10 +29,16 @@
 
 출력: --json 이면 결과 JSON. exit 0=pass, 2=fail(블로킹). 마스터 off면 항상 pass/LOW(회귀 0).
 
+정책 주입: 위 계약면 경로·고위험 경로·이슈 키 형태는 이제 커널의 `Policy` 값객체로 외부화되어
+`--policy`(JSON 문자열 또는 .json 파일)로 프로젝트별 정책을 주입할 수 있다. 미지정 시 위에
+기술한 ClickEye 기본 정책으로 동작하며(토글은 env 재독), 주입 시 env 를 조회하지 않고 정책
+형식이 불량이면 차단(exit 2)한다.
+
 사용법:
   python3 scripts/pre_merge_gate.py --base main --head ralph/CE-123 --json
   python3 scripts/pre_merge_gate.py --base origin/main --head HEAD --ci --json   # CI 미러
   python3 scripts/pre_merge_gate.py --diff-files "clickeye-api/app/api/x.py" --head ralph/CE-1   # 테스트용
+  python3 scripts/pre_merge_gate.py --head ralph/TASK-GATE-001 --policy policy.json --json   # 정책 주입
 """
 
 from __future__ import annotations
@@ -56,6 +62,8 @@ from governance.core import (  # noqa: E402,F401
     HIGH_PREFIXES,
     ISSUE_KEY_RE,
     OPENAPI_SPEC,
+    Policy,
+    PolicyError,
     assess_budget,
     assess_rate,
     check_contract_drift,

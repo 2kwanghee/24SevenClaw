@@ -610,11 +610,12 @@ export type GovernanceEvaluateResponse = {
     budget?: {
         [key: string]: unknown;
     } | null;
+    policy_source?: string | null;
     [key: string]: unknown | string | Array<string> | Array<string> | (string | null) | {
         [key: string]: unknown;
     } | Array<string> | (number | null) | (string | null) | (number | null) | (Array<string> | null) | ({
         [key: string]: unknown;
-    } | null) | undefined;
+    } | null) | (string | null) | undefined;
 };
 
 /**
@@ -647,6 +648,7 @@ export type GovernancePolicyResponse = {
     };
     risk_demote_to_pr: boolean;
     source_note: string;
+    policy_source?: string | null;
 };
 
 export type HttpValidationError = {
@@ -7247,9 +7249,23 @@ export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponse = EvaluateGove
 export type GetGovernancePolicyApiV1GovernancePolicyGetData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * 지정 시 해당 프로젝트의 DeliveryProfile 정책 기준 요약(미지정: 전역 env 기준)
+         */
+        project_id?: string | null;
+    };
     url: '/api/v1/governance/policy';
 };
+
+export type GetGovernancePolicyApiV1GovernancePolicyGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetGovernancePolicyApiV1GovernancePolicyGetError = GetGovernancePolicyApiV1GovernancePolicyGetErrors[keyof GetGovernancePolicyApiV1GovernancePolicyGetErrors];
 
 export type GetGovernancePolicyApiV1GovernancePolicyGetResponses = {
     /**

@@ -11,6 +11,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+# ── 정책 출처 값(policy_source) ──────────────────────────────────────────────
+# project_id 로 정책을 주입할 때, 실제로 무엇이 적용됐는지 응답에 드러내기 위한 값.
+# 폴백(프로파일 미등록·DB 미주입)을 조용히 숨기지 않는 것이 목적이다.
+POLICY_SOURCE_PROFILE = "project_profile"  # DeliveryProfile.policy 적용(static, env 무시)
+POLICY_SOURCE_NO_PROFILE = "default_no_profile"  # 프로파일 미등록 → 기본 정책 폴백
+POLICY_SOURCE_NO_DB = "default_no_db"  # DB 세션 미주입 → 조회 불가, 기본 정책 폴백
+
 
 class GovernanceEvaluateRequest(BaseModel):
     base: str = "main"
@@ -19,10 +26,13 @@ class GovernanceEvaluateRequest(BaseModel):
     files: list[str] | None = None
     # plan-trace 검사용 본문(선택). 없으면 원격에서는 skip(비블로킹).
     plan_text: str | None = None
-    # ── 트리아지(항목 G, opt-in) ─────────────────────────────────────────────
-    # project_id 가 있으면 서비스가 원장(LlmLedgerService)으로 usage 를 구성해 커널에
-    # 주입한다(예산 축). usage 를 직접 주면 그 값이 우선(원장 조회 skip). 둘 다 없으면
-    # usage=None → 예산 skip(비블로킹, 하위호환).
+    # ── 프로젝트 식별(선택) ──────────────────────────────────────────────────
+    # 두 가지 용도를 겸한다(둘 다 project_id 미지정 시 기존 동작 그대로):
+    #  1) 정책 주입(다프로젝트화 P0): DeliveryProfile.policy → Policy.from_dict() → 커널.
+    #     프로파일 미등록이면 기본 정책 폴백(응답 policy_source 로 명시).
+    #  2) 트리아지 예산(항목 G, opt-in): 서비스가 원장(LlmLedgerService)으로 usage 를
+    #     구성해 커널에 주입한다. usage 를 직접 주면 그 값이 우선(원장 조회 skip).
+    #     둘 다 없으면 usage=None → 예산 skip(비블로킹, 하위호환).
     project_id: UUID | None = None
     usage: dict[str, Any] | None = None
     metrics: dict[str, Any] | None = None
@@ -54,6 +64,11 @@ class GovernanceEvaluateResponse(BaseModel):
     risk_score: float | None = None
     triage_reasons: list[str] | None = None
     budget: dict[str, Any] | None = None
+    # ── 정책 출처(다프로젝트화 P0) ────────────────────────────────────────────
+    # project_id 를 준 경우에만 채워진다(미지정이면 None → exclude_none 으로 응답 제외 →
+    # 기존 호출자 응답 바이트 불변). 값은 POLICY_SOURCE_* 상수 참조 — 프로파일 미등록
+    # 폴백을 조용히 숨기지 않기 위한 관측 키다.
+    policy_source: str | None = None
 
     model_config = {"extra": "allow"}
 
@@ -86,3 +101,7 @@ class GovernancePolicyResponse(BaseModel):
     toggles: dict[str, bool]
     risk_demote_to_pr: bool
     source_note: str
+    # ── 어댑터 전용 필드(커널 policy_summary() 키 아님) ──────────────────────────
+    # project_id 쿼리로 프로젝트 정책을 요청한 경우에만 채워진다(미지정이면 None →
+    # 엔드포인트 exclude_none 으로 응답 제외 → 기존 응답 키셋 불변). POLICY_SOURCE_* 참조.
+    policy_source: str | None = None

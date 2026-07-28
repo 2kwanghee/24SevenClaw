@@ -9,16 +9,18 @@ os.getcwd() 를 git 기준으로 사용한다(파이프라인·CI 는 루트 실
   python -m governance --base main --head ralph/CE-123 --json
   python -m governance --base origin/main --head HEAD --ci --json          # CI 미러
   python -m governance --diff-files "clickeye-api/app/api/x.py" --head ralph/CE-1  # 테스트용
+  python -m governance --head ralph/TASK-GATE-001 --policy policy.json --json      # 정책 주입
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 
-from governance.core import evaluate
+from governance.core import Policy, PolicyError, evaluate
 
 
 def main() -> int:
@@ -52,6 +54,14 @@ def main() -> int:
         default=None,
         help="트리아지 risk_score 주입용 metrics dict(JSON). 예: '{\"coverage\":0.6,\"diff_lines\":500}'",
     )
+    p.add_argument(
+        "--policy",
+        default=None,
+        help=(
+            "프로젝트 정책(JSON 문자열 또는 .json 파일 경로). 미지정 시 기본 ClickEye 정책"
+            "(토글은 env 재독). 지정 시 env 를 조회하지 않으며, 파싱 실패는 차단(exit 2)."
+        ),
+    )
     args = p.parse_args()
 
     files = None
@@ -61,6 +71,27 @@ def main() -> int:
     usage = json.loads(args.usage_json) if args.usage_json else None
     metrics = json.loads(args.metrics_json) if args.metrics_json else None
 
+    # ── 정책 로드 (fail-closed) ────────────────────────────────────────────
+    # 명시된 정책이 깨졌으면 조용히 기본값으로 떨어지지 않는다 — 그러면 프로젝트가
+    # 의도한 게이트가 사라진 채 통과한다. exit 2(차단)로 드러낸다.
+    policy = None
+    if args.policy is not None:
+        raw = args.policy
+        try:
+            if os.path.isfile(raw):
+                with open(raw, encoding="utf-8") as fh:
+                    data = json.load(fh)
+            else:
+                data = json.loads(raw)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"[governance] 정책 로드 실패(차단): {e}", file=sys.stderr)
+            return 2
+        try:
+            policy = Policy.from_dict(data)
+        except PolicyError as e:
+            print(f"[governance] 정책 형식 불량(차단): {e}", file=sys.stderr)
+            return 2
+
     result = evaluate(
         args.base,
         args.head,
@@ -69,6 +100,7 @@ def main() -> int:
         plan_text=args.plan_text,
         usage=usage,
         metrics=metrics,
+        policy=policy,
     )
 
     if args.json:

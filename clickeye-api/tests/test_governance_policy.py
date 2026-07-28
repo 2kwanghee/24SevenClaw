@@ -124,6 +124,11 @@ async def test_policy_reflects_triage_opt_in(client, auth_headers, monkeypatch):
 
 
 # ── W3: 최상위 키셋 ↔ 스키마 필드 동치(드리프트 무음 방지) ──
+# 커널 policy_summary() 가 만들지 않고 HTTP 어댑터가 덧붙이는 필드. 이 집합만 예외로 두고
+# 나머지는 동치를 유지하므로, 커널이 새 최상위 키를 추가하면 여전히 이 테스트가 잡는다.
+_ADAPTER_ONLY_FIELDS = {"policy_source"}
+
+
 @pytest.mark.no_db
 def test_policy_summary_keyset_matches_schema():
     """policy_summary() 최상위 키셋이 GovernancePolicyResponse.model_fields 와 동치.
@@ -136,7 +141,9 @@ def test_policy_summary_keyset_matches_schema():
 
     from app.schemas.governance import GovernancePolicyResponse
 
-    assert set(policy_summary().keys()) == set(GovernancePolicyResponse.model_fields)
+    assert set(policy_summary().keys()) == (
+        set(GovernancePolicyResponse.model_fields) - _ADAPTER_ONLY_FIELDS
+    )
 
 
 @pytest.mark.no_db
@@ -148,7 +155,9 @@ def test_policy_summary_keyset_stable_when_triage_enforce_on(monkeypatch):
 
     monkeypatch.setenv("FLOWOPS_GOVERNANCE_TRIAGE", "on")
     monkeypatch.setenv("FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE", "on")
-    assert set(policy_summary().keys()) == set(GovernancePolicyResponse.model_fields)
+    assert set(policy_summary().keys()) == (
+        set(GovernancePolicyResponse.model_fields) - _ADAPTER_ONLY_FIELDS
+    )
 
 
 # ── W1: 트리아지 집행축 파생 룰(evaluate 실조건과 정확 일치) ──

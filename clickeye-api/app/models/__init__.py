@@ -8,6 +8,7 @@ from app.models.central_contract import (  # noqa: F401
     ContractAuditLog,
     CustomerContractOverride,
 )
+from app.models.delivery_profile import DeliveryProfile  # noqa: F401
 from app.models.intake import IntakeRequest, IntakeServiceKey  # noqa: F401
 from app.models.license import License  # noqa: F401
 from app.models.llm_usage_ledger import LlmUsageLedger  # noqa: F401
@@ -43,6 +44,7 @@ __all__ = [
     "CentralContract",
     "ContractAuditLog",
     "CustomerContractOverride",
+    "DeliveryProfile",
     "IntakeRequest",
     "IntakeServiceKey",
     "License",

@@ -122,7 +122,11 @@ class Settings(BaseSettings):
     temporal_namespace: str = "default"
     temporal_task_queue: str = "clickeye-default"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # extra="ignore": `.env` 는 API·파이프라인(`FLOWOPS_*`)·웹훅이 공용하는 단일 파일이므로
+    # API 가 선언하지 않은 키가 존재하는 것이 정상이다. pydantic v2 기본값 `forbid` 는
+    # 파이프라인 토글이 하나 추가될 때마다 API 기동을 깨뜨리고(import 시점 ValidationError),
+    # 검증 에러 메시지에 `.env` 실값(토큰 등)이 그대로 노출되는 경로도 만든다.
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()
