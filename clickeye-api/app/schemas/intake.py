@@ -146,6 +146,33 @@ class TicketsRecordRequest(BaseModel):
     tickets: list[IssuedTicket] = Field(..., min_length=1)
 
 
+# ── 정합성 테스트 게이트 (다프로젝트화 P7) ───────────────────────────────────
+class IntakeVerifyPendingItem(BaseModel):
+    """머신 검증 대기 목록 항목 — 검증 배치(delivery_verify.sh)가 소비한다.
+
+    tickets(발급 원장)를 포함한다 — 배치는 원장의 issue_id 전량을 Linear 상태와
+    대조해 완주를 판정한다(전량 Done 이전에는 게이트를 실행하지 않는다).
+    """
+
+    id: UUID
+    title: str
+    project_id: UUID | None
+    tickets: list[dict[str, Any]] | None
+    target: dict[str, Any] | None
+
+    model_config = {"from_attributes": True}
+
+
+class VerificationRecordRequest(BaseModel):
+    """정합성 게이트 결과 본문 — passed 여부와 실행 리포트(게이트별 exit/로그 요약).
+
+    report 는 필수다 — "통과했다"는 주장에는 증거가 따라야 한다(빈 리포트 금지).
+    """
+
+    passed: bool
+    report: str = Field(..., min_length=1, max_length=20000)
+
+
 class ServiceKeyCreate(BaseModel):
     """인테이크 서비스 키 발급 요청."""
 

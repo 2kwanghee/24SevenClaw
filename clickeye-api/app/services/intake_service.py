@@ -242,6 +242,10 @@ def _build_callback_body(intake: IntakeRequest) -> dict:
     }
     if intake.tickets:
         body["tickets"] = intake.tickets
+    # P7: 정합성 게이트 결과 — verified/gate_failed 전이 시에만 존재(additive).
+    verification = (intake.payload or {}).get("verification")  # type: ignore[call-overload]
+    if verification:
+        body["verification"] = verification
     return body
 
 
@@ -731,6 +735,69 @@ class IntakeService:
         intake.tickets_status = "issued"  # type: ignore[assignment]
         intake.tickets_issued_at = datetime.now(UTC)  # type: ignore[assignment]
         # 발급 완료를 서비스 #2 에 푸시 — accept/reject 와 동일한 at-least-once 콜백 큐.
+        key = await self.db.get(IntakeServiceKey, intake.service_key_id)
+        _mark_callback_pending(intake, key)
+        await self.db.commit()
+        await self.db.refresh(intake)
+        _enqueue_callback(intake, key)
+        return intake
+
+    async def list_verify_pending(self, limit: int = 10) -> list[IntakeRequest]:
+        """정합성 검증 대기 목록 (P7) — 발급 완료(issued) 건, 오래된 순(FIFO).
+
+        검증 배치(scripts/delivery_verify.sh)가 소비한다. 완주 판정(원장 티켓 전량
+        Done)과 게이트 실행은 배치 몫 — 게이트 명령은 프로젝트 워크스페이스에서
+        돌아야 하므로 서버가 실행할 수 없다(실행 플레인 분리).
+
+        gate_failed 는 포함하지 않는다 — 재검증은 배치가 명시 재시도 경로로만 연다
+        (자동 재수거하면 실패 게이트가 무한 재실행된다).
+        """
+        result = await self.db.execute(
+            select(IntakeRequest)
+            .where(
+                IntakeRequest.status == "accepted",
+                IntakeRequest.tickets_status == "issued",
+            )
+            .order_by(IntakeRequest.created_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def record_verification(
+        self, intake_id: UUID, *, passed: bool, report: str
+    ) -> IntakeRequest:
+        """정합성 게이트 결과 확정 (P7) — issued → verified | gate_failed 전이.
+
+        - `verified` 는 무인 딜리버리의 **최종 상태** — 멱등: 이미 verified 면 no-op
+          (배치 재실행·콜백 재시도가 최종 상태를 흔들지 못한다).
+        - `gate_failed` 에서의 재제출은 **허용** — 사람/파이프라인이 결함을 고친 뒤
+          재검증하는 유일한 경로다(verified 로 상향만 가능, verified→실패 하향 불가).
+        - 그 외 상태(none 등)에서의 결과 제출은 409 — 발급 없이 검증 결과가 올 수 없다.
+        - report 는 payload 에 보존(관측·감사) 후 콜백으로 서비스 #2 에 푸시.
+        """
+        intake = await self.db.get(IntakeRequest, intake_id)
+        if intake is None:
+            raise AppError("INTAKE_NOT_FOUND", "인테이크를 찾을 수 없습니다.", 404)
+        if str(intake.tickets_status) == "verified":
+            return intake  # 최종 상태 멱등 no-op
+        if str(intake.tickets_status) not in ("issued", "gate_failed"):
+            raise AppError(
+                "INTAKE_NOT_ISSUED",
+                f"발급 완료(issued/gate_failed) 상태에서만 검증 결과를 기록할 수 있습니다. "
+                f"(현재: {intake.tickets_status})",
+                409,
+            )
+
+        intake.tickets_status = "verified" if passed else "gate_failed"  # type: ignore[assignment]
+        # JSON 컬럼 in-place 변경은 감지되지 않으므로 새 dict 로 재할당한다(reject 패턴).
+        intake.payload = {  # type: ignore[assignment]
+            **(intake.payload or {}),
+            "verification": {
+                "passed": passed,
+                "report": report[:20000],
+                "verified_at": datetime.now(UTC).isoformat(),
+            },
+        }
         key = await self.db.get(IntakeServiceKey, intake.service_key_id)
         _mark_callback_pending(intake, key)
         await self.db.commit()
