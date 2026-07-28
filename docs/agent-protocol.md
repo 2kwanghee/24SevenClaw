@@ -2,7 +2,7 @@
 title: 통신 프로토콜
 category: architecture
 status: current
-last_updated: 2026-07-22
+last_updated: 2026-07-28
 related:
   - clickeye-api/app/api/v1/governance.py
   - clickeye-api/app/api/v1/ops_*.py
@@ -159,10 +159,16 @@ Agent 플랫폼 목록.
 
 ---
 
-### 3.5 거버넌스 정책 (CE-303)
+### 3.5 거버넌스 정책 (CE-303 · 다프로젝트화 P0)
 
 #### `GET /api/v1/governance/policy`
 자동화 가이드라인 커널 SSOT. 전역 거버넌스 정책(인증 필수, 읽기전용).
+
+> **P0 확장** — `POST /governance/evaluate` 와 `GET /governance/policy` 가 선택 파라미터
+> `project_id` 를 받는다. 지정 시 해당 프로젝트의 `DeliveryProfile.policy` 를
+> `Policy.from_dict()` 로 주입해 판정한다(static — 서버 env 미조회). 미지정이면 기존 그대로
+> 기본 정책(env 재독). 프로파일 부재 시 기본 정책 폴백을 응답에 명시하고, 불량 policy JSON
+> 은 422(fail-closed — 조용한 기본값 폴백 금지). 설계: `docs/multiproject-delivery.md` §3.
 ```json
 // Response (200)
 {

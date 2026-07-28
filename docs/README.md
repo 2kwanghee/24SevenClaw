@@ -50,6 +50,7 @@ version: ...       # 선택
 | [architecture-overview.md](architecture-overview.md) | 인게이지먼트 기반 딜리버리 콘솔 + 하이브리드 러너(데스크탑 구독/클라우드 컨테이너) | current |
 | [agent-protocol.md](agent-protocol.md) | 서버↔에이전트 통신 프로토콜 | current |
 | [si-factory-transition.md](si-factory-transition.md) | SI 딜리버리 팩토리 전환 마스터 설계 기준 (P0~P4 티켓 CE-296~301 참조) | current |
+| [multiproject-delivery.md](multiproject-delivery.md) | 다프로젝트 딜리버리 아키텍처 — 5-Plane 분리 · Delivery Tier T1~T3 · Policy 계약 · 결정 D-1~D-9 | current |
 
 ### guide — 실행/사용 가이드
 | 문서 | 목적 | status |
