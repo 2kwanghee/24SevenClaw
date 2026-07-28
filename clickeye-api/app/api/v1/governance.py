@@ -12,19 +12,26 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from governance.control import SUPPORTED_SCHEMA_VERSIONS
 from governance.policy import PolicyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.exceptions import AppError
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.governance import (
+    ControlPlaneRejection,
+    ControlPlaneSubmitRequest,
+    ControlPlaneSubmitResponse,
     GovernanceEvaluateRequest,
     GovernanceEvaluateResponse,
     GovernancePolicyResponse,
 )
+from app.services.control_plane_service import ControlPlaneService
 from app.services.governance_gate_service import GovernanceGateService
+from app.services.intake_service import IntakeService
 
 router = APIRouter(prefix="/governance", tags=["governance"])
 
@@ -84,6 +91,54 @@ async def evaluate_governance(
         return await GovernanceGateService(db).evaluate(req)
     except PolicyError as exc:
         raise _policy_error_422(exc) from exc
+
+
+@router.put(
+    "/control-plane",
+    response_model=ControlPlaneSubmitResponse,
+    responses={
+        401: {"description": "서비스 키 없음/무효"},
+        404: {"model": ControlPlaneRejection, "description": "프로젝트 없음"},
+        422: {"model": ControlPlaneRejection, "description": "제어면 YAML 형식 불량(fail-closed)"},
+    },
+)
+async def submit_control_plane(
+    req: ControlPlaneSubmitRequest,
+    x_clickeye_service_key: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> ControlPlaneSubmitResponse:
+    """서비스 #2(기획)가 자동 생성한 제어면 YAML 을 수신한다 (다프로젝트화 P2, D-14).
+
+    인증은 인테이크와 동일한 X-ClickEye-Service-Key 머신 헤더(신뢰 모델 v1: 인증=서비스 키
+    채널, 무결성=sha256 콘텐츠 해시). 검증은 fail-closed — 불량 YAML 은 절대 기본값으로
+    조용히 폴백하지 않고 422 + 기계 소비형 거부 사유(ControlPlaneRejection)로 반환한다.
+    서비스 #2 는 그 body 를 자기 콜백/재생성 루프에 그대로 실을 수 있다.
+    """
+    # 인테이크와 동일한 서비스 키 인증 재사용(별도 인증 체계를 만들지 않는다).
+    await IntakeService(db).authenticate_key(x_clickeye_service_key)
+
+    try:
+        profile, plane = await ControlPlaneService(db).submit(
+            project_id=req.project_id, control_yaml=req.control_yaml
+        )
+    except AppError as exc:
+        # 거부를 기계가 소비 가능한 형태로 — 서비스 #2 콜백 payload 계약.
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=ControlPlaneRejection(
+                code=exc.code,
+                reasons=[exc.message],
+                schema_supported=list(SUPPORTED_SCHEMA_VERSIONS),
+            ).model_dump(),
+        ) from exc
+
+    return ControlPlaneSubmitResponse(
+        project_id=req.project_id,
+        schema_version=plane.schema_version,
+        tier=plane.tier,
+        source_signature=str(profile.source_signature),
+        effective=plane.to_dict(),
+    )
 
 
 @router.get(

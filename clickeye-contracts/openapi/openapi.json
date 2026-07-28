@@ -9410,6 +9410,79 @@
         }
       }
     },
+    "/api/v1/governance/control-plane": {
+      "put": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Submit Control Plane",
+        "description": "서비스 #2(기획)가 자동 생성한 제어면 YAML 을 수신한다 (다프로젝트화 P2, D-14).\n\n인증은 인테이크와 동일한 X-ClickEye-Service-Key 머신 헤더(신뢰 모델 v1: 인증=서비스 키\n채널, 무결성=sha256 콘텐츠 해시). 검증은 fail-closed — 불량 YAML 은 절대 기본값으로\n조용히 폴백하지 않고 422 + 기계 소비형 거부 사유(ControlPlaneRejection)로 반환한다.\n서비스 #2 는 그 body 를 자기 콜백/재생성 루프에 그대로 실을 수 있다.",
+        "operationId": "submit_control_plane_api_v1_governance_control_plane_put",
+        "parameters": [
+          {
+            "name": "x-clickeye-service-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Clickeye-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlPlaneSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlPlaneSubmitResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "서비스 키 없음/무효"
+          },
+          "404": {
+            "description": "프로젝트 없음",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlPlaneRejection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "제어면 YAML 형식 불량(fail-closed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlPlaneRejection"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/governance/policy": {
       "get": {
         "tags": [
@@ -13010,6 +13083,92 @@
           "agent_ids"
         ],
         "title": "ContractSyncResponse"
+      },
+      "ControlPlaneRejection": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "schema_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Schema Supported"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "reasons",
+          "schema_supported"
+        ],
+        "title": "ControlPlaneRejection",
+        "description": "거부(422) 상세 — 서비스 #2 콜백에 그대로 실을 수 있는 기계 소비형.\n\nfail-closed 검증기는 첫 위반에서 멈추므로 reasons 는 보통 1건이다. 배열로 두는\n이유는 후속 버전에서 다중 사유 수집이 가능해질 때 계약을 깨지 않기 위함이다."
+      },
+      "ControlPlaneSubmitRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "control_yaml": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Control Yaml"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "control_yaml"
+        ],
+        "title": "ControlPlaneSubmitRequest"
+      },
+      "ControlPlaneSubmitResponse": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier"
+          },
+          "source_signature": {
+            "type": "string",
+            "title": "Source Signature"
+          },
+          "effective": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Effective"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "schema_version",
+          "tier",
+          "source_signature",
+          "effective"
+        ],
+        "title": "ControlPlaneSubmitResponse",
+        "description": "수리(accept) 응답 — 서비스 #2 가 자기 기록에 남길 수 있는 수신 증거."
       },
       "CustomerContractOverrideCreate": {
         "properties": {

@@ -361,6 +361,36 @@ export type ContractSyncResponse = {
     agent_ids: Array<string>;
 };
 
+/**
+ * 거부(422) 상세 — 서비스 #2 콜백에 그대로 실을 수 있는 기계 소비형.
+ *
+ * fail-closed 검증기는 첫 위반에서 멈추므로 reasons 는 보통 1건이다. 배열로 두는
+ * 이유는 후속 버전에서 다중 사유 수집이 가능해질 때 계약을 깨지 않기 위함이다.
+ */
+export type ControlPlaneRejection = {
+    code: string;
+    reasons: Array<string>;
+    schema_supported: Array<string>;
+};
+
+export type ControlPlaneSubmitRequest = {
+    project_id: string;
+    control_yaml: string;
+};
+
+/**
+ * 수리(accept) 응답 — 서비스 #2 가 자기 기록에 남길 수 있는 수신 증거.
+ */
+export type ControlPlaneSubmitResponse = {
+    project_id: string;
+    schema_version: string;
+    tier: string;
+    source_signature: string;
+    effective: {
+        [key: string]: unknown;
+    };
+};
+
 export type CustomerContractOverrideCreate = {
     central_contract_id: string;
     override_content?: {
@@ -7245,6 +7275,42 @@ export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponses = {
 };
 
 export type EvaluateGovernanceApiV1GovernanceEvaluatePostResponse = EvaluateGovernanceApiV1GovernanceEvaluatePostResponses[keyof EvaluateGovernanceApiV1GovernanceEvaluatePostResponses];
+
+export type SubmitControlPlaneApiV1GovernanceControlPlanePutData = {
+    body: ControlPlaneSubmitRequest;
+    headers?: {
+        'x-clickeye-service-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/governance/control-plane';
+};
+
+export type SubmitControlPlaneApiV1GovernanceControlPlanePutErrors = {
+    /**
+     * 서비스 키 없음/무효
+     */
+    401: unknown;
+    /**
+     * 프로젝트 없음
+     */
+    404: ControlPlaneRejection;
+    /**
+     * 제어면 YAML 형식 불량(fail-closed)
+     */
+    422: ControlPlaneRejection;
+};
+
+export type SubmitControlPlaneApiV1GovernanceControlPlanePutError = SubmitControlPlaneApiV1GovernanceControlPlanePutErrors[keyof SubmitControlPlaneApiV1GovernanceControlPlanePutErrors];
+
+export type SubmitControlPlaneApiV1GovernanceControlPlanePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ControlPlaneSubmitResponse;
+};
+
+export type SubmitControlPlaneApiV1GovernanceControlPlanePutResponse = SubmitControlPlaneApiV1GovernanceControlPlanePutResponses[keyof SubmitControlPlaneApiV1GovernanceControlPlanePutResponses];
 
 export type GetGovernancePolicyApiV1GovernancePolicyGetData = {
     body?: never;
