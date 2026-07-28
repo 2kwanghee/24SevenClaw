@@ -102,3 +102,20 @@ class IntakeRequest(Base, UUIDPKMixin, TimestampMixin):
     project_id = Column(
         Uuid, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
     )
+
+    # ── 티켓 전량 자동 발급 (다프로젝트화 P6, D-12) ─────────────────────────
+    # 정제 스펙 → Linear 설계·구현 티켓 발급의 상태. 분해(LLM)는 로컬 구독 배치
+    # (scripts/intake_issue.sh)가 수행하고 서버는 상태 조율·기록만 한다
+    # (실행 플레인 분리 — refine 배치와 동일 패턴).
+    # none(미발급) | issued(발급 완료). **발급 멱등성의 앵커** — 배치 재실행 시
+    # issued 인테이크는 재발급하지 않는다(중복 티켓 방지).
+    tickets_status = Column(
+        String(16),
+        nullable=False,
+        default="none",
+        server_default=text("'none'"),
+    )
+    # 발급된 티켓 원장 — [{key, identifier, issue_id, title}]. key 는 분해 결과의
+    # 로컬 키(T1, T2…)로 depends_on 추적용, identifier 는 Linear 표시 키(CE-###).
+    tickets = Column(JSON, nullable=True)
+    tickets_issued_at = Column(DateTime(timezone=True), nullable=True)
