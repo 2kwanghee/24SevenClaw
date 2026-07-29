@@ -408,6 +408,18 @@ $(cat .ralph/PROMPT.md)"
 
   log "Claude 구현 완료: $TITLE"
 
+  # ── [CE-328] 로컬 배치 사용량 → 서버 원장 인제스트(비차단, opt-in) ──
+  # 명시적 opt-in 이중 체크(is_enabled + 비어있지 않음) + 서비스 URL 필수. 미설정=off → 회귀 0.
+  # usage_ingest.py 자체가 모든 실패를 삼켜 exit 0 하지만, || true 로 이중 방어(파이프라인 불사).
+  if is_enabled "FLOWOPS_USAGE_INGEST" 2>/dev/null && [ -n "${FLOWOPS_USAGE_INGEST:-}" ] \
+    && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
+    python3 scripts/usage_ingest.py \
+      --log "$CLAUDE_LOG" \
+      --request-kind local_batch_implement \
+      --task-id "$ISSUE_KEY" 2>>"$CLAUDE_LOG" || true
+    log "사용량 인제스트 시도(비차단): ${ISSUE_KEY}"
+  fi
+
   # Claude 실행 후 TASK.md 자동 생성 (없으면)
   if [ ! -f .ralph/TASK.md ]; then
     log "TASK.md 자동 생성 (Claude 실행 결과 기반)"

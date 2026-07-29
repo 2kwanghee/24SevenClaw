@@ -7,6 +7,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from app.models.llm_usage_ledger import (
     LlmKeySource,
@@ -14,9 +15,11 @@ from app.models.llm_usage_ledger import (
     LlmUsageLedger,
     LlmUsageStatus,
 )
+from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.schemas.llm_ledger import (
     LlmKeySourceTotals,
     LlmProjectUsageSummary,
+    LlmUsageIngestRequest,
 )
 from app.services.base import BaseService
 
@@ -41,9 +44,15 @@ class LlmLedgerService(BaseService):
         status: LlmUsageStatus = LlmUsageStatus.success,
         project_id: UUID | None = None,
         task_id: str | None = None,
+        seat_id: UUID | None = None,
+        session_id: str | None = None,
         meta: dict[str, Any] | None = None,
     ) -> LlmUsageLedger:
-        """원장 1행을 저장하고 refresh 된 ORM 객체를 반환한다."""
+        """원장 1행을 저장하고 refresh 된 ORM 객체를 반환한다.
+
+        seat_id/session_id 는 키워드 전용이며 기본 None 이라 기존 게이트웨이 호출은
+        영향을 받지 않는다(로컬 배치 인제스트 CE-328 에서만 전달).
+        """
         entry = LlmUsageLedger(
             provider=provider,
             key_source=key_source,
@@ -55,10 +64,83 @@ class LlmLedgerService(BaseService):
             status=status,
             project_id=project_id,
             task_id=task_id,
+            seat_id=seat_id,
+            session_id=session_id,
             meta=meta,
         )
         await self.save(entry)
         return entry
+
+    async def record_usage_batch(self, req: LlmUsageIngestRequest) -> dict[str, Any]:
+        """로컬 배치(claude -p) 사용량을 modelUsage 모델별 1행으로 원장에 기록한다(CE-328).
+
+        비블로킹 계약(항상 202): 어떤 경로도 예외를 던지지 않고 status dict 를 반환한다.
+        - seat_id 사전검증: 미존재 시 seat_id=NULL + meta.unknown_seat_id 에 원값 보존
+          (FK 위반 500 방지, 조용한 축 손실 금지).
+        - 멱등 2단: ① 앱 레벨 SELECT(session_id, model 존재 시 skip) ② IntegrityError
+          방어(부분 유니크 인덱스 race 백스톱, 마이그레이션 057). 모두 skip 처리.
+        - 캐시 토큰(cache_read/creation)과 공유 런 정보(요청 meta)는 각 행 meta JSONB 에.
+          비용은 v1 에서 산정하지 않는다(cost=NULL, total_cost_usd 는 meta 에만).
+        """
+        # seat_id 사전검증 — 원장 FK(SET NULL) 위반을 500 이 아닌 축 손실+meta 로 흡수.
+        seat_id = req.seat_id
+        unknown_seat: str | None = None
+        if seat_id is not None:
+            exists = await self.db.scalar(
+                select(UserAnthropicCredentials.id).where(
+                    UserAnthropicCredentials.id == seat_id
+                )
+            )
+            if exists is None:
+                unknown_seat = str(seat_id)
+                seat_id = None
+
+        rows = 0
+        for m in req.models:
+            # ① 앱 레벨 멱등: 동일 (session_id, model) 이미 기록됨 → skip.
+            dup = await self.db.scalar(
+                select(LlmUsageLedger.id).where(
+                    LlmUsageLedger.session_id == req.session_id,
+                    LlmUsageLedger.model == m.model,
+                )
+            )
+            if dup is not None:
+                continue
+
+            # 공유 런 정보(요청 meta) + 모델별 캐시 토큰을 행 meta 에 보존.
+            row_meta: dict[str, Any] = dict(req.meta or {})
+            row_meta["cache_read_input_tokens"] = m.cache_read_input_tokens
+            row_meta["cache_creation_input_tokens"] = m.cache_creation_input_tokens
+            if unknown_seat is not None:
+                row_meta["unknown_seat_id"] = unknown_seat
+
+            try:
+                await self.record(
+                    provider=LlmProvider.anthropic,
+                    key_source=req.key_source,
+                    model=m.model,
+                    request_kind=req.request_kind,
+                    input_tokens=m.input_tokens,
+                    output_tokens=m.output_tokens,
+                    cost=None,
+                    project_id=req.project_id,
+                    task_id=req.task_id,
+                    seat_id=seat_id,
+                    session_id=req.session_id,
+                    meta=row_meta,
+                )
+                rows += 1
+            except IntegrityError:
+                # ② 부분 유니크 인덱스 race 백스톱(프로덕션) — skip 처리.
+                await self.db.rollback()
+                continue
+
+        if rows == 0:
+            return {
+                "status": "skipped",
+                "reason": "중복 session_id(이미 기록됨) 또는 기록할 행 없음",
+            }
+        return {"status": "recorded", "rows": rows}
 
     async def list_entries(
         self,

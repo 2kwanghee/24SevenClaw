@@ -702,6 +702,68 @@
         }
       }
     },
+    "/api/v1/llm/ingest/usage": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Ingest Usage",
+        "description": "로컬 배치(claude -p) 사용량 인제스트 (CE-328) — 파이프라인發, X-Governance-Token 보호.\n\n항상 202(비블로킹 계약 — 호출측 파이프라인을 절대 죽이지 않는다):\n- FEATURE_LLM_USAGE_INGEST off → {status: disabled} (에러 아님).\n- 중복 session_id(모두 기록됨) → {status: skipped}.\n- 성공 → {status: recorded, rows: n}. 비즈니스 로직은 LlmLedgerService 위임.",
+        "operationId": "ingest_usage_api_v1_llm_ingest_usage_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmUsageIngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ingest Usage Api V1 Llm Ingest Usage Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/registry/agents": {
       "get": {
         "tags": [
@@ -16646,6 +16708,14 @@
         ],
         "title": "LlmIngestRequest"
       },
+      "LlmKeySource": {
+        "type": "string",
+        "enum": [
+          "subscription_seat",
+          "org_api_key"
+        ],
+        "title": "LlmKeySource"
+      },
       "LlmKeySourceTotals": {
         "properties": {
           "key_source": {
@@ -16874,6 +16944,29 @@
             ],
             "title": "Task Id"
           },
+          "seat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
           "provider": {
             "type": "string",
             "title": "Provider"
@@ -16944,6 +17037,95 @@
         ],
         "title": "LlmUsageEntryResponse"
       },
+      "LlmUsageIngestRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Session Id",
+            "description": "result 이벤트의 session_id."
+          },
+          "request_kind": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Request Kind",
+            "description": "출처 구분(예: local_batch_implement).",
+            "default": "local_batch_implement"
+          },
+          "key_source": {
+            "$ref": "#/components/schemas/LlmKeySource",
+            "description": "apiKeySource='none' → subscription_seat, 그 외 → org_api_key.",
+            "default": "subscription_seat"
+          },
+          "seat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Id",
+            "description": "구독 시트 ID(CLICKEYE_SEAT_ID)."
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id",
+            "description": "프로젝트 ID(CLICKEYE_PROJECT_ID)."
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id",
+            "description": "태스크 상관키(예: CE-328)."
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/LlmUsageModelEntry"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Models",
+            "description": "modelUsage 모델별 항목(1개 이상)."
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta",
+            "description": "공유 런 정보(total_cost_usd/num_turns/duration_ms 등)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "models"
+        ],
+        "title": "LlmUsageIngestRequest",
+        "description": "로컬 배치(claude -p) 사용량 인제스트 요청 (CE-328).\n\n로컬 usage_ingest 스크립트가 result 이벤트의 modelUsage 를 모델별 항목으로 보낸다.\nseat_id/project_id 미확인 시 NULL 허용(서버가 축 손실을 흡수). 항상 202 비블로킹."
+      },
       "LlmUsageListResponse": {
         "properties": {
           "items": {
@@ -16964,6 +17146,50 @@
           "total"
         ],
         "title": "LlmUsageListResponse"
+      },
+      "LlmUsageModelEntry": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model",
+            "description": "모델 식별자(예: claude-sonnet-5)."
+          },
+          "input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Input Tokens",
+            "description": "비캐시 입력 토큰.",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Output Tokens",
+            "description": "출력 토큰.",
+            "default": 0
+          },
+          "cache_read_input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cache Read Input Tokens",
+            "description": "캐시 읽기 입력 토큰.",
+            "default": 0
+          },
+          "cache_creation_input_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cache Creation Input Tokens",
+            "description": "캐시 생성 입력 토큰.",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "model"
+        ],
+        "title": "LlmUsageModelEntry",
+        "description": "modelUsage 의 모델별 항목 — 비캐시 input/output + 캐시 토큰(로컬 배치 CE-328)."
       },
       "LlmUsageStatus": {
         "type": "string",

@@ -30,7 +30,9 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_superadmin
 from app.models.project import Project
 from app.models.user import User
+from app.schemas.llm_ledger import LlmUsageIngestRequest
 from app.services.llm_ingest import enqueue_ingest, resolve_project_by_team
+from app.services.llm_ledger_service import LlmLedgerService
 from app.services.project_service import ProjectService
 
 logger = get_logger(__name__)
@@ -291,3 +293,24 @@ async def ingest_pipeline(
 
     enqueue_ingest(project_id, body.source_id, body.text, body.metadata)
     return {"status": "queued", "project_id": str(project_id)}
+
+
+@router.post(
+    "/ingest/usage",
+    status_code=202,
+    dependencies=[Depends(verify_governance_token)],
+)
+async def ingest_usage(
+    body: LlmUsageIngestRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """로컬 배치(claude -p) 사용량 인제스트 (CE-328) — 파이프라인發, X-Governance-Token 보호.
+
+    항상 202(비블로킹 계약 — 호출측 파이프라인을 절대 죽이지 않는다):
+    - FEATURE_LLM_USAGE_INGEST off → {status: disabled} (에러 아님).
+    - 중복 session_id(모두 기록됨) → {status: skipped}.
+    - 성공 → {status: recorded, rows: n}. 비즈니스 로직은 LlmLedgerService 위임.
+    """
+    if not settings.feature_llm_usage_ingest:
+        return {"status": "disabled"}
+    return await LlmLedgerService(db).record_usage_batch(body)

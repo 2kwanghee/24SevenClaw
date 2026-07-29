@@ -5,7 +5,9 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.models.llm_usage_ledger import LlmKeySource
 
 
 class LlmUsageEntryResponse(BaseModel):
@@ -13,6 +15,8 @@ class LlmUsageEntryResponse(BaseModel):
     created_at: datetime | None
     project_id: UUID | None
     task_id: str | None
+    seat_id: UUID | None = None
+    session_id: str | None = None
     provider: str
     key_source: str
     model: str
@@ -24,6 +28,46 @@ class LlmUsageEntryResponse(BaseModel):
     meta: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class LlmUsageModelEntry(BaseModel):
+    """modelUsage 의 모델별 항목 — 비캐시 input/output + 캐시 토큰(로컬 배치 CE-328)."""
+
+    model: str = Field(..., min_length=1, description="모델 식별자(예: claude-sonnet-5).")
+    input_tokens: int = Field(default=0, ge=0, description="비캐시 입력 토큰.")
+    output_tokens: int = Field(default=0, ge=0, description="출력 토큰.")
+    cache_read_input_tokens: int = Field(default=0, ge=0, description="캐시 읽기 입력 토큰.")
+    cache_creation_input_tokens: int = Field(
+        default=0, ge=0, description="캐시 생성 입력 토큰."
+    )
+
+
+class LlmUsageIngestRequest(BaseModel):
+    """로컬 배치(claude -p) 사용량 인제스트 요청 (CE-328).
+
+    로컬 usage_ingest 스크립트가 result 이벤트의 modelUsage 를 모델별 항목으로 보낸다.
+    seat_id/project_id 미확인 시 NULL 허용(서버가 축 손실을 흡수). 항상 202 비블로킹.
+    """
+
+    session_id: str = Field(..., min_length=1, description="result 이벤트의 session_id.")
+    request_kind: str = Field(
+        default="local_batch_implement",
+        min_length=1,
+        description="출처 구분(예: local_batch_implement).",
+    )
+    key_source: LlmKeySource = Field(
+        default=LlmKeySource.subscription_seat,
+        description="apiKeySource='none' → subscription_seat, 그 외 → org_api_key.",
+    )
+    seat_id: UUID | None = Field(default=None, description="구독 시트 ID(CLICKEYE_SEAT_ID).")
+    project_id: UUID | None = Field(default=None, description="프로젝트 ID(CLICKEYE_PROJECT_ID).")
+    task_id: str | None = Field(default=None, description="태스크 상관키(예: CE-328).")
+    models: list[LlmUsageModelEntry] = Field(
+        ..., min_length=1, description="modelUsage 모델별 항목(1개 이상)."
+    )
+    meta: dict[str, Any] | None = Field(
+        default=None, description="공유 런 정보(total_cost_usd/num_turns/duration_ms 등)."
+    )
 
 
 class LlmUsageListResponse(BaseModel):
