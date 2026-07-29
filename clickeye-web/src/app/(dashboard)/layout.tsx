@@ -8,7 +8,6 @@ import { Header } from "@/components/layout/header";
 import {
   ScanEye,
   Sparkles,
-  FolderKanban,
   Boxes,
   Bot,
   Puzzle,
@@ -49,9 +48,12 @@ type NavItem = {
   dataTour?: string;
 };
 
+// 딜리버리가 단일 진입점이다(I-14). `프로젝트`를 1뎁스에서 제거했다 —
+// `/delivery` 목록과 `/projects` 목록이 같은 엔티티를 같은 훅(useProjects)으로
+// 중복 노출하고 있었다(engagementId === projectId). 라우트와 페이지는 유지하므로
+// 기존 URL·북마크·딜리버리 콘솔의 하위 탭 링크는 그대로 동작한다.
 const navItems: NavItem[] = [
-  { href: "/delivery", labelKey: "items.delivery", icon: Boxes, activePrefix: "/delivery" },
-  { href: "/projects", labelKey: "items.projects", icon: FolderKanban, dataTour: "projects-link" },
+  { href: "/delivery", labelKey: "items.delivery", icon: Boxes, activePrefix: "/delivery", dataTour: "projects-link" },
   { href: "/guide", labelKey: "items.guide", icon: BookOpen },
 ];
 

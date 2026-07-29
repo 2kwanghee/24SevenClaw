@@ -2,12 +2,14 @@
 title: 페이지 스펙 기반 개발 파이프라인 (인덱스)
 category: page
 status: needs-revision
-last_updated: 2026-07-23
+last_updated: 2026-07-29
 related:
   - clickeye-web/src/app
   - docs/pages/_template.md
   - docs/pages/admin/ops.md
   - docs/pages/admin/intake.md
+  - docs/wireframes/multiproject-delivery.html
+  - migration.md
 ---
 
 # 페이지 스펙 기반 개발 파이프라인
@@ -42,7 +44,12 @@ docs/pages/
 │   ├── ai-team.md                  → /projects/[id]/ai-team
 │   ├── contracts.md                → /projects/[id]/contracts
 │   ├── insights.md                 → /projects/[id]/insights
-│   └── settings.md                → /projects/[id]/settings
+│   ├── settings.md                → /projects/[id]/settings
+│   │   ── 실행 계층 (draft · 구현 금지 · migration.md Stage 0.5) ──
+│   ├── manifest.md                 → /projects/[id]/manifest
+│   ├── execution.md                → /projects/[id]/execution
+│   ├── integrations.md             → /projects/[id]/integrations
+│   └── deployment.md               → /projects/[id]/deployment
 │
 ├── onboarding/
 │   ├── preset.md                   → /onboarding/preset
@@ -60,13 +67,22 @@ docs/pages/
 │   ├── control-tower.md            → /admin/control-tower (+customers/[orgId])
 │   ├── roi-standards.md            → /admin/roi-standards
 │   ├── settings.md                 → /admin/settings
-│   └── ops.md                      → /admin/ops (CE-305, superadmin)
+│   ├── ops.md                      → /admin/ops (CE-305, superadmin)
+│   │   ── 실행 계층 (draft · 구현 금지 · migration.md Stage 0.5) ──
+│   ├── seats.md                    → /admin/ops/seats
+│   └── execution-overview.md       → /admin/ops/execution
 │
 └── settings/
     ├── anthropic.md                → /settings/anthropic
     ├── linear.md                   → /settings/linear
     └── members.md                  → /settings/members
 ```
+
+---
+
+> **실행 계층 6종은 `status: draft` + 구현 금지다.** `migration.md` Stage 0.5(화면 기준선)의
+> 산출물이며, 각 Stage 실행 계획이 사용자 승인을 받기 전에는 "[파일경로] 새 페이지야, 구현해줘"
+> 요청 대상이 아니다. 시각 기준선은 `docs/wireframes/multiproject-delivery.html`.
 
 ---
 

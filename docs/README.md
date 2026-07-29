@@ -2,7 +2,7 @@
 title: ClickEye 문서 매니페스트
 category: reference
 status: current
-last_updated: 2026-07-22
+last_updated: 2026-07-29
 related:
   - .claude/skills/docs-sync/SKILL.md
   - .claude/agents/docs.md
@@ -78,11 +78,18 @@ version: ...       # 선택
 | 문서 | 목적 | status |
 |------|------|--------|
 | [pages/README.md](pages/README.md) | 페이지 스펙 SSoT 인덱스 + 연결 파일 맵 | current |
-| [pages/delivery/console.md](pages/delivery/console.md) | 딜리버리 콘솔 (인게이지먼트 설계·실행·추적, 메인 플로우) | current |
+| [pages/delivery/console.md](pages/delivery/console.md) | 딜리버리 콘솔 (설계·실행·추적, 메인 플로우) — I-14 IA 변경 예정: 단일 진입점화 + 리스트·슬라이드 패널 | needs-revision |
 | [pages/admin/intake.md](pages/admin/intake.md) | 인테이크 검토 콘솔 (외부 서비스 수주 인테이크 검수·승인·반려) | implemented |
 | [pages/admin/ops.md](pages/admin/ops.md) | Superadmin 운영 패널 (컨테이너/env/테이블 관리, CE-305) | implemented |
 
+| [wireframes/multiproject-delivery.html](wireframes/multiproject-delivery.html) | 다프로젝트 실행 계층 와이어프레임 6화면 (migration.md Stage 0.5 화면 기준선, 클릭 가능) | draft |
+| pages/projects/{manifest,execution,integrations,deployment}.md | 실행 계층 프로젝트 탭 스펙 4종 — Manifest·DeliveryJob·외부연동 게이트·배포 | draft |
+| pages/admin/{seats,execution-overview}.md | 실행 계층 운영 패널 스펙 2종 — 구독 시트 풀·다프로젝트 실행 현황 | draft |
+
 > 개별 페이지 스펙(landing/auth/delivery/guide/projects/onboarding/admin/settings)은 [pages/README.md](pages/README.md) 참조. (구 solutions/download 스펙은 딜리버리 전환으로 제거됨)
+>
+> **실행 계층 6종 + 와이어프레임은 구현 금지 산출물이다.** `migration.md` §0.1(금지 범위 예외)과
+> §17 Stage 0.5를 따른다 — 코드·DB·API/WS 계약·인프라는 변경되지 않았다.
 
 ### archive (자동 생성, 매니페스트 관리 제외)
 - `WeeklyWorkReport/` — `weekly-report` 스킬 산출 주간 보고

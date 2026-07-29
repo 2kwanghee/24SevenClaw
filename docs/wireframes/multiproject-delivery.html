@@ -1,0 +1,1907 @@
+<meta charset="utf-8" />
+<title>ClickEye 다프로젝트 딜리버리 — 실행 계층 와이어프레임</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     ClickEye 실행 계층 와이어프레임 (Stage 0.5 / migration.md §17)
+     토큰은 clickeye-web/src/app/globals.css 를 그대로 따른다.
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --bg-base: #fafafa;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-hover: #f4f4f5;
+    --bg-sunken: #f4f4f5;
+    --text-primary: #09090b;
+    --text-secondary: #52525b;
+    --text-muted: #a1a1aa;
+    --border-subtle: #e4e4e7;
+    --border-medium: #d4d4d8;
+    --accent: #0e7490;
+    --accent-hover: #0c6579;
+    --accent-soft: #d7eef2;
+    --accent-fg: #ffffff;
+    --nav-active-bg: var(--accent-soft);
+
+    /* 상태색 — accent 와 분리된 의미색 */
+    --ok: #15803d;      --ok-soft: #dcfce7;
+    --warn: #b45309;    --warn-soft: #fef3c7;
+    --crit: #b91c1c;    --crit-soft: #fee2e2;
+    --idle: #71717a;    --idle-soft: #f4f4f5;
+    --info: #1d4ed8;    --info-soft: #dbeafe;
+
+    /* 주석 잉크 — 제품 팔레트 밖 */
+    --spec: #6d28d9;    --spec-soft: #f5f3ff;  --spec-border: #ddd6fe;
+
+    --font-sans: Pretendard, Inter, -apple-system, "Segoe UI", "Malgun Gothic",
+                 ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+    --rail: 216px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-base: #0b1416; --bg-surface: #101a1d; --bg-elevated: #162226;
+      --bg-hover: #1b292d; --bg-sunken: #0e1a1d;
+      --text-primary: #e8eef0; --text-secondary: #9fb2b7; --text-muted: #64777c;
+      --border-subtle: #22333a; --border-medium: #2f444c;
+      --accent: #22b8cf; --accent-hover: #38c9de; --accent-soft: #0c2a30;
+      --accent-fg: #06171b;
+      --ok: #4ade80;  --ok-soft: #0d2a1a;
+      --warn: #fbbf24; --warn-soft: #2e2410;
+      --crit: #f87171; --crit-soft: #2e1416;
+      --idle: #8b9ea3; --idle-soft: #182428;
+      --info: #7dd3fc; --info-soft: #10262e;
+      --spec: #a78bfa; --spec-soft: #171430; --spec-border: #2f2a52;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-base: #0b1416; --bg-surface: #101a1d; --bg-elevated: #162226;
+    --bg-hover: #1b292d; --bg-sunken: #0e1a1d;
+    --text-primary: #e8eef0; --text-secondary: #9fb2b7; --text-muted: #64777c;
+    --border-subtle: #22333a; --border-medium: #2f444c;
+    --accent: #22b8cf; --accent-hover: #38c9de; --accent-soft: #0c2a30;
+    --accent-fg: #06171b;
+    --ok: #4ade80;  --ok-soft: #0d2a1a;
+    --warn: #fbbf24; --warn-soft: #2e2410;
+    --crit: #f87171; --crit-soft: #2e1416;
+    --idle: #8b9ea3; --idle-soft: #182428;
+    --info: #7dd3fc; --info-soft: #10262e;
+    --spec: #a78bfa; --spec-soft: #171430; --spec-border: #2f2a52;
+  }
+  :root[data-theme="light"] {
+    --bg-base: #fafafa; --bg-surface: #ffffff; --bg-elevated: #ffffff;
+    --bg-hover: #f4f4f5; --bg-sunken: #f4f4f5;
+    --text-primary: #09090b; --text-secondary: #52525b; --text-muted: #a1a1aa;
+    --border-subtle: #e4e4e7; --border-medium: #d4d4d8;
+    --accent: #0e7490; --accent-hover: #0c6579; --accent-soft: #d7eef2;
+    --accent-fg: #ffffff;
+    --ok: #15803d; --ok-soft: #dcfce7;
+    --warn: #b45309; --warn-soft: #fef3c7;
+    --crit: #b91c1c; --crit-soft: #fee2e2;
+    --idle: #71717a; --idle-soft: #f4f4f5;
+    --info: #1d4ed8; --info-soft: #dbeafe;
+    --spec: #6d28d9; --spec-soft: #f5f3ff; --spec-border: #ddd6fe;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg-base); color: var(--text-primary);
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { margin: 0; text-wrap: balance; font-weight: 650; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.86em; font-variant-ligatures: none; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ── 문서 헤더 ───────────────────────────────────────────── */
+  .doc-head {
+    padding: 28px clamp(16px, 4vw, 44px) 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-end;
+    justify-content: space-between;
+  }
+  .doc-head .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--spec); margin-bottom: 6px;
+  }
+  .doc-head h1 { font-size: clamp(19px, 2.4vw, 25px); }
+  .doc-head .sub { color: var(--text-secondary); margin-top: 7px; max-width: 68ch; font-size: 13px; }
+  .doc-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  .btn {
+    font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer;
+    background: var(--bg-surface); color: var(--text-secondary);
+    border: 1px solid var(--border-medium); border-radius: var(--r-sm);
+    padding: 6px 11px; transition: background .12s, color .12s, border-color .12s;
+  }
+  .btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .btn[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-fg);
+  }
+  .btn.spec[aria-pressed="true"] { background: var(--spec); border-color: var(--spec); color: #fff; }
+
+  /* ── 앱 셸 ───────────────────────────────────────────────── */
+  .shell {
+    display: grid; grid-template-columns: var(--rail) minmax(0, 1fr);
+    min-height: 720px; border-bottom: 1px solid var(--border-subtle);
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .nav { flex-direction: row; overflow-x: auto; border-right: none;
+           border-bottom: 1px solid var(--border-subtle); align-items: center; }
+    .nav .brand, .nav .nav-group, .nav .note { display: none; }
+    .nav-item { white-space: nowrap; }
+  }
+
+  .nav {
+    background: var(--bg-surface); border-right: 1px solid var(--border-subtle);
+    padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 9px; padding: 4px 8px 16px;
+    font-weight: 700; letter-spacing: -0.02em;
+  }
+  .brand .mark {
+    width: 24px; height: 24px; border-radius: 7px; background: var(--text-primary);
+    color: var(--bg-surface); display: grid; place-items: center; font-size: 12px;
+  }
+  .nav-group {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--text-muted); padding: 14px 8px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+    border-radius: var(--r-md); color: var(--text-secondary); font-weight: 500;
+    text-decoration: none; font-size: 13px;
+  }
+  .nav-item .ico {
+    width: 15px; height: 15px; border-radius: 4px; flex: none;
+    border: 1.5px solid currentColor; opacity: .55;
+  }
+  .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .nav-item.active { background: var(--nav-active-bg); color: var(--text-primary); font-weight: 600; }
+  .nav-item.active .ico { border-color: var(--accent); opacity: 1; }
+  .nav-item.new::after {
+    content: "신규"; margin-left: auto; font-size: 9.5px; font-weight: 700;
+    color: var(--spec); background: var(--spec-soft); border: 1px solid var(--spec-border);
+    border-radius: 999px; padding: 1px 5px; letter-spacing: .02em;
+  }
+  .nav-sub { padding-left: 18px; }
+
+  /* ── 본문 ────────────────────────────────────────────────── */
+  .main { min-width: 0; display: flex; flex-direction: column; background: var(--bg-base); }
+  .topbar {
+    position: sticky; top: 0; z-index: 5; background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle); padding: 11px 20px;
+    display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center;
+  }
+  .crumb { font-size: 12.5px; color: var(--text-muted); display: flex; gap: 7px; align-items: center; }
+  .crumb b { color: var(--text-primary); font-weight: 600; }
+  .route {
+    margin-left: auto; font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--text-muted); background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle); border-radius: var(--r-sm); padding: 3px 8px;
+  }
+
+  .tabs {
+    display: flex; gap: 2px; overflow-x: auto; padding: 0 20px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
+  }
+  .tab {
+    font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; white-space: nowrap;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-secondary); padding: 10px 12px 9px;
+  }
+  .tab:hover { color: var(--text-primary); }
+  .tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab.is-new::after {
+    content: "●"; color: var(--spec); font-size: 8px; margin-left: 5px; vertical-align: 2px;
+  }
+
+  .canvas { padding: 20px clamp(14px, 2.4vw, 26px) 40px; display: grid; gap: 18px; }
+
+  /* ── 카드 / 패널 ─────────────────────────────────────────── */
+  .card {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg); overflow: hidden;
+  }
+  .card > header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border-subtle);
+    display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
+  }
+  .card > header h3 { font-size: 13.5px; }
+  .card > header .meta { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+  .card .body { padding: 16px; display: grid; gap: 14px; }
+  .card .body.tight { padding: 0; }
+
+  .grid-2 { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 1080px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── 요약 스트립 ─────────────────────────────────────────── */
+  .stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); }
+  .stat {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md); padding: 12px 14px; display: grid; gap: 3px;
+    border-left: 3px solid var(--border-medium);
+  }
+  .stat.is-run { border-left-color: var(--accent); }
+  .stat.is-warn { border-left-color: var(--warn); }
+  .stat.is-crit { border-left-color: var(--crit); }
+  .stat.is-ok { border-left-color: var(--ok); }
+  .stat .n {
+    font-size: 24px; font-weight: 680; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  }
+  .stat .k { font-size: 11.5px; color: var(--text-secondary); font-weight: 550; }
+  .stat .h { font-size: 11px; color: var(--text-muted); }
+
+  /* ── 배지 / 칩 ───────────────────────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 650;
+    border-radius: 999px; padding: 2px 9px; border: 1px solid transparent;
+    font-family: var(--font-mono); letter-spacing: -0.01em; white-space: nowrap;
+  }
+  .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .badge.ok   { color: var(--ok);   background: var(--ok-soft);   border-color: color-mix(in oklab, var(--ok) 26%, transparent); }
+  .badge.run  { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in oklab, var(--accent) 30%, transparent); }
+  .badge.warn { color: var(--warn); background: var(--warn-soft); border-color: color-mix(in oklab, var(--warn) 30%, transparent); }
+  .badge.crit { color: var(--crit); background: var(--crit-soft); border-color: color-mix(in oklab, var(--crit) 30%, transparent); }
+  .badge.idle { color: var(--idle); background: var(--idle-soft); border-color: var(--border-medium); }
+  .badge.info { color: var(--info); background: var(--info-soft); border-color: color-mix(in oklab, var(--info) 30%, transparent); }
+  .badge.plain { font-family: var(--font-sans); font-weight: 600; }
+  .badge.plain::before { display: none; }
+  .badge.tbd {
+    color: var(--spec); background: var(--spec-soft); border-color: var(--spec-border);
+    font-family: var(--font-sans);
+  }
+  .badge.tbd::before { display: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 11.5px; color: var(--text-secondary); background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle); border-radius: var(--r-sm); padding: 2px 8px;
+  }
+  .chip b { color: var(--text-primary); font-weight: 600; }
+  .chip.mono { font-family: var(--font-mono); }
+
+  /* ── 표 ──────────────────────────────────────────────────── */
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 620px; }
+  th {
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--text-muted); padding: 9px 14px;
+    border-bottom: 1px solid var(--border-subtle); background: var(--bg-sunken); white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-hover); }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  .row-t { font-weight: 600; }
+  .row-s { font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  /* ── 상태머신 레일 ───────────────────────────────────────── */
+  .rail { display: flex; flex-wrap: wrap; gap: 3px; align-items: stretch; }
+  .step {
+    flex: 1 1 84px; min-width: 84px; border: 1px solid var(--border-subtle);
+    background: var(--bg-sunken); border-radius: var(--r-sm); padding: 7px 9px; display: grid; gap: 2px;
+  }
+  .step .s {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 650; color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .step .t { font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .step.done { background: var(--ok-soft); border-color: color-mix(in oklab, var(--ok) 26%, transparent); }
+  .step.done .s { color: var(--ok); }
+  .step.now {
+    background: var(--accent-soft); border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .step.now .s { color: var(--accent); }
+  .step.fail { background: var(--crit-soft); border-color: color-mix(in oklab, var(--crit) 30%, transparent); }
+  .step.fail .s { color: var(--crit); }
+
+  /* ── 진행 바 ─────────────────────────────────────────────── */
+  .bar { height: 5px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; border: 1px solid var(--border-subtle); }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+  .bar.warn > i { background: var(--warn); }
+  .bar.crit > i { background: var(--crit); }
+
+  /* 추정 여유도 — 숫자 아님 (I-05) */
+  .gauge { display: flex; gap: 3px; align-items: center; }
+  .gauge i {
+    width: 15px; height: 6px; border-radius: 2px; background: var(--border-medium); display: block;
+  }
+  .gauge[data-level="high"] i:nth-child(-n+3) { background: var(--ok); }
+  .gauge[data-level="mid"] i:nth-child(-n+2) { background: var(--warn); }
+  .gauge[data-level="low"] i:nth-child(-n+1) { background: var(--crit); }
+  .gauge[data-level="unknown"] i { background: repeating-linear-gradient(45deg, var(--border-medium) 0 3px, transparent 3px 6px); }
+
+  /* ── 정의 목록 ───────────────────────────────────────────── */
+  .dl { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: 7px 16px; font-size: 13px; }
+  .dl dt { color: var(--text-muted); font-size: 12px; }
+  .dl dd { margin: 0; overflow-wrap: anywhere; }
+
+  /* ── 체크리스트 ──────────────────────────────────────────── */
+  .checks { display: grid; gap: 7px; }
+  .check { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; }
+  .check .m { font-family: var(--font-mono); font-weight: 700; flex: none; width: 15px; text-align: center; }
+  .check.pass .m { color: var(--ok); }
+  .check.fail .m { color: var(--crit); }
+  .check.wait .m { color: var(--warn); }
+  .check .x { color: var(--text-secondary); }
+  .check .x b { color: var(--text-primary); font-weight: 600; }
+
+  /* ── 로그 ────────────────────────────────────────────────── */
+  .log {
+    background: var(--bg-sunken); border: 1px solid var(--border-subtle); border-radius: var(--r-md);
+    padding: 11px 13px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.75;
+    color: var(--text-secondary); overflow-x: auto; white-space: pre;
+  }
+  .log b { color: var(--text-primary); font-weight: 600; }
+  .log .d { color: var(--text-muted); }
+  .log .e { color: var(--crit); }
+
+  /* ── 타임라인 ────────────────────────────────────────────── */
+  .tl { display: grid; gap: 0; }
+  .tl-i {
+    display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 11px;
+    padding: 0 0 13px; position: relative;
+  }
+  .tl-i:last-child { padding-bottom: 0; }
+  .tl-i .dot {
+    width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; margin-left: 3px;
+    background: var(--border-medium); flex: none; z-index: 1;
+  }
+  .tl-i:not(:last-child)::before {
+    content: ""; position: absolute; left: 7px; top: 15px; bottom: 0;
+    width: 1px; background: var(--border-subtle);
+  }
+  .tl-i.ok .dot { background: var(--ok); }
+  .tl-i.run .dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .tl-i.crit .dot { background: var(--crit); }
+  .tl-i .t { font-size: 12.5px; }
+  .tl-i .t b { font-family: var(--font-mono); font-weight: 650; font-size: 12px; }
+  .tl-i .w { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* ── 주석 (스펙 잉크) ────────────────────────────────────── */
+  .note {
+    border: 1px dashed var(--spec-border); background: var(--spec-soft);
+    border-radius: var(--r-md); padding: 10px 13px; display: grid; gap: 4px;
+  }
+  .note .h {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--spec);
+  }
+  .note p { font-size: 12.5px; color: var(--text-secondary); }
+  .note code { color: var(--spec); }
+  body.no-spec .note, body.no-spec .spec-only { display: none !important; }
+
+  .guard {
+    border: 1px solid color-mix(in oklab, var(--crit) 32%, transparent);
+    background: var(--crit-soft); border-radius: var(--r-md); padding: 10px 13px;
+    font-size: 12.5px; color: var(--text-secondary); display: grid; gap: 3px;
+  }
+  .guard .h { font-weight: 700; color: var(--crit); font-size: 12px; }
+
+  .hint { font-size: 12px; color: var(--text-muted); }
+
+  /* ── Flag off 상태 ───────────────────────────────────────── */
+  .flagoff { display: none; }
+  body.flag-off .flagoff { display: grid; }
+  body.flag-off .flagon { display: none; }
+  /* flag off: 프로젝트 상세의 신규 4개 탭이 사라진다 (§19).
+     사이드바 운영 항목은 남겨 둔다 — 와이어프레임에서 되돌아올 경로가 필요하다. */
+  body.flag-off .ptab.is-new { display: none; }
+  body.flag-off .nav-item.new { opacity: .45; }
+  .empty {
+    border: 1px dashed var(--border-medium); border-radius: var(--r-lg);
+    padding: 40px 24px; text-align: center; display: grid; gap: 9px; justify-items: center;
+    background: var(--bg-surface);
+  }
+  .empty h3 { font-size: 15px; }
+  .empty p { font-size: 13px; color: var(--text-secondary); max-width: 52ch; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── 문서 푸터 ───────────────────────────────────────────── */
+  .doc-foot {
+    padding: 26px clamp(16px, 4vw, 44px) 48px; display: grid; gap: 12px;
+    background: var(--bg-surface); font-size: 13px; color: var(--text-secondary);
+  }
+  .doc-foot h2 { font-size: 14px; color: var(--text-primary); }
+  .doc-foot ul { margin: 0; padding-left: 19px; display: grid; gap: 5px; }
+  .doc-foot .cols { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     딜리버리 목록 + 슬라이드 패널 — 절제된 컨설팅 표현
+     형태만 각지게(모서리 0 · 헤어라인 규칙 · 타이포 위계 · tabular 숫자),
+     색은 기존 ClickEye 토큰 유지. 상태 외에는 색을 쓰지 않는다.
+     ═══════════════════════════════════════════════════════════════ */
+  :root {
+    /* 숫자·코드 전용 세리프 — 한글은 sans 유지(세리프 한글 폴백이 조판을 망침) */
+    --font-fig: ui-serif, Georgia, "Times New Roman", serif;
+  }
+  .fig { font-family: var(--font-fig); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  .main { position: relative; overflow: hidden; }
+
+  .sheet { background: var(--bg-surface); border-top: 1px solid var(--border-subtle); }
+  .sheet-head {
+    padding: 22px clamp(14px, 2.4vw, 26px) 16px;
+    display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end;
+    border-bottom: 1px solid var(--text-primary);
+  }
+  .sheet-head .t { display: grid; gap: 5px; }
+  .sheet-head h2 { font-size: 17px; letter-spacing: -0.015em; }
+  .sheet-head p { font-size: 12.5px; color: var(--text-secondary); max-width: 62ch; }
+  .sheet-head .agg { margin-left: auto; display: flex; gap: 26px; }
+  .sheet-head .agg div { display: grid; gap: 1px; }
+  .sheet-head .agg .n { font-size: 20px; font-weight: 500; }
+  .sheet-head .agg .k {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* 리스트 — 카드가 아니라 행 */
+  .plist { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 880px; }
+  .plist thead th {
+    background: none; border-bottom: 1px solid var(--border-medium);
+    padding: 8px clamp(14px, 2.4vw, 26px); font-size: 10px; letter-spacing: 0.09em;
+  }
+  .plist thead th:not(:first-child) { padding-left: 0; }
+  .plist td {
+    padding: 13px clamp(14px, 2.4vw, 26px); border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+  }
+  .plist td:not(:first-child) { padding-left: 0; }
+  .plist tbody tr { cursor: pointer; }
+  .plist tbody tr:hover { background: var(--bg-hover); }
+  .plist tbody tr[aria-selected="true"] { background: var(--bg-hover); }
+  .plist tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 0 var(--accent); }
+  .plist .pname { font-weight: 600; font-size: 13.5px; }
+  .plist .pcode { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .plist .cell-sub { font-size: 11.5px; color: var(--text-muted); }
+  .plist .prog { display: flex; align-items: center; gap: 9px; min-width: 116px; }
+  .plist .prog .v { font-size: 12.5px; min-width: 34px; text-align: right; }
+  .plist .line { flex: 1; height: 2px; background: var(--border-medium); position: relative; }
+  .plist .line > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+  .plist .line.warn > i { background: var(--warn); }
+  .plist .line.crit > i { background: var(--crit); }
+  .plist .tk { display: flex; gap: 10px; font-size: 12.5px; }
+  .plist .tk span { color: var(--text-muted); }
+  .plist .tk b { font-weight: 600; color: var(--text-primary); }
+  .plist .tk .bad b { color: var(--crit); }
+  .plist .chev { color: var(--text-muted); font-size: 15px; }
+  .plist tbody tr:hover .chev { color: var(--accent); }
+
+  .list-foot {
+    padding: 12px clamp(14px, 2.4vw, 26px) 22px; font-size: 12px; color: var(--text-muted);
+    display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center;
+  }
+
+  /* 슬라이드 패널 — 클릭 즉시 진입이 아니라 요약 먼저 */
+  .panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: min(420px, 92%);
+    background: var(--bg-surface); border-left: 1px solid var(--text-primary);
+    transform: translateX(101%); transition: transform .22s cubic-bezier(.32,.72,0,1);
+    display: flex; flex-direction: column; z-index: 20; overflow-y: auto;
+  }
+  .panel[data-open="true"] { transform: translateX(0); }
+  @media (prefers-reduced-motion: reduce) { .panel { transition: none; } }
+  .panel-scrim {
+    position: absolute; inset: 0; background: var(--text-primary); opacity: 0;
+    pointer-events: none; transition: opacity .22s; z-index: 15;
+  }
+  .panel-scrim[data-open="true"] { opacity: .07; pointer-events: auto; }
+
+  .panel-head {
+    padding: 20px 22px 16px; border-bottom: 1px solid var(--text-primary); display: grid; gap: 8px;
+  }
+  .panel-head .row { display: flex; align-items: flex-start; gap: 12px; }
+  .panel-head .eyebrow {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .panel-head h3 { font-size: 18px; letter-spacing: -0.02em; line-height: 1.3; }
+  .panel-close {
+    margin-left: auto; flex: none; background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 19px; line-height: 1; padding: 2px 4px; font-family: inherit;
+  }
+  .panel-close:hover { color: var(--text-primary); }
+
+  .panel-body { padding: 0 22px; display: grid; }
+  .pblock { padding: 16px 0; border-bottom: 1px solid var(--border-subtle); display: grid; gap: 9px; }
+  .pblock:last-child { border-bottom: none; }
+  .pblock > .label { margin: 0; }
+  .pblock .big { display: flex; align-items: baseline; gap: 8px; }
+  .pblock .big .n { font-size: 34px; font-weight: 400; line-height: 1; }
+  .pblock .big .u { font-size: 13px; color: var(--text-muted); }
+  .pblock .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+  .pblock .kv dt { color: var(--text-muted); font-size: 12px; }
+  .pblock .kv dd { margin: 0; }
+  .pblock .tkline { display: flex; gap: 18px; }
+  .pblock .tkline div { display: grid; gap: 1px; }
+  .pblock .tkline .n { font-size: 19px; font-weight: 500; }
+  .pblock .tkline .k { font-size: 10.5px; color: var(--text-muted); letter-spacing: .04em; }
+  .pblock .tkline .bad .n { color: var(--crit); }
+  .pblock ul { margin: 0; padding-left: 17px; font-size: 12.5px; color: var(--text-secondary); display: grid; gap: 4px; }
+
+  .panel-foot {
+    margin-top: auto; padding: 16px 22px 22px; border-top: 1px solid var(--border-subtle);
+    display: flex; gap: 8px; flex-wrap: wrap; background: var(--bg-surface);
+    position: sticky; bottom: 0;
+  }
+  .btn-primary {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--accent-fg); border: 1px solid var(--accent);
+    padding: 9px 16px; flex: 1;
+  }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-quiet {
+    font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+    background: none; color: var(--text-secondary); border: 1px solid var(--border-medium);
+    padding: 9px 14px;
+  }
+  .btn-quiet:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+  /* 프로젝트 컨텍스트 바 — 상세 진입 후 8개 탭 */
+  .pctx {
+    background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
+    padding: 11px clamp(14px, 2.4vw, 26px) 0;
+  }
+  .pctx .back {
+    font-size: 12px; color: var(--text-secondary); background: none; border: none;
+    cursor: pointer; font-family: inherit; padding: 0 0 8px; display: inline-flex; gap: 6px;
+  }
+  .pctx .back:hover { color: var(--accent); }
+  .pctx .name { font-size: 15px; font-weight: 650; letter-spacing: -0.015em; padding-bottom: 10px; }
+  .pctx .name .c { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); font-weight: 400; margin-left: 8px; }
+  .ptabs { display: flex; gap: 2px; overflow-x: auto; }
+  .ptab {
+    font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer; white-space: nowrap;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-secondary); padding: 8px 11px;
+  }
+  .ptab:hover { color: var(--text-primary); }
+  .ptab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .ptab.is-new::after { content: "●"; color: var(--spec); font-size: 7px; margin-left: 5px; vertical-align: 2px; }
+  .ptab.legacy { color: var(--text-muted); }
+
+  .legacy-note {
+    margin: 20px clamp(14px, 2.4vw, 26px); border: 1px dashed var(--border-medium);
+    padding: 28px 22px; display: grid; gap: 7px; justify-items: start; background: var(--bg-surface);
+  }
+  .legacy-note h4 { font-size: 14px; }
+  .legacy-note p { font-size: 12.5px; color: var(--text-secondary); max-width: 60ch; }
+</style>
+
+<header class="doc-head">
+  <div>
+    <div class="eyebrow">Stage 0.5 · 화면 기준선 · 구현 전 와이어프레임</div>
+    <h1>다프로젝트 딜리버리 — 실행 계층 화면</h1>
+    <p class="sub">
+      <code>migration.md</code> §5 목표 구조를 7개 화면으로 고정한 와이어프레임입니다.
+      <b>딜리버리가 단일 진입점</b>이고(I-14), 프로젝트 상세는 기존 4탭 + 신규 4탭입니다.
+      2026-07-29 인터뷰로 I-05·I-08·I-09·I-10·I-12·I-14가 확정되어 반영했습니다.
+      데이터는 전부 예시이며 코드·DB·계약은 변경되지 않았습니다.
+    </p>
+  </div>
+  <div class="doc-controls">
+    <button class="btn spec" id="specBtn" aria-pressed="true" type="button">스펙 주석</button>
+    <button class="btn" id="flagBtn" aria-pressed="true" type="button">Feature Flag: on</button>
+    <button class="btn" id="themeBtn" type="button">테마 전환</button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- ── 사이드바: 기존 IA 그대로, 신규는 '신규' 배지 ── -->
+  <nav class="nav" aria-label="주 메뉴">
+    <div class="brand"><span class="mark">CE</span> ClickEye</div>
+    <a class="nav-item active" href="#s0" data-nav="s0"><span class="ico"></span>딜리버리</a>
+    <a class="nav-item" href="#s0"><span class="ico"></span>가이드</a>
+    <div class="nav-group">운영 · superadmin</div>
+    <a class="nav-item" href="#s0"><span class="ico"></span>컨테이너</a>
+    <a class="nav-item" href="#s0"><span class="ico"></span>환경변수</a>
+    <a class="nav-item" href="#s0"><span class="ico"></span>테이블</a>
+    <a class="nav-item new" href="#s2" data-nav="s2"><span class="ico"></span>시트 풀</a>
+    <a class="nav-item new" href="#s1" data-nav="s1"><span class="ico"></span>실행 현황</a>
+    <div class="note" style="margin-top:14px; font-size:11px">
+      <span class="h">I-14 확정</span>
+      <p style="font-size:11.5px">
+        <code>프로젝트</code>를 1뎁스에서 제거했습니다. <code>engagementId</code>가 실제로
+        <code>projectId</code>였고(<code>delivery/[engagementId]/page.tsx:75</code>),
+        두 메뉴가 같은 <code>useProjects()</code> 목록을 중복 노출하고 있었습니다.
+        <code>/projects/*</code> 라우트는 유지합니다.
+      </p>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb"><span>ClickEye</span> / <b id="crumbNow">실행 현황</b></div>
+      <span class="route mono" id="routeNow">/admin/ops/execution</span>
+    </div>
+
+    <!-- 프로젝트 컨텍스트 바 — 딜리버리 목록에서 진입한 뒤에만 노출 -->
+    <div class="pctx" id="pctx" hidden>
+      <button class="back" id="backBtn" type="button">← 딜리버리 목록</button>
+      <div class="name">스마트팩토리 MES <span class="c">p-042</span></div>
+      <div class="ptabs" role="tablist" aria-label="프로젝트 탭">
+        <button class="ptab legacy" role="tab" aria-selected="false" data-legacy="콘솔"     type="button">콘솔</button>
+        <button class="ptab legacy" role="tab" aria-selected="false" data-legacy="개요"     type="button">개요</button>
+        <button class="ptab legacy" role="tab" aria-selected="false" data-legacy="AI 팀"    type="button">AI 팀</button>
+        <button class="ptab legacy" role="tab" aria-selected="false" data-legacy="계약"     type="button">계약</button>
+        <button class="ptab is-new" role="tab" aria-selected="false" data-s="s3" type="button">매니페스트</button>
+        <button class="ptab is-new" role="tab" aria-selected="true"  data-s="s4" type="button">실행</button>
+        <button class="ptab is-new" role="tab" aria-selected="false" data-s="s5" type="button">외부 연동</button>
+        <button class="ptab is-new" role="tab" aria-selected="false" data-s="s6" type="button">배포</button>
+      </div>
+    </div>
+
+    <!-- 기존 탭(콘솔·개요·AI팀·계약)은 이 와이어프레임 범위 밖 -->
+    <section class="screen" id="sLegacy" aria-label="기존 화면">
+      <div class="legacy-note">
+        <span class="badge plain idle">기존 화면</span>
+        <h4 id="legacyName">콘솔</h4>
+        <p>
+          이미 구현된 화면이라 이 와이어프레임의 범위가 아닙니다. 재설계 대상이 아니며
+          (<code>migration.md</code> §4 보존 목록), 신규 4개 탭만 가산했습니다.
+        </p>
+        <p class="hint">스펙: <code>docs/pages/delivery/console.md</code> · <code>docs/pages/projects/*.md</code></p>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 0. 딜리버리 목록 (단일 진입점) ══════════════════ -->
+    <section class="screen active" id="s0" aria-label="딜리버리 목록">
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="t">
+            <h2>진행 중인 딜리버리</h2>
+            <p>
+              프로젝트를 선택하면 우측에 요약이 열립니다. 요약을 확인한 뒤 진입합니다 —
+              목록에서 곧바로 상세로 넘어가지 않습니다.
+            </p>
+          </div>
+          <div class="agg">
+            <div><span class="n fig">5</span><span class="k">활성</span></div>
+            <div><span class="n fig">2</span><span class="k">실행 중</span></div>
+            <div><span class="n fig">2</span><span class="k">사람 대기</span></div>
+            <div><span class="n fig">14</span><span class="k">완료 · 7일</span></div>
+          </div>
+        </div>
+
+        <div class="tw">
+          <table class="plist">
+            <thead>
+              <tr>
+                <th>프로젝트</th>
+                <th>현재 단계</th>
+                <th>진행률</th>
+                <th>티켓 (완주 / 검증)</th>
+                <th>구독 시트</th>
+                <th>마지막 활동</th>
+                <th>막힌 것</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="plistBody">
+              <tr data-p="p-042" aria-selected="false" tabindex="0">
+                <td><div class="pname">스마트팩토리 MES</div><div class="pcode">p-042</div></td>
+                <td><span class="badge run">RUNNING</span><div class="cell-sub">구현 · CE-331</div></td>
+                <td><div class="prog"><span class="v fig">62%</span><span class="line"><i style="width:62%"></i></span></div></td>
+                <td><div class="tk"><span>완주 <b class="fig">7</b></span><span>검증 <b class="fig">5</b></span></div></td>
+                <td><div class="pcode">seat-a1b2</div><div class="cell-sub">본인 · BUSY</div></td>
+                <td><div class="cell-sub">2분 전</div><div class="cell-sub">테스트 재시도</div></td>
+                <td><span class="cell-sub">없음</span></td>
+                <td><span class="chev">›</span></td>
+              </tr>
+              <tr data-p="p-039" aria-selected="false" tabindex="0">
+                <td><div class="pname">물류 배차 포털</div><div class="pcode">p-039</div></td>
+                <td><span class="badge run">VERIFYING</span><div class="cell-sub">품질 게이트 3/4</div></td>
+                <td><div class="prog"><span class="v fig">88%</span><span class="line"><i style="width:88%"></i></span></div></td>
+                <td><div class="tk"><span>완주 <b class="fig">12</b></span><span>검증 <b class="fig">11</b></span></div></td>
+                <td><div class="pcode">seat-c9d4</div><div class="cell-sub">팀원 2 · BUSY</div></td>
+                <td><div class="cell-sub">1분 전</div><div class="cell-sub">게이트 통과</div></td>
+                <td><span class="cell-sub">없음</span></td>
+                <td><span class="chev">›</span></td>
+              </tr>
+              <tr data-p="p-051" aria-selected="false" tabindex="0">
+                <td><div class="pname">가맹점 정산 웹</div><div class="pcode">p-051</div></td>
+                <td><span class="badge warn">BLOCKED</span><div class="cell-sub">사람 대기</div></td>
+                <td><div class="prog"><span class="v fig">31%</span><span class="line warn"><i style="width:31%"></i></span></div></td>
+                <td><div class="tk"><span>완주 <b class="fig">4</b></span><span>검증 <b class="fig">2</b></span></div></td>
+                <td><span class="cell-sub">미배정</span></td>
+                <td><div class="cell-sub">2시간 18분 전</div><div class="cell-sub">게이트 요청 발송</div></td>
+                <td><span class="badge warn">결제 · DNS</span></td>
+                <td><span class="chev">›</span></td>
+              </tr>
+              <tr data-p="p-047" aria-selected="false" tabindex="0">
+                <td><div class="pname">사내 근태 리뉴얼</div><div class="pcode">p-047</div></td>
+                <td><span class="badge idle">QUEUED</span><div class="cell-sub">시트 대기</div></td>
+                <td><div class="prog"><span class="v fig">0%</span><span class="line"><i style="width:0%"></i></span></div></td>
+                <td><div class="tk"><span>완주 <b class="fig">0</b></span><span>검증 <b class="fig">0</b></span></div></td>
+                <td><span class="cell-sub">대기 중</span></td>
+                <td><div class="cell-sub">6분 전</div><div class="cell-sub">큐 진입</div></td>
+                <td><span class="cell-sub">가용 시트 없음</span></td>
+                <td><span class="chev">›</span></td>
+              </tr>
+              <tr data-p="p-044" aria-selected="false" tabindex="0">
+                <td><div class="pname">예약 키오스크</div><div class="pcode">p-044</div></td>
+                <td><span class="badge crit">FAILED</span><div class="cell-sub">체크포인트 실패</div></td>
+                <td><div class="prog"><span class="v fig">44%</span><span class="line crit"><i style="width:44%"></i></span></div></td>
+                <td><div class="tk"><span>완주 <b class="fig">6</b></span><span>검증 <b class="fig">3</b></span><span class="bad">실패 <b class="fig">1</b></span></div></td>
+                <td><div class="pcode">seat-e5f6</div><div class="cell-sub">해제됨 · COOLING</div></td>
+                <td><div class="cell-sub">3시간 21분 전</div><div class="cell-sub">시도 3/3 소진</div></td>
+                <td><span class="badge crit">dirty workspace</span></td>
+                <td><span class="chev">›</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="list-foot">
+          <span>행을 클릭하면 우측 요약이 열립니다. 진입은 요약의 <b>진입하기</b>로만.</span>
+          <span>·</span>
+          <span>실패는 완료 집계에 넣지 않습니다.</span>
+        </div>
+
+        <div class="note" style="margin: 0 clamp(14px, 2.4vw, 26px) 26px">
+          <span class="h">I-14 · 이 화면이 대체하는 것</span>
+          <p>
+            기존 <code>/delivery</code>는 벤토 카드 그리드였고 카드를 누르면 곧바로 콘솔로
+            진입했습니다. 리스트 + 슬라이드 요약으로 바꿔 "무엇을 열지" 판단을 먼저 하게 합니다.
+            같은 목록을 중복 노출하던 1뎁스 <code>프로젝트</code> 메뉴는 제거했습니다.
+          </p>
+        </div>
+
+        <div class="note" style="margin: 0 clamp(14px, 2.4vw, 26px) 26px; border-style: solid">
+          <span class="h">이 화면은 목표 상태다 — 2026-07-29 실제 구현과 다른 부분</span>
+          <p>
+            <b>구현됨</b>: 사이드바 정리 · 리스트 + 슬라이드 패널 · 행 선택≠진입 ·
+            현재 단계(<code>session.phase</code>) · 서브태스크 집계 · 마지막 갱신.
+            선택된 1건만 지연 조회한다.
+          </p>
+          <p>
+            <b>미구현</b>: 위 표의 <b>진행률 %</b>는 전용 필드가 없어 서브태스크 완료 비율로
+            파생한다. <b>티켓 완주·검증</b>은 티켓이 아니라 <b>서브태스크</b> 기준이다.
+            <b>막힌 것</b>은 <code>HumanIntegrationGate</code>가 미구현(Stage 1),
+            <b>구독 시트</b>는 웹 <code>api-client.ts</code>에 seat 호출이 없어 둘 다
+            "도입 후 제공" 자리표시로만 노출한다 — 값을 추정하지 않는다.
+          </p>
+          <p>
+            타임스탬프는 상대 시각이 아니라 <b>결정적 UTC 절대 시각</b>이다. 상대 시각은
+            SSR·클라이언트 값이 달라 하이드레이션 불일치를 만들고, 우회용 <code>mounted</code>
+            게이트는 이 프로젝트 lint 규칙(효과 내 동기 setState)에서 error다.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel-scrim" id="scrim" data-open="false"></div>
+      <aside class="panel" id="panel" data-open="false" aria-label="프로젝트 요약" role="dialog" aria-modal="false">
+        <div class="panel-head">
+          <div class="row">
+            <div style="display:grid; gap:5px">
+              <span class="eyebrow" id="pnCode">p-042</span>
+              <h3 id="pnName">스마트팩토리 MES</h3>
+            </div>
+            <button class="panel-close" id="pnClose" type="button" aria-label="요약 닫기">✕</button>
+          </div>
+          <div id="pnState"><span class="badge run">RUNNING</span></div>
+        </div>
+
+        <div class="panel-body">
+          <div class="pblock">
+            <span class="label">현재 단계 · 진행률</span>
+            <div class="big"><span class="n fig" id="pnPct">62%</span><span class="u" id="pnPhase">구현 · CE-331</span></div>
+            <div class="bar"><i id="pnBar" style="width:62%"></i></div>
+          </div>
+
+          <div class="pblock">
+            <span class="label">티켓 진행</span>
+            <div class="tkline" id="pnTk">
+              <div><span class="n fig">7</span><span class="k">완주</span></div>
+              <div><span class="n fig">5</span><span class="k">검증</span></div>
+              <div class="bad"><span class="n fig">0</span><span class="k">실패</span></div>
+            </div>
+            <p class="hint">실패는 완주·성공률에 합산하지 않습니다.</p>
+          </div>
+
+          <div class="pblock">
+            <span class="label">마지막 활동</span>
+            <dl class="kv">
+              <dt>시각</dt><dd id="pnWhen">2분 전 · 14:44:30</dd>
+              <dt>내용</dt><dd id="pnWhat">테스트 실패 후 자동 교정 (시도 2/3)</dd>
+            </dl>
+          </div>
+
+          <div class="pblock">
+            <span class="label">막힌 것</span>
+            <div id="pnBlock"><p class="hint">없음 — 사람이 지금 할 일이 없습니다.</p></div>
+          </div>
+
+          <div class="pblock">
+            <span class="label">구독 시트</span>
+            <dl class="kv" id="pnSeat">
+              <dt>시트</dt><dd class="mono">seat-a1b2</dd>
+              <dt>소유자</dt><dd>본인</dd>
+              <dt>상태</dt><dd><span class="badge run">BUSY</span></dd>
+              <dt>추정 여유도</dt><dd>중 <span class="hint">· 최근 3회 관측</span></dd>
+            </dl>
+            <p class="hint">정확한 잔여 토큰은 제공되지 않습니다 (I-05 확정).</p>
+          </div>
+        </div>
+
+        <div class="panel-foot">
+          <button class="btn-primary" id="pnEnter" type="button">진입하기 →</button>
+          <button class="btn-quiet" type="button">Linear 열기</button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ══════════════════ 1. 실행 현황 (다프로젝트) ══════════════════ -->
+    <section class="screen" id="s1" role="tabpanel" aria-label="실행 현황">
+      <div class="canvas">
+        <div class="flagoff">
+          <div class="empty">
+            <span class="badge idle">FLAG OFF</span>
+            <h3>실행 계층이 비활성입니다</h3>
+            <p>
+              <code class="mono">FEATURE_DELIVERY_EXECUTION</code>이 off 이므로 실행·시트·배포 패널을
+              표시하지 않습니다. 기존 딜리버리 콘솔과 프로젝트 흐름은 영향받지 않습니다.
+            </p>
+            <p class="hint mono">§19 · 신규 endpoint 는 flag off 에서 숨김 또는 404</p>
+          </div>
+        </div>
+
+        <div class="flagon" style="display:grid; gap:18px;">
+          <div class="stats">
+            <div class="stat is-run"><span class="n">2</span><span class="k">실행 중</span><span class="h">RUNNING · VERIFYING</span></div>
+            <div class="stat"><span class="n">3</span><span class="k">대기</span><span class="h">QUEUED</span></div>
+            <div class="stat is-warn"><span class="n">1</span><span class="k">차단</span><span class="h">BLOCKED · 게이트 미충족</span></div>
+            <div class="stat is-crit"><span class="n">1</span><span class="k">실패</span><span class="h">FAILED · 완료 집계 제외</span></div>
+            <div class="stat is-ok"><span class="n">14</span><span class="k">완료</span><span class="h">COMPLETED · 7일</span></div>
+            <div class="stat"><span class="n">2/5</span><span class="k">가용 시트</span><span class="h">READY · 조직 전역</span></div>
+          </div>
+
+          <div class="note">
+            <span class="h">§10 · §3.0</span>
+            <p>
+              <code>FAILED</code>는 완료·성공률에 합산하지 않습니다. 요약 카드를 분리한 이유입니다.
+              현재 다프로젝트 실행은 <b>순차(v1)</b>이며, 병렬은 러너 수평 확장이 선행되어야 합니다 —
+              이 화면은 "동시에 여러 개가 돌아가는 것처럼" 보이게 하지 않습니다.
+            </p>
+          </div>
+
+          <div class="card">
+            <header>
+              <h3>프로젝트별 활성 Job</h3>
+              <span class="badge plain idle">실행 모드 · 순차</span>
+              <span class="meta">15초마다 갱신 · WebSocket</span>
+            </header>
+            <div class="body tight">
+              <div class="tw">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>프로젝트</th><th>Job</th><th>상태</th><th>시트</th>
+                      <th>Lease 만료</th><th>시도</th><th>진행</th><th>최근 이벤트</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><div class="row-t">스마트팩토리 MES</div><div class="row-s">p-042</div></td>
+                      <td class="mono">job-7c1a</td>
+                      <td><span class="badge run">RUNNING</span></td>
+                      <td class="mono">seat-a1b2</td>
+                      <td class="num mono">2분 41초</td>
+                      <td class="num mono">2/3</td>
+                      <td style="min-width:96px"><div class="bar"><i style="width:62%"></i></div></td>
+                      <td class="row-s">CE-331 티켓 구현 중</td>
+                    </tr>
+                    <tr>
+                      <td><div class="row-t">물류 배차 포털</div><div class="row-s">p-039</div></td>
+                      <td class="mono">job-5f30</td>
+                      <td><span class="badge run">VERIFYING</span></td>
+                      <td class="mono">seat-c9d4</td>
+                      <td class="num mono">4분 05초</td>
+                      <td class="num mono">1/3</td>
+                      <td><div class="bar"><i style="width:88%"></i></div></td>
+                      <td class="row-s">품질 게이트 3/4 통과</td>
+                    </tr>
+                    <tr>
+                      <td><div class="row-t">가맹점 정산 웹</div><div class="row-s">p-051</div></td>
+                      <td class="mono">job-9b77</td>
+                      <td><span class="badge warn">BLOCKED</span></td>
+                      <td class="row-s">미배정</td>
+                      <td class="row-s">—</td>
+                      <td class="num mono">0/3</td>
+                      <td><div class="bar warn"><i style="width:0%"></i></div></td>
+                      <td class="row-s">결제 게이트 AWAITING_OWNER</td>
+                    </tr>
+                    <tr>
+                      <td><div class="row-t">사내 근태 리뉴얼</div><div class="row-s">p-047</div></td>
+                      <td class="mono">job-2e08</td>
+                      <td><span class="badge idle">QUEUED</span></td>
+                      <td class="row-s">대기 중</td>
+                      <td class="row-s">—</td>
+                      <td class="num mono">0/3</td>
+                      <td><div class="bar"><i style="width:0%"></i></div></td>
+                      <td class="row-s">가용 시트 없음 · 6분 대기</td>
+                    </tr>
+                    <tr>
+                      <td><div class="row-t">예약 키오스크</div><div class="row-s">p-044</div></td>
+                      <td class="mono">job-1d55</td>
+                      <td><span class="badge crit">FAILED</span></td>
+                      <td class="mono">seat-e5f6</td>
+                      <td class="row-s">해제됨</td>
+                      <td class="num mono">3/3</td>
+                      <td><div class="bar crit"><i style="width:44%"></i></div></td>
+                      <td class="row-s">체크포인트 실패 · blocker 유지</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <header><h3>대기 큐</h3><span class="meta">우선순위 · 대기시간 정렬</span></header>
+              <div class="body">
+                <div class="tw">
+                  <table style="min-width:420px">
+                    <thead><tr><th>#</th><th>프로젝트</th><th>선결조건</th><th>대기</th></tr></thead>
+                    <tbody>
+                      <tr><td class="num mono">1</td><td>사내 근태 리뉴얼</td><td><span class="badge ok">충족</span></td><td class="num mono">6분</td></tr>
+                      <tr><td class="num mono">2</td><td>재고 예측 대시보드</td><td><span class="badge ok">충족</span></td><td class="num mono">11분</td></tr>
+                      <tr><td class="num mono">3</td><td>가맹점 정산 웹</td><td><span class="badge warn">게이트 1건</span></td><td class="num mono">2시간 18분</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="hint">
+                  선결조건 = 활성 Manifest + 활성 CONTROL + 필요한 외부연동 게이트. 하나라도 빠지면
+                  Job 을 만들지 않고 <code class="mono">BLOCKED</code> 로 둡니다.
+                </p>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>동시성 한도</h3><span class="badge ok">I-12 확정</span></header>
+              <div class="body">
+                <dl class="dl">
+                  <dt>동시 프로젝트</dt><dd><b>최대 2</b> · 기본 <b>1 순차</b> <span class="hint">(2026-07-29 확정)</span></dd>
+                  <dt>프로젝트당 변경 Job</dt><dd>1 <span class="hint">(CONTROL 이 명시할 때만 완화)</span></dd>
+                  <dt>시트당 활성 Job</dt><dd>1 <span class="hint">(고정 · ToS 방어)</span></dd>
+                  <dt>러너 호스트</dt><dd>1 <span class="hint">(수평 확장 전 → 현행 유효 동시성 1)</span></dd>
+                  <dt>필요 시트 수</dt><dd><b>3~4</b> <span class="hint">(활성 2 + cooldown·인증 예비 1~2)</span></dd>
+                </dl>
+                <div class="note">
+                  <span class="h">최대 2를 실제로 쓰려면</span>
+                  <p>
+                    시트를 늘려도 동시성은 안 늘어납니다. 병목은 <b>러너 호스트 수용량과 git main
+                    머지 경로</b>입니다 — 단일 체크아웃 병렬은 실측으로 배제됐습니다.
+                    2 동시 실행에는 러너 수평 확장 + 머지 직렬화가 선행됩니다.
+                    산정 근거: <code>docs/hybrid-runner-headless-poc.md</code> §4-2·§4-3.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 2. 시트 풀 ══════════════════ -->
+    <section class="screen" id="s2" role="tabpanel" aria-label="시트 풀">
+      <div class="canvas">
+        <div class="note">
+          <span class="h">§6.2 · I-05 확정 (2026-07-29)</span>
+          <p>
+            정확한 잔여 토큰은 <b>표시하지 않습니다</b> — 공급자가 공식 잔량 API 를 제공하지 않습니다.
+            <b>상/중/하 + 근거만으로 운영 가능하다고 확정</b>되었습니다.
+            상태는 현행 <code>seat_status(active·exhausted·blocked)</code> + lease + probe 결과에서
+            <b>파생한 5상태</b>이며, 각 카드에 파생 근거를 병기합니다.
+          </p>
+        </div>
+
+        <div class="stats">
+          <div class="stat is-ok"><span class="n">2</span><span class="k">READY</span><span class="h">배정 가능</span></div>
+          <div class="stat is-run"><span class="n">2</span><span class="k">BUSY</span><span class="h">활성 lease</span></div>
+          <div class="stat is-warn"><span class="n">1</span><span class="k">COOLING_DOWN</span><span class="h">reset 대기</span></div>
+          <div class="stat is-crit"><span class="n">1</span><span class="k">AUTH_REQUIRED</span><span class="h">재인증 필요</span></div>
+          <div class="stat"><span class="n">1</span><span class="k">DISABLED</span><span class="h">운영자 조치</span></div>
+        </div>
+
+        <div class="card">
+          <header>
+            <h3>구독 시트</h3>
+            <span class="badge plain idle">사용자당 1개 · 등록형</span>
+            <span class="meta">평문 토큰은 어떤 화면에도 표시되지 않음</span>
+          </header>
+          <div class="body tight">
+            <div class="tw">
+              <table style="min-width:940px">
+                <thead>
+                  <tr>
+                    <th>시트</th><th>파생 상태</th><th>파생 근거</th><th>추정 여유도</th>
+                    <th>배정</th><th>Heartbeat</th><th>Runner capability</th><th>조치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="row-t mono">seat-a1b2</div><div class="row-s">claude · 소유자 본인</div></td>
+                    <td><span class="badge run">BUSY</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>active</b></span>
+                      <span class="chip">활성 lease 1건</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="mid" title="중"><i></i><i></i><i></i></div><div class="row-s">중 · 최근 3회 관측</div></td>
+                    <td>스마트팩토리 MES<div class="row-s">job-7c1a</div></td>
+                    <td class="num mono">12초 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span><span class="chip">docker</span><span class="chip">postgres</span></div></td>
+                    <td><button class="btn" type="button" disabled>실행 중</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-c9d4</div><div class="row-s">claude · 소유자 팀원 2</div></td>
+                    <td><span class="badge run">BUSY</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>active</b></span>
+                      <span class="chip">활성 lease 1건</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="high" title="상"><i></i><i></i><i></i></div><div class="row-s">상 · 최근 3회 관측</div></td>
+                    <td>물류 배차 포털<div class="row-s">job-5f30</div></td>
+                    <td class="num mono">8초 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span><span class="chip">docker</span></div></td>
+                    <td><button class="btn" type="button" disabled>실행 중</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-3a7e</div><div class="row-s">claude · 소유자 팀원 3</div></td>
+                    <td><span class="badge ok">READY</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>active</b></span>
+                      <span class="chip">lease 없음</span>
+                      <span class="chip">heartbeat 유효</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="high" title="상"><i></i><i></i><i></i></div><div class="row-s">상 · 3시간 미사용</div></td>
+                    <td class="row-s">—</td>
+                    <td class="num mono">4초 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span><span class="chip">docker</span><span class="chip">clickhouse</span></div></td>
+                    <td><button class="btn" type="button">배정 가능</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-8f21</div><div class="row-s">codex · 소유자 팀원 4</div></td>
+                    <td><span class="badge ok">READY</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>active</b></span>
+                      <span class="chip">lease 없음</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="unknown" title="관측 없음"><i></i><i></i><i></i></div><div class="row-s">관측 없음 · 첫 등록</div></td>
+                    <td class="row-s">—</td>
+                    <td class="num mono">31초 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span><span class="chip">docker</span></div></td>
+                    <td><button class="btn" type="button">배정 가능</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-e5f6</div><div class="row-s">claude · 소유자 팀원 5</div></td>
+                    <td><span class="badge warn">COOLING_DOWN</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>exhausted</b></span>
+                      <span class="chip">rate limit 14:02</span>
+                      <span class="chip">reset 15:00 (공급자 통보)</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="low" title="하"><i></i><i></i><i></i></div><div class="row-s">하 · reset 까지 12분</div></td>
+                    <td class="row-s">—</td>
+                    <td class="num mono">19초 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span><span class="chip">docker</span></div></td>
+                    <td><button class="btn" type="button" disabled>reset 대기</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-b0c3</div><div class="row-s">claude · 소유자 팀원 6</div></td>
+                    <td><span class="badge crit">AUTH_REQUIRED</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>blocked</b></span>
+                      <span class="chip">probe 실패 · 인증</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="unknown" title="판정 불가"><i></i><i></i><i></i></div><div class="row-s">판정 불가</div></td>
+                    <td class="row-s">—</td>
+                    <td class="num mono">2분 전</td>
+                    <td><div class="chips"><span class="chip">linux/amd64</span></div></td>
+                    <td><button class="btn" type="button" disabled>재인증 요청 발송</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t mono">seat-d4a9</div><div class="row-s">claude · 소유자 팀원 7</div></td>
+                    <td><span class="badge idle">DISABLED</span></td>
+                    <td><div class="chips">
+                      <span class="chip mono">seat_status=<b>blocked</b></span>
+                      <span class="chip">운영자 비활성 · 계정 회수</span>
+                    </div></td>
+                    <td><div class="gauge" data-level="unknown"><i></i><i></i><i></i></div><div class="row-s">—</div></td>
+                    <td class="row-s">—</td>
+                    <td class="row-s">연결 없음</td>
+                    <td class="row-s">—</td>
+                    <td><button class="btn" type="button">복구</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <header><h3>재인증 안내</h3><span class="badge crit">seat-b0c3</span></header>
+            <div class="body">
+              <div class="guard">
+                <span class="h">웹에서 토큰을 입력할 수 없습니다</span>
+                <p>
+                  시트 인증은 <b>신뢰된 Runner 에서 사람이 1회</b> 수행합니다.
+                  ClickEye 는 <code class="mono">seat_id</code> · provider · 불투명 참조만 보관합니다.
+                </p>
+              </div>
+              <div class="checks">
+                <div class="check wait"><span class="m">1</span><span class="x">Runner 호스트에 접속 — <b>runner-seoul-01</b></span></div>
+                <div class="check wait"><span class="m">2</span><span class="x"><code class="mono">claude setup-token</code> 실행 (공식 경로)</span></div>
+                <div class="check wait"><span class="m">3</span><span class="x">probe 성공 시 자동으로 <b>READY</b> 복귀</span></div>
+              </div>
+              <p class="hint">
+                재인증 알림은 <b>운영자</b>에게 갑니다 — 고객이 아닙니다.
+                외부 연동 게이트(고객 대상)와 채널이 다릅니다.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <header><h3>상태 전이 감사 로그</h3><span class="meta">append-only</span></header>
+            <div class="body">
+              <div class="tl">
+                <div class="tl-i crit"><span class="dot"></span><div>
+                  <div class="t"><b>seat-b0c3</b> BUSY → AUTH_REQUIRED</div>
+                  <div class="w">14:41:07 · probe 실패(인증) · 사유 기록됨</div></div></div>
+                <div class="tl-i ok"><span class="dot"></span><div>
+                  <div class="t"><b>seat-e5f6</b> BUSY → COOLING_DOWN</div>
+                  <div class="w">14:02:33 · rate limit · reset 15:00</div></div></div>
+                <div class="tl-i ok"><span class="dot"></span><div>
+                  <div class="t"><b>seat-a1b2</b> READY → BUSY</div>
+                  <div class="w">13:58:12 · lease job-7c1a</div></div></div>
+                <div class="tl-i ok"><span class="dot"></span><div>
+                  <div class="t"><b>seat-8f21</b> 등록 → READY</div>
+                  <div class="w">11:20:45 · 최초 등록 · 관측 없음</div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 3. 매니페스트 ══════════════════ -->
+    <section class="screen" id="s3" role="tabpanel" aria-label="매니페스트">
+      <div class="canvas">
+        <div class="card">
+          <header>
+            <h3>DeliveryManifest · 스마트팩토리 MES</h3>
+            <span class="badge ok">v3 활성</span>
+            <span class="meta">CONTROL YAML 과 분리된 런타임·배포 명세</span>
+          </header>
+          <div class="body">
+            <div class="chips">
+              <span class="chip">버전 <b>v3</b> · 활성</span>
+              <span class="chip">v2 · 대체됨</span>
+              <span class="chip">v1 · 검증 실패</span>
+            </div>
+            <dl class="dl">
+              <dt>작성 주체</dt><dd>외부 CMS <span class="hint">cms-product-001</span></dd>
+              <dt>수신 시각</dt><dd>2026-07-29 13:44:02 <span class="hint">Intake target envelope</span></dd>
+              <dt>schema_version</dt><dd class="mono">1.0</dd>
+              <dt>hash</dt><dd class="mono">sha256:9f3c1a…d70b</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>명세</h3><span class="meta">읽기 전용 · CMS 소유</span></header>
+              <div class="body">
+                <div>
+                  <div class="label" style="margin-bottom:7px">source</div>
+                  <dl class="dl">
+                    <dt>repository</dt><dd class="mono">git@github.com:acme/mes-portal.git</dd>
+                    <dt>ref</dt><dd class="mono">main</dd>
+                    <dt>subdirectory</dt><dd class="mono">.</dd>
+                  </dl>
+                </div>
+                <div>
+                  <div class="label" style="margin-bottom:7px">stack · 환경</div>
+                  <div class="chips">
+                    <span class="chip">Next.js 15</span><span class="chip">FastAPI</span>
+                    <span class="chip">개발 <b>linux/amd64</b></span><span class="chip">배포 <b>linux/amd64</b></span>
+                    <span class="chip">Docker Compose</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="label" style="margin-bottom:7px">databases</div>
+                  <div class="chips">
+                    <span class="chip">PostgreSQL <b>16</b></span><span class="chip">ClickHouse <b>24.3</b></span>
+                  </div>
+                </div>
+                <div>
+                  <div class="label" style="margin-bottom:7px">commands · argv 배열 · shell:false</div>
+                  <div class="log">bootstrap  <b>["npm","ci"]</b>              <span class="d">wd:.</span>
+build      <b>["npm","run","build"]</b>     <span class="d">wd:.</span>
+test       <b>["npm","test","--","--ci"]</b> <span class="d">wd:.</span>
+migration  <b>["alembic","upgrade","head"]</b> <span class="d">wd:api</span>
+health     <b>GET /healthz</b>              <span class="d">200 · 30s</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>환경변수 스키마</h3><span class="badge plain idle">값 없음 · 참조만</span></header>
+              <div class="body tight">
+                <div class="tw">
+                  <table style="min-width:520px">
+                    <thead><tr><th>이름</th><th>필수</th><th>Secret</th><th>참조</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">DATABASE_URL</td><td><span class="badge ok">필수</span></td><td><span class="badge warn">Secret</span></td><td class="mono row-s">aws-sm://ce/p-042/DATABASE_URL</td></tr>
+                      <tr><td class="mono">KAKAO_REST_KEY</td><td><span class="badge ok">필수</span></td><td><span class="badge warn">Secret</span></td><td class="mono row-s">aws-sm://ce/p-042/KAKAO_REST_KEY</td></tr>
+                      <tr><td class="mono">MAP_CLIENT_ID</td><td><span class="badge ok">필수</span></td><td><span class="badge warn">Secret</span></td><td class="row-s">미등록</td></tr>
+                      <tr><td class="mono">NEXT_PUBLIC_BASE_URL</td><td><span class="badge ok">필수</span></td><td><span class="badge idle">공개</span></td><td class="mono row-s">manifest 값</td></tr>
+                      <tr><td class="mono">LOG_LEVEL</td><td><span class="badge idle">선택</span></td><td><span class="badge idle">공개</span></td><td class="mono row-s">info</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>검증 결과</h3><span class="badge warn">1건 거부</span></header>
+              <div class="body">
+                <div class="checks">
+                  <div class="check pass"><span class="m">✓</span><span class="x">JSON Schema 통과 <b>schema_version 1.0</b></span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">Secret 실제 값 미포함</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">저장소 URL 형식·호스트 허용목록</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">알 수 없는 필드 없음</span></div>
+                  <div class="check fail"><span class="m">✗</span><span class="x">CONTROL 충돌 — <b>e2e 명령이 shell:true 요구</b></span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">Runner 적합성 — CPU 4 · mem 8Gi · disk 40Gi</span></div>
+                </div>
+                <div class="guard">
+                  <span class="h">fail-closed 적용</span>
+                  <p>
+                    CONTROL 정책이 shell 실행을 금지하므로 <code class="mono">commands.e2e</code>는
+                    실행하지 않습니다. 더 제한적인 쪽을 적용합니다(§7). 해소는 CMS 가 argv 배열로
+                    다시 제출하거나 별도 승인 단계가 필요합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>인수 테스트 명세</h3></header>
+              <div class="body">
+                <dl class="dl">
+                  <dt>경로</dt><dd class="mono">/login → /dashboard</dd>
+                  <dt>인증 방식</dt><dd>테스트 계정 로그인</dd>
+                  <dt>접근 범위</dt><dd>사내망 <code class="mono">아이피:포트</code> <span class="hint">(I-09 확정)</span></dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="note">
+              <span class="h">§6.1 · §7</span>
+              <p>
+                이 화면은 <b>읽기 전용</b>입니다. Manifest 는 CMS 소유이고, 정책·재시도·게이트는
+                CONTROL YAML 소유입니다. 두 화면을 합치지 않는 이유가 이 책임 분리입니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 4. 실행 (Job) ══════════════════ -->
+    <section class="screen" id="s4" role="tabpanel" aria-label="실행">
+      <div class="canvas">
+        <div class="card">
+          <header>
+            <h3>Job <span class="mono">job-7c1a</span></h3>
+            <span class="badge run">RUNNING</span>
+            <span class="badge plain idle">시도 2/3</span>
+            <span class="meta">task_id = DeliveryJob.id · 기존 Runner 계약 호환</span>
+          </header>
+          <div class="body">
+            <div class="rail" role="img" aria-label="Job 상태 진행: RUNNING 단계">
+              <div class="step done"><span class="s">QUEUED</span><span class="t">13:52</span></div>
+              <div class="step done"><span class="s">SCHEDULING</span><span class="t">13:57</span></div>
+              <div class="step done"><span class="s">LEASED</span><span class="t">13:58</span></div>
+              <div class="step done"><span class="s">PROVISIONING</span><span class="t">13:58</span></div>
+              <div class="step now"><span class="s">RUNNING</span><span class="t">진행 중</span></div>
+              <div class="step"><span class="s">CHECKPOINTING</span><span class="t">—</span></div>
+              <div class="step"><span class="s">VERIFYING</span><span class="t">—</span></div>
+              <div class="step"><span class="s">COMPLETED</span><span class="t">—</span></div>
+            </div>
+            <div class="chips">
+              <span class="chip">시트 <b class="mono">seat-a1b2</b></span>
+              <span class="chip">lease 만료 <b class="mono">2분 41초</b></span>
+              <span class="chip">branch <b class="mono">ralph/CE-331</b></span>
+              <span class="chip">base <b class="mono">a91f0c4</b></span>
+              <span class="chip">checkpoint <b class="mono">7d3e8b1</b></span>
+              <span class="chip">티켓 <b>CE-331</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>작업공간</h3><span class="meta">프로젝트별 격리</span></header>
+              <div class="body">
+                <div class="log">/data/clickeye/workspaces/<b>p-042</b>/
+  repo/                       <span class="d">clone · ralph/CE-331</span>
+  .clickeye/
+    manifest/<b>v3.json</b>
+    control/CONTROL.yaml
+    jobs/<b>job-7c1a</b>/
+    locks/project.lock        <span class="d">보유 중</span>
+    runtime/ports.json        <span class="d">3142, 8142</span>
+  logs/job-7c1a/
+  artifacts/job-7c1a/</div>
+                <div class="checks">
+                  <div class="check pass"><span class="m">✓</span><span class="x">경로 traversal · symlink escape 차단</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">하네스 파일 주입 — 기존 생성 엔진 재사용</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">시트 인증 홈은 작업공간 <b>밖</b> (0700)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>실행 로그</h3><span class="meta">tail · redaction 적용</span></header>
+              <div class="body">
+                <div class="log">14:41:02 <b>runner</b> 워크스페이스 lock 획득 p-042
+14:41:03 <b>runner</b> manifest v3 · CONTROL 재검증 통과
+14:41:05 <b>runner</b> bootstrap ["npm","ci"] exit=0 <span class="d">18.4s</span>
+14:42:11 <b>claude</b> CE-331 구현 시작 · 파일 4개
+14:43:50 <b>runner</b> build ["npm","run","build"] exit=0
+14:44:29 <b>runner</b> test exit=1 <span class="e">2 failed</span>
+14:44:30 <b>runner</b> 재시도 2/3 · 에러 피드백 전달
+14:45:58 <b>claude</b> 수정 · 재실행 대기
+14:46:12 <b>runner</b> DATABASE_URL=<span class="d">[redacted]</span></div>
+                <p class="hint">원문 고빈도 로그는 DB 무제한 적재 대신 artifact 저장소 + retention 을 씁니다(§9.2).</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>Job 이벤트</h3><span class="meta">append-only</span></header>
+              <div class="body">
+                <div class="tl">
+                  <div class="tl-i run"><span class="dot"></span><div>
+                    <div class="t"><b>RUNNING</b> 시도 2 진행</div><div class="w">14:44:30 · 테스트 실패 후 자동 교정</div></div></div>
+                  <div class="tl-i crit"><span class="dot"></span><div>
+                    <div class="t"><b>RETRY_WAIT</b> → QUEUED</div><div class="w">14:44:29 · test exit=1 · 재시도 가능 실패</div></div></div>
+                  <div class="tl-i ok"><span class="dot"></span><div>
+                    <div class="t"><b>PROVISIONING</b> 완료</div><div class="w">13:58:44 · 하네스 주입 · lock 획득</div></div></div>
+                  <div class="tl-i ok"><span class="dot"></span><div>
+                    <div class="t"><b>LEASED</b> seat-a1b2</div><div class="w">13:58:12 · row lock · SKIP LOCKED</div></div></div>
+                  <div class="tl-i ok"><span class="dot"></span><div>
+                    <div class="t"><b>QUEUED</b> 선결조건 충족</div><div class="w">13:52:07 · Manifest v3 · CONTROL · 게이트 2/2</div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>실패한 Job</h3><span class="badge crit">job-1d55</span></header>
+              <div class="body">
+                <div class="rail">
+                  <div class="step done"><span class="s">LEASED</span><span class="t">11:04</span></div>
+                  <div class="step done"><span class="s">RUNNING</span><span class="t">11:05</span></div>
+                  <div class="step fail"><span class="s">CHECKPOINTING</span><span class="t">실패</span></div>
+                  <div class="step fail"><span class="s">FAILED</span><span class="t">11:39</span></div>
+                </div>
+                <div class="guard">
+                  <span class="h">자동 재배정하지 않습니다</span>
+                  <p>
+                    체크포인트에 실패한 dirty 작업공간은 다른 시트로 이어받지 않고 <b>blocker</b> 로
+                    남깁니다(§6.3). 작업공간과 artifact 는 보존됩니다.
+                  </p>
+                </div>
+                <dl class="dl">
+                  <dt>시도</dt><dd>3/3 소진</dd>
+                  <dt>시트</dt><dd class="mono">seat-e5f6 → COOLING_DOWN</dd>
+                  <dt>집계</dt><dd>완료율에 포함되지 않음</dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="note">
+              <span class="h">§6.3 · §10</span>
+              <p>
+                시트 교체는 실행 세션 이전이 아니라 <b>Git checkpoint 경계</b>에서의 재시작입니다.
+                이 화면이 base / checkpoint commit 을 상시 노출하는 이유입니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 5. 외부 연동 게이트 ══════════════════ -->
+    <section class="screen" id="s5" role="tabpanel" aria-label="외부 연동">
+      <div class="canvas">
+        <div class="note">
+          <span class="h">I-08 정의 확정 (2026-07-29)</span>
+          <p>
+            여기서 말하는 외부 연동은 <b>만들어주는 프로덕트에 녹여야 하는 연동</b>입니다 —
+            ClickEye가 쓰려는 연동이 아닙니다. 예: 회사 홈페이지를 만들면 회사 위치 표시와
+            길찾기가 필요하고, 그 지도 API 키는 <b>AI가 발급할 수 없으므로 고객(사용자)이 직접
+            발급해 입력</b>해야 합니다. 이 화면은 그 "사람이 해야 하는 별도 작업"을 추적합니다.
+          </p>
+        </div>
+
+        <div class="stats">
+          <div class="stat is-ok"><span class="n">1</span><span class="k">VERIFIED</span><span class="h">검증 완료</span></div>
+          <div class="stat is-run"><span class="n">1</span><span class="k">VALIDATING</span><span class="h">검증 중</span></div>
+          <div class="stat is-warn"><span class="n">1</span><span class="k">AWAITING_OWNER</span><span class="h">사람 대기</span></div>
+          <div class="stat"><span class="n">1</span><span class="k">REQUIRED</span><span class="h">미착수</span></div>
+        </div>
+
+        <div class="card">
+          <header>
+            <h3>외부 연동 게이트</h3>
+            <span class="badge warn">배포 차단 2건</span>
+            <span class="meta">만드는 프로덕트에 넣어야 하는 연동 · 고객이 직접 키를 발급</span>
+          </header>
+          <div class="body tight">
+            <div class="tw">
+              <table style="min-width:900px">
+                <thead>
+                  <tr><th>연동</th><th>상태</th><th>차단 phase</th><th>담당</th><th>비밀값 참조</th><th>조치</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="row-t">카카오 로그인</div><div class="row-s">REST API 키</div></td>
+                    <td><span class="badge ok">VERIFIED</span></td>
+                    <td><span class="badge idle">차단 없음</span></td>
+                    <td>프로젝트 소유자</td>
+                    <td><div class="row-s mono">aws-sm://ce/p-042/KAKAO_REST_KEY</div><div class="row-s">fp 3f9a…c21</div></td>
+                    <td><button class="btn" type="button">재검증</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t">지도 API</div><div class="row-s">client id · 도메인 등록</div></td>
+                    <td><span class="badge run">VALIDATING</span></td>
+                    <td><div class="chips"><span class="chip">검증</span></div></td>
+                    <td>프로젝트 소유자</td>
+                    <td><div class="row-s mono">aws-sm://ce/p-042/MAP_CLIENT_ID</div><div class="row-s">fp 7b12…4d8</div></td>
+                    <td><button class="btn" type="button" disabled>검증 중</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t">결제 모듈</div><div class="row-s">가맹 심사 필요</div></td>
+                    <td><span class="badge warn">AWAITING_OWNER</span></td>
+                    <td><div class="chips"><span class="chip">검증</span><span class="chip">배포</span></div></td>
+                    <td>프로젝트 소유자</td>
+                    <td class="row-s">미등록</td>
+                    <td><button class="btn" type="button">요청 재발송</button></td>
+                  </tr>
+                  <tr>
+                    <td><div class="row-t">DNS · SSL</div><div class="row-s">테스트 도메인</div></td>
+                    <td><span class="badge idle">REQUIRED</span></td>
+                    <td><div class="chips"><span class="chip">배포</span></div></td>
+                    <td class="row-s">미지정</td>
+                    <td class="row-s">미등록</td>
+                    <td><button class="btn" type="button">담당 지정</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <header><h3>phase 별 차단 효과</h3></header>
+            <div class="body">
+              <div class="tw">
+                <table style="min-width:420px">
+                  <thead><tr><th>phase</th><th>상태</th><th>사유</th></tr></thead>
+                  <tbody>
+                    <tr><td>구현</td><td><span class="badge ok">진행 가능</span></td><td class="row-s">결제는 mock 으로 구현 허용</td></tr>
+                    <tr><td>검증</td><td><span class="badge crit">차단</span></td><td class="row-s">결제 운영 키 없음 · 지도 검증 중</td></tr>
+                    <tr><td>배포</td><td><span class="badge crit">차단</span></td><td class="row-s">결제 · DNS/SSL 미완료</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="hint">
+                게이트마다 어느 phase 를 막는지 기록합니다. "전부 막기"가 기본값이 아닙니다(§6.4).
+              </p>
+            </div>
+          </div>
+
+          <div style="display:grid; gap:18px;">
+            <div class="guard">
+              <span class="h">CREDENTIAL_SAVED ≠ ClickEye 가 비밀값을 가짐</span>
+              <p>
+                실제 값은 Secret Manager 또는 Runner 전용 저장소에 있고, ClickEye 는 불투명한
+                <code class="mono">secret_ref</code> 와 fingerprint 만 받습니다. 이 화면에는 값을
+                보여주는 요소가 없습니다(§6.4 · §12.2).
+              </p>
+            </div>
+            <div class="card">
+              <header><h3>담당과 알림</h3><span class="badge ok">담당 확정</span></header>
+              <div class="body">
+                <dl class="dl">
+                  <dt>담당</dt><dd>고객(프로젝트 소유자) <span class="hint">— 키 발급·입력의 주체</span></dd>
+                  <dt>1차 채널</dt><dd>ClickEye Web <span class="hint">— 고객이 키를 넣는 화면이 여기이므로</span></dd>
+                  <dt>확장 채널</dt><dd><span class="badge tbd">이메일·메신저 보류</span></dd>
+                </dl>
+                <p class="hint">
+                  키 입력 지점과 알림 지점을 일치시킵니다. 채널을 늘리기 전에 이 화면에서
+                  "무엇을 발급해 어디에 넣어야 하는지"가 고객에게 자족적으로 읽혀야 합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ 6. 배포 ══════════════════ -->
+    <section class="screen" id="s6" role="tabpanel" aria-label="배포">
+      <div class="canvas">
+        <div class="card">
+          <header>
+            <h3>배포 실행 <span class="mono">dep-7c1a</span></h3>
+            <span class="badge warn">HEALTHCHECKING</span>
+            <span class="meta">linux/amd64 · Docker Compose</span>
+          </header>
+          <div class="body">
+            <div class="rail" role="img" aria-label="배포 진행: HEALTHCHECKING 단계">
+              <div class="step done"><span class="s">REQUESTED</span><span class="t">15:02</span></div>
+              <div class="step done"><span class="s">PREFLIGHT</span><span class="t">15:02</span></div>
+              <div class="step done"><span class="s">BUILDING</span><span class="t">15:03</span></div>
+              <div class="step done"><span class="s">BUILT</span><span class="t">15:07</span></div>
+              <div class="step done"><span class="s">STARTING</span><span class="t">15:07</span></div>
+              <div class="step now"><span class="s">HEALTH<wbr />CHECKING</span><span class="t">진행 중</span></div>
+              <div class="step"><span class="s">READY_FOR<wbr />_ACCEPTANCE</span><span class="t">—</span></div>
+              <div class="step"><span class="s">ACCEPTED</span><span class="t">—</span></div>
+            </div>
+            <div class="chips">
+              <span class="chip">compose <b class="mono">ce-p042-d7c1</b></span>
+              <span class="chip">image <b class="mono">sha256:4b81…9ac</b></span>
+              <span class="chip">network <b class="mono">ce-p042-d7c1_default</b></span>
+              <span class="chip">label <b class="mono">clickeye.project_id=p-042</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>preflight</h3><span class="badge ok">6/6 통과</span></header>
+              <div class="body">
+                <div class="checks">
+                  <div class="check pass"><span class="m">✓</span><span class="x">활성 Manifest <b>v3</b> · CONTROL 정책 재검증</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">배포를 막는 게이트 없음 — 카카오 <b>VERIFIED</b></span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">작업공간 checkpoint · clean 상태</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">전용 namespace · network · volume · port 할당</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">Secret 참조 resolve — 실행 직전 주입</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">migration <code class="mono">["alembic","upgrade","head"]</code> exit=0</span></div>
+                </div>
+                <div class="note">
+                  <span class="h">§13 · 이 화면의 전제</span>
+                  <p>
+                    현재 Agent 의 <code>stop/destroy</code> 는 완결되지 않았습니다. 이 화면은
+                    "정리까지 끝난다"고 표현하지 않고, 정리 결과를 별도 항목으로 보고합니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>healthcheck</h3><span class="meta">HTTP · 제한된 smoke</span></header>
+              <div class="body tight">
+                <div class="tw">
+                  <table style="min-width:460px">
+                    <thead><tr><th>검사</th><th>결과</th><th>응답</th><th>비고</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">GET /healthz</td><td><span class="badge ok">200</span></td><td class="num mono">42ms</td><td class="row-s">3회 연속</td></tr>
+                      <tr><td class="mono">GET /login</td><td><span class="badge ok">200</span></td><td class="num mono">128ms</td><td class="row-s">—</td></tr>
+                      <tr><td class="mono">postgres 연결</td><td><span class="badge ok">ok</span></td><td class="num mono">11ms</td><td class="row-s">migration 반영</td></tr>
+                      <tr><td class="mono">clickhouse 연결</td><td><span class="badge run">확인 중</span></td><td class="row-s">—</td><td class="row-s">2/3 시도</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; gap:18px;">
+            <div class="card">
+              <header><h3>테스트 주소</h3><span class="badge ok">I-09 확정</span></header>
+              <div class="body">
+                <div class="guard">
+                  <span class="h">healthcheck 통과 전에는 발급하지 않습니다</span>
+                  <p>현재 <code>clickhouse</code> 확인이 끝나지 않아 주소가 비활성입니다.</p>
+                </div>
+                <dl class="dl">
+                  <dt>발급 예정</dt><dd class="mono">http://10.20.30.41:<b>8142</b></dd>
+                  <dt>접근 범위</dt><dd>사내망 <span class="hint">— 도메인·DNS·TLS 없음</span></dd>
+                  <dt>포트 할당</dt><dd class="mono">runtime/ports.json <span class="hint">(프로젝트별 · 충돌 방지)</span></dd>
+                  <dt>테스트 주체</dt><dd>우리 <span class="hint">(코드 소유는 고객)</span></dd>
+                </dl>
+                <button class="btn" type="button" disabled>주소 발급</button>
+                <div class="note">
+                  <span class="h">I-09 확정 — MVP 난이도가 내려갔습니다</span>
+                  <p>
+                    사내 <code>아이피:포트</code>로 확정되어 DNS·TLS·방화벽 정책이 MVP 범위에서
+                    빠집니다. 남는 실무 항목은 <b>포트 충돌 방지와 프로젝트별 포트 회수</b>뿐입니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>인수 테스트</h3><span class="badge ok">I-10 확정</span></header>
+              <div class="body">
+                <div class="guard">
+                  <span class="h">사람이 개입합니다 — AI 자동화로 대체하지 않습니다</span>
+                  <p>
+                    이 단계의 판단은 자동화 대상이 아닙니다. 화면은 <b>사람의 판단을 기록</b>하는
+                    역할만 하고, 통과 여부를 추론하거나 자동 승인하지 않습니다.
+                  </p>
+                </div>
+                <div class="checks">
+                  <div class="check wait"><span class="m">·</span><span class="x">테스트 계정으로 로그인 — <span class="mono">10.20.30.41:8142</span></span></div>
+                  <div class="check wait"><span class="m">·</span><span class="x">핵심 화면 확인 — <b>/dashboard</b></span></div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap">
+                  <button class="btn" type="button" disabled>승인 기록</button>
+                  <button class="btn" type="button" disabled>보완 요청</button>
+                </div>
+                <p class="hint">
+                  결함 등록·재검증 워크플로를 ClickEye 안에 만들지 않습니다 — 별도 QA 제품으로
+                  번지는 것을 막습니다(§1.1). 보완 요청은 실행 탭의 보완 Job으로만 연결됩니다.
+                </p>
+              </div>
+            </div>
+
+            <div class="card">
+              <header><h3>rollback</h3><span class="meta">namespace 단위</span></header>
+              <div class="body">
+                <div class="checks">
+                  <div class="check pass"><span class="m">✓</span><span class="x">신규 container · network 정리</span></div>
+                  <div class="check fail"><span class="m">✗</span><span class="x">volume <b>자동 삭제하지 않음</b> — Manifest 가 disposable 로 명시하지 않음</span></div>
+                  <div class="check pass"><span class="m">✓</span><span class="x">작업공간 · artifact 보존</span></div>
+                </div>
+                <p class="hint">rollback 은 schema downgrade 를 의미하지 않습니다(§21.2).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<footer class="doc-foot">
+  <div class="cols">
+    <div style="display:grid; gap:8px">
+      <h2>이 와이어프레임이 지킨 제약</h2>
+      <ul>
+        <li>정확한 잔여 토큰 숫자를 표시하는 요소가 없습니다 — 파생 상태 + 추정 여유도 + 근거만.</li>
+        <li>비밀값을 보여주는 요소가 없습니다 — <code class="mono">secret_ref</code> 와 fingerprint 만.</li>
+        <li><code class="mono">FAILED</code>는 완료·성공 집계와 분리했습니다.</li>
+        <li>Feature Flag off 상태 화면을 포함합니다.</li>
+        <li>기존 사이드바 최상위 메뉴와 프로젝트 탭을 교체하지 않고 가산만 했습니다.</li>
+        <li>계약·견적·인사·CRM 요소를 넣지 않았습니다.</li>
+      </ul>
+    </div>
+    <div style="display:grid; gap:8px">
+      <h2>2026-07-29 확정된 결정</h2>
+      <ul>
+        <li><b>I-05</b> 확정 — 상/중/하 + 근거로 운영 가능. 잔여 토큰 숫자 미제공.</li>
+        <li><b>I-08</b> 정의 교정 — 외부 연동은 <b>만드는 프로덕트에 넣을 연동</b>(고객이 키 발급·입력).
+          ClickEye 자체 연동이 아니다. 담당=고객, 1차 채널=ClickEye Web.</li>
+        <li><b>I-09</b> 확정 — 사내 <code class="mono">아이피:포트</code>. 도메인·DNS·TLS 없음.
+          배포 테스트 주체는 우리, 코드 소유는 고객.</li>
+        <li><b>I-10</b> 확정 — 사람이 개입한다. AI 자동화로 대체하지 않는다.</li>
+        <li><b>I-12</b> 확정 — 최대 2 동시 · 기본 1 순차 → 필요 시트 3~4개.</li>
+        <li><b>I-14</b> 확정 — 딜리버리 단일 진입. <code class="mono">/projects/*</code> 라우트는 유지하고
+          사이드바 1뎁스에서 <code>프로젝트</code>만 제거.</li>
+      </ul>
+      <p class="hint" style="margin-top:4px">
+        남은 미확정: I-01·I-02·I-03·I-04·I-06·I-07·I-11 (첫 프로덕트 관측 이후)
+      </p>
+    </div>
+  </div>
+  <p class="hint" style="margin-top:8px">
+    구현 금지 · <code>migration.md</code> Stage 0.5 산출물 · 페이지 스펙은
+    <code>docs/pages/projects/{manifest,execution,integrations,deployment}.md</code> 및
+    <code>docs/pages/admin/{seats,execution-overview}.md</code>
+  </p>
+</footer>
+
+<script>
+  (function () {
+    var screens = Array.prototype.slice.call(document.querySelectorAll(".screen"));
+    var ptabs = Array.prototype.slice.call(document.querySelectorAll(".ptab"));
+    var navItems = Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+    var crumb = document.getElementById("crumbNow");
+    var route = document.getElementById("routeNow");
+    var pctx = document.getElementById("pctx");
+
+    // 화면 메타 — 빵부스러기와 라우트 표기
+    var META = {
+      s0: { crumb: "딜리버리", route: "/delivery", project: false, nav: "s0" },
+      s1: { crumb: "실행 현황", route: "/admin/ops/execution", project: false, nav: "s1" },
+      s2: { crumb: "시트 풀", route: "/admin/ops/seats", project: false, nav: "s2" },
+      s3: { crumb: "매니페스트", route: "/projects/p-042/manifest", project: true, nav: "s0" },
+      s4: { crumb: "실행", route: "/projects/p-042/execution", project: true, nav: "s0" },
+      s5: { crumb: "외부 연동", route: "/projects/p-042/integrations", project: true, nav: "s0" },
+      s6: { crumb: "배포", route: "/projects/p-042/deployment", project: true, nav: "s0" },
+      sLegacy: { crumb: "기존 화면", route: "/delivery/p-042", project: true, nav: "s0" }
+    };
+
+    function show(id) {
+      var m = META[id];
+      if (!m) return;
+      screens.forEach(function (s) { s.classList.toggle("active", s.id === id); });
+      crumb.textContent = m.crumb;
+      route.textContent = m.route;
+      pctx.hidden = !m.project;
+      ptabs.forEach(function (t) {
+        t.setAttribute("aria-selected", t.dataset.s === id ? "true" : "false");
+      });
+      navItems.forEach(function (a) {
+        a.classList.toggle("active", a.dataset.nav === m.nav);
+      });
+      if (id !== "s0") closePanel();
+    }
+
+    ptabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        if (t.dataset.legacy) {
+          document.getElementById("legacyName").textContent = t.dataset.legacy;
+          show("sLegacy");
+          ptabs.forEach(function (o) { o.setAttribute("aria-selected", o === t ? "true" : "false"); });
+          return;
+        }
+        show(t.dataset.s);
+      });
+    });
+
+    navItems.forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        show(a.dataset.nav || "s0");
+      });
+    });
+    document.getElementById("backBtn").addEventListener("click", function () { show("s0"); });
+
+    // ── 슬라이드 패널 ────────────────────────────────────────────
+    var P = {
+      "p-042": { name: "스마트팩토리 MES", state: '<span class="badge run">RUNNING</span>',
+        pct: "62%", phase: "구현 · CE-331", done: 7, ver: 5, fail: 0,
+        when: "2분 전 · 14:44:30", what: "테스트 실패 후 자동 교정 (시도 2/3)",
+        block: '<p class="hint">없음 — 사람이 지금 할 일이 없습니다.</p>',
+        seat: [["시트", '<span class="mono">seat-a1b2</span>'], ["소유자", "본인"],
+               ["상태", '<span class="badge run">BUSY</span>'], ["추정 여유도", '중 <span class="hint">· 최근 3회 관측</span>']] },
+      "p-039": { name: "물류 배차 포털", state: '<span class="badge run">VERIFYING</span>',
+        pct: "88%", phase: "검증 · 품질 게이트 3/4", done: 12, ver: 11, fail: 0,
+        when: "1분 전 · 14:45:12", what: "품질 게이트 3번째 통과",
+        block: '<p class="hint">없음</p>',
+        seat: [["시트", '<span class="mono">seat-c9d4</span>'], ["소유자", "팀원 2"],
+               ["상태", '<span class="badge run">BUSY</span>'], ["추정 여유도", '상 <span class="hint">· 최근 3회 관측</span>']] },
+      "p-051": { name: "가맹점 정산 웹", state: '<span class="badge warn">BLOCKED</span>',
+        pct: "31%", phase: "사람 대기 · 외부 연동", done: 4, ver: 2, fail: 0,
+        when: "2시간 18분 전 · 12:27:40", what: "게이트 요청 발송 (결제 · DNS)",
+        block: '<ul><li><b>결제 모듈</b> — 가맹 심사 필요 · 검증·배포 차단</li>' +
+               '<li><b>DNS · SSL</b> — 담당 미지정 · 배포 차단</li></ul>' +
+               '<p class="hint">고객이 키를 발급해 입력해야 진행됩니다.</p>',
+        seat: [["시트", '<span class="cell-sub">미배정</span>'], ["사유", "선결조건 미충족 — 게이트 2건"]] },
+      "p-047": { name: "사내 근태 리뉴얼", state: '<span class="badge idle">QUEUED</span>',
+        pct: "0%", phase: "대기 · 큐 1순위", done: 0, ver: 0, fail: 0,
+        when: "6분 전 · 14:39:55", what: "큐 진입 · 선결조건 충족",
+        block: '<p class="hint">가용 시트 없음 — 시트가 비면 자동 배정됩니다.</p>',
+        seat: [["시트", '<span class="cell-sub">대기 중</span>'], ["대기", "6분"]] },
+      "p-044": { name: "예약 키오스크", state: '<span class="badge crit">FAILED</span>',
+        pct: "44%", phase: "중단 · 체크포인트 실패", done: 6, ver: 3, fail: 1,
+        when: "3시간 21분 전 · 11:39:02", what: "시도 3/3 소진 · 자동 재배정 안 함",
+        block: '<ul><li><b>dirty workspace</b> — 체크포인트 실패로 blocker 유지</li></ul>' +
+               '<p class="hint">작업공간·artifact는 보존됩니다. 사람이 정리 여부를 판단합니다.</p>',
+        seat: [["시트", '<span class="mono">seat-e5f6</span>'], ["소유자", "팀원 5"],
+               ["상태", '<span class="badge warn">COOLING_DOWN</span>'], ["추정 여유도", '하 <span class="hint">· reset 까지 12분</span>']] }
+    };
+
+    var panel = document.getElementById("panel");
+    var scrim = document.getElementById("scrim");
+    var rows = Array.prototype.slice.call(document.querySelectorAll("#plistBody tr"));
+
+    function closePanel() {
+      panel.setAttribute("data-open", "false");
+      scrim.setAttribute("data-open", "false");
+      rows.forEach(function (r) { r.setAttribute("aria-selected", "false"); });
+    }
+
+    function openPanel(key, row) {
+      var d = P[key];
+      if (!d) return;
+      document.getElementById("pnCode").textContent = key;
+      document.getElementById("pnName").textContent = d.name;
+      document.getElementById("pnState").innerHTML = d.state;
+      document.getElementById("pnPct").textContent = d.pct;
+      document.getElementById("pnPhase").textContent = d.phase;
+      document.getElementById("pnBar").style.width = d.pct;
+      document.getElementById("pnTk").innerHTML =
+        '<div><span class="n fig">' + d.done + '</span><span class="k">완주</span></div>' +
+        '<div><span class="n fig">' + d.ver + '</span><span class="k">검증</span></div>' +
+        '<div class="bad"><span class="n fig">' + d.fail + '</span><span class="k">실패</span></div>';
+      document.getElementById("pnWhen").textContent = d.when;
+      document.getElementById("pnWhat").textContent = d.what;
+      document.getElementById("pnBlock").innerHTML = d.block;
+      document.getElementById("pnSeat").innerHTML = d.seat.map(function (kv) {
+        return "<dt>" + kv[0] + "</dt><dd>" + kv[1] + "</dd>";
+      }).join("");
+      rows.forEach(function (r) { r.setAttribute("aria-selected", r === row ? "true" : "false"); });
+      panel.setAttribute("data-open", "true");
+      scrim.setAttribute("data-open", "true");
+    }
+
+    rows.forEach(function (r) {
+      r.addEventListener("click", function () { openPanel(r.dataset.p, r); });
+      r.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPanel(r.dataset.p, r); }
+      });
+    });
+    document.getElementById("pnClose").addEventListener("click", closePanel);
+    scrim.addEventListener("click", closePanel);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closePanel();
+    });
+    // 진입은 요약을 확인한 뒤 이 버튼으로만 — 행 클릭이 곧 진입이 아니다
+    document.getElementById("pnEnter").addEventListener("click", function () {
+      var name = document.getElementById("pnName").textContent;
+      var code = document.getElementById("pnCode").textContent;
+      var n = pctx.querySelector(".name");
+      n.innerHTML = name + ' <span class="c">' + code + "</span>";
+      show("s4");
+    });
+
+    var specBtn = document.getElementById("specBtn");
+    specBtn.addEventListener("click", function () {
+      var on = specBtn.getAttribute("aria-pressed") === "true";
+      specBtn.setAttribute("aria-pressed", on ? "false" : "true");
+      document.body.classList.toggle("no-spec", on);
+    });
+
+    var flagBtn = document.getElementById("flagBtn");
+    flagBtn.addEventListener("click", function () {
+      var on = flagBtn.getAttribute("aria-pressed") === "true";
+      flagBtn.setAttribute("aria-pressed", on ? "false" : "true");
+      flagBtn.textContent = "Feature Flag: " + (on ? "off" : "on");
+      document.body.classList.toggle("flag-off", on);
+      if (on) show("s1");   // 비활성 안내 화면으로 이동 — 딜리버리 목록은 flag 영향 없음
+    });
+
+    var themeBtn = document.getElementById("themeBtn");
+    themeBtn.addEventListener("click", function () {
+      var root = document.documentElement;
+      var cur = root.getAttribute("data-theme");
+      if (!cur) {
+        cur = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+    });
+  })();
+</script>

@@ -2,7 +2,7 @@
 title: 서비스 실행 가이드 (운영자용)
 category: guide
 status: needs-revision
-last_updated: 2026-07-22
+last_updated: 2026-07-29
 related:
   - scripts/webhook_server.py
   - scripts/auto_dev_pipeline.sh
@@ -70,6 +70,32 @@ npm run dev
 ```
 
 브라우저 → **http://localhost:3000**
+
+### ⚠ 프로덕션 빌드 시 주의 — 경로에 한글이 있으면 Turbopack이 패닉한다
+
+작업 경로에 한글이 포함된 경우(예: `ClickEye-와이어프레임설계/`) `npm run build`가 실패한다.
+
+```
+thread 'tokio-runtime-worker' panicked at turbopack/crates/turbopack-core/src/ident.rs:354
+start byte index 57 is not a char boundary; it is inside '계' (bytes 55..58)
+FATAL: An unexpected Turbopack error occurred.
+```
+
+Turbopack이 에셋 식별자를 만들 때 경로 문자열을 **바이트 인덱스로 잘라** UTF-8 다중바이트
+문자 중간을 침범해서 나는 버그다. 코드 문제가 아니며 특정 파일과 무관하게 여러 파일에서
+동시에 터진다.
+
+우회 방법 두 가지:
+
+```bash
+# 1) 웹팩으로 빌드 (dev 스크립트가 이미 --webpack 을 쓰는 이유)
+npx next build --webpack
+
+# 2) 또는 경로에 한글이 없는 위치로 체크아웃해서 빌드
+```
+
+`package.json`의 `build` 스크립트는 아직 Turbopack 기본값이다. 한글 경로에서 상시 작업한다면
+`"build": "next build --webpack"` 으로 고정하는 것을 검토한다.
 
 ---
 
