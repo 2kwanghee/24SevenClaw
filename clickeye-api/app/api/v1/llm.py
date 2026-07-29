@@ -13,7 +13,7 @@ clickeye-llm 미가용(연결 실패/타임아웃) 시 503 으로 명확히 degr
 from __future__ import annotations
 
 import contextlib
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import httpx
@@ -65,13 +65,14 @@ async def _verify_project_access(db: AsyncSession, user: User, project_id: UUID)
     await ProjectService(db).get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
 
-async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> Any:
+async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
     """clickeye-llm 으로 POST 프록시. 미가용/타임아웃 시 AppError(503)."""
     try:
         async with httpx.AsyncClient(base_url=settings.clickeye_llm_url, timeout=timeout) as cli:
             resp = await cli.post(path, json=payload)
             resp.raise_for_status()
-            return resp.json()
+            # resp.json() 은 Any — 프록시 계약상 JSON 오브젝트로 좁힌다(런타임 무변경).
+            return cast(dict[str, Any], resp.json())
     except httpx.HTTPStatusError as exc:
         # clickeye-llm 이 응답은 했으나 오류(예: 502 임베딩 백엔드) — 원 상태코드 보존.
         logger.warning("llm_proxy_upstream_error", path=path, status=exc.response.status_code)
@@ -84,13 +85,14 @@ async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> Any
         raise AppError("LLM_UNAVAILABLE", _LLM_UNAVAILABLE, 503) from exc
 
 
-async def _proxy_get(path: str, timeout: float) -> Any:
+async def _proxy_get(path: str, timeout: float) -> dict[str, Any]:
     """clickeye-llm 으로 GET 프록시. 미가용/타임아웃 시 AppError(503)."""
     try:
         async with httpx.AsyncClient(base_url=settings.clickeye_llm_url, timeout=timeout) as cli:
             resp = await cli.get(path)
             resp.raise_for_status()
-            return resp.json()
+            # resp.json() 은 Any — 프록시 계약상 JSON 오브젝트로 좁힌다(런타임 무변경).
+            return cast(dict[str, Any], resp.json())
     except httpx.HTTPStatusError as exc:
         logger.warning("llm_proxy_upstream_error", path=path, status=exc.response.status_code)
         raise AppError("LLM_UPSTREAM_ERROR", _LLM_UNAVAILABLE, exc.response.status_code) from exc
