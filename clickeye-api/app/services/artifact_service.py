@@ -123,8 +123,7 @@ class ArtifactService:
             artifact.project_id,  # type: ignore[arg-type]  # 모델 필드 UUID
             source_id=f"artifact:{artifact.id}",
             text=f"[산출물 상태전이] {artifact.name} ({artifact.artifact_type}): "
-            f"{old_status} → {new_status}"
-            + (f" — {data.message}" if data.message else ""),
+            f"{old_status} → {new_status}" + (f" — {data.message}" if data.message else ""),
             metadata={"kind": "artifact", "status": str(new_status)},
         )
         return artifact, event

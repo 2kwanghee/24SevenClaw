@@ -83,7 +83,7 @@ async def test_submit_upserts_mirror_with_provenance(db_session, project) -> Non
     assert profile.tier == "enterprise"
     assert profile.schema_version == "1.0"
     assert str(profile.source_signature).startswith("sha256:")
-    assert profile.source_yaml == VALID_YAML                    # 원문 그대로 보존
+    assert profile.source_yaml == VALID_YAML  # 원문 그대로 보존
     assert profile.provenance["template_id"] == "legacy-modernize-v2"
     # policy 컬럼은 지정분만(미러 오염 방지) — 전체 Policy 직렬화가 아니다
     assert set(profile.policy.keys()) == {
@@ -93,7 +93,7 @@ async def test_submit_upserts_mirror_with_provenance(db_session, project) -> Non
         "issue_key_shape",
         "issue_key_search",
     }
-    assert profile.updated_by is None                           # 기계 수신 — 출처는 서명이 말한다
+    assert profile.updated_by is None  # 기계 수신 — 출처는 서명이 말한다
     # 전체 제어면은 검증 결과(plane)로 반환된다
     assert plane.retry_limits["ticket_retries"] == 5
 
@@ -110,9 +110,13 @@ async def test_resubmit_updates_single_row(db_session, project) -> None:
     assert p2.tier == "standard"
     assert p2.source_signature != p1.source_signature or p2.source_yaml == updated
     rows = (
-        (await db_session.execute(
-            select(DeliveryProfile).where(DeliveryProfile.project_id == project.id)
-        )).scalars().all()
+        (
+            await db_session.execute(
+                select(DeliveryProfile).where(DeliveryProfile.project_id == project.id)
+            )
+        )
+        .scalars()
+        .all()
     )
     assert len(rows) == 1
 
@@ -150,8 +154,8 @@ async def test_submitted_policy_changes_governance_verdict(db_session, project) 
         )
     )
     assert result["policy_source"] == "project_profile"
-    assert result["checks"]["contract_drift"]["status"] == "fail"   # 스펙 미동반 → 차단
-    assert result["checks"]["ticket_ref"]["status"] == "pass"       # 커스텀 키 형태 통과
+    assert result["checks"]["contract_drift"]["status"] == "fail"  # 스펙 미동반 → 차단
+    assert result["checks"]["ticket_ref"]["status"] == "pass"  # 커스텀 키 형태 통과
     assert result["merge_decision"] == "block"
 
 
@@ -198,11 +202,11 @@ async def test_endpoint_accepts_valid_yaml(client: AsyncClient, project, service
 @pytest.mark.parametrize(
     "bad_yaml,fragment",
     [
-        ("schema_version: '1.0'\noops: 1", "알 수 없는 키"),           # 최상위 오타
-        ("schema_version: '9.9'", "미지원 버전"),                      # 버전 협상 실패
-        ("tier: lite", "schema_version"),                              # 필수 절 누락
-        ("schema_version: '1.0'\npolicy:\n  typo_key: 1", "policy"),   # 판정면 위임 오류
-        (":: not yaml ::", "YAML 파싱 실패"),                          # 파싱 불가
+        ("schema_version: '1.0'\noops: 1", "알 수 없는 키"),  # 최상위 오타
+        ("schema_version: '9.9'", "미지원 버전"),  # 버전 협상 실패
+        ("tier: lite", "schema_version"),  # 필수 절 누락
+        ("schema_version: '1.0'\npolicy:\n  typo_key: 1", "policy"),  # 판정면 위임 오류
+        (":: not yaml ::", "YAML 파싱 실패"),  # 파싱 불가
     ],
 )
 async def test_endpoint_rejection_is_machine_consumable(
@@ -218,7 +222,7 @@ async def test_endpoint_rejection_is_machine_consumable(
     detail = resp.json()["detail"]
     assert detail["code"] == "CONTROL_PLANE_INVALID"
     assert any(fragment in r for r in detail["reasons"]), detail["reasons"]
-    assert detail["schema_supported"] == ["1.0"]                # 버전 협상 힌트
+    assert detail["schema_supported"] == ["1.0"]  # 버전 협상 힌트
 
 
 @pytest.mark.asyncio

@@ -69,9 +69,7 @@ async def admin_headers(client: AsyncClient, db_session) -> dict[str, str]:
     headers = {"Authorization": f"Bearer {token}"}
     me = await client.get("/api/v1/auth/me", headers=headers)
     await db_session.execute(
-        update(User)
-        .where(User.id == uuid.UUID(me.json()["id"]))
-        .values(system_role="superadmin")
+        update(User).where(User.id == uuid.UUID(me.json()["id"])).values(system_role="superadmin")
     )
     await db_session.commit()
     return headers
@@ -208,10 +206,14 @@ async def test_event_failure_does_not_break_transition(
     assert refined.refined_text == "구현 스펙: 계측 격리 확인"
     # 유실된 것은 계측뿐 — 패치 이전에 남은 received 만 존재한다
     rows = (
-        await db_session.execute(
-            select(DeliveryEvent).where(DeliveryEvent.intake_id == intake.id)
+        (
+            await db_session.execute(
+                select(DeliveryEvent).where(DeliveryEvent.intake_id == intake.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert [str(e.event_type) for e in rows] == ["received"]
 
 
@@ -229,15 +231,24 @@ async def test_overview_buckets(
     await _seed_intake(db_session, service_key, status="pending_review", refine_status="refined")
     await _seed_intake(db_session, service_key, status="accepted", refine_status="refined")
     await _seed_intake(
-        db_session, service_key, status="accepted", refine_status="refined",
+        db_session,
+        service_key,
+        status="accepted",
+        refine_status="refined",
         tickets_status="issued",
     )
     await _seed_intake(
-        db_session, service_key, status="accepted", refine_status="refined",
+        db_session,
+        service_key,
+        status="accepted",
+        refine_status="refined",
         tickets_status="verified",
     )
     await _seed_intake(
-        db_session, service_key, status="accepted", refine_status="refined",
+        db_session,
+        service_key,
+        status="accepted",
+        refine_status="refined",
         tickets_status="gate_failed",
     )
     await _seed_intake(db_session, service_key, status="rejected", refine_status="pending")
@@ -279,9 +290,7 @@ async def test_timeline_unknown_intake_404(
 @pytest.mark.asyncio
 async def test_records_require_authentication(client: AsyncClient) -> None:
     """미인증 조회 차단 — 기록면은 사람 조회용이고 머신 토큰 경로가 아니다."""
-    assert (
-        await client.get(f"/api/v1/intake/{uuid.uuid4()}/timeline")
-    ).status_code in (401, 403)
+    assert (await client.get(f"/api/v1/intake/{uuid.uuid4()}/timeline")).status_code in (401, 403)
     assert (await client.get("/api/v1/intake/overview")).status_code in (401, 403)
 
 

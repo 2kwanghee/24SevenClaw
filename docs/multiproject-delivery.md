@@ -1,15 +1,17 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: current
-last_updated: 2026-07-28
+status: needs-revision
+last_updated: 2026-07-29
 related:
   - clickeye-api/app/models/intake.py
   - clickeye-api/app/models/llm_usage_ledger.py
   - clickeye-api/app/models/user_anthropic_credentials.py
   - clickeye-api/app/models/delivery_profile.py
   - clickeye-api/app/services/llm_gateway.py
+  - clickeye-api/app/api/v1/llm.py
   - clickeye-api/app/api/v1/governance.py
+  - scripts/usage_ingest.py
   - governance/policy.py
   - governance/core.py
   - scripts/auto_dev_pipeline.sh
@@ -228,6 +230,12 @@ error 행으로 기록(D-9). 부수 발견·수정: Anthropic 키 부재 시 유
 **어느 계정(시트)이 썼는지 식별하는 컬럼이 없다.** "구독시트였다"는 알 수 있지만 "몇 번
 시트였다"는 알 수 없다. → **"각각의 계정마다 토큰 모니터링"이 현재 불가능하다.**
 
+> **현행화(2026-07-29, D-8/P4·F-1):** `seat_id`(FK `user_anthropic_credentials`, ondelete
+> SET NULL) 1급 컬럼이 추가됐고, 로컬 `claude -p` 배치 사용량을 이 축으로 원장에 적재하는
+> 인제스트 배관(`POST /api/v1/llm/ingest/usage` · `scripts/usage_ingest.py`, CE-328)이
+> 완료됐다. `session_id` 컬럼(멱등 키)도 함께 추가. 이로써 계정별 토큰 모니터링의 나머지
+> 절반(로컬 소비)이 연결된다. 잔여(정제·분해 지점 json 전환)는 F-1 후속.
+
 ### 5-3. 필요한 것
 
 1. **Seat 레지스트리** — `credential_type` 에 OAuth/구독 시트를 추가하고, `user_id` 1:1
@@ -379,11 +387,18 @@ infraeye-harness (실측 2026-07-29)
 
 | # | 과제 | 값 / 차단 |
 |---|---|---|
-| **F-1** | **사용량 인제스트 배관** — 로컬 `claude -p` 사용량을 서버 원장(`LlmUsageLedger`, seat_id 축)으로 | P4 "계정별 토큰 모니터링"이 현재 **절반만** 작동(서버 in-API 호출만 기록). **핵심가치 직결** · P5 유보분(시트별 레이트 카운터)의 선행 |
+| **F-1** | **사용량 인제스트 배관** — 로컬 `claude -p` 사용량을 서버 원장(`LlmUsageLedger`, seat_id 축)으로 | 🔄 **v1 완료 (2026-07-29, CE-328)** — 서버 인제스트(`POST /llm/ingest/usage`, 202 비블로킹·seat 사전검증·(session_id,model) 멱등) + ① 구현 스텝(`auto_dev_pipeline.sh` stream-json 사후 파싱, 토글 `FLOWOPS_USAGE_INGEST`/`FEATURE_LLM_USAGE_INGEST` opt-in, off면 회귀 0)까지. **후속(별도 티켓)**: ② 정제·③ 분해/인테이크 지점의 json 전환(엔벨로프 오염 다중 회귀 경로 재설계 필요). P5 유보분(시트별 레이트 카운터)의 선행 해소 |
 | **F-2** | **실토큰 다계정 실증** — 레이트 한도가 계정별 독립인지 | P4 가정 미확정. 팀원 시트 첫 등록 시 |
 | **F-3** | P8 집행면 (§8-1 방식) | T3 티어 착수 시 |
 | **F-4** | 제어면 YAML `gates` → 검증 배치 자동 해석 | 현재 `VERIFY_GATES_FILE` 수동. 다프로젝트 워크스페이스 배선과 함께 |
 | **F-5** | 종량 잔존 스크립트 처분 — `gpt_pr_review.py`·`fix_plan_generator.py`(OPENAI_API_KEY) | P3 감사 결과. 전환 또는 제거 결정 필요 |
+
+> **거버넌스 예산 상호작용(CE-328 §M2):** `governance_gate_service._usage_from_ledger` 는
+> key_source/request_kind 구분 없이 토큰을 합산하므로, `FLOWOPS_GOVERNANCE_TRIAGE_BUDGET`
+> opt-in + `token_limit>0` 환경에서는 F-1 로 유입되는 로컬 배치 토큰(`request_kind='local_batch_%'`)이
+> 예산 판정에 포함돼 자율 파이프라인이 자기 사용량으로 block 될 수 있다. **v1 결정: 집계 로직은
+> 변경하지 않는다**(기본 `token_limit=0` → skip 이라 기본 동작 불변). 로컬 유입분 제외 여부는
+> P5 시트별 레이트 카운터 설계 시 결정한다.
 
 ---
 
@@ -394,6 +409,7 @@ infraeye-harness (실측 2026-07-29)
 | 2026-07-27 | 초판 — 5-Plane · Tier T1~T3 · `D-1`~`D-9` | 다프로젝트화 착수 |
 | 2026-07-28 | **전면 재작성** — `D-3` 철회(YAML 정본) · `D-7` 재정의(동시 다발+완주) · `D-10`~`D-14` 신설 · Phase 재정렬 | 3-서비스 체인·구독형 전용·다계정 동시 실행이 핵심가치로 확정됨 |
 | 2026-07-29 | **P8 방식 확정(층 분리 이식)·보류 결정 + 후속 과제 F-1~F-5 등재.** 이전 판의 "선행 구현 리뷰 미결" 서술을 실측으로 정정(241 pass·리뷰어 정족수 통과, 잔여는 install.sh 부재) | 낡은 스냅샷을 반복 인용하고 있었음 — 실측으로 교체 |
+| 2026-07-29 | **F-1 v1 완료(CE-328)** — 로컬 `claude -p` 사용량 → 서버 원장 인제스트 배관(seat_id 축·session_id 멱등·202 비블로킹) + ① 구현 스텝 배선. §5-2 현행화(seat_id/session_id 컬럼·배관 완료)·§8-2 F-1 진행 반영·거버넌스 예산 상호작용(M2) 기록 | 계정별 토큰 모니터링의 로컬 절반 연결 |
 | 2026-07-28 | **E2E 리허설 통과** — 모의 수주 1건 ①~⑥ live 관통(정제·분해=claude 구독, Linear 실물 CE-320~323, verified 확정). 실증 결함 2건 수정: 완주 판정 name→**type 기준**(팀 커스텀 Confirm=completed 대응) · 발급 기본 상태 →Queued. 미배선 확인: 제어면 gates→검증 배치 자동 해석(P5/P8) | 코드 검증만으로 못 잡는 팀별 워크플로 차이를 실증으로 확인 |
 
 ---

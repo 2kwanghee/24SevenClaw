@@ -1093,6 +1093,8 @@ export type LlmIngestRequest = {
     }>;
 };
 
+export type LlmKeySource = 'subscription_seat' | 'org_api_key';
+
 /**
  * key_source(구독시트/조직키)별 토큰·비용 합계.
  */
@@ -1160,6 +1162,8 @@ export type LlmUsageEntryResponse = {
     created_at: string | null;
     project_id: string | null;
     task_id: string | null;
+    seat_id?: string | null;
+    session_id?: string | null;
     provider: string;
     key_source: string;
     model: string;
@@ -1173,9 +1177,78 @@ export type LlmUsageEntryResponse = {
     } | null;
 };
 
+/**
+ * 로컬 배치(claude -p) 사용량 인제스트 요청 (CE-328).
+ *
+ * 로컬 usage_ingest 스크립트가 result 이벤트의 modelUsage 를 모델별 항목으로 보낸다.
+ * seat_id/project_id 미확인 시 NULL 허용(서버가 축 손실을 흡수). 항상 202 비블로킹.
+ */
+export type LlmUsageIngestRequest = {
+    /**
+     * result 이벤트의 session_id.
+     */
+    session_id: string;
+    /**
+     * 출처 구분(예: local_batch_implement).
+     */
+    request_kind?: string;
+    /**
+     * apiKeySource='none' → subscription_seat, 그 외 → org_api_key.
+     */
+    key_source?: LlmKeySource;
+    /**
+     * 구독 시트 ID(CLICKEYE_SEAT_ID).
+     */
+    seat_id?: string | null;
+    /**
+     * 프로젝트 ID(CLICKEYE_PROJECT_ID).
+     */
+    project_id?: string | null;
+    /**
+     * 태스크 상관키(예: CE-328).
+     */
+    task_id?: string | null;
+    /**
+     * modelUsage 모델별 항목(1개 이상).
+     */
+    models: Array<LlmUsageModelEntry>;
+    /**
+     * 공유 런 정보(total_cost_usd/num_turns/duration_ms 등).
+     */
+    meta?: {
+        [key: string]: unknown;
+    } | null;
+};
+
 export type LlmUsageListResponse = {
     items: Array<LlmUsageEntryResponse>;
     total: number;
+};
+
+/**
+ * modelUsage 의 모델별 항목 — 비캐시 input/output + 캐시 토큰(로컬 배치 CE-328).
+ */
+export type LlmUsageModelEntry = {
+    /**
+     * 모델 식별자(예: claude-sonnet-5).
+     */
+    model: string;
+    /**
+     * 비캐시 입력 토큰.
+     */
+    input_tokens?: number;
+    /**
+     * 출력 토큰.
+     */
+    output_tokens?: number;
+    /**
+     * 캐시 읽기 입력 토큰.
+     */
+    cache_read_input_tokens?: number;
+    /**
+     * 캐시 생성 입력 토큰.
+     */
+    cache_creation_input_tokens?: number;
 };
 
 export type LlmUsageStatus = 'success' | 'error';
@@ -3196,6 +3269,36 @@ export type IngestPipelineApiV1LlmIngestPipelinePostResponses = {
 };
 
 export type IngestPipelineApiV1LlmIngestPipelinePostResponse = IngestPipelineApiV1LlmIngestPipelinePostResponses[keyof IngestPipelineApiV1LlmIngestPipelinePostResponses];
+
+export type IngestUsageApiV1LlmIngestUsagePostData = {
+    body: LlmUsageIngestRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/llm/ingest/usage';
+};
+
+export type IngestUsageApiV1LlmIngestUsagePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IngestUsageApiV1LlmIngestUsagePostError = IngestUsageApiV1LlmIngestUsagePostErrors[keyof IngestUsageApiV1LlmIngestUsagePostErrors];
+
+export type IngestUsageApiV1LlmIngestUsagePostResponses = {
+    /**
+     * Successful Response
+     */
+    202: {
+        [key: string]: unknown;
+    };
+};
+
+export type IngestUsageApiV1LlmIngestUsagePostResponse = IngestUsageApiV1LlmIngestUsagePostResponses[keyof IngestUsageApiV1LlmIngestUsagePostResponses];
 
 export type ListAgentsApiV1AdminRegistryAgentsGetData = {
     body?: never;

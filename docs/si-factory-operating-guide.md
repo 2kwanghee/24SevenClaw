@@ -53,6 +53,7 @@ related:
 | 거버넌스 HTTP 경유 | `FLOWOPS_GOVERNANCE_SERVICE_URL` | 로컬 shim → 컨트롤 플레인 서비스 |
 | Temporal 섀도우 레일 | `FEATURE_TEMPORAL=true` + `FLOWOPS_TEMPORAL=true` | 기존 거버넌스 결정 미러링, 부작용 0 |
 | LLM 게이트웨이 계측 | `FEATURE_LLM_GATEWAY=true` | AI 호출을 원장에 기록 |
+| 로컬 배치 사용량 인제스트 | `FLOWOPS_USAGE_INGEST=on`(로컬 훅) + `FEATURE_LLM_USAGE_INGEST=true`(서버) | 로컬 `claude -p` 사용량을 서버 원장(seat_id 축)에 기록 (CE-328, 202 비블로킹) |
 | 3단 트리아지 관측 | `FLOWOPS_GOVERNANCE_TRIAGE=on` | risk_score, budget 계산 (판정 미적용) |
 | 트리아지 집행 | `FLOWOPS_GOVERNANCE_TRIAGE_ENFORCE=on` | review→PR, block→차단 (선결: CE-297) |
 

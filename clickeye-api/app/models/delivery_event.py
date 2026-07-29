@@ -55,6 +55,4 @@ class DeliveryEvent(Base):
     detail = Column(Text, nullable=True)
     # 구조화 부가정보(티켓 수·게이트 결과 요약 등) — 스키마 강제 없음(관측 전용).
     meta = Column(JSON, nullable=True)
-    created_at = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
-    )
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)

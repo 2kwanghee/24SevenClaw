@@ -108,6 +108,10 @@ class Settings(BaseSettings):
     # 게이트웨이 경유로 라우팅해 usage 를 원장에 기록. off 면 기존 경로 그대로(회귀 0).
     feature_llm_gateway: bool = False
     llm_gateway_max_concurrency: int = 8  # 전역 동시성 세마포어 상한
+    # 로컬 배치(claude -p) 사용량 인제스트 (CE-328). 기본 off — off 면 POST
+    # /llm/ingest/usage 가 {status: disabled} 로 즉시 반환(회귀 0). on 시에만 로컬
+    # usage_ingest 스크립트가 보낸 modelUsage 를 원장에 seat_id 축으로 기록한다.
+    feature_llm_usage_ingest: bool = False
     # 가격맵 외부화(P2). 빈값이면 번들 기본 파일(app/data/llm_pricing.json) 사용.
     # 테스트/운영에서 대체 파일 경로 주입 가능.
     llm_pricing_path: str = ""

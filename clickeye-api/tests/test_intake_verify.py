@@ -155,9 +155,7 @@ async def test_verified_is_terminal_and_idempotent(
 ) -> None:
     """최종 상태 하향 불가 — verified 후 실패 제출이 와도 no-op 이다."""
     intake = await _make_intake(db_session, service_key_id, owner)
-    await client.post(
-        f"/api/v1/intake/{intake.id}/verified", json={"passed": True, "report": "ok"}
-    )
+    await client.post(f"/api/v1/intake/{intake.id}/verified", json={"passed": True, "report": "ok"})
     resp = await client.post(
         f"/api/v1/intake/{intake.id}/verified",
         json={"passed": False, "report": "뒤늦은 실패 주장"},

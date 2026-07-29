@@ -67,6 +67,11 @@ class LlmUsageLedger(Base):
     # 구독시트는 비용=NULL, 조직키만 단가로 산정
     cost = Column(Numeric(14, 6), nullable=True)
     request_kind = Column(String(64), nullable=False)  # 예: wizard_preview
+    # 로컬 배치(claude -p) result 이벤트의 session_id — 멱등 인제스트 키(CE-328).
+    # in-API 게이트웨이 호출은 session 개념이 없어 NULL. 부분 유니크 인덱스
+    # (session_id, model) WHERE session_id IS NOT NULL 은 마이그레이션 057 에만 둔다
+    # (047 선례 — SQLite 가 postgresql_where 를 무시해 테스트가 깨지는 것 회피).
+    session_id = Column(String(64), nullable=True)
     meta = Column(JSONB, nullable=True)
     status: Column[LlmUsageStatus] = Column(
         Enum(LlmUsageStatus, name="llm_usage_status"),

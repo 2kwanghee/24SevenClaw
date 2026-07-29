@@ -57,6 +57,7 @@ class SubscriptionOnlyError(RuntimeError):
     "이 작업은 서버가 아니라 로컬 실행 플레인(claude -p 배치)으로 가야 한다"는 신호다.
     """
 
+
 # 전역 동시성 세마포어 — in-API LLM 호출 총량 상한. 모듈 로드 시 1회 생성.
 _semaphore = asyncio.Semaphore(settings.llm_gateway_max_concurrency)
 

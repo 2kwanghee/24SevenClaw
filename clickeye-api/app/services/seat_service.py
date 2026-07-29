@@ -86,9 +86,7 @@ class SeatService:
         logger.info("seat_deleted", extra={"seat_id": seat_id, "user_id": str(user_id)})
 
     # ── 프로젝트 배정 ──────────────────────────────────────────────────────
-    async def assign_to_project(
-        self, project: Project, seat_user_id: UUID | None
-    ) -> UUID | None:
+    async def assign_to_project(self, project: Project, seat_user_id: UUID | None) -> UUID | None:
         """프로젝트에 시트를 배정하거나(seat_user_id) 해제한다(None).
 
         배정 대상이 시트를 갖고 있지 않으면 404 — 죽은 배정을 남기지 않는다.

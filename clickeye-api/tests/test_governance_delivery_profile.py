@@ -334,14 +334,10 @@ async def test_get_policy_without_project_id_unchanged(client, auth_headers):
 
 
 @pytest.mark.asyncio
-async def test_get_policy_with_project_id_returns_project_policy(
-    client, auth_headers, db_session
-):
+async def test_get_policy_with_project_id_returns_project_policy(client, auth_headers, db_session):
     proj = await _seed_profile(db_session, _JAVA_POLICY)
 
-    resp = await client.get(
-        f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers)
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["policy_source"] == "project_profile"
@@ -357,9 +353,7 @@ async def test_get_policy_project_toggles_ignore_env(client, auth_headers, db_se
     monkeypatch.setenv("FLOWOPS_GOVERNANCE", "off")
     proj = await _seed_profile(db_session, _JAVA_POLICY)
 
-    resp = await client.get(
-        f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers)
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["governance_enabled"] is True
@@ -369,9 +363,7 @@ async def test_get_policy_project_toggles_ignore_env(client, auth_headers, db_se
 @pytest.mark.asyncio
 async def test_get_policy_unregistered_project_discloses_fallback(client, auth_headers, db_session):
     proj = await _seed_project(db_session)
-    resp = await client.get(
-        f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers)
     assert resp.status_code == 200, resp.text
     assert resp.json()["policy_source"] == "default_no_profile"
 
@@ -379,9 +371,7 @@ async def test_get_policy_unregistered_project_discloses_fallback(client, auth_h
 @pytest.mark.asyncio
 async def test_get_policy_invalid_profile_returns_422(client, auth_headers, db_session):
     proj = await _seed_profile(db_session, {"high_prefixes": [""]})  # 빈 문자열 원소 → 불량
-    resp = await client.get(
-        f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/governance/policy?project_id={proj.id}", headers=auth_headers)
     assert resp.status_code == 422, resp.text
 
 

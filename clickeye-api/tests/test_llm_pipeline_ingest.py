@@ -39,9 +39,7 @@ def _autoingest_on(monkeypatch):
 async def _add_cred(db: AsyncSession, team_id: str) -> uuid.UUID:
     project_id = uuid.uuid4()
     db.add(
-        ProjectLinearCredentials(
-            project_id=project_id, encrypted_api_key="enc", team_id=team_id
-        )
+        ProjectLinearCredentials(project_id=project_id, encrypted_api_key="enc", team_id=team_id)
     )
     await db.commit()
     return project_id
@@ -52,9 +50,7 @@ async def _add_cred(db: AsyncSession, team_id: str) -> uuid.UUID:
 
 async def test_toggle_off_returns_disabled(client: AsyncClient):
     """기본(off) → 202 {status: disabled} — 에러 아님(비블로킹 계약)."""
-    resp = await client.post(
-        _URL, json={"team_id": "t-1", "source_id": "s", "text": "x"}
-    )
+    resp = await client.post(_URL, json={"team_id": "t-1", "source_id": "s", "text": "x"})
     assert resp.status_code == 202
     assert resp.json() == {"status": "disabled"}
 
@@ -83,9 +79,7 @@ async def test_team_mapping_single_queued(
 
 
 async def test_team_unmapped_skipped(client: AsyncClient, _autoingest_on):
-    resp = await client.post(
-        _URL, json={"team_id": "team-ghost", "source_id": "s", "text": "x"}
-    )
+    resp = await client.post(_URL, json={"team_id": "team-ghost", "source_id": "s", "text": "x"})
     assert resp.status_code == 202
     body = resp.json()
     assert body["status"] == "skipped" and "team-ghost" in body["reason"]
@@ -98,9 +92,7 @@ async def test_team_ambiguous_skipped(
     """복수 프로젝트가 같은 팀 공유 → 스킵(결정적, KB 네임스페이스 오염 방지)."""
     await _add_cred(db_session, "team-shared")
     await _add_cred(db_session, "team-shared")
-    resp = await client.post(
-        _URL, json={"team_id": "team-shared", "source_id": "s", "text": "x"}
-    )
+    resp = await client.post(_URL, json={"team_id": "team-shared", "source_id": "s", "text": "x"})
     assert resp.status_code == 202
     assert resp.json()["status"] == "skipped"
     assert _autoingest_on == []

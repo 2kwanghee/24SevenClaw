@@ -13,7 +13,7 @@ clickeye-llm 미가용(연결 실패/타임아웃) 시 503 으로 명확히 degr
 from __future__ import annotations
 
 import contextlib
-from typing import Any, Literal
+from typing import Any, Literal, cast
 from uuid import UUID
 
 import httpx
@@ -30,7 +30,9 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_superadmin
 from app.models.project import Project
 from app.models.user import User
+from app.schemas.llm_ledger import LlmUsageIngestRequest
 from app.services.llm_ingest import enqueue_ingest, resolve_project_by_team
+from app.services.llm_ledger_service import LlmLedgerService
 from app.services.project_service import ProjectService
 
 logger = get_logger(__name__)
@@ -42,9 +44,7 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 _CHAT_TIMEOUT = 60.0
 _READ_TIMEOUT = 30.0
 
-_LLM_UNAVAILABLE = (
-    "LLM 어시스턴트 미가용 — profile llm 미기동일 수 있습니다."
-)
+_LLM_UNAVAILABLE = "LLM 어시스턴트 미가용 — profile llm 미기동일 수 있습니다."
 
 
 class LlmChatRequest(BaseModel):
@@ -65,13 +65,14 @@ async def _verify_project_access(db: AsyncSession, user: User, project_id: UUID)
     await ProjectService(db).get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
 
 
-async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> Any:
+async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
     """clickeye-llm 으로 POST 프록시. 미가용/타임아웃 시 AppError(503)."""
     try:
         async with httpx.AsyncClient(base_url=settings.clickeye_llm_url, timeout=timeout) as cli:
             resp = await cli.post(path, json=payload)
             resp.raise_for_status()
-            return resp.json()
+            # resp.json() 은 Any — 프록시 계약상 JSON 오브젝트로 좁힌다(런타임 무변경).
+            return cast(dict[str, Any], resp.json())
     except httpx.HTTPStatusError as exc:
         # clickeye-llm 이 응답은 했으나 오류(예: 502 임베딩 백엔드) — 원 상태코드 보존.
         logger.warning("llm_proxy_upstream_error", path=path, status=exc.response.status_code)
@@ -84,13 +85,14 @@ async def _proxy_post(path: str, payload: dict[str, Any], timeout: float) -> Any
         raise AppError("LLM_UNAVAILABLE", _LLM_UNAVAILABLE, 503) from exc
 
 
-async def _proxy_get(path: str, timeout: float) -> Any:
+async def _proxy_get(path: str, timeout: float) -> dict[str, Any]:
     """clickeye-llm 으로 GET 프록시. 미가용/타임아웃 시 AppError(503)."""
     try:
         async with httpx.AsyncClient(base_url=settings.clickeye_llm_url, timeout=timeout) as cli:
             resp = await cli.get(path)
             resp.raise_for_status()
-            return resp.json()
+            # resp.json() 은 Any — 프록시 계약상 JSON 오브젝트로 좁힌다(런타임 무변경).
+            return cast(dict[str, Any], resp.json())
     except httpx.HTTPStatusError as exc:
         logger.warning("llm_proxy_upstream_error", path=path, status=exc.response.status_code)
         raise AppError("LLM_UPSTREAM_ERROR", _LLM_UNAVAILABLE, exc.response.status_code) from exc
@@ -195,9 +197,7 @@ class LlmFeedbackRequest(BaseModel):
     answer: str = Field(..., min_length=1, description="당시 어시스턴트 답변 원문.")
     rating: Literal["up", "down"] = Field(..., description="평가(👍 up / 👎 down).")
     comment: str | None = Field(default=None, description="선택 코멘트(주로 down 사유).")
-    sources: list[str] | None = Field(
-        default=None, description="답변에 사용된 source_id 목록."
-    )
+    sources: list[str] | None = Field(default=None, description="답변에 사용된 source_id 목록.")
 
 
 @router.post("/feedback")
@@ -291,3 +291,24 @@ async def ingest_pipeline(
 
     enqueue_ingest(project_id, body.source_id, body.text, body.metadata)
     return {"status": "queued", "project_id": str(project_id)}
+
+
+@router.post(
+    "/ingest/usage",
+    status_code=202,
+    dependencies=[Depends(verify_governance_token)],
+)
+async def ingest_usage(
+    body: LlmUsageIngestRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    """로컬 배치(claude -p) 사용량 인제스트 (CE-328) — 파이프라인發, X-Governance-Token 보호.
+
+    항상 202(비블로킹 계약 — 호출측 파이프라인을 절대 죽이지 않는다):
+    - FEATURE_LLM_USAGE_INGEST off → {status: disabled} (에러 아님).
+    - 중복 session_id(모두 기록됨) → {status: skipped}.
+    - 성공 → {status: recorded, rows: n}. 비즈니스 로직은 LlmLedgerService 위임.
+    """
+    if not settings.feature_llm_usage_ingest:
+        return {"status": "disabled"}
+    return await LlmLedgerService(db).record_usage_batch(body)

@@ -31,7 +31,7 @@ import re
 import secrets
 import socket
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import httpx
@@ -112,9 +112,7 @@ async def _resolve_public_ip(url: str) -> str:
     if not host:
         raise SSRFBlockedError("SSRF_BLOCKED: 호스트가 없는 URL")
     try:
-        infos = await asyncio.get_running_loop().getaddrinfo(
-            host, None, type=socket.SOCK_STREAM
-        )
+        infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
     except (socket.gaierror, OSError) as exc:
         raise SSRFBlockedError(f"SSRF_BLOCKED: 호스트 해석 실패 '{host}' ({exc})") from exc
     candidates: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
@@ -133,9 +131,7 @@ async def _resolve_public_ip(url: str) -> str:
     return str(candidates[0])
 
 
-def _pinned_request_parts(
-    url: str, ip: str
-) -> tuple[httpx.URL, dict[str, str], dict[str, Any]]:
+def _pinned_request_parts(url: str, ip: str) -> tuple[httpx.URL, dict[str, str], dict[str, Any]]:
     """검증된 IP 로 커넥션을 고정한 요청 구성요소(url, headers, extensions)를 만든다.
 
     - URL 호스트를 IP 로 치환 → TCP 연결이 검증된 IP 로만 나간다(재해석 없음).
@@ -227,7 +223,7 @@ async def _fetch_url_text(url: str) -> str:
         raise SSRFBlockedError(f"SSRF_BLOCKED: 리다이렉트 한도({MAX_REDIRECTS}회) 초과")
 
 
-def _build_callback_body(intake: IntakeRequest) -> dict:
+def _build_callback_body(intake: IntakeRequest) -> dict[str, Any]:
     """콜백 페이로드 — 재시도 시에도 현재 상태 기준으로 재생성한다(timestamp 갱신).
 
     P6: 티켓 발급 정보를 additive 로 포함한다 — tickets_status 는 항상,
@@ -250,7 +246,7 @@ def _build_callback_body(intake: IntakeRequest) -> dict:
     return body
 
 
-async def _send_callback(callback_url: str, secret: str, body: dict) -> None:
+async def _send_callback(callback_url: str, secret: str, body: dict[str, Any]) -> None:
     """콜백 1회 발송 — 실패 시 예외를 던진다(재시도 판단은 호출부 책임).
 
     서명 스펙: X-ClickEye-Signature = HMAC-SHA256 hexdigest,
@@ -349,7 +345,9 @@ async def _record_callback_result(intake_id: UUID, ok: bool, error: str | None) 
         logger.warning("인테이크 콜백 결과 기록 실패(무시): intake_id=%s err=%s", intake_id, exc)
 
 
-async def _attempt_callback(intake_id: UUID, callback_url: str, secret: str, body: dict) -> None:
+async def _attempt_callback(
+    intake_id: UUID, callback_url: str, secret: str, body: dict[str, Any]
+) -> None:
     """즉시 1회 발송 시도 코루틴 — 결과를 DB 에 기록하고 예외는 삼킨다."""
     try:
         await _send_callback(callback_url, secret, body)
@@ -393,7 +391,9 @@ def _enqueue_callback(intake: IntakeRequest, key: IntakeServiceKey | None) -> No
             logger.warning("이벤트 루프 없음 — 인테이크 콜백 스킵: intake_id=%s", intake.id)
             return
         task = loop.create_task(
-            _attempt_callback(intake.id, str(intake.callback_url), str(key.key_hash), body)
+            _attempt_callback(
+                cast(UUID, intake.id), str(intake.callback_url), str(key.key_hash), body
+            )
         )
         _callback_tasks.add(task)
         task.add_done_callback(_callback_tasks.discard)
@@ -409,17 +409,21 @@ async def process_due_callbacks(db: AsyncSession, limit: int = 20) -> int:
     """
     now = datetime.now(UTC)
     rows = (
-        await db.execute(
-            select(IntakeRequest)
-            .where(
-                IntakeRequest.callback_status == "pending",
-                IntakeRequest.callback_next_retry_at.is_not(None),
-                IntakeRequest.callback_next_retry_at <= now,
+        (
+            await db.execute(
+                select(IntakeRequest)
+                .where(
+                    IntakeRequest.callback_status == "pending",
+                    IntakeRequest.callback_next_retry_at.is_not(None),
+                    IntakeRequest.callback_next_retry_at <= now,
+                )
+                .order_by(IntakeRequest.callback_next_retry_at.asc())
+                .limit(limit)
             )
-            .order_by(IntakeRequest.callback_next_retry_at.asc())
-            .limit(limit)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sent = 0
     for intake in rows:
         key = await db.get(IntakeServiceKey, intake.service_key_id)
@@ -575,7 +579,7 @@ class IntakeService:
             if existing is not None:
                 return existing
 
-        payload: dict = {}
+        payload: dict[str, Any] = {}
         normalized_text: str | None = None
 
         if data.input_type == "structured":
@@ -616,7 +620,9 @@ class IntakeService:
         await self.db.refresh(intake)
         # 멱등 재수신(위 existing 반환 경로)은 이벤트를 남기지 않는다 — 신규 접수만.
         await self._record_event(
-            intake, "received", actor_type="machine",
+            intake,
+            "received",
+            actor_type="machine",
             detail=f"수신({data.input_type}): {data.title}",
         )
         return intake
@@ -772,14 +778,17 @@ class IntakeService:
         # (테스트의 공유 세션 등에서) 세션을 잡은 뒤 이벤트 커밋이 끼어들면 세션
         # 동시성 충돌로 콜백 기록이 유실된다(실측).
         await self._record_event(
-            intake, event_type, actor_type=actor_type, actor_id=actor_id,
+            intake,
+            event_type,
+            actor_type=actor_type,
+            actor_id=actor_id,
             detail=f"{'기계 수락(D-12)' if event_type == 'machine_accepted' else '사람 수락'} "
             f"— Project 생성({project.id}), 소유자={owner.email}",
         )
 
         # P1.5 KB 인제스트 훅 — 토글 off 면 no-op, 예외 비전파(fire-and-forget).
         enqueue_ingest(
-            project.id,
+            cast(UUID, project.id),
             f"intake:{intake.id}",
             f"[인테이크 수주] {intake.title}\n{requirements_source or ''}",
             metadata={"kind": "intake", "input_type": intake.input_type},
@@ -849,7 +858,9 @@ class IntakeService:
         await self.db.commit()
         await self.db.refresh(intake)
         await self._record_event(
-            intake, "tickets_issued", actor_type="machine",
+            intake,
+            "tickets_issued",
+            actor_type="machine",
             detail=f"티켓 전량 발급 — {len(tickets)}건: "
             + ", ".join(t.get("identifier", "?") for t in tickets[:10]),
             meta={"count": len(tickets)},
@@ -931,7 +942,7 @@ class IntakeService:
         """반려 — rejected 로 전이하고 사유/처리자를 payload 에 기록한다."""
         intake = await self._get_pending(intake_id)
         # JSON 컬럼 in-place 변경은 감지되지 않으므로 새 dict 로 재할당한다.
-        intake.payload = {
+        intake.payload = {  # type: ignore[assignment]  # 레거시 Column 타이핑(record_verification 동일)
             **(intake.payload or {}),
             "reject_reason": reason,
             "rejected_by": str(user.id),
