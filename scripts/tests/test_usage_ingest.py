@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import uuid
 
 import pytest
 
@@ -116,7 +117,12 @@ def test_multi_model_usage_becomes_per_model_entries():
     assert h["input_tokens"] == 10 and h["output_tokens"] == 20
 
 
-def test_usage_fallback_when_no_model_usage():
+def test_no_model_usage_returns_empty_entries():
+    """modelUsage 부재 → 빈 리스트. top-level usage 폴백을 하지 않는다(계획 M4).
+
+    'unknown' 모델 쓰레기 행이 원장에 남지 않도록, run() 의 '모델 사용량 없음 — 스킵'
+    경로가 처리하게 위임한다.
+    """
     evt = {
         "type": "result",
         "session_id": "s",
@@ -128,11 +134,24 @@ def test_usage_fallback_when_no_model_usage():
             "cache_creation_input_tokens": 3,
         },
     }
-    entries = ui.models_from_result(evt)
-    assert len(entries) == 1
-    assert entries[0]["model"] == "claude-sonnet-5"
-    assert entries[0]["input_tokens"] == 100 and entries[0]["output_tokens"] == 50
-    assert entries[0]["cache_read_input_tokens"] == 7
+    assert ui.models_from_result(evt) == []
+
+
+def test_main_skips_post_when_no_model_usage(monkeypatch, tmp_path):
+    """modelUsage 없는 result → main() 은 0 을 반환하고 POST 를 호출하지 않는다."""
+    log = tmp_path / "claude.log"
+    log.write_text(
+        _init_line("none")
+        + "\n"
+        + json.dumps({"type": "result", "session_id": "s", "usage": {"input_tokens": 1}})
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_SERVICE_URL", "http://gov:8000")
+    monkeypatch.setattr(
+        ui, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("전송 금지"))
+    )
+    assert ui.main(["--log", str(log)]) == 0
 
 
 # ── 3. key_source 유도 ───────────────────────────────────────────────────────
@@ -155,8 +174,10 @@ def test_key_source_derivation(aks, expected):
 
 
 def test_build_payload_shape_with_env(monkeypatch):
-    monkeypatch.setenv("CLICKEYE_SEAT_ID", "seat-uuid-1")
-    monkeypatch.setenv("CLICKEYE_PROJECT_ID", "proj-uuid-1")
+    seat = str(uuid.uuid4())
+    proj = str(uuid.uuid4())
+    monkeypatch.setenv("CLICKEYE_SEAT_ID", seat)
+    monkeypatch.setenv("CLICKEYE_PROJECT_ID", proj)
     evt = json.loads(_result_line())
     payload = ui.build_payload(
         evt, "none", request_kind="local_batch_implement", task_id="CE-328"
@@ -164,13 +185,27 @@ def test_build_payload_shape_with_env(monkeypatch):
     assert payload["session_id"] == "sess-abc"
     assert payload["request_kind"] == "local_batch_implement"
     assert payload["key_source"] == "subscription_seat"
-    assert payload["seat_id"] == "seat-uuid-1"
-    assert payload["project_id"] == "proj-uuid-1"
+    assert payload["seat_id"] == seat
+    assert payload["project_id"] == proj
     assert payload["task_id"] == "CE-328"
     assert len(payload["models"]) == 1
     assert payload["meta"]["total_cost_usd"] == 0.35
     assert payload["meta"]["num_turns"] == 12
     assert payload["meta"]["api_key_source"] == "none"
+
+
+def test_build_payload_drops_non_uuid_axes(monkeypatch):
+    """비-UUID seat_id/project_id 는 None 으로 떨어뜨리되 사용량(models)은 유지한다."""
+    monkeypatch.setenv("CLICKEYE_SEAT_ID", "not-a-uuid")
+    monkeypatch.setenv("CLICKEYE_PROJECT_ID", "also-bad")
+    evt = json.loads(_result_line())
+    payload = ui.build_payload(
+        evt, "none", request_kind="local_batch_implement", task_id="CE-328"
+    )
+    assert payload["seat_id"] is None
+    assert payload["project_id"] is None
+    assert payload["session_id"] == "sess-abc"
+    assert len(payload["models"]) == 1  # 사용량은 살린다
 
 
 def test_build_payload_null_axes_when_env_absent(monkeypatch):
@@ -271,3 +306,28 @@ def test_main_exit_zero_when_log_missing(monkeypatch):
     monkeypatch.setenv("FLOWOPS_GOVERNANCE_SERVICE_URL", "http://gov:8000")
     rc = ui.main(["--log", "/nonexistent/path/claude.log"])
     assert rc == 0
+
+
+def test_main_skips_post_when_no_session_id(monkeypatch, tmp_path):
+    """result 에 session_id 가 없으면 확정 422 를 피하려 POST 를 보내지 않고 0 을 반환한다."""
+    log = tmp_path / "claude.log"
+    # session_id 없는 result(modelUsage 는 존재).
+    result_no_session = json.dumps(
+        {
+            "type": "result",
+            "modelUsage": {"claude-sonnet-5": {"inputTokens": 2, "outputTokens": 3}},
+        }
+    )
+    log.write_text(_init_line("none") + "\n" + result_no_session + "\n", encoding="utf-8")
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_SERVICE_URL", "http://gov:8000")
+    monkeypatch.setattr(
+        ui, "urlopen", lambda *a, **k: (_ for _ in ()).throw(AssertionError("전송 금지"))
+    )
+    assert ui.main(["--log", str(log)]) == 0
+
+
+def test_main_exit_zero_on_argparse_error():
+    """argparse 인자 오류(SystemExit)도 삼켜 파이프라인을 죽이지 않는다(exit 0)."""
+    assert ui.main(["--bad-flag"]) == 0
+    # --log 필수 인자 누락도 동일.
+    assert ui.main([]) == 0

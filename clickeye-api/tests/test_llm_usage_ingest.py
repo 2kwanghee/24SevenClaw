@@ -12,16 +12,21 @@ conftest 는 SQLite in-memory(create_all — 057 부분 유니크 인덱스는 �
 
 from __future__ import annotations
 
+import os
+import sys
 import uuid
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.llm_usage_ledger import LlmUsageLedger
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
+from app.schemas.llm_ledger import LlmUsageIngestRequest
+from app.services.llm_ledger_service import LlmLedgerService
 
 _URL = "/api/v1/llm/ingest/usage"
 
@@ -196,3 +201,125 @@ async def test_unknown_seat_id_nulled_with_meta(
     for row in rows:
         assert row.seat_id is None
         assert row.meta["unknown_seat_id"] == str(ghost)
+
+
+# ── 토글 off → 실제 원장 행 0건 ──
+
+
+async def test_toggle_off_writes_no_rows(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """off(기본)면 서비스에 닿지 않아 원장 행이 생기지 않는다(회귀 0 검증)."""
+    resp = await client.post(_URL, json=_payload(session_id="sess-off"))
+    assert resp.json() == {"status": "disabled"}
+
+    result = await db_session.execute(
+        select(LlmUsageLedger).where(LlmUsageLedger.session_id == "sess-off")
+    )
+    assert list(result.scalars().all()) == []
+
+
+# ── org_api_key + project_id 저장 ──
+
+
+async def test_org_api_key_and_project_id_stored(
+    client: AsyncClient, db_session: AsyncSession, _ingest_on: None
+) -> None:
+    """key_source=org_api_key 와 project_id 가 원장에 그대로 저장된다."""
+    pid = uuid.uuid4()
+    resp = await client.post(
+        _URL,
+        json=_payload(
+            session_id="sess-org", key_source="org_api_key", project_id=str(pid)
+        ),
+    )
+    assert resp.status_code == 202
+    assert resp.json()["status"] == "recorded"
+
+    result = await db_session.execute(
+        select(LlmUsageLedger).where(LlmUsageLedger.session_id == "sess-org")
+    )
+    rows = list(result.scalars().all())
+    assert rows
+    for row in rows:
+        assert row.key_source.value == "org_api_key"
+        assert row.project_id == pid
+
+
+# ── 서비스 단위: IntegrityError 백스톱(프로덕션 race 방어) ──
+
+
+async def test_record_usage_batch_integrityerror_is_absorbed(
+    db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """record 가 IntegrityError 를 던져도 예외를 전파하지 않고 failed 로 집계한다.
+
+    conftest 는 SQLite create_all 이라 부분 유니크 인덱스가 없어 실제 race 를
+    재현할 수 없으므로, record 를 monkeypatch 해 IntegrityError 를 강제한다.
+    프로덕션에서는 057 부분 유니크 인덱스가 이 예외를 발생시킨다.
+    """
+    svc = LlmLedgerService(db_session)
+    req = LlmUsageIngestRequest.model_validate(
+        {
+            "session_id": "race-1",
+            "models": [{"model": "claude-sonnet-5", "input_tokens": 1, "output_tokens": 2}],
+        }
+    )
+
+    async def always_integrity(**_kw: object) -> None:
+        raise IntegrityError("stmt", {}, Exception("unique/fk 위반"))
+
+    monkeypatch.setattr(svc, "record", always_integrity)
+
+    # 예외가 전파되지 않고 dict 를 반환해야 한다(202 비블로킹 계약).
+    out = await svc.record_usage_batch(req)
+    assert out["status"] == "skipped"  # 기록된 행 없음
+    assert out.get("failed") == 1  # 재시도까지 실패 → failed 카운트 반영
+
+
+# ── 로컬 빌더 ↔ 서버 스키마 계약 일치(필드명/타입 드리프트 감지) ──
+
+
+def test_build_payload_matches_ingest_schema(monkeypatch: pytest.MonkeyPatch) -> None:
+    """scripts/usage_ingest.build_payload 산출물이 LlmUsageIngestRequest 로 검증된다.
+
+    두 스위트가 서로의 계약을 모른 채 통과하다 프로덕션 422 로만 드러나는 드리프트
+    (예: cache_* 키 변경)를 잡는다.
+    """
+    scripts_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "scripts",
+    )
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import usage_ingest as ui  # noqa: E402
+
+    result_event = {
+        "type": "result",
+        "session_id": "sess-abc",
+        "num_turns": 12,
+        "duration_ms": 8993,
+        "total_cost_usd": 0.35,
+        "modelUsage": {
+            "claude-sonnet-5": {
+                "inputTokens": 2,
+                "outputTokens": 378,
+                "cacheReadInputTokens": 23972,
+                "cacheCreationInputTokens": 57608,
+            }
+        },
+    }
+    monkeypatch.setenv("CLICKEYE_SEAT_ID", str(uuid.uuid4()))
+    monkeypatch.setenv("CLICKEYE_PROJECT_ID", str(uuid.uuid4()))
+    payload = ui.build_payload(
+        result_event, "none", request_kind="local_batch_implement", task_id="CE-328"
+    )
+
+    # 서버 요청 스키마로 검증 — 필드명/타입이 어긋나면 여기서 ValidationError.
+    obj = LlmUsageIngestRequest.model_validate(payload)
+    assert obj.session_id == "sess-abc"
+    assert obj.key_source.value == "subscription_seat"
+    assert len(obj.models) == 1
+    assert obj.models[0].model == "claude-sonnet-5"
+    assert obj.models[0].cache_read_input_tokens == 23972
+    assert obj.models[0].cache_creation_input_tokens == 57608

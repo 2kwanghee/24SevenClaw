@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.models.llm_usage_ledger import (
     LlmKeySource,
@@ -71,6 +72,16 @@ class LlmLedgerService(BaseService):
         await self.save(entry)
         return entry
 
+    async def _dup_exists(self, session_id: str, model: str) -> bool:
+        """(session_id, model) 원장 행이 이미 존재하는지 — 앱 레벨 멱등/중복 확인."""
+        dup = await self.db.scalar(
+            select(LlmUsageLedger.id).where(
+                LlmUsageLedger.session_id == session_id,
+                LlmUsageLedger.model == model,
+            )
+        )
+        return dup is not None
+
     async def record_usage_batch(self, req: LlmUsageIngestRequest) -> dict[str, Any]:
         """로컬 배치(claude -p) 사용량을 modelUsage 모델별 1행으로 원장에 기록한다(CE-328).
 
@@ -78,10 +89,29 @@ class LlmLedgerService(BaseService):
         - seat_id 사전검증: 미존재 시 seat_id=NULL + meta.unknown_seat_id 에 원값 보존
           (FK 위반 500 방지, 조용한 축 손실 금지).
         - 멱등 2단: ① 앱 레벨 SELECT(session_id, model 존재 시 skip) ② IntegrityError
-          방어(부분 유니크 인덱스 race 백스톱, 마이그레이션 057). 모두 skip 처리.
+          방어(부분 유니크 인덱스 race 백스톱, 마이그레이션 057). 실제 중복만 skip 처리하고,
+          중복이 아닌 제약 위반(예: INSERT 직전 시트 삭제 → FK 위반)은 seat_id=NULL 로 1회
+          재시도하며, 재시도도 실패하면 failed 카운트로 집계한다(조용한 행 손실 금지).
         - 캐시 토큰(cache_read/creation)과 공유 런 정보(요청 meta)는 각 행 meta JSONB 에.
           비용은 v1 에서 산정하지 않는다(cost=NULL, total_cost_usd 는 meta 에만).
+
+        seat 사전검증 SELECT·dup SELECT 를 포함한 배치 전체를 try 로 감싸, 예상치 못한
+        SQLAlchemyError(DataError/OperationalError 등)도 라우터로 전파하지 않고
+        {'status':'skipped'} 로 흡수한다(202 비블로킹 계약 유지).
         """
+        try:
+            return await self._record_usage_batch_inner(req)
+        except SQLAlchemyError as exc:
+            # seat 사전검증/dup SELECT 등에서 발생한 DB 오류 — rollback 후 비블로킹 흡수.
+            with contextlib.suppress(SQLAlchemyError):  # rollback 자체 실패는 방어만
+                await self.db.rollback()
+            return {
+                "status": "skipped",
+                "reason": f"DB 오류(비블로킹): {type(exc).__name__}",
+            }
+
+    async def _record_usage_batch_inner(self, req: LlmUsageIngestRequest) -> dict[str, Any]:
+        """record_usage_batch 의 본체 — SQLAlchemyError 는 상위에서 흡수한다."""
         # seat_id 사전검증 — 원장 FK(SET NULL) 위반을 500 이 아닌 축 손실+meta 로 흡수.
         seat_id = req.seat_id
         unknown_seat: str | None = None
@@ -96,15 +126,12 @@ class LlmLedgerService(BaseService):
                 seat_id = None
 
         rows = 0
+        skipped = 0
+        failed = 0
         for m in req.models:
             # ① 앱 레벨 멱등: 동일 (session_id, model) 이미 기록됨 → skip.
-            dup = await self.db.scalar(
-                select(LlmUsageLedger.id).where(
-                    LlmUsageLedger.session_id == req.session_id,
-                    LlmUsageLedger.model == m.model,
-                )
-            )
-            if dup is not None:
+            if await self._dup_exists(req.session_id, m.model):
+                skipped += 1
                 continue
 
             # 공유 런 정보(요청 meta) + 모델별 캐시 토큰을 행 meta 에 보존.
@@ -131,16 +158,54 @@ class LlmLedgerService(BaseService):
                 )
                 rows += 1
             except IntegrityError:
-                # ② 부분 유니크 인덱스 race 백스톱(프로덕션) — skip 처리.
+                # ② 제약 위반 — 실제 중복인지 확인해 중복/비중복을 구분한다.
                 await self.db.rollback()
+                if await self._dup_exists(req.session_id, m.model):
+                    # 부분 유니크 인덱스 race(프로덕션) — 실제 중복이므로 skip.
+                    skipped += 1
+                    continue
+                # 중복이 아닌 제약 위반(예: 사전검증 이후 시트 삭제 → FK 위반).
+                # seat_id 를 떨어뜨리고 원값을 meta 에 보존해 1회 재시도(조용한 손실 금지).
+                retry_meta = dict(row_meta)
+                retry_meta["ingest_retry_reason"] = "fk_violation"
+                if seat_id is not None:
+                    retry_meta["unknown_seat_id"] = str(seat_id)
+                try:
+                    await self.record(
+                        provider=LlmProvider.anthropic,
+                        key_source=req.key_source,
+                        model=m.model,
+                        request_kind=req.request_kind,
+                        input_tokens=m.input_tokens,
+                        output_tokens=m.output_tokens,
+                        cost=None,
+                        project_id=req.project_id,
+                        task_id=req.task_id,
+                        seat_id=None,
+                        session_id=req.session_id,
+                        meta=retry_meta,
+                    )
+                    rows += 1
+                except SQLAlchemyError:
+                    await self.db.rollback()
+                    failed += 1
+                    continue
+            except SQLAlchemyError:
+                # 그 외 DB 오류(DataError 등) — rollback 후 실패 카운트(예외 전파 금지).
+                await self.db.rollback()
+                failed += 1
                 continue
 
         if rows == 0:
-            return {
+            result: dict[str, Any] = {
                 "status": "skipped",
                 "reason": "중복 session_id(이미 기록됨) 또는 기록할 행 없음",
             }
-        return {"status": "recorded", "rows": rows}
+        else:
+            result = {"status": "recorded", "rows": rows}
+        if failed:
+            result["failed"] = failed
+        return result
 
     async def list_entries(
         self,

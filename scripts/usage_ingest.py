@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 import sys
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -51,19 +52,37 @@ def _int(v) -> int:
         return 0
 
 
+def _uuid_or_none(v):
+    """UUID 문자열만 통과 — 비-UUID/빈 값이면 None 으로 떨어뜨리고 경고한다.
+
+    seat_id/project_id 가 비-UUID 이면 서버가 그 축만 흡수(NULL)하는 게 아니라
+    요청 전체를 422 로 폐기하므로(그 런의 모든 사용량 손실), 로컬에서 미리 걸러
+    해당 축만 버리고 사용량 자체는 전송한다(계획 4항 '축 손실은 흡수, 사용량은 살린다').
+    """
+    if not v:
+        return None
+    try:
+        return str(uuid.UUID(str(v)))
+    except (ValueError, AttributeError, TypeError):
+        _warn("비-UUID 축 값 무시(사용량은 전송): %r" % (v,))
+        return None
+
+
 # ── 파싱 ─────────────────────────────────────────────────────────────────────
 
 
-def parse_log(text: str):
-    """stream-json 로그(문자열)를 줄 단위로 파싱.
+def parse_log_lines(lines):
+    """stream-json 로그를 줄 이터러블(파일 객체 등)로 스트리밍 파싱.
 
+    로그가 수백 MB 까지 커질 수 있어 전체를 메모리에 적재하지 않고, 마지막 result
+    이벤트와 init 의 apiKeySource 만 유지한다(메모리 스파이크 방지, CE-328).
     stderr 혼입 등 json.loads 실패 줄은 스킵한다. 반환:
       (last_result_event | None, api_key_source | None)
     api_key_source 는 system/init 이벤트의 apiKeySource(예: 'none').
     """
     last_result = None
     api_key_source = None
-    for line in text.splitlines():
+    for line in lines:
         line = line.strip()
         if not line:
             continue
@@ -83,10 +102,22 @@ def parse_log(text: str):
     return last_result, api_key_source
 
 
-def models_from_result(result_event: dict):
-    """result 이벤트 → 모델별 토큰 항목 리스트.
+def parse_log(text: str):
+    """문자열 API 호환 래퍼 — 줄 이터러블 파서(parse_log_lines)에 위임한다.
 
-    modelUsage(모델ID→토큰 dict)를 우선 사용, 부재 시 top-level usage 로 폴백(단일 모델).
+    기존 문자열 기반 테스트 호환을 위해 유지한다. 대용량 로그는 run() 이 파일 핸들을
+    parse_log_lines 로 직접 스트리밍한다.
+    """
+    return parse_log_lines(text.splitlines())
+
+
+def models_from_result(result_event: dict):
+    """result 이벤트 → 모델별 토큰 항목 리스트(modelUsage 만 사용).
+
+    modelUsage(모델ID→토큰 dict)만 사용한다. top-level `usage` 는 누적/마지막턴 의미가
+    판본별로 모호해 계획(수집 소스 M4)에서 명시 배제했으므로 폴백하지 않는다.
+    modelUsage 가 없거나 비어 있으면 빈 리스트를 반환한다(run() 의 '모델 사용량 없음 —
+    인제스트 스킵' 경로가 처리해 쓰레기 모델 행이 원장에 남지 않게 한다, CE-328).
     """
     entries = []
     model_usage = result_event.get("modelUsage")
@@ -107,24 +138,6 @@ def models_from_result(result_event: dict):
                     ),
                 }
             )
-        return entries
-
-    # 폴백: top-level usage(단일 모델). 모델명 미상이면 result.model 또는 'unknown'.
-    usage = result_event.get("usage")
-    if isinstance(usage, dict) and usage:
-        entries.append(
-            {
-                "model": result_event.get("model") or "unknown",
-                "input_tokens": _int(_pick(usage, "inputTokens", "input_tokens")),
-                "output_tokens": _int(_pick(usage, "outputTokens", "output_tokens")),
-                "cache_read_input_tokens": _int(
-                    _pick(usage, "cacheReadInputTokens", "cache_read_input_tokens")
-                ),
-                "cache_creation_input_tokens": _int(
-                    _pick(usage, "cacheCreationInputTokens", "cache_creation_input_tokens")
-                ),
-            }
-        )
     return entries
 
 
@@ -146,8 +159,8 @@ def build_payload(result_event, api_key_source, *, request_kind, task_id):
         "session_id": result_event.get("session_id"),
         "request_kind": request_kind,
         "key_source": _key_source(api_key_source),
-        "seat_id": os.environ.get("CLICKEYE_SEAT_ID") or None,
-        "project_id": os.environ.get("CLICKEYE_PROJECT_ID") or None,
+        "seat_id": _uuid_or_none(os.environ.get("CLICKEYE_SEAT_ID")),
+        "project_id": _uuid_or_none(os.environ.get("CLICKEYE_PROJECT_ID")),
         "task_id": task_id or None,
         "models": models,
         "meta": {
@@ -211,15 +224,14 @@ def run(argv=None) -> int:
     parser.add_argument("--api-url", default=None, help="인제스트 베이스 URL(최우선 폴백)")
     args = parser.parse_args(argv)
 
-    # 로그 읽기
+    # 로그 스트리밍 파싱 — 대용량 로그를 메모리에 통째로 올리지 않고 줄 단위로 처리한다.
     try:
         with open(args.log, "r", encoding="utf-8", errors="replace") as f:
-            text = f.read()
+            result_event, api_key_source = parse_log_lines(f)
     except OSError as e:
         _warn("로그 파일 읽기 실패 — 인제스트 스킵: %s" % e)
         return 0
 
-    result_event, api_key_source = parse_log(text)
     if result_event is None:
         _warn("result 이벤트 없음 — 인제스트 스킵")
         return 0
@@ -232,6 +244,11 @@ def run(argv=None) -> int:
     )
     if not payload["models"]:
         _warn("모델 사용량 없음 — 인제스트 스킵")
+        return 0
+    if not payload.get("session_id"):
+        # session_id 없으면 서버가 확정 422 를 반환하며 그 런의 모든 사용량이 폐기되므로
+        # 요청을 아예 보내지 않는다(불필요한 422 왕복 방지).
+        _warn("session_id 없음 — 인제스트 스킵")
         return 0
 
     base = _base_url(args.api_url)
@@ -254,6 +271,9 @@ def main(argv=None) -> int:
     # 최후 방어선 — 예기치 못한 예외까지 삼켜 항상 exit 0.
     try:
         return run(argv)
+    except SystemExit as e:  # argparse 인자 오류(--log 누락/오타 등)도 파이프라인 불사.
+        _warn("인자 오류(비차단): %s" % e)
+        return 0
     except Exception as e:  # noqa: BLE001 — 파이프라인 보호가 최우선
         _warn("예기치 못한 오류(비차단): %s" % e)
         return 0
