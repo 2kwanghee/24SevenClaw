@@ -13,7 +13,9 @@ PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "${BA
 # 모듈 토글 체크
 source "$PROJECT_DIR/scripts/pipeline_config.sh" 2>/dev/null || true
 if ! is_enabled "FLOWOPS_RALPH_STOP_HOOK" 2>/dev/null; then
-  echo '{"decision": "allow", "reason": "Ralph Stop Hook 비활성화됨 (FLOWOPS_RALPH_STOP_HOOK=false)"}'
+  # 종료 허용 = 무출력 + exit 0. stdout에 JSON을 쓰면 decision 열거형
+  # ("approve"|"block")에 없는 값이라 스키마 검증 경고가 세션에 노출된다.
+  echo "[ralph-stop-hook] 비활성화됨 (FLOWOPS_RALPH_STOP_HOOK=false) — 종료 허용" >&2
   exit 0
 fi
 
@@ -38,7 +40,7 @@ if [ "$COUNT" -gt "$MAX_ITER" ]; then
       --ralph-report \
       --iterations "${COUNT}/${MAX_ITER} (max 도달)" 2>/dev/null || true
   fi
-  echo "{\"decision\": \"allow\", \"reason\": \"max-iterations($MAX_ITER) 도달. 강제 종료.\"}"
+  echo "[ralph-stop-hook] max-iterations($MAX_ITER) 도달 — 강제 종료" >&2
   exit 0
 fi
 
@@ -139,5 +141,5 @@ fi
 
 # iteration 카운터 정리
 rm -f "$STATE_FILE"
-echo "{\"decision\": \"allow\", \"reason\": \"[iteration ${COUNT}] 전체 완료. P1~P3 완료, 테스트 통과, 린트 통과.\"}"
+echo "[ralph-stop-hook] iteration ${COUNT} — 전체 완료(P1~P3·테스트·린트 통과), 종료 허용" >&2
 exit 0
