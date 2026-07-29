@@ -150,9 +150,7 @@ async def test_pending_excludes_unrefined_and_issued(
 ) -> None:
     monkeypatch.setenv(AUTO_ACCEPT_ENV, "on")
     unrefined = await _make_intake(db_session, service_key_id, refine_status="pending")
-    issued = await _make_accepted(
-        db_session, service_key_id, superadmin, tickets_status="issued"
-    )
+    issued = await _make_accepted(db_session, service_key_id, superadmin, tickets_status="issued")
     ids = [i["id"] for i in (await client.get("/api/v1/intake/issue/pending")).json()]
     assert str(unrefined.id) not in ids  # 정제 미완 — 분해 입력이 없다
     assert str(issued.id) not in ids  # 이미 발급 — 멱등성 앵커
@@ -205,9 +203,7 @@ async def test_auto_accept_creates_project_owned_by_superadmin(
     assert body["project_id"] is not None
 
     project = (
-        await db_session.execute(
-            select(Project).where(Project.id == uuid.UUID(body["project_id"]))
-        )
+        await db_session.execute(select(Project).where(Project.id == uuid.UUID(body["project_id"])))
     ).scalar_one()
     assert project.owner_id == superadmin.id  # 기계 수주 = 시스템 운영자 소유
     # 요구사항은 정제 스펙 우선(사람 accept 와 동일한 _accept_core 공유)
@@ -260,16 +256,12 @@ async def test_record_tickets_empty_rejected_by_schema(
 
 @pytest.mark.asyncio
 async def test_record_tickets_unknown_intake_404(client: AsyncClient) -> None:
-    resp = await client.post(
-        f"/api/v1/intake/{uuid.uuid4()}/tickets", json={"tickets": TICKETS}
-    )
+    resp = await client.post(f"/api/v1/intake/{uuid.uuid4()}/tickets", json={"tickets": TICKETS})
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_callback_body_carries_tickets(
-    db_session, service_key_id, superadmin
-) -> None:
+async def test_callback_body_carries_tickets(db_session, service_key_id, superadmin) -> None:
     """서비스 #2 가 콜백만으로 발급 결과를 자기 원장과 대조할 수 있어야 한다."""
     intake = await _make_accepted(db_session, service_key_id, superadmin)
     await IntakeService(db_session).record_issued_tickets(intake.id, TICKETS)

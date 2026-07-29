@@ -16,7 +16,7 @@ from app.api.v1.governance import verify_governance_token
 from app.config import settings
 from app.database import get_db
 from app.dependencies import require_permission, require_superadmin
-from app.models.intake import IntakeRequest
+from app.models.intake import IntakeRequest, IntakeServiceKey
 from app.models.user import User
 from app.schemas.intake import (
     DeliveryEventItem,
@@ -88,7 +88,7 @@ async def list_intakes(
     status_filter: str | None = None,
     user: User = Depends(require_permission("control_tower:read")),
     db: AsyncSession = Depends(get_db),
-):
+) -> list[IntakeRequest]:
     """검토 목록 — superadmin 전체 / admin 자기 조직 키 접수분만. ?status_filter= 필터."""
     return await IntakeService(db).list_intakes(user, status_filter)
 
@@ -98,7 +98,7 @@ async def accept_intake(
     intake_id: UUID,
     user: User = Depends(require_permission("control_tower:write")),
     db: AsyncSession = Depends(get_db),
-):
+) -> IntakeRequest:
     """승인 — Project(딜리버리) 생성 + accepted 전이 + KB 인제스트 훅."""
     return await IntakeService(db).accept(intake_id, user)
 
@@ -109,7 +109,7 @@ async def reject_intake(
     body: IntakeRejectRequest | None = None,
     user: User = Depends(require_permission("control_tower:write")),
     db: AsyncSession = Depends(get_db),
-):
+) -> IntakeRequest:
     """반려 — rejected 전이, 사유는 payload 에 기록."""
     reason = body.reason if body is not None else None
     return await IntakeService(db).reject(intake_id, user, reason)
@@ -131,7 +131,7 @@ async def reject_intake(
 async def list_refine_pending(
     limit: int = Query(default=10, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
-):
+) -> list[IntakeRequest]:
     """정제 대기 목록 — status=pending_review & refine_status=pending 만 반환한다."""
     return await IntakeService(db).list_refine_pending(limit)
 
@@ -142,7 +142,7 @@ async def submit_refined(
     body: RefineSubmit,
     _token: None = Depends(verify_governance_token),
     db: AsyncSession = Depends(get_db),
-):
+) -> IntakeRequest:
     """정제 결과 제출 — refined + 저장. 공백만이면 skipped. pending_review 아니면 409."""
     return await IntakeService(db).submit_refined(intake_id, body.refined_text)
 
@@ -327,7 +327,7 @@ async def create_service_key(
 async def list_service_keys(
     _user: User = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
-):
+) -> list[IntakeServiceKey]:
     """서비스 키 목록 — 해시/평문 미노출(응답 스키마 강제)."""
     return await IntakeService(db).list_service_keys()
 
@@ -337,6 +337,6 @@ async def deactivate_service_key(
     key_id: UUID,
     _user: User = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
-):
+) -> IntakeServiceKey:
     """서비스 키 비활성화 — 이후 해당 키 인증은 401 (레코드는 감사용으로 보존)."""
     return await IntakeService(db).deactivate_service_key(key_id)

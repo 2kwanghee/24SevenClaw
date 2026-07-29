@@ -65,4 +65,5 @@ echo "[with-seat] 시트 주입: seat=$SEAT_ID project=$PROJECT_ID → $1 ..." >
 exec env -u ANTHROPIC_API_KEY \
   CLAUDE_CODE_OAUTH_TOKEN="$SEAT_TOKEN" \
   CLICKEYE_SEAT_ID="$SEAT_ID" \
+  CLICKEYE_PROJECT_ID="$PROJECT_ID" \
   "$@"

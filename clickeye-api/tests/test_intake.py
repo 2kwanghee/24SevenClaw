@@ -539,9 +539,7 @@ def callback_capture_500(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
 
 
 @pytest.fixture
-def record_session(
-    monkeypatch: pytest.MonkeyPatch, db_session: AsyncSession
-) -> None:
+def record_session(monkeypatch: pytest.MonkeyPatch, db_session: AsyncSession) -> None:
     """콜백 결과 기록(_open_session)이 테스트 SQLite 세션을 쓰도록 대체한다.
 
     프로덕션은 app.database.async_session 을 열지만, 테스트 in-memory SQLite 는

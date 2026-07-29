@@ -101,9 +101,7 @@ async def _call(db_session, svc: ClaudeService, **kw: Any):
 
 
 async def _ledger_rows(db_session) -> list[LlmUsageLedger]:
-    rows = (
-        (await db_session.execute(select(LlmUsageLedger))).scalars().all()
-    )
+    rows = (await db_session.execute(select(LlmUsageLedger))).scalars().all()
     return [r for r in rows if r.request_kind == "test_subscription_only"]
 
 

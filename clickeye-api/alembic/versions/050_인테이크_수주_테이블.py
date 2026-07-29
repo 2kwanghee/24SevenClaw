@@ -75,9 +75,7 @@ def upgrade() -> None:
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=True
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["service_key_id"], ["intake_service_keys.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["service_key_id"], ["intake_service_keys.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
         sa.UniqueConstraint("service_key_id", "idempotency_key", name="uq_intake_idempotency"),
     )
