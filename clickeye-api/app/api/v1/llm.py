@@ -44,9 +44,7 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 _CHAT_TIMEOUT = 60.0
 _READ_TIMEOUT = 30.0
 
-_LLM_UNAVAILABLE = (
-    "LLM 어시스턴트 미가용 — profile llm 미기동일 수 있습니다."
-)
+_LLM_UNAVAILABLE = "LLM 어시스턴트 미가용 — profile llm 미기동일 수 있습니다."
 
 
 class LlmChatRequest(BaseModel):
@@ -197,9 +195,7 @@ class LlmFeedbackRequest(BaseModel):
     answer: str = Field(..., min_length=1, description="당시 어시스턴트 답변 원문.")
     rating: Literal["up", "down"] = Field(..., description="평가(👍 up / 👎 down).")
     comment: str | None = Field(default=None, description="선택 코멘트(주로 down 사유).")
-    sources: list[str] | None = Field(
-        default=None, description="답변에 사용된 source_id 목록."
-    )
+    sources: list[str] | None = Field(default=None, description="답변에 사용된 source_id 목록.")
 
 
 @router.post("/feedback")

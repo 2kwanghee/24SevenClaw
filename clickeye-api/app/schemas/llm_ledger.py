@@ -41,9 +41,7 @@ class LlmUsageModelEntry(BaseModel):
     input_tokens: int = Field(default=0, ge=0, description="비캐시 입력 토큰.")
     output_tokens: int = Field(default=0, ge=0, description="출력 토큰.")
     cache_read_input_tokens: int = Field(default=0, ge=0, description="캐시 읽기 입력 토큰.")
-    cache_creation_input_tokens: int = Field(
-        default=0, ge=0, description="캐시 생성 입력 토큰."
-    )
+    cache_creation_input_tokens: int = Field(default=0, ge=0, description="캐시 생성 입력 토큰.")
 
 
 class LlmUsageIngestRequest(BaseModel):

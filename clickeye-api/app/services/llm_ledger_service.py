@@ -117,9 +117,7 @@ class LlmLedgerService(BaseService):
         unknown_seat: str | None = None
         if seat_id is not None:
             exists = await self.db.scalar(
-                select(UserAnthropicCredentials.id).where(
-                    UserAnthropicCredentials.id == seat_id
-                )
+                select(UserAnthropicCredentials.id).where(UserAnthropicCredentials.id == seat_id)
             )
             if exists is None:
                 unknown_seat = str(seat_id)

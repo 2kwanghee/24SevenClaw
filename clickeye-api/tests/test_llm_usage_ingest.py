@@ -102,9 +102,7 @@ async def test_token_mismatch_403(
     client: AsyncClient, _ingest_on: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(settings, "governance_service_token", "usage-token")
-    resp = await client.post(
-        _URL, json=_payload(), headers={"X-Governance-Token": "wrong"}
-    )
+    resp = await client.post(_URL, json=_payload(), headers={"X-Governance-Token": "wrong"})
     assert resp.status_code == 403
 
 
@@ -187,9 +185,7 @@ async def test_unknown_seat_id_nulled_with_meta(
 ) -> None:
     """미존재 seat_id → seat_id NULL + meta.unknown_seat_id 에 원값(FK 500 방지)."""
     ghost = uuid.uuid4()
-    resp = await client.post(
-        _URL, json=_payload(session_id="sess-ghost", seat_id=str(ghost))
-    )
+    resp = await client.post(_URL, json=_payload(session_id="sess-ghost", seat_id=str(ghost)))
     assert resp.status_code == 202
     assert resp.json()["status"] == "recorded"
 
@@ -206,9 +202,7 @@ async def test_unknown_seat_id_nulled_with_meta(
 # ── 토글 off → 실제 원장 행 0건 ──
 
 
-async def test_toggle_off_writes_no_rows(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_toggle_off_writes_no_rows(client: AsyncClient, db_session: AsyncSession) -> None:
     """off(기본)면 서비스에 닿지 않아 원장 행이 생기지 않는다(회귀 0 검증)."""
     resp = await client.post(_URL, json=_payload(session_id="sess-off"))
     assert resp.json() == {"status": "disabled"}
@@ -229,9 +223,7 @@ async def test_org_api_key_and_project_id_stored(
     pid = uuid.uuid4()
     resp = await client.post(
         _URL,
-        json=_payload(
-            session_id="sess-org", key_source="org_api_key", project_id=str(pid)
-        ),
+        json=_payload(session_id="sess-org", key_source="org_api_key", project_id=str(pid)),
     )
     assert resp.status_code == 202
     assert resp.json()["status"] == "recorded"
