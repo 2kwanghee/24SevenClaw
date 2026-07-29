@@ -79,12 +79,16 @@ async def resolve_project_by_team(db: "AsyncSession", team_id: str) -> UUID | No
     )
 
     rows = (
-        await db.execute(
-            select(ProjectLinearCredentials.project_id).where(
-                ProjectLinearCredentials.team_id == team_id
+        (
+            await db.execute(
+                select(ProjectLinearCredentials.project_id).where(
+                    ProjectLinearCredentials.team_id == team_id
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if len(rows) == 1:
         return rows[0]
     logger.warning(
@@ -123,9 +127,7 @@ def enqueue_ingest_ns(
             logger.warning("이벤트 루프 없음 — 인제스트 스킵: source_id=%s", source_id)
             return
 
-        task = loop.create_task(
-            _post_ingest(delivery_id, source_id, normalized, metadata)
-        )
+        task = loop.create_task(_post_ingest(delivery_id, source_id, normalized, metadata))
         _background_tasks.add(task)
         task.add_done_callback(_background_tasks.discard)
     except Exception as exc:  # noqa: BLE001 — 예약 실패도 호출자에게 전파 금지

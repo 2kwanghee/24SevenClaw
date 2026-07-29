@@ -112,9 +112,7 @@ async def _resolve_public_ip(url: str) -> str:
     if not host:
         raise SSRFBlockedError("SSRF_BLOCKED: 호스트가 없는 URL")
     try:
-        infos = await asyncio.get_running_loop().getaddrinfo(
-            host, None, type=socket.SOCK_STREAM
-        )
+        infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
     except (socket.gaierror, OSError) as exc:
         raise SSRFBlockedError(f"SSRF_BLOCKED: 호스트 해석 실패 '{host}' ({exc})") from exc
     candidates: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = []
@@ -133,9 +131,7 @@ async def _resolve_public_ip(url: str) -> str:
     return str(candidates[0])
 
 
-def _pinned_request_parts(
-    url: str, ip: str
-) -> tuple[httpx.URL, dict[str, str], dict[str, Any]]:
+def _pinned_request_parts(url: str, ip: str) -> tuple[httpx.URL, dict[str, str], dict[str, Any]]:
     """검증된 IP 로 커넥션을 고정한 요청 구성요소(url, headers, extensions)를 만든다.
 
     - URL 호스트를 IP 로 치환 → TCP 연결이 검증된 IP 로만 나간다(재해석 없음).
@@ -409,17 +405,21 @@ async def process_due_callbacks(db: AsyncSession, limit: int = 20) -> int:
     """
     now = datetime.now(UTC)
     rows = (
-        await db.execute(
-            select(IntakeRequest)
-            .where(
-                IntakeRequest.callback_status == "pending",
-                IntakeRequest.callback_next_retry_at.is_not(None),
-                IntakeRequest.callback_next_retry_at <= now,
+        (
+            await db.execute(
+                select(IntakeRequest)
+                .where(
+                    IntakeRequest.callback_status == "pending",
+                    IntakeRequest.callback_next_retry_at.is_not(None),
+                    IntakeRequest.callback_next_retry_at <= now,
+                )
+                .order_by(IntakeRequest.callback_next_retry_at.asc())
+                .limit(limit)
             )
-            .order_by(IntakeRequest.callback_next_retry_at.asc())
-            .limit(limit)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sent = 0
     for intake in rows:
         key = await db.get(IntakeServiceKey, intake.service_key_id)
@@ -616,7 +616,9 @@ class IntakeService:
         await self.db.refresh(intake)
         # 멱등 재수신(위 existing 반환 경로)은 이벤트를 남기지 않는다 — 신규 접수만.
         await self._record_event(
-            intake, "received", actor_type="machine",
+            intake,
+            "received",
+            actor_type="machine",
             detail=f"수신({data.input_type}): {data.title}",
         )
         return intake
@@ -772,7 +774,10 @@ class IntakeService:
         # (테스트의 공유 세션 등에서) 세션을 잡은 뒤 이벤트 커밋이 끼어들면 세션
         # 동시성 충돌로 콜백 기록이 유실된다(실측).
         await self._record_event(
-            intake, event_type, actor_type=actor_type, actor_id=actor_id,
+            intake,
+            event_type,
+            actor_type=actor_type,
+            actor_id=actor_id,
             detail=f"{'기계 수락(D-12)' if event_type == 'machine_accepted' else '사람 수락'} "
             f"— Project 생성({project.id}), 소유자={owner.email}",
         )
@@ -849,7 +854,9 @@ class IntakeService:
         await self.db.commit()
         await self.db.refresh(intake)
         await self._record_event(
-            intake, "tickets_issued", actor_type="machine",
+            intake,
+            "tickets_issued",
+            actor_type="machine",
             detail=f"티켓 전량 발급 — {len(tickets)}건: "
             + ", ".join(t.get("identifier", "?") for t in tickets[:10]),
             meta={"count": len(tickets)},
