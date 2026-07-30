@@ -54,10 +54,18 @@ services:
       # 수신 전용: 파이프라인 실행 대신 Redis 로 RPUSH.
       WEBHOOK_ENQUEUE_ONLY: "true"
       REDIS_URL: redis://redis:6379/0
-      # WEBHOOK_SECRET(Linear 서명 검증)은 managed env 로 전달 — api 서비스와 동일 방식.
-    # 관리형 env 병행 로드(api 서비스 미러). WEBHOOK_SECRET 등 관리 키를 여기서 주입.
+    # 최소권한(no.2): 인터넷 노출 수신부에는 관리형 api.env(DATABASE_URL·LINEAR_API_KEY·
+    #   GOVERNANCE_SERVICE_TOKEN·LLM 키 전량)를 절대 주입하지 않는다 — '토큰·크리덴셜을
+    #   컨테이너에 두지 않는다'는 설계 이점 보존. 수신부가 필요로 하는 키는 WEBHOOK_SECRET
+    #   (Linear Signing Secret) 하나뿐이므로 수신부 전용 스코프 파일만 로드한다.
+    #   webhook.env 는 운영 패널이 webhook.env.example 을 참고해 렌더(gitignore 추적 제외).
+    #   미존재 시 required:false 로 `docker compose config` 파싱을 통과하되, WEBHOOK_SECRET
+    #   미주입이면 서버가 수신전용 모드에서 기동을 거부한다(fail-closed — webhook_server.main).
+    #   compose 단계 차단(${WEBHOOK_SECRET:?}) 은 `docker compose config` 를 깨뜨려 미사용 —
+    #   권위 있는 방어선은 서버 fail-closed 이다.
     env_file:
-      - ../managed/api.env
+      - path: ../managed/webhook.env
+        required: false
     depends_on:
       # 기존 redis healthcheck 를 재사용(api 서비스와 동일한 service_healthy 관례).
       redis:

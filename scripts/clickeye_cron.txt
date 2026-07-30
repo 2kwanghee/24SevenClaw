@@ -10,6 +10,14 @@
 #       → /mnt/c/workspace/ClickEye 만 남아야 정상.
 #         /mnt/c/workspace/24SevenClaw 가 섞여 있으면 `crontab -e` 로 그 줄 삭제.
 #
+# [등록 전 필수] PATH 검증
+#   cron 은 최소 PATH(/usr/bin:/bin)로 실행되므로 아래 PATH= 지시가 로컬 설치
+#   위치와 일치해야 한다. 등록 전 반드시 실측하고 아래 PATH= 값과 대조할 것:
+#     command -v claude ngrok python3 uv npm
+#   실측(2026-07-30): claude=/home/lkh/.local/bin, uv=/home/lkh/.local/bin,
+#     ngrok=/home/lkh/bin, python3=/usr/bin, npm=/usr/bin.
+#   설치 위치가 다르면 아래 PATH= 를 그 위치에 맞게 수정한 뒤 등록한다.
+#
 # [등록]
 #     (crontab -l 2>/dev/null; cat /mnt/c/workspace/ClickEye/scripts/clickeye_cron.txt) | crontab -
 #     crontab -l                                         # 등록 결과 확인
@@ -19,6 +27,11 @@
 #   수신부는 compose 서비스(webhook, 컨테이너, WEBHOOK_ENQUEUE_ONLY=true)로 대체됐고,
 #   호스트는 큐를 소비하는 워커(webhook_worker.py)만 watchdog 로 유지한다.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# cron 실행 환경. PATH 미지정 시 claude/ngrok/uv 가 not found 로 조용히 실패한다.
+# (실측 위치는 위 "[등록 전 필수] PATH 검증" 참조 — 변경 시 이 줄도 함께 갱신.)
+SHELL=/bin/bash
+PATH=/home/lkh/.local/bin:/home/lkh/bin:/usr/local/bin:/usr/bin:/bin
 
 # ── 파이프라인 실행(호스트) ──────────────────────────────────────────────────
 # 업무시간 폴링: 평일 09~18시 5분마다 1회 실행(잔여 Queued 이슈 처리).
@@ -49,6 +62,9 @@
 
 # ── watchdog(10분마다 살아있는지 확인, 죽으면 재기동) ─────────────────────────
 # 웹훅 실행 워커(호스트 상시 루프): 큐 소비 담당. 기존 webhook_server watchdog 을 대체.
-*/10 * * * * pgrep -f "webhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
+# 패턴은 문자클래스 형태([w]…)로 둔다. cron 이 `/bin/sh -c` 로 실행하는 이 줄 자신의
+# cmdline 에 pgrep 패턴이 그대로 들어가므로, "webhook_worker.py" 로 쓰면 pgrep 이 자기
+# 자신에 매칭되어 워커가 죽어도 재기동 분기가 절대 실행되지 않는다(실측 확인).
+*/10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
 # ngrok 터널(Linear → 호스트:9876 → compose webhook 컨테이너).
-*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
