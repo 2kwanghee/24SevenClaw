@@ -249,20 +249,39 @@ export default function DeliveryEngagementPage() {
 
       {/* 세션 없음 */}
       {sessions && sessions.items.length === 0 && !sessionsLoading && (
-        <div className="flex flex-col items-center gap-4 py-20">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
-            <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
+        // 인테이크 유래 프로젝트는 무인 딜리버리로 티켓이 이미 발급되므로 세션 생성을 유도하지 않고
+        // 인테이크 체인 뷰로 안내한다(요구사항 중복 분해 방지 — CE-336).
+        project?.project_type === "intake" ? (
+          <div className="flex flex-col items-center gap-4 py-20">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+              <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
+            <p className="max-w-md text-center text-sm text-[var(--text-muted)]">
+              {t("console.unattendedNotice")}
+            </p>
+            <Link
+              href="/admin/intake"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
+            >
+              {t("console.viewIntakeChain")}
+            </Link>
           </div>
-          <p className="text-sm text-[var(--text-muted)]">
-            {t("console.noSessions")}
-          </p>
-          <Link
-            href={`/projects/${projectId}/ai-team`}
-            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
-          >
-            {t("console.createSession")}
-          </Link>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-20">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+              <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+              {t("console.noSessions")}
+            </p>
+            <Link
+              href={`/projects/${projectId}/ai-team`}
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
+            >
+              {t("console.createSession")}
+            </Link>
+          </div>
+        )
       )}
 
       {/* ===== 관제 화면 ===== */}

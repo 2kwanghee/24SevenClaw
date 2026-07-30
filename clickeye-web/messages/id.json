@@ -682,6 +682,8 @@
       "sessionsError": "Gagal memuat daftar sesi.",
       "noSessions": "Engagement ini belum memiliki sesi kerja",
       "createSession": "Buat sesi kerja",
+      "unattendedNotice": "Pekerjaan ini berjalan dengan delivery tanpa pengawasan. Persyaratannya sudah diterbitkan sebagai tiket, sehingga sesi kerja terpisah tidak diperlukan.",
+      "viewIntakeChain": "Lihat progres intake",
       "summaryError": "Sebagian data gagal diperbarui.",
       "issueBoardTitle": "Papan kerja isu",
       "subtaskCount": "Subtugas {count}",
@@ -824,6 +826,12 @@
       "subtitle": "Tanyakan tentang delivery aktif di seluruh organisasi Anda",
       "placeholder": "mis., Layanan apa yang sedang kita produksi sekarang?",
       "hint": "Jawaban didasarkan pada delivery aktif organisasi Anda. Enter untuk kirim · Shift+Enter untuk baris baru."
+    }
+  },
+  "aiTeam": {
+    "session": {
+      "intakeBlockedTitle": "Sesi tidak dapat dibuat",
+      "intakeBlockedBody": "Pekerjaan ini berjalan dengan delivery tanpa pengawasan dan persyaratannya sudah diterbitkan sebagai tiket. Membuat sesi di sini akan menduplikasi pemecahan tugas, jadi periksa progres intake sebagai gantinya."
     }
   },
   "intake": {

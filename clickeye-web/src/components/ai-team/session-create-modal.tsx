@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { X, Loader2, Sparkles, Check, Link2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import { useCreateSession, useDecompose, useAssign, useGenerateDrafts, usePushToLinear } from "@/hooks/use-orchestrator";
+import { useProject } from "@/hooks/use-projects";
 import type { AnalysisResult, SubTaskResponse, SubTaskRole, PushToLinearResponse } from "@/lib/api-client";
 
 type ModalStep = "form" | "decomposing" | "review" | "assigning" | "drafting" | "pushing" | "done";
@@ -31,6 +33,12 @@ export function SessionCreateModal({
   const [error, setError] = useState<string | null>(null);
   const [linearResult, setLinearResult] = useState<PushToLinearResponse | null>(null);
   const [linearError, setLinearError] = useState<string | null>(null);
+
+  const tIntake = useTranslations("aiTeam.session");
+  // 인테이크 유래 프로젝트는 무인 딜리버리로 티켓이 이미 발급된 상태라 세션 생성을 차단한다(CE-336).
+  // 판정은 project_type이 확정적으로 'intake'일 때만 — 로딩 중(project 미도착)에는 정상 폼을 막지 않는다.
+  const { data: project } = useProject(projectId);
+  const isIntakeBlocked = project?.project_type === "intake";
 
   const create = useCreateSession(projectId);
   const decompose = useDecompose();
@@ -142,8 +150,30 @@ export function SessionCreateModal({
           <X className="h-4 w-4" />
         </button>
 
+        {/* 인테이크 유래 프로젝트: 세션 생성 차단 안내 (직접 URL 진입 방어) */}
+        {step === "form" && isIntakeBlocked && (
+          <>
+            <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+              {tIntake("intakeBlockedTitle")}
+            </h2>
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <p className="leading-relaxed">{tIntake("intakeBlockedBody")}</p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+              >
+                닫기
+              </button>
+            </div>
+          </>
+        )}
+
         {/* Step: 폼 입력 */}
-        {step === "form" && (
+        {step === "form" && !isIntakeBlocked && (
           <>
             <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
               새 작업 요청
