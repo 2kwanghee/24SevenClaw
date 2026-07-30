@@ -50,7 +50,7 @@ Claude Code가 이 가이드(`harness-guide.md`)를 CLAUDE.md 참조를 통해 �
     │
     ├─ WRITE_CODE: fullstack + 모듈별 agent.md 규칙  [Sonnet]
     ├─ TEST_WRITER: tdd-smart-coding 방식             [Sonnet]
-    ├─ CODE_REVIEW: ai-critique (GPT + Gemini 병렬)  [Sonnet]
+    ├─ CODE_REVIEW: run_codex_review.sh + code-reviewer 서브에이전트  [Sonnet]
     └─ SECURITY_REVIEW: OWASP Top 10 체크리스트      [Opus]
 ```
 
@@ -78,7 +78,7 @@ Claude Code가 이 가이드(`harness-guide.md`)를 CLAUDE.md 참조를 통해 �
 - `metaprompt` → 구현 전 관측형 사전 정제 (`.claude/skills/metaprompt/SKILL.md`). 자동 파이프라인(`auto_dev_pipeline.sh` STEP A)과 대화형 구현 스펙 생성에서 공통 사용
 - `ralph-loop` → 하네스 루프의 자율 반복 메커니즘 (fix_plan.md, stop-hook)
 - `tdd-smart-coding` → TEST_WRITER 역할의 Red-Green-Refactor 사이클
-- `ai-critique` → CODE_REVIEW 역할의 외부 AI 리뷰 (GPT + Gemini)
+- `run_codex_review.sh`(codex CLI 구독형) + `code-reviewer` 서브에이전트 → CODE_REVIEW 역할의 코드 리뷰 (필요 시 2인 정족수)
 - `fullstack` → WRITE_CODE 역할의 시니어 엔지니어 페르소나
 - `dev-skills.md/run-tests` → 모듈별 자동 검증 명령어
 - `load-recent-changes.sh` → 세션 시작 시 컨텍스트 주입

@@ -235,13 +235,6 @@ python3 scripts/linear_watcher.py --per-task --limit 1
 - 태스크별 `fix_plan.md` 생성 → `.ralph/tasks/{ISSUE_KEY}.md`
 - 태스크 매핑 저장 → `.ralph/.task_mapping.json`
 
-**ChatGPT Fix Plan 옵션:**
-```bash
-python3 scripts/linear_watcher.py --per-task --use-gpt-plan
-```
-ChatGPT Function Calling으로 코드베이스 맥락을 포함한 구조화된 fix_plan을 생성합니다.
-(수정 대상 파일, 구현 단계, 테스트 케이스 포함)
-
 ### Step 2: 메타프롬프트 정제 (관측형 사전 정제 — 기획+정제 일체)
 
 `FLOWOPS_METAPROMPT=true`(기본) + `.claude/skills/metaprompt/SKILL.md` 존재 시 실행:
@@ -453,7 +446,7 @@ python3 scripts/linear_tracker.py task \
 [4단계: Worker] 역할 분리
     ├─ WRITE_CODE:      fullstack + 모듈별 agent.md
     ├─ TEST_WRITER:     tdd-smart-coding
-    ├─ CODE_REVIEW:     ai-critique (GPT + Gemini)
+    ├─ CODE_REVIEW:     run_codex_review.sh + code-reviewer 서브에이전트
     └─ SECURITY_REVIEW: OWASP Top 10
     v
 [Hook: Stop] ─── ralph-stop-hook.sh
@@ -585,14 +578,12 @@ Backlog ──(수동)──→ Wait ──(수동)──→ Queued
 | `webhook_doctor_linear_check.py` | Linear 등록 webhook URL ↔ ngrok 도메인 매칭 확인 헬퍼 | doctor에서 호출 |
 | `webhook_server.py` | Linear Webhook 수신 서버 | 상시 실행 데몬 |
 | `linear_watcher.py` | Queued 이슈 감지 → fix_plan 생성 | 파이프라인 Step 1 |
-| `fix_plan_generator.py` | ChatGPT FC로 구조화된 fix_plan 생성 | watcher (--use-gpt-plan) |
 | `generate_plan_with_gemini.sh` | Gemini CLI로 PLAN.md 기획서 생성 | 파이프라인 Step 2 |
 | `run_codex_review.sh` | Codex CLI로 REVIEW.md QA 리뷰 생성 | 파이프라인 Step 4 |
 | `linear_reporter.py` | 결과 → Linear 보고 | 파이프라인 Step 3 |
 | `auto_pr_creator.py` | 자동 PR 생성 + auto-merge 설정 | 파이프라인 Step 4 |
 | `linear_confirmer.py` | Confirm → PR merge 또는 로컬 merge | 수동 / Cron |
 | `linear_tracker.py` | Linear CRUD 유틸 | 스킬 / 수동 |
-| `gpt_pr_review.py` | ChatGPT FC PR 코드 리뷰 | GitHub Actions |
 | `telegram_notify.py` | Telegram 알림 | 각 스크립트에서 호출 |
 | `ralph-stop-hook.sh` | Claude 종료 조건 검증 | Stop Hook |
 | `ralph-loop.sh` | Ralph 자율 루프 실행 | 수동 |

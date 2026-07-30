@@ -229,7 +229,7 @@ PM 이 복잡도가 매우 높은 결정 (예: "기존 코드 무영향 보장 �
 |---|---|---|
 | WRITE_CODE | 코드 작성 | `fullstack` + 모듈별 agent.md |
 | TEST_WRITER | 테스트 작성 | `tdd-smart-coding` |
-| CODE_REVIEW | 리뷰 | `ai-critique` (GPT + Gemini 동시) |
+| CODE_REVIEW | 리뷰 | `run_codex_review.sh` (codex CLI) + `code-reviewer` 서브에이전트 |
 | SECURITY_REVIEW | 보안 검토 | OWASP Top 10 |
 
 > **컨텍스트 분리 이유**: 같은 AI 가 코드를 쓰고 리뷰하면 자기 작품에 관대해진다.

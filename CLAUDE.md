@@ -139,7 +139,7 @@ AI 코드 작성을 5단계로 통제하여 환각/오류를 사전 차단하는
 | Router | `harness-router` | sonnet | — |
 | Context | `harness-context` | haiku | `load-recent-changes.sh`, agents/*.md |
 | Loop | `harness-loop` | sonnet | `ralph-loop`, `tdd-smart-coding`, `run-tests` |
-| Worker | `harness-worker` | 역할별 | `fullstack`, `ai-critique`, `uiux` |
+| Worker | `harness-worker` | 역할별 | `fullstack`, `uiux` |
 
 ## Model Routing
 에이전트/스킬별 최적 모델(opus/sonnet/haiku)을 지정하여 토큰 비용을 최적화한다.

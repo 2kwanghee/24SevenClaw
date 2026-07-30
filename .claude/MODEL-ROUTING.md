@@ -87,7 +87,6 @@
 |------|------|------|
 | `fullstack` | **T2** sonnet | 풀스택 구현 (설계 포함 시 T1) |
 | `uiux` | **T2** sonnet | 디자인 → 코드 변환 |
-| `ai-critique` | **T2** sonnet | 코드 비평 + 개선안 |
 | `tdd-smart-coding` | **T2** sonnet | Red-Green-Refactor 사이클 |
 | `ralph-loop` | **T2** sonnet | 반복 작업 오케스트레이션 |
 | `run-pipeline` | **T3** haiku | 파이프라인 실행 + 결과 수집 |

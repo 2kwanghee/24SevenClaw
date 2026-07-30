@@ -13,7 +13,6 @@ Exit codes:
 
 import json
 import os
-import subprocess
 import sys
 
 # linear_client를 같은 디렉토리에서 import
@@ -338,8 +337,6 @@ def main():
                         help="태스크별 개별 fix_plan 생성 (상태 미변경)")
     parser.add_argument("--limit", type=int, default=0,
                         help="처리할 이슈 수 제한 (0=전체, 1=순차 실행용)")
-    parser.add_argument("--use-gpt-plan", action="store_true",
-                        help="ChatGPT FC로 구조화된 fix_plan 생성 (fallback: 기존 방식)")
     parser.add_argument("--title-prefix", default=None,
                         help="P5 다프로젝트: 이 접두사로 시작하는 이슈만 수집 "
                              "(프로젝트 러너용, 미지정=전체)")
@@ -376,26 +373,6 @@ def main():
         os.makedirs(TASKS_DIR, exist_ok=True)
         for task in tasks:
             task_file = os.path.join(TASKS_DIR, f"{task['identifier']}.md")
-
-            if args.use_gpt_plan:
-                # ChatGPT FC로 구조화된 fix_plan 생성 시도
-                try:
-                    result = subprocess.run(
-                        ["python3", os.path.join(os.path.dirname(__file__), "fix_plan_generator.py"),
-                         "--title", task["title"],
-                         "--description", task.get("description", ""),
-                         "--priority", task["priority"],
-                         "--output", task_file],
-                        capture_output=True, text=True,
-                        cwd=PROJECT_DIR,
-                    )
-                    if result.returncode == 0:
-                        print(f"CREATED (GPT): {task_file}")
-                        continue
-                    else:
-                        print(f"WARN: GPT plan 실패, fallback 사용: {result.stderr[:100]}")
-                except Exception as e:
-                    print(f"WARN: GPT plan 예외, fallback 사용: {e}")
 
             with open(task_file, "w") as f:
                 f.write(generate_single_task_fix_plan(task))

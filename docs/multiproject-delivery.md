@@ -2,7 +2,7 @@
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
 status: needs-revision
-last_updated: 2026-07-29
+last_updated: 2026-07-30
 related:
   - clickeye-api/app/models/intake.py
   - clickeye-api/app/models/llm_usage_ledger.py
@@ -177,8 +177,9 @@ error 행으로 기록(D-9). 부수 발견·수정: Anthropic 키 부재 시 유
 
 아래는 종량 API 를 쓸 가능성이 있어 **전수 감사 후 구독형으로 전환하거나 제거**해야 한다.
 
-`scripts/gpt_pr_review.py` · `scripts/run_codex_review.sh` ·
-`scripts/generate_plan_with_gemini.sh` · `scripts/fix_plan_generator.py` ·
+`scripts/gpt_pr_review.py` · `scripts/fix_plan_generator.py` → **제거 완료(2026-07-30, F-5)**.
+`scripts/run_codex_review.sh`(codex CLI 구독형) · `scripts/generate_plan_with_gemini.sh`(gemini CLI 구독형)은
+종량이 아니라 구독형 CLI 로 확정 — 감사 종료. 잔존 감사 대상은 clickeye-api 제품면뿐:
 `clickeye-api/app/api/v1/presets.py` · `clickeye-api/app/services/claude_service.py`
 
 파이프라인 STEP C(Codex QA 리뷰)와 레거시 Gemini 기획이 여기 포함된다. **리뷰 2인 정족수를
@@ -333,7 +334,7 @@ Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 �
 | **P0** | 거버넌스 정책 외부화(`Policy` 주입) | ✅ 커널 완료(219 passed). `DeliveryProfile` 은 §3-1 에 맞춰 역할 재정의 필요 |
 | **P1** | **완주 오케스트레이터** — 실패 무유실·재개·재시도 한도·정지 보고 (§6-1) | ✅ 완료 (2026-07-28) — `scripts/retry_ledger.py` + `auto_dev_pipeline.sh` 실패 4경로 원장 경유. 토글 `FLOWOPS_COMPLETION`(opt-in), webhook 무변경 |
 | **P2** | **YAML 제어면 계약** — 스키마·버전·서명·fail-closed·거부 콜백 (§3) | ✅ 완료 (2026-07-28) — `governance/control.py`(ControlPlane v1) + `PUT /governance/control-plane`(서비스 키 인증, 422=기계 소비형 거부). 서명 v1=인증 채널+sha256 해시(비대칭 서명은 후속) |
-| **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | ✅ 강제 모드 완료 (2026-07-28). 잔존 경로 처분(gpt_pr_review·fix_plan_generator 종량 확정, codex=구독, gemini=레거시)은 별도 결정 대기 |
+| **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | ✅ 강제 모드 완료 (2026-07-28). 잔존 경로 처분 완료 (2026-07-30, F-5) — gpt_pr_review·fix_plan_generator 제거, codex/gemini 는 구독형 CLI 로 확정. clickeye-api 제품면 감사만 잔존 |
 | **P4** | **시트 풀 + 계정별 토큰 모니터링** — 레지스트리·배정·`seat_id` 원장·시트별 레이트 (§5) | ✅ 완료 (2026-07-29) — 등록형 시트(사용자당 1개=ToS 방어)·머신 수령·`with_seat.sh` 주입 래퍼(스위칭 0회, 공식 경로 setup-token→CLAUDE_CODE_OAUTH_TOKEN)·PoC 실증(동시 격리·fail-closed). **재실증 대기**: 실토큰 다계정·레이트 N배(팀원 시트 첫 등록 시). 시트별 레이트 카운터는 P5 |
 | **P5** | **다프로젝트 실행** (§5-3) | ✅ v1 완료 (2026-07-29) — watcher 프로젝트 필터 + project_runner(시트×범위×파이프라인 합성, 순차-다프로젝트). **병렬 확정 설계**: 단일 체크아웃 병렬은 git 구조 충돌(main 점유·머지 경합, 실측)로 배제 — 러너 수평 확장(프로젝트별 클론/컨테이너, 하이브리드 러너 방향) + main 머지 직렬화 요구. **선행 과제**: 시트별 레이트 카운터는 로컬 claude 사용량의 원장 인제스트 배관 이후(관측 불가 데이터 위에 카운터를 세우지 않는다) |
 | **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | ✅ 완료 (2026-07-28) — 기계수락(opt-in)·분해 배치·3상 발급기·원장/콜백 |
@@ -391,7 +392,7 @@ infraeye-harness (실측 2026-07-29)
 | **F-2** | **실토큰 다계정 실증** — 레이트 한도가 계정별 독립인지 | P4 가정 미확정. 팀원 시트 첫 등록 시 |
 | **F-3** | P8 집행면 (§8-1 방식) | T3 티어 착수 시 |
 | **F-4** | 제어면 YAML `gates` → 검증 배치 자동 해석 | 현재 `VERIFY_GATES_FILE` 수동. 다프로젝트 워크스페이스 배선과 함께 |
-| **F-5** | 종량 잔존 스크립트 처분 — `gpt_pr_review.py`·`fix_plan_generator.py`(OPENAI_API_KEY) | P3 감사 결과. 전환 또는 제거 결정 필요 |
+| **F-5** | 종량 잔존 스크립트 처분 — `gpt_pr_review.py`·`fix_plan_generator.py`(OPENAI_API_KEY) | ✅ **완료 (2026-07-30)** — 개발 파이프라인 종량 경로 전량 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. `.env` 키는 clickeye-api 제품면이 참조하므로 유지(폐기는 사용자 판단) |
 
 > **거버넌스 예산 상호작용(CE-328 §M2):** `governance_gate_service._usage_from_ledger` 는
 > key_source/request_kind 구분 없이 토큰을 합산하므로, `FLOWOPS_GOVERNANCE_TRIAGE_BUDGET`
@@ -411,6 +412,7 @@ infraeye-harness (실측 2026-07-29)
 | 2026-07-29 | **P8 방식 확정(층 분리 이식)·보류 결정 + 후속 과제 F-1~F-5 등재.** 이전 판의 "선행 구현 리뷰 미결" 서술을 실측으로 정정(241 pass·리뷰어 정족수 통과, 잔여는 install.sh 부재) | 낡은 스냅샷을 반복 인용하고 있었음 — 실측으로 교체 |
 | 2026-07-29 | **F-1 v1 완료(CE-328)** — 로컬 `claude -p` 사용량 → 서버 원장 인제스트 배관(seat_id 축·session_id 멱등·202 비블로킹) + ① 구현 스텝 배선. §5-2 현행화(seat_id/session_id 컬럼·배관 완료)·§8-2 F-1 진행 반영·거버넌스 예산 상호작용(M2) 기록 | 계정별 토큰 모니터링의 로컬 절반 연결 |
 | 2026-07-28 | **E2E 리허설 통과** — 모의 수주 1건 ①~⑥ live 관통(정제·분해=claude 구독, Linear 실물 CE-320~323, verified 확정). 실증 결함 2건 수정: 완주 판정 name→**type 기준**(팀 커스텀 Confirm=completed 대응) · 발급 기본 상태 →Queued. 미배선 확인: 제어면 gates→검증 배치 자동 해석(P5/P8) | 코드 검증만으로 못 잡는 팀별 워크플로 차이를 실증으로 확인 |
+| 2026-07-30 | **F-5 완료** — 개발 파이프라인 종량 경로 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`.github/workflows/ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. CODE_REVIEW 문서를 구독형 경로(codex CLI + `code-reviewer` 서브에이전트)로 현행화. §4-3 잔존 경로·P3·F-5 상태 갱신 | 구독형 전용 원칙 정합 — 종량 API 키 호출자 4개(OpenAI 3+Gemini 1) 소멸 |
 
 ---
 

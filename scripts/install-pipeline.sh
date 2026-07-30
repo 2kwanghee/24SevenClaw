@@ -36,7 +36,6 @@ mkdir -p \
   "$TARGET_DIR/.claude/skills/prd-to-linear" \
   "$TARGET_DIR/.claude/skills/run-pipeline" \
   "$TARGET_DIR/.claude/skills/ralph-loop" \
-  "$TARGET_DIR/.claude/skills/ai-critique/scripts" \
   "$TARGET_DIR/.claude/skills/fullstack" \
   "$TARGET_DIR/.claude/skills/uiux" \
   "$TARGET_DIR/.claude/skills/tdd-smart-coding" \
@@ -61,8 +60,6 @@ PYTHON_SCRIPTS=(
   linear_confirmer.py
   linear_tracker.py
   auto_pr_creator.py
-  fix_plan_generator.py
-  gpt_pr_review.py
   telegram_notify.py
   webhook_server.py
 )
@@ -141,13 +138,13 @@ copy_skill_dir() {
     echo "  + .claude/skills/$skill/"
   fi
 }
-for skill in log-work prd-to-linear run-pipeline ralph-loop ai-critique fullstack uiux tdd-smart-coding daily-close setup merge-worktree verify-implementation manage-skills; do
+for skill in log-work prd-to-linear run-pipeline ralph-loop fullstack uiux tdd-smart-coding daily-close setup merge-worktree verify-implementation manage-skills; do
   copy_skill_dir "$skill"
 done
 
 # ── Step 5: GitHub Actions 복사 ──
 echo "[5/7] GitHub Actions 복사..."
-for f in ci.yml ai-review.yml post-merge.yml; do
+for f in ci.yml post-merge.yml; do
   if [ -f "$FLOW_OPS_DIR/.github/workflows/$f" ]; then
     cp "$FLOW_OPS_DIR/.github/workflows/$f" "$TARGET_DIR/.github/workflows/$f"
     echo "  + .github/workflows/$f"
@@ -256,9 +253,9 @@ echo "  설치 완료!"
 echo "======================================="
 echo ""
 echo "설치된 구성요소:"
-echo "  scripts/           — 자동화 스크립트 (Python 10개 + Shell 7개)"
-echo "  .claude/           — 권한, Hook, 스킬 (13개)"
-echo "  .github/workflows/ — CI/CD (3개)"
+echo "  scripts/           — 자동화 스크립트 (Python 8개 + Shell 7개)"
+echo "  .claude/           — 권한, Hook, 스킬 (12개)"
+echo "  .github/workflows/ — CI/CD (2개)"
 echo "  .ralph/            — 자율 개발 프롬프트"
 echo "  docs/              — 가이드 문서"
 echo ""
@@ -268,8 +265,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "1. .claude/settings.json의 env에 API 키 설정:"
 echo "     LINEAR_API_KEY, LINEAR_TEAM_ID"
-echo "     OPENAI_API_KEY (선택)"
-echo "     GEMINI_API_KEY (선택)"
 echo ""
 echo "2. GitHub CLI 인증:"
 echo "     gh auth login"

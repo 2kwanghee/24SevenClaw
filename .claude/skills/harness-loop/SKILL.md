@@ -49,8 +49,8 @@ user-invocable: false
     │       └─────────────────────────────────────────────┘
     │
     ├──→ 4-A. 전부 통과? → 최종 리뷰
-    │         - CODE_REVIEW 역할로 코드 품질 검토 (ai-critique)
-    │         - API 키 없으면 CODE_REVIEW 건너뛰고 완료 처리 (경고 로그)
+    │         - CODE_REVIEW 역할로 코드 품질 검토 (run_codex_review.sh + code-reviewer 서브에이전트)
+    │         - codex CLI 미설치 시 code-reviewer 서브에이전트로 대체 (경고 로그)
     │         - 리뷰 통과 → ✅ 완료
     │         - 리뷰 지적 있음 → 수정 후 Gate 1부터 재검증
     │
