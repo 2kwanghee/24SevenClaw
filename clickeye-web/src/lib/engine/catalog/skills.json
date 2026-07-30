@@ -10,16 +10,6 @@
     "hooks": []
   },
   {
-    "id": "ai-critique",
-    "name": "AI 코드 리뷰",
-    "description": "코드 변경마다 보안·성능·가독성을 AI가 자동 리뷰하고 구체적 개선안을 제시. PR 품질 향상에 효과적",
-    "whenToUse": "코드 품질을 자동으로 검증하고 사람 리뷰 전에 문제를 잡고 싶을 때",
-    "template": "skills/ai-critique.md.hbs",
-    "outputFile": "ai-critique.md",
-    "dependencies": [],
-    "hooks": ["PostToolUse"]
-  },
-  {
     "id": "linear",
     "name": "Linear 연동",
     "description": "Linear 이슈를 코드 작업과 연동하여 상태를 자동 동기화. 커밋 시 이슈 상태를 In Progress → Done으로 전환",

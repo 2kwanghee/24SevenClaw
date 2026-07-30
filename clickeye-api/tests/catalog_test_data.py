@@ -17,8 +17,8 @@ from app.engine.generator import generate_all
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-# 실 계약값에 맞춘 공개 스킬 6종 (id=slug, label, description, output_file, env_vars 이름).
-# 엔드포인트 구조 테스트는 total==6 + 각 항목 id/label/description(str) 을 검증한다.
+# 실 계약값에 맞춘 공개 스킬 5종 (id=slug, label, description, output_file, env_vars 이름).
+# 엔드포인트 구조 테스트는 total==5 + 각 항목 id/label/description(str) 을 검증한다.
 _SKILLS: dict[str, dict[str, Any]] = {
     "linear": {
         "id": "linear",
@@ -56,14 +56,6 @@ _SKILLS: dict[str, dict[str, Any]] = {
         "description": "품질 게이트 스킬(테스트 카탈로그).",
         "output_file": "harness-gate.md",
         "body_md": "# Harness Gate\n\n품질 게이트 스킬(테스트 카탈로그).",
-        "env_vars": [],
-    },
-    "ai-critique": {
-        "id": "ai-critique",
-        "label": "AI 코드 리뷰",
-        "description": "외부 AI(GPT, Gemini)에 코드 리뷰를 요청하는 스킬(테스트 카탈로그).",
-        "output_file": "ai-critique.md",
-        "body_md": "# AI Critique\n\n외부 AI 코드 리뷰 스킬(테스트 카탈로그).",
         "env_vars": [],
     },
     "ralph-loop": {
