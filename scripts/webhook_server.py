@@ -28,7 +28,7 @@ import sys
 import threading
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -38,6 +38,17 @@ from linear_client import PROJECT_DIR
 DEFAULT_PORT = 9876
 DRY_RUN = False
 WEBHOOK_SECRET = None
+
+# ── 수신전용(enqueue-only) 모드 ──
+# WEBHOOK_ENQUEUE_ONLY=true 면 _handle_event 가 trigger_* 대신 Redis 큐에 적재만 한다.
+# (컨테이너 수신부에서 사용 — 실행은 호스트 워커가 큐를 소비해 수행)
+# 미설정/false 면 기존 동작 그대로(호스트에서 직접 exec) — 하위호환 보장.
+ENQUEUE_ONLY = os.getenv("WEBHOOK_ENQUEUE_ONLY", "").strip().lower() in ("true", "1", "on", "yes")
+# 큐 계약(두 트랙 공유): 키 clickeye:webhook:jobs (LIST), RPUSH 적재 / BLPOP 소비(FIFO).
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+QUEUE_KEY = "clickeye:webhook:jobs"
+# 수신전용 모드에서 재사용하는 Redis 클라이언트(이벤트마다 새 커넥션 풀 생성 방지).
+_redis_client = None
 
 # 중복 실행 방지
 _pipeline_lock = threading.Lock()
@@ -82,23 +93,27 @@ def trigger_pipeline():
     """
     global _last_trigger_time
 
+    # 반환값(호스트 워커가 순차 제어에 사용 — 기존 스레드 호출부는 반환값 무시로 회귀 0):
+    #   Popen  → 실제 파이프라인 프로세스 시작(워커가 .wait() 로 완료 대기)
+    #   True   → DRY_RUN(실행 안 함)
+    #   False  → 미점화(이미 실행 중 or 최소간격 미도달)
     if not _pipeline_lock.acquire(blocking=False):
         log("SKIP: 파이프라인 이미 실행 중")
-        return
+        return False
 
     started = False
     try:
         now = time.time()
         if now - _last_trigger_time < MIN_TRIGGER_INTERVAL:
             log(f"SKIP: 최소 간격 미도달 ({MIN_TRIGGER_INTERVAL}초)")
-            return
+            return False
 
         _last_trigger_time = now
         pipeline_path = os.path.join(PROJECT_DIR, "scripts", "auto_dev_pipeline.sh")
 
         if DRY_RUN:
             log("DRY-RUN: 파이프라인 트리거 (실행 안 함)")
-            return
+            return True
 
         log("TRIGGER: auto_dev_pipeline.sh 실행 시작")
 
@@ -126,6 +141,7 @@ def trigger_pipeline():
             _check_and_retrigger()
 
         threading.Thread(target=_reap, args=(proc, lf), daemon=True).start()
+        return proc
 
     finally:
         if not started:
@@ -133,12 +149,17 @@ def trigger_pipeline():
 
 
 def trigger_confirmer():
-    """linear_confirmer.py를 백그라운드로 실행."""
+    """linear_confirmer.py를 백그라운드로 실행.
+
+    반환값(호스트 워커가 순차 대기에 사용 — 기존 스레드 호출부는 반환값 무시로 회귀 0):
+      Popen → confirmer 프로세스 시작(워커가 .wait() 로 완료 대기, 파이프라인과 겹침 방지)
+      True  → DRY_RUN(실행 안 함)
+    """
     confirmer_path = os.path.join(PROJECT_DIR, "scripts", "linear_confirmer.py")
 
     if DRY_RUN:
         log("DRY-RUN: confirmer 트리거 (실행 안 함)")
-        return
+        return True
 
     log("TRIGGER: linear_confirmer.py 실행 시작")
 
@@ -163,6 +184,46 @@ def trigger_confirmer():
         log(f"REAPED: confirmer PID {p.pid}, exit={p.returncode}")
 
     threading.Thread(target=_reap, args=(proc, lf), daemon=True).start()
+    return proc
+
+
+def _enqueue_job(kind: str, identifier: str, state_name: str):
+    """수신전용 모드: 실행 대신 Redis 큐(clickeye:webhook:jobs)에 job 을 RPUSH 한다.
+
+    - redis 는 지연 import — 수신전용 모드가 아닐 때 redis 미설치 환경에서 죽지 않도록.
+    - RPUSH 실패는 삼키지 않고 log() 로 명확히 남기되 예외를 밖으로 던지지 않는다.
+      호출부(_handle_event)는 200 을 유지해 Linear 재전송 폭주를 막는다 — 유실된
+      트리거는 다음 상태전이/워커 watchdog/폴링 cron 으로 자연 복구된다.
+    """
+    global _redis_client
+    try:
+        client = _get_queue_client()
+        job = {
+            "kind": kind,
+            "identifier": identifier,
+            "state": state_name,
+            "received_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        client.rpush(QUEUE_KEY, json.dumps(job))
+        log(f"ENQUEUE: {kind} {identifier} state={state_name} → {QUEUE_KEY}")
+    except Exception as e:
+        # 접속 예외 시 캐시를 버려 다음 이벤트에서 재생성(끊긴 커넥션 재사용 방지).
+        _redis_client = None
+        log(f"ERROR: 큐 적재 실패({kind} {identifier} state={state_name}) — {e}")
+
+
+def _get_queue_client():
+    """수신전용 모드용 Redis 클라이언트를 지연 생성·캐시해 재사용한다.
+
+    redis 는 지연 import — 수신전용 모드가 아닐 때 redis 미설치 환경에서 죽지 않도록.
+    최초 1회만 from_url 로 생성하고 이후 재사용한다(커넥션 풀 누적 방지). 접속 예외는
+    _enqueue_job 이 캐시를 None 으로 리셋해 다음 이벤트에서 재생성한다.
+    """
+    global _redis_client
+    if _redis_client is None:
+        import redis  # 지연 import (수신전용 모드에서만 필요)
+        _redis_client = redis.from_url(REDIS_URL)
+    return _redis_client
 
 
 def _env_value(key: str) -> str:
@@ -224,7 +285,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            self._respond(200, {"status": "ok", "dry_run": DRY_RUN})
+            self._respond(200, {"status": "ok", "dry_run": DRY_RUN, "enqueue_only": ENQUEUE_ONLY})
         else:
             self._respond(404, {"error": "not found"})
 
@@ -286,13 +347,21 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         # 상태별 트리거 (DayQueued / NightQueued / Queued 모두 처리)
         if state_name in ("DayQueued", "NightQueued", "Queued") and action in ("update", "create"):
-            log(f"{state_name.upper()}: {identifier} — 파이프라인 트리거")
-            thread = threading.Thread(target=trigger_pipeline, daemon=True)
-            thread.start()
+            if ENQUEUE_ONLY:
+                # 수신전용: 실행하지 않고 큐에 적재만 한다(호스트 워커가 소비).
+                _enqueue_job("pipeline", identifier, state_name)
+            else:
+                # 기존 경로(회귀 0): 호스트에서 직접 파이프라인 실행.
+                log(f"{state_name.upper()}: {identifier} — 파이프라인 트리거")
+                thread = threading.Thread(target=trigger_pipeline, daemon=True)
+                thread.start()
         elif state_name == "Confirm" and action == "update":
-            log(f"CONFIRM: {identifier} — confirmer 트리거")
-            thread = threading.Thread(target=trigger_confirmer, daemon=True)
-            thread.start()
+            if ENQUEUE_ONLY:
+                _enqueue_job("confirmer", identifier, state_name)
+            else:
+                log(f"CONFIRM: {identifier} — confirmer 트리거")
+                thread = threading.Thread(target=trigger_confirmer, daemon=True)
+                thread.start()
         else:
             log(f"SKIP: {identifier} 상태={state_name}")
 
@@ -338,6 +407,14 @@ def main():
     DRY_RUN = args.dry_run
 
     load_env()
+
+    # fail-closed: 수신전용 모드(컨테이너, 공개 노출부)는 HMAC 서명 검증이 유일한
+    #   방어선이므로 WEBHOOK_SECRET 이 없으면 기동을 거부한다. 미검증 상태로 인터넷에
+    #   노출되면 임의 POST 가 그대로 큐에 적재돼 호스트 파이프라인을 점화할 수 있다.
+    #   호스트 단독 모드(ENQUEUE_ONLY 미설정)는 기존 경고만 유지 — 회귀 0.
+    if ENQUEUE_ONLY and not WEBHOOK_SECRET:
+        log("FATAL: 수신전용 모드는 WEBHOOK_SECRET 필수(공개 노출부) — 기동 거부")
+        sys.exit(2)
 
     server = HTTPServer(("0.0.0.0", args.port), WebhookHandler)
     log(f"Linear Webhook 서버 시작: http://0.0.0.0:{args.port}")
