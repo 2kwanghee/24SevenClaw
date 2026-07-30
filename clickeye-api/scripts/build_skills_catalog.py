@@ -48,6 +48,8 @@ _DISPLAY_NAMES: dict[str, str] = {
     "run-pipeline": "자동 개발 파이프라인",
     "prd-to-linear": "PRD → Linear 자동 등록",
     "setup": "워크플로 환경 셋업",
+    # SKILL.md 상단에 제목 H1 이 없어 본문 예시(`# {프로젝트명}`)가 이름으로 잡히므로 수동 지정
+    "weekly-report": "주간보고 생성",
 }
 
 

@@ -212,7 +212,7 @@ full-setup: "cd clickeye-infra && ./scripts/setup-dev.sh"
 ### Skill H4: harness-worker
 **용도**: 코드 작성자 / 리뷰어 / 보안 검토자 역할 분리
 **위치**: `.claude/skills/harness-worker/SKILL.md`
-**역할**: WRITE_CODE (fullstack), TEST_WRITER (tdd), CODE_REVIEW (run_codex_review.sh + code-reviewer 서브에이전트), SECURITY_REVIEW
+**역할**: WRITE_CODE (fullstack), TEST_WRITER (tdd), CODE_REVIEW (작성자와 분리된 리뷰어 컨텍스트), SECURITY_REVIEW
 
 ---
 
