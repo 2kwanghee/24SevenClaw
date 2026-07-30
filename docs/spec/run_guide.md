@@ -1,11 +1,14 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: needs-revision
-last_updated: 2026-07-29
+status: current
+last_updated: 2026-07-30
 related:
   - scripts/webhook_server.py
   - scripts/auto_dev_pipeline.sh
+  - scripts/intake_refine.sh
+  - scripts/intake_issue.sh
+  - scripts/delivery_verify.sh
   - clickeye-api
   - clickeye-web
   - docs/clickeye-product-guide.md
@@ -43,15 +46,26 @@ cd /mnt/c/workspace/ClickEye/clickeye-api
 # 의존성 설치 (최초 1회)
 uv sync
 
-# DB 마이그레이션 적용
+# DB 마이그레이션 적용 (pull 후 매번 필수 — 새 리비전 추가 시 기존 로컬 스키마와 불일치)
 uv run python -m alembic upgrade head
+
+# 마이그레이션 상태 확인 (미적용이 감지되면 위 명령 재실행)
+docker exec clickeye-db psql -U clickeye -d clickeye -tAc "SELECT version_num FROM alembic_version"
+uv run alembic heads
+# 위 두 값이 다르면 마이그레이션 재적용 필수
 
 # 시드 데이터 로딩 (PM 프로필 초기 데이터, 최초 1회)
 uv run python scripts/seed_pm_data.py
 
+# 인테이크 API 활성화 (기본 off — 없으면 /intake/* 전체 404)
+# .env 또는 clickeye-api/.env 또는 clickeye-infra/managed/api.env 에 추가:
+export FEATURE_INTAKE=true
+
 # API 서버 실행 (--host 0.0.0.0: WSL2에서 Windows 브라우저 접근 허용)
 uv run python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ```
+
+**마이그레이션 미적용 시 증상**: 딜리버리 상세 진입 시 브라우저 콘솔에 `TypeError: Failed to fetch` 오류 → API 500 `sqlalchemy.exc.ProgrammingError: column llm_usage_ledger.session_id does not exist`
 
 서버 기동 후 → **http://localhost:8000/docs** (Swagger UI)
 
@@ -114,6 +128,9 @@ curl -s http://127.0.0.1:9876/health
 # 응답: {"status":"ok"} 이면 정상
 ```
 
+> **⚠ 주의**: `clickeye-infra`에 webhook 서비스 정의가 없어 WSL 재시작 시 수동 기동이 필요합니다.
+> 상시 자동 기동을 원하면 3-5의 crontab watchdog 항목을 참조하여 등록합니다.
+
 ### 3-2. ngrok 터널 시작 (Linear → webhook 연결)
 
 ```bash
@@ -139,17 +156,98 @@ ngrok URL이 바뀐 경우:
 3. `https://<ngrok-url>/webhook/linear` 로 교체
 4. 저장 후 테스트: Linear에서 이슈 하나를 DayQueued로 변경 → `logs/webhook.log`에 `EVENT: ... DayQueued` 확인
 
-### 3-4. crontab 등록 (영구 자동 기동)
+### 3-4. 무인 체인 배치 기동
+
+3개의 로컬 배치가 체인 ①②⑤⑥을 담당합니다. 각 배치는 opt-in 토글 + `--dry-run` 배관 검증 + 하드캡 규약을 따릅니다.
+
+#### 3-4-1. intake_refine.sh — 인테이크 정제 (체인 ①)
+
+metaprompt 정제: 고객 요구사항 → 구현 스펙 마크다운. 로컬 Claude 세션(`claude -p`)이 정제 LLM을 담당, 서버는 대기 목록과 결과 저장만.
+
+```bash
+cd /mnt/c/workspace/ClickEye
+
+# 배관 검증 (권장 시작점)
+scripts/intake_refine.sh --dry-run
+
+# live 실행 (명시 활성 필수)
+FLOWOPS_INTAKE_REFINE=true scripts/intake_refine.sh
+```
+
+**환경변수 오버라이드**:
+- `API_URL` (기본: `http://localhost:8000`)
+- `MAX_ITEMS` (기본: 5 — 건당 1회 정제, ~30초)
+- `CLAUDE_TIMEOUT` (기본: 300초)
+
+**cron 예시** (야간 배치):
+```cron
+0 2 * * * cd /mnt/c/workspace/ClickEye && FLOWOPS_INTAKE_REFINE=true bash scripts/intake_refine.sh >> logs/intake-refine.log 2>&1
+```
+
+#### 3-4-2. intake_issue.sh — 티켓 발급 (체인 ②)
+
+분해: 정제 스펙 → 티켓 JSON → Linear 자동 발급. 로컬 Claude 세션이 분해 LLM 담당, 서버는 발급 원장 기록.
+
+```bash
+# 배관 검증
+scripts/intake_issue.sh --dry-run
+
+# live 실행 (기계 수락 활성화 권장)
+FLOWOPS_INTAKE_ISSUE=true FLOWOPS_INTAKE_AUTO_ACCEPT=true scripts/intake_issue.sh
+```
+
+**환경변수 오버라이드**:
+- `API_URL` (기본: `http://localhost:8000`)
+- `MAX_ITEMS` (기본: 3 — 건당 1회 분해+발급, ~2분)
+- `CLAUDE_TIMEOUT` (기본: 600초)
+- `ISSUE_STATE` (기본: `Queued`)
+
+**cron 예시** (야간 배치):
+```cron
+0 3 * * * cd /mnt/c/workspace/ClickEye && FLOWOPS_INTAKE_ISSUE=true FLOWOPS_INTAKE_AUTO_ACCEPT=true bash scripts/intake_issue.sh >> logs/intake-issue.log 2>&1
+```
+
+#### 3-4-3. delivery_verify.sh — 정합성 게이트 (체인 ⑤⑥)
+
+발급 티켓 전량 완주 확인 → 통합 게이트 → 최종 상태 확정 → 서비스 #2 콜백.
+
+```bash
+# 완주 관측 (dry-run, 서버 상태 불변)
+scripts/delivery_verify.sh --dry-run
+
+# live 실행 (게이트 실행)
+FLOWOPS_DELIVERY_VERIFY=true scripts/delivery_verify.sh
+```
+
+**환경변수 오버라이드**:
+- `API_URL` (기본: `http://localhost:8000`)
+- `MAX_ITEMS` (기본: 5 — 건당 게이트 실행, 가변)
+- `VERIFY_WORKDIR` (기본: 저장소 루트)
+- `GATE_TIMEOUT` (기본: 1800초)
+
+**cron 예시** (야간 배치):
+```cron
+0 4 * * * cd /mnt/c/workspace/ClickEye && FLOWOPS_DELIVERY_VERIFY=true bash scripts/delivery_verify.sh >> logs/delivery-verify.log 2>&1
+```
+
+> **중요**: 위 cron 명령들은 **미등록 상태**입니다. 자동 기동이 필요하면 아래 3-5 단계에서 수동 등록합니다.
+
+### 3-5. crontab 등록 (영구 자동 기동)
 
 WSL 재시작 후에도 파이프라인이 자동 복구되려면 crontab이 등록돼 있어야 합니다.
 
-등록 여부 확인:
+등록 여부 확인 및 경로 검증:
 
 ```bash
+# 등록 여부 확인
 crontab -l | grep auto_dev_pipeline
+
+# 경로 검증 (등록된 모든 cron 명령의 cd 대상 확인)
+crontab -l | grep -oP "cd \K[^ &]+" | sort -u
+# → 출력이 /mnt/c/workspace/ClickEye 인지 확인. 옛 경로 /mnt/c/workspace/24SevenClaw 가 섞여 있으면 정정 필수
 ```
 
-등록이 안 된 경우:
+등록이 안 된 경우 또는 경로가 잘못된 경우:
 
 ```bash
 # cron 서비스 상태 확인
@@ -325,6 +423,33 @@ tail -5  logs/ngrok.log
 
 ### 증상별 원인 및 해결
 
+#### 딜리버리 상세 진입 시 화면이 비거나 "Failed to fetch" 오류
+
+**원인 확인 순서** (우선순위):
+
+1. **DB 마이그레이션 미적용** (가장 흔함 — 2026-07-30 실측)
+   ```bash
+   docker exec clickeye-db psql -U clickeye -d clickeye -tAc "SELECT version_num FROM alembic_version"
+   cd /mnt/c/workspace/ClickEye/clickeye-api && uv run alembic heads
+   # 두 값이 다르면 미적용 — 아래 명령 재실행
+   uv run python -m alembic upgrade head
+   ```
+   브라우저 새로고침 후 확인.
+
+2. **API 서버 미기동**
+   ```bash
+   curl -s http://127.0.0.1:8000/docs | head -5
+   # → 응답 없으면 API 재시작
+   ```
+
+3. **CORS 설정** (로컬 테스트 환경에서는 보통 OK)
+   ```bash
+   grep CORS_ORIGINS /mnt/c/workspace/ClickEye/.env
+   # → http://localhost:3000 포함 여부 확인
+   ```
+
+---
+
 #### DayQueued로 옮겨도 파이프라인이 실행되지 않는다
 
 **원인 확인 순서**:
@@ -437,6 +562,7 @@ timeout 30 codex exec "테스트 프롬프트" 2>&1 | head -10
 grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 
 # 주요 토글
+# 체인 파이프라인
 # FLOWOPS_LINEAR_WATCHER=true   — Linear 이슈 감지 활성화 (false면 파이프라인 전체 스킵)
 # FLOWOPS_METAPROMPT=true       — Claude 메타프롬프트 기획(관측형 사전 정제) — 기본
 # FLOWOPS_GEMINI_PLAN=false     — 레거시 Gemini 기획 (METAPROMPT=false일 때 폴백)
@@ -444,6 +570,15 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 # FLOWOPS_AUTO_MERGE=true       — PR 없이 main 직접 머지 (HIGH-tier는 거버넌스 게이트가 PR 강등)
 # FLOWOPS_GOVERNANCE=true       — 머지 직전 거버넌스 게이트 (+_CONTRACT/_TICKET/_TRACE/_RISK_DEMOTE/_PROMOTE)
 # FLOWOPS_TELEGRAM=true         — Telegram 완료 알림
+
+# 인테이크 배치 (3-4 참조)
+# FLOWOPS_INTAKE_REFINE=true    — 인테이크 정제 활성화 (기본 off — opt-in)
+# FLOWOPS_INTAKE_ISSUE=true     — 티켓 발급 활성화 (기본 off — opt-in)
+# FLOWOPS_INTAKE_AUTO_ACCEPT=true — 기계 수락 활성화 (INTAKE_ISSUE 함께 필요)
+# FLOWOPS_DELIVERY_VERIFY=true  — 딜리버리 정합성 게이트 활성화 (기본 off — opt-in)
+
+# LLM 게이트웨이 (CE-299, CE-328)
+# FLOWOPS_USAGE_INGEST=true     — 로컬 claude -p 사용량 → 서버 원장 인제스트 (기본 off)
 ```
 
 ---
