@@ -682,6 +682,8 @@
       "sessionsError": "Failed to load session list.",
       "noSessions": "This engagement has no work sessions yet",
       "createSession": "Create a work session",
+      "unattendedNotice": "This engagement runs on unattended delivery. Its requirements have already been issued as tickets, so no separate work session is needed.",
+      "viewIntakeChain": "View intake progress",
       "summaryError": "Some data could not be refreshed.",
       "issueBoardTitle": "Issue work board",
       "subtaskCount": "Subtasks {count}",
@@ -824,6 +826,12 @@
       "subtitle": "Ask about active deliveries across your organization",
       "placeholder": "e.g., What services are we producing right now?",
       "hint": "Answers are grounded in your organization's active deliveries. Enter to send · Shift+Enter for newline."
+    }
+  },
+  "aiTeam": {
+    "session": {
+      "intakeBlockedTitle": "Session cannot be created",
+      "intakeBlockedBody": "This engagement runs on unattended delivery and its requirements have already been issued as tickets. Creating a session here would duplicate the task breakdown, so check the intake progress instead."
     }
   },
   "intake": {
