@@ -5,6 +5,9 @@ status: current
 last_updated: 2026-07-30
 related:
   - scripts/webhook_server.py
+  - scripts/webhook_worker.py
+  - scripts/clickeye_cron.txt
+  - clickeye-infra/docker/Dockerfile.webhook
   - scripts/auto_dev_pipeline.sh
   - scripts/intake_refine.sh
   - scripts/intake_issue.sh
@@ -115,21 +118,51 @@ npx next build --webpack
 
 ## 3단계: 자동화 파이프라인 기동
 
-### 3-1. webhook 서버 시작 (Linear 이벤트 수신)
+### 3-1. webhook 수신 컨테이너 시작 (Linear 이벤트 수신)
+
+webhook 수신부는 **compose 서비스**(`webhook`)로 띄웁니다. 컨테이너는 HMAC 서명만 검증하고
+검증된 이벤트를 Redis 큐(`clickeye:webhook:jobs`)에 적재만 하며(수신전용, `WEBHOOK_ENQUEUE_ONLY=true`),
+실행은 하지 않습니다. `profiles: [full]`에 있으므로 기본 `up -d`에는 포함되지 않습니다.
+
+```bash
+cd /mnt/c/workspace/ClickEye/clickeye-infra/docker
+
+# webhook 수신 컨테이너 기동 (redis 의존 — 함께 올라옵니다)
+docker compose --profile full up -d webhook
+
+# 상태 확인
+docker compose ps webhook
+# clickeye-webhook 이 healthy 상태여야 정상
+
+# 정상 기동 확인 (컨테이너 포트가 호스트 9876 으로 퍼블리시됩니다)
+curl -s http://127.0.0.1:9876/health
+# 응답: {"status":"ok","dry_run":false,"enqueue_only":true} 이면 정상
+```
+
+> **WEBHOOK_SECRET 필수**: 수신전용 모드는 공개 노출부이므로 `WEBHOOK_SECRET`(Linear
+> Settings→API→Webhooks 의 Signing Secret)이 비어 있으면 컨테이너가 기동을 거부합니다.
+> 값은 `clickeye-infra/docker/.env` 또는 셸 환경에 두고 주입합니다.
+
+### 3-1b. 호스트 실행 워커 시작 (큐 소비 → 파이프라인 실행)
+
+큐에 적재된 job 을 꺼내(`BLPOP`) `auto_dev_pipeline.sh`를 호출하는 **호스트 프로세스**입니다.
+파이프라인은 `git`·`claude` CLI·`uv`·`npm` 과 로컬 워크스페이스(시트·크리덴셜)를 쓰므로,
+실행면은 컨테이너가 아닌 **호스트에 남깁니다**. 이 덕분에 인터넷에 노출되는 수신 컨테이너에는
+토큰·git 크리덴셜을 두지 않습니다.
 
 ```bash
 cd /mnt/c/workspace/ClickEye
 
-# 백그라운드 실행
-nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
+# 사전 요구: redis 파이썬 패키지 (호스트에 미설치면 워커가 명확한 에러로 안내)
+python3 -c "import redis" 2>/dev/null || pip install redis
 
-# 정상 기동 확인
-curl -s http://127.0.0.1:9876/health
-# 응답: {"status":"ok"} 이면 정상
+# 상시 루프로 백그라운드 실행 (큐를 계속 소비)
+nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &
 ```
 
-> **⚠ 주의**: `clickeye-infra`에 webhook 서비스 정의가 없어 WSL 재시작 시 수동 기동이 필요합니다.
-> 상시 자동 기동을 원하면 3-5의 crontab watchdog 항목을 참조하여 등록합니다.
+> `--once` 는 큐에서 1건만 처리하고 종료하는 cron 폴링용 모드입니다(빈 큐면 exit 0).
+> 상시 워커의 watchdog 등록은 3-5(cron 정본 `scripts/clickeye_cron.txt`)를 참조합니다.
+> 큐 키는 `clickeye:webhook:jobs`(Redis LIST), `REDIS_URL` 기본값은 `redis://localhost:6379/0`.
 
 ### 3-2. ngrok 터널 시작 (Linear → webhook 연결)
 
@@ -256,26 +289,27 @@ service cron status
 # 꺼져 있으면 시작
 sudo service cron start
 
-# crontab 등록
-(crontab -l 2>/dev/null; cat /tmp/clickeye_cron.txt) | crontab -
+# crontab 등록 (cron 정본 = scripts/clickeye_cron.txt)
+(crontab -l 2>/dev/null; cat /mnt/c/workspace/ClickEye/scripts/clickeye_cron.txt) | crontab -
 
 # 확인
 crontab -l
 ```
 
-`/tmp/clickeye_cron.txt`가 없으면 아래 내용으로 직접 `crontab -e` 편집:
+> **cron 정본은 `scripts/clickeye_cron.txt` 하나입니다.** 파이프라인 폴링·야간 배치·confirmer·
+> 인테이크 3배치와 watchdog 항목이 모두 이 파일에 정의돼 있으니, 개별 줄을 여기 문서에
+> 중복 기재하지 않습니다. 등록 전 `SHELL`/`PATH` 지시와 로컬 `claude`/`ngrok` 설치 경로가
+> 일치하는지(`command -v claude ngrok`) 파일 상단 체크리스트를 따르세요.
+
+watchdog 항목은 **호스트 워커**(`webhook_worker.py`)와 ngrok 을 감시합니다. webhook 수신부는
+이제 compose 컨테이너이므로 호스트 `webhook_server.py` watchdog 은 더 이상 등록하지 않습니다.
+정본의 watchdog 형태(자기매칭을 피하는 문자클래스 pgrep 패턴):
 
 ```cron
-# 평일 9-18시 매 5분 큐 폴링 (webhook 죽어도 백업)
-*/5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
-# 자정 야간 배치 (NightQueued 연속 처리)
-0 0 * * * cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
-# 평일 정오 Confirm → Done 정리
-0 12 * * 1-5 cd /mnt/c/workspace/ClickEye && python3 scripts/linear_confirmer.py >> logs/confirmer.log 2>&1
-# webhook_server watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "webhook_server.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &)
-# ngrok watchdog (10분마다 살아있는지 확인, 죽으면 재기동)
-*/10 * * * * pgrep -f "ngrok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+# 웹훅 실행 워커 watchdog (10분마다, 죽으면 재기동)
+*/10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
+# ngrok watchdog (10분마다, 죽으면 재기동)
+*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
 ```
 
 > **WSL2 영구 자동 시작**: `/etc/wsl.conf`에 아래 설정을 추가하면 WSL 부팅 시 cron이 자동 시작됩니다.
@@ -401,14 +435,15 @@ docker logs clickeye-redis --tail 50
 ```bash
 cd /mnt/c/workspace/ClickEye
 
-# 1. 프로세스 생존 여부
-pgrep -af webhook_server.py        # PID가 출력되면 실행 중
-pgrep -af "ngrok http 9876"        # PID가 출력되면 실행 중
+# 1. 수신 컨테이너 + 호스트 워커 생존 여부
+docker compose -f clickeye-infra/docker/docker-compose.yml ps webhook  # clickeye-webhook healthy 여부
+pgrep -af "[w]ebhook_worker.py"    # 호스트 워커 PID가 출력되면 실행 중
+pgrep -af "[n]grok http 9876"      # PID가 출력되면 실행 중
 service cron status                # cron 서비스 상태
 crontab -l | grep pipeline         # crontab 등록 확인
 
 # 2. 포트 바인딩 확인
-ss -tlnp | grep 9876               # webhook 서버 포트
+ss -tlnp | grep 9876               # webhook 컨테이너 퍼블리시 포트
 curl -s http://127.0.0.1:9876/health   # {"status":"ok"} 이면 정상
 curl -s http://127.0.0.1:4040/api/tunnels | python3 -c \
   "import sys,json; t=json.load(sys.stdin)['tunnels']; print(t[0]['public_url'] if t else 'NO TUNNEL')"
@@ -454,12 +489,22 @@ tail -5  logs/ngrok.log
 
 **원인 확인 순서**:
 
-1. **webhook_server가 죽어 있는 경우** (가장 흔함)
+1. **수신 컨테이너 또는 호스트 워커가 죽어 있는 경우** (가장 흔함)
    ```bash
-   pgrep -f webhook_server.py || echo "프로세스 없음"
+   # 수신 컨테이너 상태 + 로그
+   docker compose -f clickeye-infra/docker/docker-compose.yml ps webhook
+   docker logs clickeye-webhook --tail 30
+   # → 죽어 있으면 재기동
+   cd /mnt/c/workspace/ClickEye/clickeye-infra/docker && docker compose --profile full up -d webhook
+
+   # 호스트 워커(큐 소비) 확인
+   pgrep -f "[w]ebhook_worker.py" || echo "워커 프로세스 없음"
    # → 없으면 재기동
    cd /mnt/c/workspace/ClickEye
-   nohup python3 scripts/webhook_server.py >> logs/webhook.log 2>&1 &
+   nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &
+
+   # 큐에 job 이 쌓여만 있고 소비되지 않는지 확인(워커 미기동 신호)
+   docker exec clickeye-redis redis-cli LLEN clickeye:webhook:jobs
    ```
 
 2. **ngrok 터널이 끊긴 경우**
@@ -587,7 +632,8 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 
 | 로그 파일 | 내용 |
 |---|---|
-| `logs/webhook.log` | Linear webhook 이벤트 수신 + 파이프라인 트리거 기록 |
+| `docker logs clickeye-webhook` | 수신 컨테이너 — Linear webhook 수신 + 큐 적재(RPUSH) 기록 |
+| `logs/webhook-worker.log` | 호스트 워커 — 큐 소비(BLPOP) + 파이프라인 트리거 기록 |
 | `logs/pipeline-cron.log` | cron 폴링으로 실행된 파이프라인 로그 |
 | `logs/pipeline-night.log` | 자정 NightQueued 배치 실행 로그 |
 | `logs/pipeline_YYYYMMDD_HHMMSS.log` | webhook 트리거 파이프라인 개별 실행 로그 |
@@ -602,8 +648,9 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 # 가장 최근 실행 로그
 ls -t logs/pipeline_*.log | head -1 | xargs tail -30
 
-# webhook 이벤트 수신 이력
-grep "EVENT\|TRIGGER\|IDLE" logs/webhook.log | tail -20
+# webhook 수신(컨테이너) + 큐 소비(워커) 이력
+docker logs clickeye-webhook --tail 20
+grep "EVENT\|TRIGGER\|IDLE" logs/webhook-worker.log | tail -20
 
 # 에러만 필터
 grep -i "error\|warn\|fail" logs/pipeline-cron.log | tail -20
@@ -615,10 +662,12 @@ grep -i "error\|warn\|fail" logs/pipeline-cron.log | tail -20
 
 파이프라인이 전체적으로 잘 동작하는지 확인하려면:
 
-1. 프로세스 생존 확인
+1. 수신 컨테이너 + 워커 + 터널 생존 확인
    ```bash
-   pgrep -af webhook_server.py && curl -s http://127.0.0.1:9876/health
-   pgrep -af "ngrok http 9876"
+   docker compose -f clickeye-infra/docker/docker-compose.yml ps webhook
+   curl -s http://127.0.0.1:9876/health
+   pgrep -af "[w]ebhook_worker.py"
+   pgrep -af "[n]grok http 9876"
    ```
 
 2. Linear에서 테스트 이슈를 **DayQueued**로 변경

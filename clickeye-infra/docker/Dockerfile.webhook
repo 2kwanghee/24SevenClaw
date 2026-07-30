@@ -1,0 +1,37 @@
+# ClickEye Webhook 수신 컨테이너 (CE-338)
+#
+# 왜 얇은 이미지인가:
+#   이 컨테이너는 네트워크에 노출되는 "수신부"만 담당한다. Linear webhook 을 받아
+#   HMAC 검증 후 Redis 로 RPUSH 만 한다(WEBHOOK_ENQUEUE_ONLY=true). 실제 파이프라인
+#   실행(git/claude/uv/npm)은 호스트 워커가 담당하므로, 실행 툴체인·토큰·git 크리덴셜을
+#   이 이미지에 넣지 않는 것이 이 설계의 핵심 이점이다. 표준 라이브러리 + redis 면 충분.
+#
+# 빌드 컨텍스트 = 레포 루트(../../) — Dockerfile.api 와 동일. scripts/ 를 컨텍스트에서 복사한다.
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 수신부 유일 의존성: redis 파이썬 클라이언트(enqueue RPUSH 용). 실행 툴체인 불포함(얇게).
+RUN pip install --no-cache-dir redis
+
+# 비-root 사용자 (Dockerfile.api 관례).
+RUN useradd -m -r appuser
+
+# webhook_server 와 그 import 의존만 복사(linear_client → env_loader).
+#   os.path.dirname(__file__) 기준 상대 import 이므로 scripts/ 레이아웃을 그대로 미러한다.
+#   PROJECT_DIR(= scripts/..) 은 /app 로 해석된다(enqueue 모드에선 실행 경로 미사용).
+COPY scripts/webhook_server.py scripts/linear_client.py scripts/env_loader.py ./scripts/
+
+USER appuser
+
+EXPOSE 9876
+
+# 수신 전용 모드를 이미지 기본값으로 못박는다: 이 이미지는 어떤 방식으로 기동되든
+#   파이프라인을 실행하지 않고 Redis 로 RPUSH 만 한다(토큰·git 크리덴셜 부재 → 실행 불가).
+ENV WEBHOOK_ENQUEUE_ONLY=true
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9876/health')"]
+
+CMD ["python", "scripts/webhook_server.py"]

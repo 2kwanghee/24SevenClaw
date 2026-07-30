@@ -35,6 +35,52 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Webhook 수신 컨테이너 (CE-338) ──
+  # 네트워크 노출부(Linear webhook 수신)만 컨테이너화한다. HMAC 검증 후 Redis 로 RPUSH 만
+  #   하고(WEBHOOK_ENQUEUE_ONLY=true) 실제 파이프라인 실행(git/claude/uv/npm)은 호스트
+  #   워커(BLPOP)가 담당한다 → 토큰·git 크리덴셜을 컨테이너에 두지 않는 것이 이 설계의 핵심.
+  #   profiles:[full] → 기본 `up -d` 는 db/redis 만(회귀 0). 호스트 ngrok 이 9876 을 향한다.
+  #   redis 만 필요하므로 default 네트워크(=redis 소속)만 사용(ops-net 불요).
+  webhook:
+    build:
+      # Dockerfile.api 와 동일하게 컨텍스트 = 레포 루트(scripts/ 를 컨텍스트에서 복사).
+      context: ../../
+      dockerfile: clickeye-infra/docker/Dockerfile.webhook
+    container_name: clickeye-webhook
+    ports:
+      # 호스트 ngrok 터널이 이 포트를 향한다.
+      - "9876:9876"
+    environment:
+      # 수신 전용: 파이프라인 실행 대신 Redis 로 RPUSH.
+      WEBHOOK_ENQUEUE_ONLY: "true"
+      REDIS_URL: redis://redis:6379/0
+    # 최소권한(no.2): 인터넷 노출 수신부에는 관리형 api.env(DATABASE_URL·LINEAR_API_KEY·
+    #   GOVERNANCE_SERVICE_TOKEN·LLM 키 전량)를 절대 주입하지 않는다 — '토큰·크리덴셜을
+    #   컨테이너에 두지 않는다'는 설계 이점 보존. 수신부가 필요로 하는 키는 WEBHOOK_SECRET
+    #   (Linear Signing Secret) 하나뿐이므로 수신부 전용 스코프 파일만 로드한다.
+    #   webhook.env 는 운영 패널이 webhook.env.example 을 참고해 렌더(gitignore 추적 제외).
+    #   미존재 시 required:false 로 `docker compose config` 파싱을 통과하되, WEBHOOK_SECRET
+    #   미주입이면 서버가 수신전용 모드에서 기동을 거부한다(fail-closed — webhook_server.main).
+    #   compose 단계 차단(${WEBHOOK_SECRET:?}) 은 `docker compose config` 를 깨뜨려 미사용 —
+    #   권위 있는 방어선은 서버 fail-closed 이다.
+    env_file:
+      - path: ../managed/webhook.env
+        required: false
+    depends_on:
+      # 기존 redis healthcheck 를 재사용(api 서비스와 동일한 service_healthy 관례).
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      # 슬림 이미지에 curl 이 없어 python urllib 로 /health 확인(clickeye-llm 과 동일 방식).
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9876/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    profiles:
+      - full
+
   # ── 마이그레이션 게이트 (CE-305 PR-1) ──
   # api 와 동일 이미지(동일 build 참조 — worker 서비스와 같은 재사용 패턴)로
   #   `alembic upgrade head`(백필 045 포함)를 1회 실행하고 종료(restart: "no").

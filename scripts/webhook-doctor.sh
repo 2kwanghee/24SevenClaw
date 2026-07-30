@@ -95,6 +95,19 @@ list_ngrok_pids() {
     } | sort -u
 }
 
+# 수신부는 compose 서비스(clickeye-webhook 컨테이너)로 옮겨졌다. 컨테이너가 9876 을
+# 퍼블리시 중이면 호스트 webhook_server.py 기동은 포트 충돌을 유발하므로, 진단·--fix
+# 모두 컨테이너 상태를 먼저 본다.
+webhook_container_running() {
+    command -v docker >/dev/null 2>&1 || return 1
+    [[ "$(docker inspect -f '{{.State.Running}}' clickeye-webhook 2>/dev/null)" == "true" ]]
+}
+
+# 호스트 실행 워커(큐 소비 담당) PID. 문자클래스로 자기매칭을 원천 차단.
+list_worker_pids() {
+    pgrep -f "[w]ebhook_worker.py" 2>/dev/null | sort -u
+}
+
 # 타 프로젝트 PID 분리
 filter_other() {
     while IFS= read -r pid; do
@@ -134,19 +147,35 @@ diagnose() {
     fi
     echo
 
-    # 2. webhook 프로세스
-    printf "%s[2/4]%s webhook_server.py 프로세스\n" "$C_BLU" "$C_NC"
-    local seen=false pid cwd cmd
+    # 2. 수신부(webhook 컨테이너) + 호스트 워커
+    printf "%s[2/4]%s webhook 컨테이너 + 호스트 워커\n" "$C_BLU" "$C_NC"
+    if webhook_container_running; then
+        ok "컨테이너 clickeye-webhook 실행 중 (9876 수신부는 컨테이너 소유)"
+        sub "로그: docker logs --tail 50 clickeye-webhook"
+    elif command -v docker >/dev/null 2>&1; then
+        warn "컨테이너 clickeye-webhook 미실행 — 기동: docker compose --profile full up -d webhook"
+    else
+        warn "docker 미설치 — 컨테이너 수신부 상태 확인 불가"
+    fi
+    # 호스트에 남아있는 webhook_server.py 는 이제 컨테이너와 9876 충돌을 일으키는 잔재다.
+    local pid cwd cmd stray=false
     while IFS= read -r pid; do
         [[ -z "$pid" ]] && continue
-        seen=true
+        stray=true
         cwd="$(proc_cwd "$pid")"
         cmd="$(ps -p "$pid" -o args= 2>/dev/null | cut -c1-100)"
-        if is_our_proc "$pid"; then ok "PID $pid (본 프로젝트) — $cmd"
-        else warn "PID $pid (타 프로젝트 @ $cwd) — $cmd"
-        fi
+        warn "호스트 webhook_server.py 잔재 PID $pid (@ $cwd) — 컨테이너와 9876 충돌 위험: $cmd"
     done < <(list_webhook_pids)
-    $seen || sub "실행 중 webhook_server.py 없음"
+    $stray || sub "호스트 webhook_server.py 잔재 없음(정상 — 수신부는 컨테이너)"
+    # 호스트 워커(큐 소비) 생존 확인.
+    local wseen=false
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        wseen=true
+        cmd="$(ps -p "$pid" -o args= 2>/dev/null | cut -c1-100)"
+        ok "호스트 워커 webhook_worker.py PID $pid — $cmd"
+    done < <(list_worker_pids)
+    $wseen || warn "호스트 워커 webhook_worker.py 미실행 — 큐 소비 정지 상태(--fix 로 기동)"
     echo
 
     # 3. ngrok 프로세스
@@ -285,6 +314,33 @@ verify() {
     fi
 }
 
+# 호스트 워커 기동(큐 소비). 이미 살아있으면 건드리지 않는다.
+start_worker() {
+    if [[ -n "$(list_worker_pids)" ]]; then
+        ok "호스트 워커 이미 실행 중 — 재기동 생략"
+        return 0
+    fi
+    log "호스트 워커 기동 (webhook_worker.py)"
+    nohup python3 "$SCRIPT_DIR/webhook_worker.py" >> "$PROJECT_ROOT/logs/webhook-worker.log" 2>&1 &
+    ok "PID $! → 로그: logs/webhook-worker.log"
+}
+
+# 컨테이너 수신부 모드 검증: 호스트 pid 대신 /health(컨테이너 퍼블리시) + 워커 생존.
+verify_container() {
+    log "검증(컨테이너 수신부 + 호스트 워커)"
+    sleep 2
+    local resp
+    resp="$(curl -s -m 3 "http://localhost:$PORT/health" 2>/dev/null || echo "")"
+    if [[ "$resp" == *'"status"'*'"ok"'* ]]; then
+        ok "로컬 /health → $resp"
+    else
+        err "로컬 /health 실패: $resp (컨테이너 상태: docker logs --tail 50 clickeye-webhook)"
+        return 1
+    fi
+    [[ -n "$(list_worker_pids)" ]] && ok "호스트 워커 생존" || { err "호스트 워커 미기동"; return 1; }
+    return 0
+}
+
 # ════════════════════════════════════════════════════
 echo "═══════════════════════════════════════════════════"
 echo "  Webhook Doctor — ClickEye Linear Webhook"
@@ -315,11 +371,23 @@ elif [[ -n "$OTHERS_WH" ]]; then
     $FORCE && cleanup_others || sub "건드리지 않습니다. 강제 종료하려면: --force"
 fi
 
-cleanup_self
-start_webhook
-start_ngrok
-verify
-RC=$?
+if webhook_container_running; then
+    # 컨테이너가 9876 을 소유한다. 호스트 webhook_server 를 띄우면 바인딩 충돌 →
+    # 호스트 서버 기동을 생략하고, 잔재 정리 + 워커·ngrok(호스트→컨테이너 터널)만 보장한다.
+    log "수신부는 컨테이너(clickeye-webhook) 담당 — 호스트 webhook_server 기동 생략(9876 충돌 방지)"
+    cleanup_self
+    start_worker
+    start_ngrok
+    verify_container
+    RC=$?
+else
+    # 컨테이너 미기동 → 레거시 호스트 단독 경로(회귀 0). 큐를 쓰지 않으므로 워커는 띄우지 않는다.
+    cleanup_self
+    start_webhook
+    start_ngrok
+    verify
+    RC=$?
+fi
 
 echo
 if [[ $RC -eq 0 ]]; then
