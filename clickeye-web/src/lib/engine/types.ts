@@ -24,7 +24,6 @@ export type AgentId =
 /** 워크플로우 옵션 ID */
 export type WorkflowId =
   | "tdd"
-  | "ai-critique"
   | "linear"
   | "ralph-loop"
   | "harness-gate";

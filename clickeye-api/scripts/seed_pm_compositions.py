@@ -36,7 +36,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "backend", "architect"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "manage-skills",
             "log-work",
@@ -50,7 +49,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "frontend", "uiux"],
         "skills": [
             "uiux",
-            "ai-critique",
             "tdd-smart-coding",
             "fullstack",
             "log-work",
@@ -64,7 +62,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "frontend", "backend"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "harness-router",
             "harness-loop",
@@ -83,7 +80,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "devops", "security"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "manage-skills",
             "log-work",
             "github",
@@ -94,14 +90,13 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
     },
     "forge": {
         "agents": ["harness", "backend", "architect"],
-        "skills": ["fullstack", "ai-critique", "tdd-smart-coding", "log-work", "linear"],
+        "skills": ["fullstack", "tdd-smart-coding", "log-work", "linear"],
         "mcps": ["postgres", "linear", "github"],
         "hooks": ["harness-gate", "commit-session"],
     },
     "shield": {
         "agents": ["harness", "security", "qa", "lint-python"],
         "skills": [
-            "ai-critique",
             "tdd-smart-coding",
             "verify-implementation",
             "fullstack",
@@ -115,7 +110,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "frontend"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "harness-router",
             "ralph-loop",
@@ -128,7 +122,7 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
     },
     "bridge": {
         "agents": ["harness", "backend", "contracts"],
-        "skills": ["fullstack", "ai-critique", "tdd-smart-coding", "log-work", "github", "linear"],
+        "skills": ["fullstack", "tdd-smart-coding", "log-work", "github", "linear"],
         "mcps": ["github", "postgres", "linear"],
         "hooks": ["harness-gate", "commit-session"],
     },
@@ -136,7 +130,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "backend", "fullstack"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "log-work",
             "slack",
@@ -150,7 +143,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "docs"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "log-work",
             "manage-skills",
             "daily-close",
@@ -163,7 +155,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "backend"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "log-work",
             "manage-skills",
             "setup",
@@ -175,13 +166,13 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
     },
     "arena": {
         "agents": ["harness", "backend", "fullstack"],
-        "skills": ["fullstack", "ai-critique", "tdd-smart-coding", "log-work", "slack", "github"],
+        "skills": ["fullstack", "tdd-smart-coding", "log-work", "slack", "github"],
         "mcps": ["postgres", "github", "slack"],
         "hooks": ["harness-gate", "commit-session"],
     },
     "route": {
         "agents": ["harness", "backend", "fullstack"],
-        "skills": ["fullstack", "ai-critique", "tdd-smart-coding", "log-work", "linear", "github"],
+        "skills": ["fullstack", "tdd-smart-coding", "log-work", "linear", "github"],
         "mcps": ["postgres", "github", "linear"],
         "hooks": ["harness-gate", "commit-session"],
     },
@@ -189,7 +180,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "backend", "security", "qa"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "verify-implementation",
             "log-work",
@@ -201,7 +191,7 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
     },
     "commerce": {
         "agents": ["harness", "fullstack", "frontend", "backend"],
-        "skills": ["fullstack", "ai-critique", "tdd-smart-coding", "log-work", "linear", "github"],
+        "skills": ["fullstack", "tdd-smart-coding", "log-work", "linear", "github"],
         "mcps": ["postgres", "github", "linear", "figma"],
         "hooks": ["harness-gate", "commit-session"],
     },
@@ -209,7 +199,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "backend", "security", "qa"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "verify-implementation",
             "log-work",
@@ -223,7 +212,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "frontend", "uiux", "fullstack"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "uiux",
             "log-work",
@@ -237,7 +225,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "backend", "deep-thinker"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "harness-router",
             "harness-loop",
@@ -256,7 +243,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "backend", "frontend"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "log-work",
             "manage-skills",
@@ -270,7 +256,6 @@ PM_COMPOSITIONS: dict[str, dict[str, list[str]]] = {
         "agents": ["harness", "fullstack", "backend", "frontend"],
         "skills": [
             "fullstack",
-            "ai-critique",
             "tdd-smart-coding",
             "log-work",
             "linear",

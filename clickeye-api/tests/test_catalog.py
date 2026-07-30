@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 @pytest.fixture(autouse=True)
 async def _seed_registry(seeded_catalog: None) -> None:
-    """공개 agents 7 / skills 6 시드 — DB SSOT 카탈로그 엔드포인트 전제 데이터."""
+    """공개 agents 7 / skills 5 시드 — DB SSOT 카탈로그 엔드포인트 전제 데이터."""
     return
 
 
@@ -38,7 +38,7 @@ async def test_list_skills(client: AsyncClient) -> None:
     assert resp.status_code == 200
 
     data = resp.json()
-    assert data["total"] == 6
+    assert data["total"] == 5
 
     skill = data["items"][0]
     assert "id" in skill
@@ -92,10 +92,11 @@ async def test_catalog_agents_slugs(client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_catalog_skills_slugs(client: AsyncClient) -> None:
-    """6개 공개 스킬 slug 검증 — 테스트 카탈로그 계약(catalog_test_data._SKILLS).
+    """5개 공개 스킬 slug 검증 — 테스트 카탈로그 계약(catalog_test_data._SKILLS).
 
     (구 통합 스킬 세트 telegram/github/slack/jira 는 폐기 — jira 는 031 마이그레이션
-    에서 비공개 처리. 현 계약은 개발 워크플로 스킬 중심.)
+    에서 비공개 처리. ai-critique 는 CE-334 에서 오퍼링 제거. 현 계약은 개발 워크플로
+    스킬 중심.)
     """
     resp = await client.get("/api/v1/catalog/skills")
     data = resp.json()
@@ -105,7 +106,6 @@ async def test_catalog_skills_slugs(client: AsyncClient) -> None:
         "notion",
         "tdd-smart-coding",
         "harness-gate",
-        "ai-critique",
         "ralph-loop",
     }
     assert ids == expected

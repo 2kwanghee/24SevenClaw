@@ -37,12 +37,6 @@ AGENT_TRANSLATIONS: list[dict] = [
         "description_en": "Full-stack specialist covering frontend and backend. Next.js + FastAPI.",
         "body_md_en": None,
     },
-    {
-        "slug": "ai-critique",
-        "name_en": "AI Code Reviewer",
-        "description_en": "AI-powered code review. Detects bugs and anti-patterns.",
-        "body_md_en": None,
-    },
 ]
 
 # ─── Skill 번역 ────────────────────────────────────────────────────────────────
