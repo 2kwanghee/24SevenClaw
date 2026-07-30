@@ -12,6 +12,18 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 mkdir -p logs .run
 
+# ── 컨테이너 모드 충돌 가드 (CE-338) ──
+# 수신부는 compose 서비스(clickeye-webhook)로 옮겨졌다. 컨테이너가 9876 을 퍼블리시한
+# 상태에서 호스트 서버를 띄우면 포트가 충돌해 한쪽이 죽거나 컨테이너가 restart 루프에
+# 빠진다. 컨테이너가 살아 있으면 기동하지 않고 안내만 한다.
+if docker compose -f clickeye-infra/docker/docker-compose.yml ps -q webhook 2>/dev/null | grep -q .; then
+    echo "[SKIP] webhook 컨테이너가 실행 중입니다 — 호스트 서버를 띄우지 않습니다(9876 충돌 방지)." >&2
+    echo "       상태: docker compose -f clickeye-infra/docker/docker-compose.yml ps webhook" >&2
+    echo "       로그: docker logs --tail 50 clickeye-webhook" >&2
+    echo "       호스트 단독 모드가 필요하면 먼저 컨테이너를 내리세요(down webhook)." >&2
+    exit 0
+fi
+
 # .env 로드
 if [[ -f .env ]]; then
     set -a
