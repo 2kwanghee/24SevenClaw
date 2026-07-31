@@ -396,12 +396,23 @@ $(cat .ralph/PROMPT.md)"
     IMPL_PROMPT="$(cat .ralph/PROMPT.md)"
   fi
 
-  claude -p "$IMPL_PROMPT" \
+  # ── [파생형 하네스 Tier 1] 워크스페이스 cwd 전환 (opt-in — 미설정=off, 회귀 0) ──
+  # FLOWOPS_WORKSPACE 명시 활성 + WORKSPACE_KEY 설정 + workspaces/<key> 존재 시에만
+  # 구현 실행 cwd 를 해당 워크스페이스로 전환한다("남의 프로젝트" 구현). 그 외 모든
+  # 경우 IMPL_WORKDIR=self-repo 로 현행 동작 그대로. 티켓→워크스페이스 매핑은 범위 밖.
+  IMPL_WORKDIR="$PROJECT_DIR"
+  if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
+    && [ -n "${WORKSPACE_KEY:-}" ] && [ -d "$PROJECT_DIR/workspaces/$WORKSPACE_KEY" ]; then
+    IMPL_WORKDIR="$PROJECT_DIR/workspaces/$WORKSPACE_KEY"
+    log "파생형 하네스: 구현 cwd → 워크스페이스 $WORKSPACE_KEY ($IMPL_WORKDIR)"
+  fi
+
+  ( cd "$IMPL_WORKDIR" && claude -p "$IMPL_PROMPT" \
     --model sonnet \
     --dangerously-skip-permissions \
     --verbose \
     --output-format stream-json \
-    ${MAX_TURNS:+--max-turns $MAX_TURNS} \
+    ${MAX_TURNS:+--max-turns $MAX_TURNS} ) \
     2>&1 | tee "$CLAUDE_LOG" || {
     log "WARN: Claude 실행 비정상 종료"
   }
