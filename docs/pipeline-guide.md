@@ -1,8 +1,8 @@
 ---
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
-status: needs-revision
-last_updated: 2026-07-22
+status: current
+last_updated: 2026-07-31
 related:
   - scripts/auto_dev_pipeline.sh
   - scripts/pre_merge_gate.py
@@ -244,6 +244,7 @@ python3 scripts/linear_watcher.py --per-task --limit 1
 - **멱등성**: 이미 정제된 `.ralph/refined/{ISSUE_KEY}.md`가 있으면 재호출하지 않고 재사용 (중복 토큰 방지). 태스크 완료 시 정리됨
 - **failsafe**: 정제 실패/빈 출력 시 `fix_plan.md → PLAN.md` 폴백 후 정제 없이 구현 진행
 - **레거시 폴백**: `FLOWOPS_METAPROMPT=false`면 `FLOWOPS_GEMINI_PLAN` 활성 시 기존 Gemini 기획(`generate_plan_with_gemini.sh`)으로 동작
+- **도메인 제약 누적(Tier 2)**: `FLOWOPS_DOMAIN_PROFILE` 이중 opt-in 시, 정제 성공 직후 `domain_profile_merge.py`가 정제 산출물의 `## 도메인 제약` 섹션을 대상 워크디렉터리 `.claude/CLAUDE.domain.md`에 티켓 키 마커로 멱등 병합(섹션 부재 시 no-op, 실패 비차단). 기본 off=회귀 0
 
 > 방법론 정의는 `.claude/skills/metaprompt/SKILL.md`. 대화형 하네스의 구현 스펙 생성도 동일 스킬을 참조한다.
 

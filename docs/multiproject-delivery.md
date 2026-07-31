@@ -298,8 +298,17 @@ settings) 복사 + Tier 1 스택 프로파일(`stack_profiler.py` — stdlib 전
 `CLAUDE.stack.md` · `harness-gates.txt`(VERIFY_GATES_FILE 호환 — **F-4 게이트 자동
 도출분 해소**, 제어면 YAML 연동은 잔존). 파이프라인 배선은 `FLOWOPS_WORKSPACE` +
 `WORKSPACE_KEY` 이중 opt-in 시 STEP B 구현 cwd 만 워크스페이스로 전환(기본 off = 회귀 0).
-티켓→워크스페이스 자동 매핑, Tier 2(인테이크 설계→도메인 제약)·Tier 3(메트릭 기반
-진화)는 후속 단계.
+티켓→워크스페이스 자동 매핑, Tier 3(메트릭 기반 진화)는 후속 단계.
+
+→ 🔄 **Tier 2 도메인 제약 도출 (2026-07-31, CE-341 — 파생형 하네스 2단계).**
+도출 원천은 STEP A 정제 산출물(`.ralph/refined/<KEY>.md`)이다 — metaprompt SKILL 의
+선택 섹션 `## 도메인 제약 (Domain Constraints)`(데이터 민감도·금지 사항·정합성 규칙·
+용어집)을 `domain_profile_merge.py`(stdlib 전용 결정론)가 추출해 대상 워크디렉터리의
+`.claude/CLAUDE.domain.md` 에 **티켓 키 마커 블록**(`<!-- domain:CE-XXX begin/end -->`)으로
+멱등 누적한다(같은 키 재실행 시 블록 교체, 없으면 append). 섹션 부재 시 아무 것도 쓰지
+않는다(no-op — 근거 없는 도메인 규칙 창작 금지, Tier 1 "감지 실패=null"과 동일 원칙).
+파이프라인 배선은 `FLOWOPS_DOMAIN_PROFILE` 이중 opt-in 시 STEP A 사후에만 실행(기본
+off = 회귀 0), 대상은 STEP B 구현 cwd 와 동일 해석(self-repo 모드에서도 동일 적용).
 
 ### 6-3. 티켓 전량 발급이 무인이 아니다
 

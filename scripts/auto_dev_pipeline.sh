@@ -36,6 +36,19 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# ── [파생형 하네스] 구현 대상 워크디렉터리 해석 (STEP A 도메인 프로파일 · STEP B cwd 공유) ──
+# FLOWOPS_WORKSPACE 명시 활성 + WORKSPACE_KEY 설정 + workspaces/<key> 존재 시에만
+# 해당 워크스페이스("남의 프로젝트")를, 그 외에는 self-repo($PROJECT_DIR)를 echo 한다.
+# 순수 함수(로그·부작용 없음) — 호출부가 결과로 분기한다. 미설정=off → self-repo(회귀 0).
+resolve_impl_workdir() {
+  if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
+    && [ -n "${WORKSPACE_KEY:-}" ] && [ -d "$PROJECT_DIR/workspaces/$WORKSPACE_KEY" ]; then
+    printf '%s\n' "$PROJECT_DIR/workspaces/$WORKSPACE_KEY"
+  else
+    printf '%s\n' "$PROJECT_DIR"
+  fi
+}
+
 # ── Git lock guard ──
 # index.lock 대기 후 실행. 최대 15초 대기, 초과 시 stale lock 제거.
 wait_for_git_lock() {
@@ -353,6 +366,18 @@ linear_request(
 )
 PY
       log "Linear 코멘트 게시(정제 스펙)"
+
+      # ── [파생형 하네스 Tier 2] 도메인 제약 누적 (opt-in — 미설정=off, 회귀 0) ──
+      # 정제 산출물의 `## 도메인 제약` 섹션을 구현 대상 워크디렉터리의
+      # .claude/CLAUDE.domain.md 에 티켓 키 마커로 멱등 병합. 섹션 부재 시 no-op.
+      # 실패해도 파이프라인 비차단(|| WARN). 대상은 STEP B 와 동일 해석.
+      if is_enabled "FLOWOPS_DOMAIN_PROFILE" 2>/dev/null && [ -n "${FLOWOPS_DOMAIN_PROFILE:-}" ]; then
+        DP_TARGET="$(resolve_impl_workdir)"
+        DP_OUT="$(python3 scripts/domain_profile_merge.py \
+          --refined "$REFINED_FILE" --target "$DP_TARGET" --ticket "$ISSUE_KEY" 2>&1)" \
+          && log "도메인 프로파일 병합: $DP_OUT" \
+          || log "WARN: 도메인 프로파일 병합 실패(비차단): $ISSUE_KEY — $DP_OUT"
+      fi
     else
       log "WARN: 메타프롬프트 정제 실패/빈 출력 — fix_plan→PLAN 폴백"
       rm -f "$REFINED_FILE"
@@ -397,14 +422,10 @@ $(cat .ralph/PROMPT.md)"
   fi
 
   # ── [파생형 하네스 Tier 1] 워크스페이스 cwd 전환 (opt-in — 미설정=off, 회귀 0) ──
-  # FLOWOPS_WORKSPACE 명시 활성 + WORKSPACE_KEY 설정 + workspaces/<key> 존재 시에만
-  # 구현 실행 cwd 를 해당 워크스페이스로 전환한다("남의 프로젝트" 구현). 그 외 모든
-  # 경우 IMPL_WORKDIR=self-repo 로 현행 동작 그대로. 티켓→워크스페이스 매핑은 범위 밖.
-  IMPL_WORKDIR="$PROJECT_DIR"
-  if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
-    && [ -n "${WORKSPACE_KEY:-}" ] && [ -d "$PROJECT_DIR/workspaces/$WORKSPACE_KEY" ]; then
-    IMPL_WORKDIR="$PROJECT_DIR/workspaces/$WORKSPACE_KEY"
-    log "파생형 하네스: 구현 cwd → 워크스페이스 $WORKSPACE_KEY ($IMPL_WORKDIR)"
+  # 해석 로직은 resolve_impl_workdir()(상단 정의) 공유 — STEP A 도메인 프로파일과 동일 대상.
+  IMPL_WORKDIR="$(resolve_impl_workdir)"
+  if [ "$IMPL_WORKDIR" != "$PROJECT_DIR" ]; then
+    log "파생형 하네스: 구현 cwd → 워크스페이스 ${WORKSPACE_KEY} ($IMPL_WORKDIR)"
   fi
 
   ( cd "$IMPL_WORKDIR" && claude -p "$IMPL_PROMPT" \
