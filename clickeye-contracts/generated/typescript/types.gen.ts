@@ -4602,6 +4602,60 @@ export type UpdateProjectApiV1ProjectsProjectIdPatchResponses = {
 
 export type UpdateProjectApiV1ProjectsProjectIdPatchResponse = UpdateProjectApiV1ProjectsProjectIdPatchResponses[keyof UpdateProjectApiV1ProjectsProjectIdPatchResponses];
 
+export type GetProjectIntakeApiV1ProjectsProjectIdIntakeGetData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/intake';
+};
+
+export type GetProjectIntakeApiV1ProjectsProjectIdIntakeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectIntakeApiV1ProjectsProjectIdIntakeGetError = GetProjectIntakeApiV1ProjectsProjectIdIntakeGetErrors[keyof GetProjectIntakeApiV1ProjectsProjectIdIntakeGetErrors];
+
+export type GetProjectIntakeApiV1ProjectsProjectIdIntakeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeResponse;
+};
+
+export type GetProjectIntakeApiV1ProjectsProjectIdIntakeGetResponse = GetProjectIntakeApiV1ProjectsProjectIdIntakeGetResponses[keyof GetProjectIntakeApiV1ProjectsProjectIdIntakeGetResponses];
+
+export type GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/projects/{project_id}/intake/timeline';
+};
+
+export type GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetError = GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetErrors[keyof GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetErrors];
+
+export type GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: IntakeTimelineResponse;
+};
+
+export type GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetResponse = GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetResponses[keyof GetProjectIntakeTimelineApiV1ProjectsProjectIdIntakeTimelineGetResponses];
+
 export type AssignProjectSeatApiV1ProjectsProjectIdSeatPutData = {
     body: ProjectSeatAssignRequest;
     path: {

@@ -3418,6 +3418,104 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/intake": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Project Intake",
+        "description": "프로젝트를 생성한 인테이크(역조회) — 딜리버리 콘솔의 원장 뷰용 (CE-337).\n\n소유 스코프를 먼저 통과시킨 뒤(get_by_id — 없으면 404) 인테이크를 조회한다.\n인테이크 유래가 아닌 수동 프로젝트는 연결된 인테이크가 없으므로 404.",
+        "operationId": "get_project_intake_api_v1_projects__project_id__intake_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/intake/timeline": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Project Intake Timeline",
+        "description": "프로젝트 스코프 인테이크 전이 타임라인 (CE-337).\n\nadmin 경로(`/intake/{id}/timeline`, control_tower:read)와 별개로, 프로젝트\n소유자(project:read)가 자기 프로젝트의 무인 체인 진행을 콘솔에서 본다.\n소유 검증 후 역조회로 인테이크를 찾고 `IntakeService.get_timeline` 을 재사용한다.",
+        "operationId": "get_project_intake_timeline_api_v1_projects__project_id__intake_timeline_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntakeTimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/seat": {
       "put": {
         "tags": [
@@ -17041,12 +17139,14 @@
         "properties": {
           "session_id": {
             "type": "string",
+            "maxLength": 64,
             "minLength": 1,
             "title": "Session Id",
             "description": "result 이벤트의 session_id."
           },
           "request_kind": {
             "type": "string",
+            "maxLength": 64,
             "minLength": 1,
             "title": "Request Kind",
             "description": "출처 구분(예: local_batch_implement).",
@@ -17086,7 +17186,8 @@
           "task_id": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 128
               },
               {
                 "type": "null"
@@ -17151,6 +17252,7 @@
         "properties": {
           "model": {
             "type": "string",
+            "maxLength": 64,
             "minLength": 1,
             "title": "Model",
             "description": "모델 식별자(예: claude-sonnet-5)."

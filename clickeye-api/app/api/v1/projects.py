@@ -3,9 +3,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import AppError
 from app.database import get_db
 from app.dependencies import get_current_user, require_permission
 from app.models.user import User
+from app.schemas.intake import (
+    DeliveryEventItem,
+    IntakeResponse,
+    IntakeTimelineResponse,
+)
 from app.schemas.preview import PreviewRequest, PreviewResponse
 from app.schemas.project import (
     ProjectCreate,
@@ -15,6 +21,7 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 from app.schemas.seat import ProjectSeatAssignRequest, ProjectSeatAssignResponse
+from app.services.intake_service import IntakeService
 from app.services.preview_service import generate_preview
 from app.services.project_service import ProjectService, annotate_key_status
 from app.services.seat_service import SeatService
@@ -70,6 +77,58 @@ async def get_project(
     anthropic_ts, linear_ts = await service.get_user_creds_timestamps(user.id)  # type: ignore[arg-type]
     resp = ProjectResponse.model_validate(project)
     return annotate_key_status(resp, project, anthropic_ts, linear_ts)
+
+
+@router.get("/{project_id}/intake", response_model=IntakeResponse)
+async def get_project_intake(
+    project_id: UUID,
+    user: User = Depends(require_permission("project:read")),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeResponse:
+    """프로젝트를 생성한 인테이크(역조회) — 딜리버리 콘솔의 원장 뷰용 (CE-337).
+
+    소유 스코프를 먼저 통과시킨 뒤(get_by_id — 없으면 404) 인테이크를 조회한다.
+    인테이크 유래가 아닌 수동 프로젝트는 연결된 인테이크가 없으므로 404.
+    """
+    proj_service = ProjectService(db)
+    # 소유 검증(타 사용자 프로젝트/부재 → 404). 조회 전용 — 데이터 변경 없음.
+    await proj_service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
+    intake = await IntakeService(db).get_by_project_id(project_id)
+    if intake is None:
+        raise AppError("INTAKE_NOT_FOUND", "이 프로젝트에 연결된 인테이크가 없습니다.", 404)
+    return IntakeResponse.model_validate(intake)
+
+
+@router.get("/{project_id}/intake/timeline", response_model=IntakeTimelineResponse)
+async def get_project_intake_timeline(
+    project_id: UUID,
+    user: User = Depends(require_permission("project:read")),
+    db: AsyncSession = Depends(get_db),
+) -> IntakeTimelineResponse:
+    """프로젝트 스코프 인테이크 전이 타임라인 (CE-337).
+
+    admin 경로(`/intake/{id}/timeline`, control_tower:read)와 별개로, 프로젝트
+    소유자(project:read)가 자기 프로젝트의 무인 체인 진행을 콘솔에서 본다.
+    소유 검증 후 역조회로 인테이크를 찾고 `IntakeService.get_timeline` 을 재사용한다.
+    """
+    proj_service = ProjectService(db)
+    await proj_service.get_by_id(project_id=project_id, owner_id=user.id)  # type: ignore[arg-type]
+    intake_svc = IntakeService(db)
+    intake = await intake_svc.get_by_project_id(project_id)
+    if intake is None:
+        raise AppError("INTAKE_NOT_FOUND", "이 프로젝트에 연결된 인테이크가 없습니다.", 404)
+    intake, events = await intake_svc.get_timeline(intake.id)
+    # 역조회 결과라 이미 일치하지만, 경로 스코프를 방어적으로 재확인한다.
+    if intake.project_id != project_id:
+        raise AppError("INTAKE_NOT_FOUND", "이 프로젝트에 연결된 인테이크가 없습니다.", 404)
+    return IntakeTimelineResponse(
+        intake_id=intake.id,
+        title=str(intake.title),
+        status=str(intake.status),
+        refine_status=str(intake.refine_status),
+        tickets_status=str(intake.tickets_status or "none"),
+        events=[DeliveryEventItem.model_validate(event) for event in events],
+    )
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)

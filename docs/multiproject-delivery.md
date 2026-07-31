@@ -335,6 +335,22 @@ append 한다(스키마 `{version, ts, run_id, event, data}` — `version` 으�
 발급 원장(`tickets_status` 멱등 앵커) + 콜백 확장. depends_on → blockedBy 배선으로
 순차 A-Z 는 watcher 기존 코드 무변경 성립.
 
+### 6-4. 딜리버리 콘솔이 원장을 비추지 못한다
+
+무인 체인(인테이크→발급→검증)은 서버·기록면에 다 남지만, 사용자 딜리버리 콘솔은
+그것을 못 봤다. 인테이크 유래 프로젝트는 세션이 없어(생성도 막힘) 상세 화면이
+"세션 없음" 빈 상태로 떨어지고, 티켓 원장·타임라인은 admin(control_tower:read)
+경로에만 있어 member 가 볼 수 없었다. 관제면과 무인 체인이 끊겨 있었다.
+
+→ ✅ **구현 완료(2026-07-31, CE-337).** 프로젝트 스코프 역조회 API 2개
+(`GET /projects/{id}/intake`·`/intake/timeline`, `project:read` + owner 스코프 —
+admin 권한 완화 없이 신규 경로로 해결)를 신설하고, `intake.project_id` 인덱스로
+저렴하게 역조회한다(`IntakeService.get_by_project_id`). 콘솔은 인테이크 프로젝트에서
+체인 단계 배지·티켓 원장·전이 타임라인을 렌더한다(단일 `IntakeTimeline` 컴포넌트를
+projectId 스코프로 재사용 — admin 뷰와 공유). CE-336 갭도 함께 보완: 인테이크 유래
+프로젝트의 **세션 생성을 서버 측에서 409 차단**(클라이언트 가드만으로는 우회 가능).
+비인테이크(수동) 프로젝트의 세션 축은 그대로 유지된다.
+
 ---
 
 ## 7. 결정 (ADR)

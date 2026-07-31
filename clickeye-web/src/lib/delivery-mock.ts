@@ -5,6 +5,8 @@
  */
 import type {
   GovernancePolicyResponse,
+  IntakeResponse,
+  IntakeTimelineResponse,
   LinearTeamState,
   LlmProjectUsageSummary,
   OrchestratorSessionListResponse,
@@ -301,4 +303,79 @@ export const mockGovernancePolicy: GovernancePolicyResponse = {
   },
   risk_demote_to_pr: true,
   source_note: "목업 데이터 — 실제 API 응답이 아닙니다",
+};
+
+// --- CE-337: 인테이크 유래 프로젝트(무인 체인) 콘솔 원장 뷰 픽스처 ---
+
+/** 프로젝트를 생성한 인테이크(역조회) — 딜리버리 콘솔 원장 뷰용 목업 */
+export const mockProjectIntake: IntakeResponse = {
+  id: "mock-intake-0001",
+  service_key_id: "mock-service-key-0001",
+  input_type: "structured",
+  title: "여신심사 시스템 현대화 (무인 딜리버리)",
+  payload: { 기능: ["한도 재계산", "심사 이력 조회"], 예산: "3억원" },
+  normalized_text: "레거시 여신심사 코어 현대화 요구사항",
+  source_url: null,
+  target: { team: "24Seven" },
+  priority: "high",
+  callback_url: "https://partner.example.com/hook",
+  status: "accepted",
+  project_id: mockProject.id,
+  refined_text: "정제된 구현 스펙(요약)",
+  refine_status: "refined",
+  callback_status: "sent",
+  tickets_status: "issued",
+  tickets: [
+    { key: "T1", identifier: "CE-501", issue_id: "iss-1", title: "한도 재계산 모듈 분리" },
+    { key: "T2", identifier: "CE-502", issue_id: "iss-2", title: "심사 이력 조회 API" },
+  ],
+  tickets_issued_at: "2026-07-18T10:00:00Z",
+  created_at: "2026-07-15T09:00:00Z",
+};
+
+/** 인테이크 전이 타임라인(발생 순) — 콘솔 타임라인 목업 */
+export const mockProjectIntakeTimeline: IntakeTimelineResponse = {
+  intake_id: mockProjectIntake.id,
+  title: mockProjectIntake.title,
+  status: mockProjectIntake.status,
+  refine_status: mockProjectIntake.refine_status,
+  tickets_status: mockProjectIntake.tickets_status,
+  events: [
+    {
+      id: "ev-1",
+      event_type: "received",
+      actor_type: "machine",
+      actor_id: null,
+      detail: "외부 서비스 인테이크 수신",
+      meta: null,
+      created_at: "2026-07-15T09:00:00Z",
+    },
+    {
+      id: "ev-2",
+      event_type: "refined",
+      actor_type: "machine",
+      actor_id: null,
+      detail: "메타프롬프트 정제 완료",
+      meta: null,
+      created_at: "2026-07-15T09:30:00Z",
+    },
+    {
+      id: "ev-3",
+      event_type: "accepted",
+      actor_type: "system",
+      actor_id: null,
+      detail: "프로젝트 승격",
+      meta: null,
+      created_at: "2026-07-16T00:00:00Z",
+    },
+    {
+      id: "ev-4",
+      event_type: "issued",
+      actor_type: "machine",
+      actor_id: null,
+      detail: "Linear 티켓 전량 발급",
+      meta: null,
+      created_at: "2026-07-18T10:00:00Z",
+    },
+  ],
 };

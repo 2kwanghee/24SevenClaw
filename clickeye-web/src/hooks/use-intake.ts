@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAccessToken } from "@/hooks/use-access-token";
 import {
+  apiClient,
   intake,
   intakeServiceKeys,
   type IntakeStatus,
@@ -12,6 +13,8 @@ import {
 /** 인테이크 목록 query key 루트 (상태 필터별 하위 키 공유) */
 const INTAKE_KEY = ["admin", "intake"] as const;
 const SERVICE_KEYS_KEY = ["admin", "intake-service-keys"] as const;
+/** CE-337: 프로젝트 스코프 인테이크 query key 루트 (admin 키와 캐시 분리) */
+const PROJECT_INTAKE_KEY = ["project", "intake"] as const;
 
 /** 인테이크 검토 목록 — statusFilter 미지정 시 전체 */
 export function useIntakeList(statusFilter?: IntakeStatus) {
@@ -76,6 +79,36 @@ export function useIntakeTimeline(intakeId: string, enabled = true) {
     queryKey: [...INTAKE_KEY, "timeline", intakeId],
     queryFn: () => intake.timeline(token, intakeId),
     enabled: !!token && enabled,
+    retry: false,
+  });
+}
+
+/**
+ * CE-337: 프로젝트를 생성한 인테이크(역조회) — 딜리버리 콘솔 원장 뷰.
+ * 인테이크 유래가 아닌 프로젝트는 404 → retry:false 로 즉시 폴백 처리한다.
+ */
+export function useProjectIntake(projectId: string, enabled = true) {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...PROJECT_INTAKE_KEY, projectId],
+    queryFn: () => apiClient.projects.getIntake(token, projectId),
+    enabled: !!token && !!projectId && enabled,
+    retry: false,
+  });
+}
+
+/**
+ * CE-337: 프로젝트 스코프 인테이크 전이 타임라인 — admin 타임라인과 별개 경로.
+ * events 는 발생 순(오름차순). 인테이크 없으면 404 → retry:false.
+ */
+export function useProjectIntakeTimeline(projectId: string, enabled = true) {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...PROJECT_INTAKE_KEY, "timeline", projectId],
+    queryFn: () => apiClient.projects.getIntakeTimeline(token, projectId),
+    enabled: !!token && !!projectId && enabled,
     retry: false,
   });
 }

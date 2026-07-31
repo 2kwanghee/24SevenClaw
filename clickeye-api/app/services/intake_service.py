@@ -969,6 +969,21 @@ class IntakeService:
     # 기록면 조회 (P9) — 타임라인·집계. 전이 메서드와 달리 순수 읽기다.
     # ------------------------------------------------------------------
 
+    async def get_by_project_id(self, project_id: UUID) -> IntakeRequest | None:
+        """프로젝트 → 그 프로젝트를 생성한 인테이크(역조회). 없으면 None.
+
+        `intake.project_id` 인덱스로 저렴하다. 프로젝트당 인테이크 1건이 정상이나,
+        방어적으로 복수 매칭 시 최신(created_at desc) 1건을 택한다. 딜리버리 콘솔의
+        프로젝트 스코프 원장 뷰(CE-337)가 소비한다.
+        """
+        result = await self.db.execute(
+            select(IntakeRequest)
+            .where(IntakeRequest.project_id == project_id)
+            .order_by(IntakeRequest.created_at.desc())
+            .limit(1)
+        )
+        return result.scalars().first()
+
     async def get_timeline(self, intake_id: UUID) -> tuple[IntakeRequest, list[DeliveryEvent]]:
         """인테이크 1건 + 전이 이력(발생 순서)을 반환한다. 없으면 404.
 
