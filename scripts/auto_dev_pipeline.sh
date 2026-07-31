@@ -49,6 +49,16 @@ resolve_impl_workdir() {
   fi
 }
 
+# ── [파생형 하네스 Tier 3a] 파이프라인 메트릭 기록 (opt-in — 미설정=off, 비차단) ──
+# FLOWOPS_METRICS 이중 opt-in 시에만 단계 이벤트를 JSONL 원장에 append 한다. off 면
+# no-op(python3 호출조차 안 함). 관측은 파이프라인을 절대 죽이지 않는다(|| true).
+# 인자: <run_id> <event> <data_json>. 이 원장이 3b prompt-evolve 채점 입력이 된다.
+record_metric() {
+  is_enabled "FLOWOPS_METRICS" 2>/dev/null && [ -n "${FLOWOPS_METRICS:-}" ] || return 0
+  python3 "$PROJECT_DIR/scripts/pipeline_metrics.py" \
+    --run-id "$1" --event "$2" --data "$3" || true
+}
+
 # ── Git lock guard ──
 # index.lock 대기 후 실행. 최대 15초 대기, 초과 시 stale lock 제거.
 wait_for_git_lock() {
@@ -247,6 +257,10 @@ for title, meta in m.items():
   log "  이슈: $ISSUE_KEY | 브랜치: $BRANCH"
   log "══════════════════════════════════════"
 
+  # ── [Tier 3a 메트릭] 이슈 처리 1건의 run_id 생성(1회) + 최종 처분 기본값 ──
+  METRIC_RUN_ID="${ISSUE_KEY}_$(date +%Y%m%d_%H%M%S)"
+  RUN_OUTCOME="unknown"
+
   # ── Temporal 섀도우 트리거(CE-297, P1) ──
   # FLOWOPS_TEMPORAL 활성 시에만 거버넌스 결정을 미러링하는 ShadowDeliveryWorkflow 를
   # fire-and-forget 로 트리거한다. 부작용 0(머지/커밋/PR 없음), 비블로킹, 실패 무시 →
@@ -396,6 +410,15 @@ PY
     cp .ralph/fix_plan.md .ralph/PLAN.md 2>/dev/null || true
   fi
 
+  # ── [Tier 3a 메트릭] refine_done — 정제 사용/도메인 섹션/폴백 관측(비차단) ──
+  M_REFINED=false; M_DOMAIN=false; M_FALLBACK=true
+  if [ -s "$REFINED_FILE" ]; then
+    M_REFINED=true; M_FALLBACK=false
+    grep -q '## 도메인 제약' "$REFINED_FILE" 2>/dev/null && M_DOMAIN=true
+  fi
+  record_metric "$METRIC_RUN_ID" "refine_done" \
+    "{\"refined\": $M_REFINED, \"domain_section\": $M_DOMAIN, \"fallback\": $M_FALLBACK}"
+
   # ── [STEP B] Claude 구현 (동기 — 완료까지 대기) ──
   CLAUDE_LOG="$PROJECT_DIR/logs/claude_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
   mkdir -p "$PROJECT_DIR/logs"
@@ -428,6 +451,7 @@ $(cat .ralph/PROMPT.md)"
     log "파생형 하네스: 구현 cwd → 워크스페이스 ${WORKSPACE_KEY} ($IMPL_WORKDIR)"
   fi
 
+  M_IMPL_START=$(date +%s)   # [Tier 3a 메트릭] 구현 소요 관측용(동작 불변)
   ( cd "$IMPL_WORKDIR" && claude -p "$IMPL_PROMPT" \
     --model sonnet \
     --dangerously-skip-permissions \
@@ -439,6 +463,12 @@ $(cat .ralph/PROMPT.md)"
   }
 
   log "Claude 구현 완료: $TITLE"
+
+  # ── [Tier 3a 메트릭] impl_done — 구현 소요(초)·워크디렉터리 종류 관측(비차단) ──
+  M_IMPL_DUR=$(( $(date +%s) - M_IMPL_START ))
+  M_IMPL_WD="self"; [ "$IMPL_WORKDIR" != "$PROJECT_DIR" ] && M_IMPL_WD="workspace"
+  record_metric "$METRIC_RUN_ID" "impl_done" \
+    "{\"duration_s\": $M_IMPL_DUR, \"workdir\": \"$M_IMPL_WD\"}"
 
   # ── [CE-328] 로컬 배치 사용량 → 서버 원장 인제스트(비차단, opt-in) ──
   # 명시적 opt-in 이중 체크(is_enabled + 비어있지 않음) + 서비스 URL 필수. 미설정=off → 회귀 0.
@@ -475,12 +505,15 @@ $(cat .ralph/PROMPT.md)"
   # ── [STEP C] Codex QA 리뷰 → REVIEW.md ──
   if is_enabled "FLOWOPS_CODEX_REVIEW" 2>/dev/null; then
     log "── Codex QA 리뷰 시작 ──"
-    bash scripts/run_codex_review.sh 2>&1 || {
-      log "WARN: Codex QA 리뷰 실패"
-    }
+    QA_EXIT=0
+    bash scripts/run_codex_review.sh 2>&1 || QA_EXIT=$?
+    [ "$QA_EXIT" -ne 0 ] && log "WARN: Codex QA 리뷰 실패"
     log "Codex QA 리뷰 완료"
+    # [Tier 3a 메트릭] qa_done — 리뷰 실행 여부·exit 관측(비차단)
+    record_metric "$METRIC_RUN_ID" "qa_done" "{\"ran\": true, \"exit\": $QA_EXIT}"
   else
     log "SKIP: Codex QA 리뷰 비활성화 (FLOWOPS_CODEX_REVIEW=false)"
+    record_metric "$METRIC_RUN_ID" "qa_done" "{\"ran\": false}"
   fi
 
   # Linear 결과 보고
@@ -541,6 +574,11 @@ $(cat .ralph/PROMPT.md)"
     GATE_TRIAGE=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('triage',''))" 2>/dev/null || echo "")
     [ -n "$GATE_TRIAGE" ] && log "거버넌스 트리아지: band=$GATE_TRIAGE"
 
+    # ── [Tier 3a 메트릭] gate_done — 게이트 판정·위험강등 관측(거버넌스 활성 경로에서만) ──
+    M_GATE_DEMOTED=false; [ "$GATE_DECISION" = "pr" ] && M_GATE_DEMOTED=true
+    record_metric "$METRIC_RUN_ID" "gate_done" \
+      "{\"verdict\": \"$GATE_DECISION\", \"demoted\": $M_GATE_DEMOTED}"
+
     if [ "$GATE_RC" -eq 2 ] || [ "$GATE_DECISION" = "block" ]; then
       log "ERROR: 거버넌스 검증 실패 → 머지 차단 ($GATE_FAILS)"
       safe_git checkout main 2>/dev/null || true
@@ -551,6 +589,9 @@ $(cat .ralph/PROMPT.md)"
         python3 scripts/telegram_notify.py --message "🚫 거버넌스 차단 ${ISSUE_KEY}: ${GATE_FAILS}" 2>/dev/null || true
       fi
       FAILED=$((FAILED + 1))
+      # [Tier 3a 메트릭] run_done — 게이트 차단 처분(이 분기는 continue/break 로 종료)
+      RUN_OUTCOME="failed"
+      record_metric "$METRIC_RUN_ID" "run_done" "{\"outcome\": \"$RUN_OUTCOME\"}"
       rm -rf ".ralph/tasks"
       rm -f "$TASK_MAPPING" .ralph/PLAN.md .ralph/TASK.md .ralph/REVIEW.md ".ralph/refined/${ISSUE_KEY}.md"
       if [ "$ONCE_MODE" = true ]; then
@@ -564,6 +605,7 @@ $(cat .ralph/PROMPT.md)"
   # PR 생성 또는 직접 머지 (거버넌스 위험강등 우선)
   if [ "$GATE_DECISION" = "pr" ]; then
     log "위험분류 ${GATE_TIER} → 직접머지 금지, 기존 PR 경로로 강등(사람 머지 게이트)"
+    RUN_OUTCOME="demoted"
     python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
       log "WARN: PR 생성 실패"
     }
@@ -582,6 +624,7 @@ $(cat .ralph/PROMPT.md)"
     if safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
       log "머지 성공: ${BRANCH} → main"
       MERGED_DIRECT=true
+      RUN_OUTCOME="merged"
 
       # 머지 로그 생성
       MERGE_LOG_FILE="$PROJECT_DIR/logs/merge_$(date '+%Y%m%d_%H%M%S').log"
@@ -639,6 +682,7 @@ $(cat .ralph/PROMPT.md)"
       fi
     else
       log "ERROR: 머지 실패. PR 생성으로 대체합니다."
+      RUN_OUTCOME="pr"
       safe_git merge --abort 2>/dev/null || true
       python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
         log "WARN: PR 생성 실패"
@@ -647,6 +691,7 @@ $(cat .ralph/PROMPT.md)"
     fi
   else
     # AUTO_MERGE 비활성: PR만 생성
+    RUN_OUTCOME="pr"
     python3 scripts/auto_pr_creator.py --branch "$BRANCH" --auto-merge 2>&1 || {
       log "WARN: PR 생성 실패"
     }
@@ -690,6 +735,10 @@ $(cat .ralph/PROMPT.md)"
   fi
 
   log "태스크 완료: $TITLE"
+
+  # ── [Tier 3a 메트릭] run_done — 최종 처분(merged/pr/demoted; 미판별=unknown) ──
+  # 게이트 차단(failed) 분기는 상단에서 이미 기록 후 continue 했다(여기 도달 안 함).
+  record_metric "$METRIC_RUN_ID" "run_done" "{\"outcome\": \"$RUN_OUTCOME\"}"
 
   # 완료 이슈 기록
   if [ -n "$COMPLETED_ISSUES" ]; then

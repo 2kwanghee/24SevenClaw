@@ -33,6 +33,8 @@ _load_flowops_env() {
 #                            (workspaces/<key> 존재 시에만 STEP B cwd 전환, 미설정=off)
 #   FLOWOPS_DOMAIN_PROFILE — 파생형 하네스 Tier 2: STEP A 정제 산출물의 도메인 제약을
 #                            대상 워크디렉터리 .claude/CLAUDE.domain.md 로 누적(미설정=off)
+#   FLOWOPS_METRICS        — 파생형 하네스 Tier 3a: 단계 경계 이벤트를
+#                            logs/metrics/pipeline_runs.jsonl 원장에 수집(미설정=off, 비차단)
 
 # 모듈 활성화 여부 확인
 # 기본값: true (설정이 없으면 활성화)
