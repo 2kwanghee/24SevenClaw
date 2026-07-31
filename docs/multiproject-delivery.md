@@ -310,6 +310,17 @@ settings) 복사 + Tier 1 스택 프로파일(`stack_profiler.py` — stdlib 전
 파이프라인 배선은 `FLOWOPS_DOMAIN_PROFILE` 이중 opt-in 시 STEP A 사후에만 실행(기본
 off = 회귀 0), 대상은 STEP B 구현 cwd 와 동일 해석(self-repo 모드에서도 동일 적용).
 
+→ 🔄 **Tier 3a 메트릭 수집 (2026-07-31, CE-342 — 파생형 하네스 3단계 기반).**
+하네스 변형의 성능 주장을 측정 가능하게 하는 기반이다. 티켓 1건 처리마다 단계 경계
+5종 이벤트(`refine_done`·`impl_done`·`qa_done`·`gate_done`·`run_done`)를
+`pipeline_metrics.py`(stdlib 전용)가 `logs/metrics/pipeline_runs.jsonl` 원장에 1줄씩
+append 한다(스키마 `{version, ts, run_id, event, data}` — `version` 으로 후방 호환).
+이 원장이 이후 **prompt-evolve 루프(3b, 별도 범위)의 채점 입력**이 된다 — 이번 단계는
+**수집만** 하고 집계·판단·대시보드는 하지 않는다. 배선 원칙은 **관측 비차단**:
+`FLOWOPS_METRICS` 이중 opt-in(기본 off = 회귀 0), 기록 실패는 exit 0 으로 삼켜
+파이프라인을 절대 막지 않으며, 값 확보를 위해 파이프라인 로직을 바꾸지 않는다(확보
+불가 필드는 생략).
+
 ### 6-3. 티켓 전량 발급이 무인이 아니다
 
 `prd-to-linear` 스킬은 대화형이며 사용자 확인을 요구한다

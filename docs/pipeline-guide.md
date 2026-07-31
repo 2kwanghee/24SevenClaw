@@ -248,6 +248,21 @@ python3 scripts/linear_watcher.py --per-task --limit 1
 
 > 방법론 정의는 `.claude/skills/metaprompt/SKILL.md`. 대화형 하네스의 구현 스펙 생성도 동일 스킬을 참조한다.
 
+### 관측 메트릭 (Tier 3a — `FLOWOPS_METRICS`, 기본 off)
+
+`FLOWOPS_METRICS` 이중 opt-in 시, 티켓 1건 처리마다 단계 경계 5종 이벤트를
+`pipeline_metrics.py`가 `logs/metrics/pipeline_runs.jsonl`에 1줄씩 append 한다
+(스키마 `{version, ts, run_id, event, data}`). 이 원장은 이후 prompt-evolve 루프(3b)의
+채점 입력이다 — **수집만** 하며 관측은 파이프라인을 막지 않는다(기록 실패 exit 0, 비차단).
+
+| 이벤트 | 기록 지점 | data |
+|--------|-----------|------|
+| `refine_done` | STEP A 정제 종료 직후 | `refined`(bool)·`domain_section`(bool)·`fallback`(bool) |
+| `impl_done` | STEP B 구현 종료 직후 | `duration_s`(int)·`workdir`(self\|workspace) |
+| `qa_done` | STEP C Codex 리뷰 종료 직후 | `ran`(bool)·`exit`(int, 실행 시에만) |
+| `gate_done` | pre_merge_gate 판정 직후(거버넌스 활성 시에만) | `verdict`(direct\|pr\|block)·`demoted`(bool) |
+| `run_done` | 이슈 처리 종료 | `outcome`(merged\|pr\|demoted\|failed\|unknown) |
+
 ### Step 3: Claude 구현 — 브랜치 + 동기 실행
 
 각 태스크마다 (1개씩 순차):

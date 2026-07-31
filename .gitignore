@@ -4,6 +4,9 @@ node_modules/
 # === 파생형 하네스 워크스페이스(조달된 남의 레포 — 추적 금지) ===
 workspaces/
 
+# === 파생형 하네스 Tier 3a 메트릭 원장(런타임 수집물 — 추적 금지) ===
+logs/metrics/
+
 # === Flow-Ops 파이프라인 런타임 ===
 .ralph/tasks/
 .ralph/PLAN.md
