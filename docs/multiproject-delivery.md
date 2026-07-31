@@ -1,8 +1,8 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: needs-revision
-last_updated: 2026-07-30
+status: current
+last_updated: 2026-07-31
 related:
   - clickeye-api/app/models/intake.py
   - clickeye-api/app/models/llm_usage_ledger.py
@@ -289,6 +289,17 @@ Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 �
 불가)/`gate_failed`(명시 재검증만) 전이 + 최종 콜백(체인 ⑥). 게이트 부재는 통과가
 아니라 **검증 불가(exit 5)**. 제어면 YAML gates 의 프로젝트별 자동 해석은 P5/P8
 워크스페이스 배선과 함께.
+
+→ 🔄 **워크스페이스 조달 v1 (2026-07-31, CE-340 — 파생형 하네스 1단계).**
+`workspace_provision.sh`(프로젝트 키+레포 소스 → `workspaces/<key>/` clone, 멱등) 시점에
+하네스를 물질화한다: Tier 0 불변 코어(`templates/harness-core/` — CLAUDE.core.md·최소
+settings) 복사 + Tier 1 스택 프로파일(`stack_profiler.py` — stdlib 전용 결정론 스캔,
+모노레포 1-depth) 도출. 산출 3종 = `harness-profile.json`(감지 실패는 null, 추측 금지) ·
+`CLAUDE.stack.md` · `harness-gates.txt`(VERIFY_GATES_FILE 호환 — **F-4 게이트 자동
+도출분 해소**, 제어면 YAML 연동은 잔존). 파이프라인 배선은 `FLOWOPS_WORKSPACE` +
+`WORKSPACE_KEY` 이중 opt-in 시 STEP B 구현 cwd 만 워크스페이스로 전환(기본 off = 회귀 0).
+티켓→워크스페이스 자동 매핑, Tier 2(인테이크 설계→도메인 제약)·Tier 3(메트릭 기반
+진화)는 후속 단계.
 
 ### 6-3. 티켓 전량 발급이 무인이 아니다
 

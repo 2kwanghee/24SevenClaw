@@ -23,6 +23,15 @@ _load_flowops_env() {
   fi
 }
 
+# ── 옵트인(기본 off) 토글 목록 (참고) ──
+# is_enabled 는 미설정 시 true 를 반환하므로, 아래 토글들은 호출부에서
+# `is_enabled X && [ -n "${X:-}" ]` 이중 체크로 명시적 opt-in 을 강제한다(미설정=off).
+#   FLOWOPS_TEMPORAL       — Temporal 섀도우 트리거
+#   FLOWOPS_USAGE_INGEST   — 사용량 원장 인제스트
+#   FLOWOPS_LLM_INGEST     — LLM KB 머신 인제스트
+#   FLOWOPS_WORKSPACE      — 파생형 하네스: WORKSPACE_KEY 워크스페이스에서 구현 실행
+#                            (workspaces/<key> 존재 시에만 STEP B cwd 전환, 미설정=off)
+
 # 모듈 활성화 여부 확인
 # 기본값: true (설정이 없으면 활성화)
 is_enabled() {
