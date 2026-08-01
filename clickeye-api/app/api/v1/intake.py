@@ -24,6 +24,7 @@ from app.schemas.intake import (
     IntakeAcceptedResponse,
     IntakeCreate,
     IntakeIssuePendingItem,
+    IntakeMachineProjectItem,
     IntakeRefinePendingItem,
     IntakeRejectRequest,
     IntakeResponse,
@@ -76,6 +77,25 @@ async def create_intake(
     key = await service.authenticate_key(x_clickeye_service_key)
     intake = await service.create_intake(key, data, idempotency_key)
     return IntakeAcceptedResponse(intake_id=intake.id, status=str(intake.status))
+
+
+@router.get("/machine/projects", response_model=list[IntakeMachineProjectItem])
+async def list_machine_projects(
+    x_clickeye_service_key: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> list[IntakeMachineProjectItem]:
+    """머신 조회 (P5/F-4) — 서비스 키 조직의 인테이크 유래 프로젝트 목록.
+
+    무인 워크스페이스 automap 원장(workspace_map.py)의 소스다. POST /intake 와 동일한
+    X-ClickEye-Service-Key 머신 인증만 요구한다(사용자 JWT 불요). project_id 없는
+    (프로젝트 미생성) 인테이크는 제외하고, ticket_prefix 는 서버가 계산해 내려준다.
+
+    리터럴 경로라 아래 `/{intake_id}/...` 패턴과 충돌하지 않지만, 등록 순서를 리터럴
+    우선으로 유지하기 위해 머신 인증 섹션 상단에 둔다(/overview·/*/pending 과 동일 원칙).
+    """
+    service = IntakeService(db)
+    key = await service.authenticate_key(x_clickeye_service_key)
+    return await service.list_machine_projects(key)  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------

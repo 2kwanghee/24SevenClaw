@@ -2,7 +2,7 @@
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
 status: current
-last_updated: 2026-07-31
+last_updated: 2026-08-01
 related:
   - scripts/auto_dev_pipeline.sh
   - scripts/pre_merge_gate.py
@@ -183,7 +183,10 @@ auto_dev_pipeline.sh 백그라운드 실행
 
 - Queued가 아닌 이벤트는 무시
 - 30초 간격 제한으로 중복 트리거 방지
-- lock 파일(`.ralph/.pipeline_lock`)로 파이프라인 중복 실행 방지
+- lock 파일(`.ralph/.pipeline_lock`)로 파이프라인 중복 실행 방지.
+  전용 워크스페이스 러너(`FLOWOPS_WORKSPACE` 이중 opt-in + `WORKSPACE_KEY` 명시)는
+  키별 락 `.ralph/.pipeline_lock.<key>`를 사용해 서로 다른 워크스페이스의 병행 기동 허용
+  (CE-339 — self-repo/단일 러너는 기존 파일명 그대로 = 무회귀)
 
 #### 모니터링
 
@@ -523,6 +526,11 @@ FLOWOPS_GOVERNANCE_TICKET=true       # ticket-ref 차단
 FLOWOPS_GOVERNANCE_TRACE=true        # plan-trace 권고(비차단)
 FLOWOPS_GOVERNANCE_RISK_DEMOTE=true  # HIGH-tier→PR 강등
 FLOWOPS_GOVERNANCE_PROMOTE=true      # 고복잡도 direct-merge 산출물 승격
+
+FLOWOPS_WORKSPACE=                   # 다프로젝트 워크스페이스 모드 (이중 opt-in, 기본 off)
+FLOWOPS_WORKSPACE_AUTOMAP=           # 이슈 제목 접두사 → .ralph/workspaces.json 원장으로
+                                     # WORKSPACE_KEY 자동 해석 (CE-339, 이중 opt-in, 기본 off).
+                                     # 원장 갱신: scripts/workspace_map.py (머신 조회 API 폴링)
 ```
 
 설정 로더: `scripts/pipeline_config.sh`

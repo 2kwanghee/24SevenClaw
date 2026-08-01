@@ -847,6 +847,20 @@ export type IntakeIssuePendingItem = {
 };
 
 /**
+ * 머신 조회 항목 (다프로젝트화 P5/F-4) — 무인 워크스페이스 automap 원장 소스.
+ *
+ * ticket_prefix 는 서버가 intake_issue.sh 규약(`[수주:<intake_id 앞 8자>] `)을
+ * 재현한 값이다 — 머신(러너)이 project_id 만으로 유도할 수 없던 접두사를 내려준다.
+ */
+export type IntakeMachineProjectItem = {
+    intake_id: string;
+    project_id: string;
+    title: string;
+    tickets_status: string;
+    ticket_prefix: string;
+};
+
+/**
  * 머신 정제 대기 목록 항목 — 로컬 정제 배치(intake_refine.sh)가 소비한다.
  */
 export type IntakeRefinePendingItem = {
@@ -7467,6 +7481,34 @@ export type CreateIntakeApiV1IntakePostResponses = {
 };
 
 export type CreateIntakeApiV1IntakePostResponse = CreateIntakeApiV1IntakePostResponses[keyof CreateIntakeApiV1IntakePostResponses];
+
+export type ListMachineProjectsApiV1IntakeMachineProjectsGetData = {
+    body?: never;
+    headers?: {
+        'x-clickeye-service-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/intake/machine/projects';
+};
+
+export type ListMachineProjectsApiV1IntakeMachineProjectsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMachineProjectsApiV1IntakeMachineProjectsGetError = ListMachineProjectsApiV1IntakeMachineProjectsGetErrors[keyof ListMachineProjectsApiV1IntakeMachineProjectsGetErrors];
+
+export type ListMachineProjectsApiV1IntakeMachineProjectsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Array<IntakeMachineProjectItem>;
+};
+
+export type ListMachineProjectsApiV1IntakeMachineProjectsGetResponse = ListMachineProjectsApiV1IntakeMachineProjectsGetResponses[keyof ListMachineProjectsApiV1IntakeMachineProjectsGetResponses];
 
 export type AcceptIntakeApiV1IntakeIntakeIdAcceptPostData = {
     body?: never;

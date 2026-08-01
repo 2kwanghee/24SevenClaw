@@ -2,8 +2,13 @@
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
 status: current
-last_updated: 2026-07-31
+last_updated: 2026-08-01
 related:
+  - clickeye-api/app/api/v1/intake.py
+  - scripts/workspace_map.py
+  - scripts/auto_dev_pipeline.sh
+  - scripts/delivery_verify.sh
+  - scripts/workspace_provision.sh
   - clickeye-api/app/models/intake.py
   - clickeye-api/app/models/llm_usage_ledger.py
   - clickeye-api/app/models/user_anthropic_credentials.py
@@ -247,7 +252,8 @@ error 행으로 기록(D-9). 부수 발견·수정: Anthropic 키 부재 시 유
    1급 컬럼으로 둔다(모니터링 쿼리·게이트 판정이 이 축을 읽는다).
 4. **시트별 세마포어·레이트 카운터** — 프로세스 전역 → 시트 스코프.
 5. **작업 경로 격리** — `.ralph/` 단일 경로 → 프로젝트별(또는 worktree별) 경로.
-6. **락 세분화** — 전역 PID 락 → 프로젝트 단위 락.
+6. **락 세분화** — 전역 PID 락 → 프로젝트 단위 락. → 🔄 v1 (2026-08-01, CE-339): 전용
+   워크스페이스 러너는 키별 락(`.ralph/.pipeline_lock.<key>`), 단일 automap 러너는 전역 락 유지.
 
 ### 5-4. 리뷰 독립성과 시트
 
@@ -298,7 +304,28 @@ settings) 복사 + Tier 1 스택 프로파일(`stack_profiler.py` — stdlib 전
 `CLAUDE.stack.md` · `harness-gates.txt`(VERIFY_GATES_FILE 호환 — **F-4 게이트 자동
 도출분 해소**, 제어면 YAML 연동은 잔존). 파이프라인 배선은 `FLOWOPS_WORKSPACE` +
 `WORKSPACE_KEY` 이중 opt-in 시 STEP B 구현 cwd 만 워크스페이스로 전환(기본 off = 회귀 0).
-티켓→워크스페이스 자동 매핑, Tier 3(메트릭 기반 진화)는 후속 단계.
+Tier 3(메트릭 기반 진화)는 후속 단계.
+
+→ 🔄 **실행면 automap + 락 분리 v1 (2026-08-01, CE-339 — 결손 ②③④ 부분 해소).**
+CE-340 조달 위에 "남의 프로젝트" 실행면의 남은 배관을 얹는다:
+- **머신 조회면** — `GET /api/v1/intake/machine/projects`(X-ClickEye-Service-Key 머신 인증,
+  사용자 JWT 불요). 서비스 키 조직의 인테이크 유래 프로젝트 목록 + 서버가 재현한
+  `ticket_prefix`(`[수주:<intake_id 앞 8자>] `, intake_issue.sh 규약)를 내려준다 — 러너가
+  project_id 만으로 유도 못 하던 접두사 문제(project_runner.sh 주석) 해소.
+- **자동 매핑 원장** — `scripts/workspace_map.py`(stdlib)가 머신 조회를 폴링해
+  `.ralph/workspaces.json`(ticket_prefix → workspace_key/intake/project/repo_source/status)을
+  멱등 갱신. repo_source 미확보는 `pending_source` 표기만(**추측 clone 금지**), 수동 기입값 보존.
+- **automap 배선** — `auto_dev_pipeline.sh`가 이슈 제목 접두사로 원장을 조회
+  (`workspace_map.py --resolve-title`, 단일 소스)해 `mapped` 항목만 `WORKSPACE_KEY` 를 자동
+  설정. 토글 `FLOWOPS_WORKSPACE_AUTOMAP`(이중 opt-in). 미매핑/pending_source/원장 없음은 self-repo.
+- **락 분리(동시 실행 1단계)** — 전역 `.ralph/.pipeline_lock` → 전용 워크스페이스 러너는
+  키별 `.ralph/.pipeline_lock.<key>`. self-repo/automap 단일 러너는 기존 파일명 유지 = 무회귀.
+  같은 워크스페이스만 직렬화, 다른 워크스페이스는 병행 허용(§5-1 전역 락 차단의 1단계 완화).
+- **검증 배치 연동(F-4 잔여)** — `delivery_verify.sh`가 명시 env 부재 시 워크스페이스로
+  `VERIFY_WORKDIR`·`VERIFY_GATES_FILE`(워크스페이스 `harness-gates.txt`) 기본값을 채운다
+  (명시 설정은 항상 우선).
+여전히 범위 밖(후속): **시트 풀 매핑·러너 수평 확장(P5 본체 병렬)·집행면(P8)** — 이번 락 분리는
+동시 실행 1단계일 뿐, 진짜 병렬(다중 체크아웃/컨테이너 + main 머지 직렬화)은 미해소.
 
 → 🔄 **Tier 2 도메인 제약 도출 (2026-07-31, CE-341 — 파생형 하네스 2단계).**
 도출 원천은 STEP A 정제 산출물(`.ralph/refined/<KEY>.md`)이다 — metaprompt SKILL 의
@@ -383,7 +410,7 @@ projectId 스코프로 재사용 — admin 뷰와 공유). CE-336 갭도 함께 
 | **P2** | **YAML 제어면 계약** — 스키마·버전·서명·fail-closed·거부 콜백 (§3) | ✅ 완료 (2026-07-28) — `governance/control.py`(ControlPlane v1) + `PUT /governance/control-plane`(서비스 키 인증, 422=기계 소비형 거부). 서명 v1=인증 채널+sha256 해시(비대칭 서명은 후속) |
 | **P3** | **구독형 전용 강제** — 게이트웨이 강제 모드 + 종량 잔존 경로 감사·전환 (§4) | ✅ 강제 모드 완료 (2026-07-28). 잔존 경로 처분 완료 (2026-07-30, F-5) — gpt_pr_review·fix_plan_generator 제거, codex/gemini 는 구독형 CLI 로 확정. clickeye-api 제품면 감사만 잔존 |
 | **P4** | **시트 풀 + 계정별 토큰 모니터링** — 레지스트리·배정·`seat_id` 원장·시트별 레이트 (§5) | ✅ 완료 (2026-07-29) — 등록형 시트(사용자당 1개=ToS 방어)·머신 수령·`with_seat.sh` 주입 래퍼(스위칭 0회, 공식 경로 setup-token→CLAUDE_CODE_OAUTH_TOKEN)·PoC 실증(동시 격리·fail-closed). **재실증 대기**: 실토큰 다계정·레이트 N배(팀원 시트 첫 등록 시). 시트별 레이트 카운터는 P5 |
-| **P5** | **다프로젝트 실행** (§5-3) | ✅ v1 완료 (2026-07-29) — watcher 프로젝트 필터 + project_runner(시트×범위×파이프라인 합성, 순차-다프로젝트). **병렬 확정 설계**: 단일 체크아웃 병렬은 git 구조 충돌(main 점유·머지 경합, 실측)로 배제 — 러너 수평 확장(프로젝트별 클론/컨테이너, 하이브리드 러너 방향) + main 머지 직렬화 요구. **선행 과제**: 시트별 레이트 카운터는 로컬 claude 사용량의 원장 인제스트 배관 이후(관측 불가 데이터 위에 카운터를 세우지 않는다) |
+| **P5** | **다프로젝트 실행** (§5-3) | ✅ v1 완료 (2026-07-29) — watcher 프로젝트 필터 + project_runner(시트×범위×파이프라인 합성, 순차-다프로젝트). **병렬 확정 설계**: 단일 체크아웃 병렬은 git 구조 충돌(main 점유·머지 경합, 실측)로 배제 — 러너 수평 확장(프로젝트별 클론/컨테이너, 하이브리드 러너 방향) + main 머지 직렬화 요구. **선행 과제**: 시트별 레이트 카운터는 로컬 claude 사용량의 원장 인제스트 배관 이후(관측 불가 데이터 위에 카운터를 세우지 않는다). **automap·락 분리 1단계 (2026-08-01, CE-339)**: 머신 조회면 + `workspace_map.py` 매핑 원장 + 이슈 접두사 automap + 워크스페이스별 락으로 다른 워크스페이스 병행 허용. 러너 수평 확장(진짜 병렬)·시트별 레이트 카운터·시트 풀 매핑은 여전히 후속 |
 | **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | ✅ 완료 (2026-07-28) — 기계수락(opt-in)·분해 배치·3상 발급기·원장/콜백 |
 | **P7** | **정합성 테스트 게이트** — 전 티켓 완주 후 통합 검증 (§6-2) | ✅ 완료 (2026-07-28) — 완주판정·게이트 실행·verified/gate_failed·최종 콜백 |
 | **P8** | 집행면 게이트 엔진 + 룰 플러그인 | ⏸ **후속 보류**(2026-07-29 사용자 결정). 방식은 §8-1 로 확정(층 분리 이식). 지금 막는 것 없음 — T3 티어에서만 필요하고 현재 실행은 순차(P5 v1) |
@@ -438,7 +465,7 @@ infraeye-harness (실측 2026-07-29)
 | **F-1** | **사용량 인제스트 배관** — 로컬 `claude -p` 사용량을 서버 원장(`LlmUsageLedger`, seat_id 축)으로 | 🔄 **v1 완료 (2026-07-29, CE-328)** — 서버 인제스트(`POST /llm/ingest/usage`, 202 비블로킹·seat 사전검증·(session_id,model) 멱등) + ① 구현 스텝(`auto_dev_pipeline.sh` stream-json 사후 파싱, 토글 `FLOWOPS_USAGE_INGEST`/`FEATURE_LLM_USAGE_INGEST` opt-in, off면 회귀 0)까지. **후속(별도 티켓)**: ② 정제·③ 분해/인테이크 지점의 json 전환(엔벨로프 오염 다중 회귀 경로 재설계 필요). P5 유보분(시트별 레이트 카운터)의 선행 해소 |
 | **F-2** | **실토큰 다계정 실증** — 레이트 한도가 계정별 독립인지 | P4 가정 미확정. 팀원 시트 첫 등록 시 |
 | **F-3** | P8 집행면 (§8-1 방식) | T3 티어 착수 시 |
-| **F-4** | 제어면 YAML `gates` → 검증 배치 자동 해석 | 현재 `VERIFY_GATES_FILE` 수동. 다프로젝트 워크스페이스 배선과 함께 |
+| **F-4** | 제어면 YAML `gates` → 검증 배치 자동 해석 | 🔄 **워크스페이스 자동 해석 (2026-08-01, CE-339)** — `delivery_verify.sh`가 명시 env 부재 시 워크스페이스 `harness-gates.txt`(stack_profiler 도출)를 `VERIFY_GATES_FILE` 기본값으로, 워크스페이스 경로를 `VERIFY_WORKDIR` 기본값으로 채택(명시 항상 우선). **잔여**: 제어면 YAML `gates` 직접 소비(harness-gates.txt 는 스택 도출분이지 YAML 정본이 아니다) |
 | **F-5** | 종량 잔존 스크립트 처분 — `gpt_pr_review.py`·`fix_plan_generator.py`(OPENAI_API_KEY) | ✅ **완료 (2026-07-30)** — 개발 파이프라인 종량 경로 전량 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. `.env` 키는 clickeye-api 제품면이 참조하므로 유지(폐기는 사용자 판단) |
 
 > **거버넌스 예산 상호작용(CE-328 §M2):** `governance_gate_service._usage_from_ledger` 는

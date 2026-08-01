@@ -32,6 +32,18 @@ fi
 LOCK_FILE=".ralph/.pipeline_lock"
 TASK_MAPPING=".ralph/.task_mapping.json"
 
+# ── [파생형 하네스] 워크스페이스 락 분리 + automap 초기 상태 (CE-339) ──
+# 프로세스 시작 시점의 WORKSPACE_KEY(전용 러너가 env 로 지정)를 보존한다. automap 은
+# 이 값이 비어 있을 때만(= self-repo/단일 러너) 이슈별로 WORKSPACE_KEY 를 채운다.
+WORKSPACE_KEY_INITIAL="${WORKSPACE_KEY:-}"
+# 락 분리: 전용 워크스페이스 러너(워크스페이스 모드 + WORKSPACE_KEY 명시)는 키별 락으로
+# 서로 다른 워크스페이스의 병행 기동을 허용한다(동시 실행 1단계). self-repo/automap 단일
+# 러너(키 미설정)는 기존 전역 락 파일명을 그대로 유지 = 무회귀.
+if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
+  && [ -n "$WORKSPACE_KEY_INITIAL" ]; then
+  LOCK_FILE=".ralph/.pipeline_lock.${WORKSPACE_KEY_INITIAL}"
+fi
+
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
@@ -242,6 +254,23 @@ for title, meta in m.items():
 ")
 
   IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TASK_MODE TITLE <<< "$TASK_INFO"
+
+  # ── [파생형 하네스] 워크스페이스 automap (CE-339, opt-in — 미설정=off, 회귀 0) ──
+  # 전용 러너(시작 시 WORKSPACE_KEY 존재)가 아닌 단일 러너에서만, 이슈 제목 접두사로
+  # 매핑 원장(.ralph/workspaces.json)을 조회해 WORKSPACE_KEY 를 이슈별로 설정한다.
+  # 해석은 workspace_map.py --resolve-title 가 단일 소스(mapped=소스 확보만 해석).
+  # 미매핑/pending_source/원장 없음/조회 실패 → 빈 값 → self-repo(현행) 그대로. 실제
+  # cwd 전환은 resolve_impl_workdir()가 FLOWOPS_WORKSPACE + 워크스페이스 존재로 게이트한다.
+  if is_enabled "FLOWOPS_WORKSPACE_AUTOMAP" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE_AUTOMAP:-}" ] \
+    && [ -z "$WORKSPACE_KEY_INITIAL" ]; then
+    WORKSPACE_KEY="$(python3 "$PROJECT_DIR/scripts/workspace_map.py" \
+      --resolve-title "$TITLE" --output "$PROJECT_DIR/.ralph/workspaces.json" 2>/dev/null || true)"
+    if [ -n "${WORKSPACE_KEY:-}" ]; then
+      log "automap: ${ISSUE_KEY} → 워크스페이스 ${WORKSPACE_KEY} (원장 매핑)"
+    else
+      log "automap: ${ISSUE_KEY} 미매핑 — self-repo 진행"
+    fi
+  fi
 
   # [P1 완주] 이번 런에서 이미 실패해 Queued 복귀된 이슈를 즉시 재수거하면 무한루프
   # → 런을 종료하고 webhook 재트리거(다음 런)로 이월한다. MIN_TRIGGER_INTERVAL 이 완충.

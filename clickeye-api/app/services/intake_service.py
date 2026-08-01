@@ -1087,3 +1087,34 @@ class IntakeService:
                 return []
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+    async def list_machine_projects(self, key: IntakeServiceKey) -> list[dict[str, Any]]:
+        """서비스 키 조직의 인테이크 유래 프로젝트 목록 (P5/F-4) — 무인 automap 원장 소스.
+
+        머신(러너)이 인테이크→프로젝트 매핑과 티켓 접두사를 조회하는 경로다. 안전장치:
+        - project_id 가 있는(프로젝트 생성된) 인테이크만 — 미생성 건은 제외.
+        - 조직 격리: 인증 키와 **같은 organization_id** 서비스 키가 접수한 건만 보인다
+          (list_intakes 의 admin 조직 스코프와 동일 원칙). key.organization_id 가 None
+          이면 무조직 키끼리만 보인다.
+        - ticket_prefix 는 서버가 intake_issue.sh 규약(`[수주:<intake_id 앞 8자>] `)을
+          재현한다 — 러너가 project_id 만으로 유도할 수 없던 값을 서버가 계산해 내려준다.
+        """
+        result = await self.db.execute(
+            select(IntakeRequest)
+            .join(IntakeServiceKey, IntakeRequest.service_key_id == IntakeServiceKey.id)
+            .where(
+                IntakeRequest.project_id.is_not(None),
+                IntakeServiceKey.organization_id == key.organization_id,
+            )
+            .order_by(IntakeRequest.created_at.desc())
+        )
+        return [
+            {
+                "intake_id": intake.id,
+                "project_id": intake.project_id,
+                "title": intake.title,
+                "tickets_status": str(intake.tickets_status or "none"),
+                "ticket_prefix": f"[수주:{str(intake.id)[:8]}] ",
+            }
+            for intake in result.scalars().all()
+        ]
