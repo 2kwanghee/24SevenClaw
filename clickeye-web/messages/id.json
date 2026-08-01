@@ -684,6 +684,7 @@
       "createSession": "Buat sesi kerja",
       "unattendedNotice": "Pekerjaan ini berjalan dengan delivery tanpa pengawasan. Persyaratannya sudah diterbitkan sebagai tiket, sehingga sesi kerja terpisah tidak diperlukan.",
       "viewIntakeChain": "Lihat progres intake",
+      "intakeLedgerTitle": "Buku besar delivery tanpa pengawasan",
       "summaryError": "Sebagian data gagal diperbarui.",
       "issueBoardTitle": "Papan kerja isu",
       "subtaskCount": "Subtugas {count}",

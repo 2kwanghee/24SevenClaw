@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask
+from app.models.project import Project
 from app.schemas.orchestrator import (
     AssignRequest,
     DecomposeRequest,
@@ -87,6 +88,17 @@ class OrchestratorService:
     async def create_session(
         self, project_id: UUID, user_id: UUID, data: SessionCreate
     ) -> OrchestratorSession:
+        # CE-336 보완: 인테이크 유래 프로젝트는 무인 체인이 관리한다 — 수동 세션
+        # 생성을 서버 측에서 차단한다(클라이언트 가드만으로는 우회 가능). 세션 축은
+        # 수동(비인테이크) 프로젝트용으로 그대로 유지된다.
+        project = await self.db.get(Project, project_id)
+        if project is not None and (getattr(project, "project_type", None) or "") == "intake":
+            raise AppError(
+                "SESSION_CREATE_FORBIDDEN",
+                "인테이크 유래 프로젝트는 무인 체인이 관리합니다 — 세션을 생성할 수 없습니다.",
+                409,
+            )
+
         risk_flags = self._detect_risks(data.title, data.description)
         session = OrchestratorSession(
             project_id=project_id,

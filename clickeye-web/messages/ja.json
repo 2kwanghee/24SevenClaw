@@ -684,6 +684,7 @@
       "createSession": "作業セッションを作成する",
       "unattendedNotice": "この案件は無人デリバリーで進行します。要件はすでにチケットとして発行されているため、別途の作業セッションは必要ありません。",
       "viewIntakeChain": "インテークの進行状況を見る",
+      "intakeLedgerTitle": "無人デリバリー台帳",
       "summaryError": "一部のデータを更新できませんでした。",
       "issueBoardTitle": "課題作業ボード",
       "subtaskCount": "サブタスク {count}",

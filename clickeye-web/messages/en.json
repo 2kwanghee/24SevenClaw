@@ -684,6 +684,7 @@
       "createSession": "Create a work session",
       "unattendedNotice": "This engagement runs on unattended delivery. Its requirements have already been issued as tickets, so no separate work session is needed.",
       "viewIntakeChain": "View intake progress",
+      "intakeLedgerTitle": "Unattended delivery ledger",
       "summaryError": "Some data could not be refreshed.",
       "issueBoardTitle": "Issue work board",
       "subtaskCount": "Subtasks {count}",

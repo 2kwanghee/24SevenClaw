@@ -25,6 +25,8 @@ import {
   useLinearTeamStates,
 } from "@/hooks/use-orchestrator";
 import { useProject, useDeleteProject } from "@/hooks/use-projects";
+import { useProjectIntake } from "@/hooks/use-intake";
+import { ChainStageBadge, IntakeTimeline } from "@/components/admin/intake-chain";
 import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
 import { useGovernancePolicy } from "@/hooks/use-governance";
 import { useProjectOverrides } from "@/hooks/use-contracts";
@@ -34,6 +36,8 @@ import {
   mockGovernancePolicy,
   mockLedgerSummary,
   mockProject,
+  mockProjectIntake,
+  mockProjectIntakeTimeline,
   mockReviewRounds,
   mockSessions,
   mockSummary,
@@ -159,6 +163,15 @@ export default function DeliveryEngagementPage() {
   const governanceError = mock ? false : policyErrorRaw;
   const contractOverrides = mock ? [] : (overridesData?.items ?? undefined);
 
+  // CE-337: 인테이크 유래 프로젝트는 세션 대신 무인 체인 원장/타임라인을 콘솔에 비춘다.
+  // 인테이크 없으면 404 → projectIntake=null 로 기존 무인 안내에 폴백한다.
+  const isIntakeProject = project?.project_type === "intake";
+  const { data: projectIntakeData } = useProjectIntake(
+    projectId,
+    !mock && !!isIntakeProject,
+  );
+  const projectIntake = mock ? mockProjectIntake : (projectIntakeData ?? null);
+
   const subtasks = summary?.subtasks ?? [];
   const reviewRounds = reviewData?.items ?? [];
 
@@ -252,20 +265,50 @@ export default function DeliveryEngagementPage() {
         // 인테이크 유래 프로젝트는 무인 딜리버리로 티켓이 이미 발급되므로 세션 생성을 유도하지 않고
         // 인테이크 체인 뷰로 안내한다(요구사항 중복 분해 방지 — CE-336).
         project?.project_type === "intake" ? (
-          <div className="flex flex-col items-center gap-4 py-20">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
-              <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
+          projectIntake ? (
+            // CE-337: 무인 체인 원장 뷰 — 체인 단계 배지 + 티켓 원장 + 타임라인.
+            // admin/intake 링크는 보조로 유지한다.
+            <div className="mx-auto w-full max-w-2xl space-y-4 py-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  {t("console.intakeLedgerTitle")}
+                </span>
+                <ChainStageBadge item={projectIntake} />
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">
+                {t("console.unattendedNotice")}
+              </p>
+              <BentoCard className="p-4">
+                <IntakeTimeline
+                  item={projectIntake}
+                  projectId={mock ? undefined : projectId}
+                  timelineOverride={mock ? mockProjectIntakeTimeline : undefined}
+                />
+              </BentoCard>
+              <Link
+                href="/admin/intake"
+                className="inline-flex rounded-lg border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+              >
+                {t("console.viewIntakeChain")}
+              </Link>
             </div>
-            <p className="max-w-md text-center text-sm text-[var(--text-muted)]">
-              {t("console.unattendedNotice")}
-            </p>
-            <Link
-              href="/admin/intake"
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
-            >
-              {t("console.viewIntakeChain")}
-            </Link>
-          </div>
+          ) : (
+            // 인테이크 조회 실패/404/로딩 → 기존 무인 안내로 폴백.
+            <div className="flex flex-col items-center gap-4 py-20">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">
+                <Boxes className="h-7 w-7 text-[var(--text-muted)]" aria-hidden="true" />
+              </div>
+              <p className="max-w-md text-center text-sm text-[var(--text-muted)]">
+                {t("console.unattendedNotice")}
+              </p>
+              <Link
+                href="/admin/intake"
+                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-fg)] transition-opacity hover:opacity-90"
+              >
+                {t("console.viewIntakeChain")}
+              </Link>
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center gap-4 py-20">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-hover)]">

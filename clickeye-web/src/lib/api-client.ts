@@ -462,6 +462,20 @@ export const apiClient = {
     get: (token: string, projectId: string) =>
       authRequest<ProjectResponse>(`/api/v1/projects/${projectId}`, token),
 
+    /** CE-337: 프로젝트를 생성한 인테이크(역조회) — 콘솔 원장 뷰. 없으면 404 */
+    getIntake: (token: string, projectId: string) =>
+      authRequest<IntakeResponse>(
+        `/api/v1/projects/${projectId}/intake`,
+        token,
+      ),
+
+    /** CE-337: 프로젝트 스코프 인테이크 전이 타임라인(events 오름차순). 없으면 404 */
+    getIntakeTimeline: (token: string, projectId: string) =>
+      authRequest<IntakeTimelineResponse>(
+        `/api/v1/projects/${projectId}/intake/timeline`,
+        token,
+      ),
+
     create: (token: string, data: ProjectCreateRequest) =>
       authRequest<ProjectResponse>("/api/v1/projects/", token, {
         method: "POST",

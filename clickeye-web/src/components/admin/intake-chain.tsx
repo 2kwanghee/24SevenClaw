@@ -4,11 +4,16 @@ import { AlertCircle, Bot, GitBranch, Settings2, Ticket, User } from "lucide-rea
 import { useTranslations } from "next-intl";
 
 import { BentoCard } from "@/components/ui/bento";
-import { useIntakeOverview, useIntakeTimeline } from "@/hooks/use-intake";
+import {
+  useIntakeOverview,
+  useIntakeTimeline,
+  useProjectIntakeTimeline,
+} from "@/hooks/use-intake";
 import type {
   DeliveryOverviewResponse,
   IntakeResponse,
   IntakeTicketItem,
+  IntakeTimelineResponse,
 } from "@/lib/api-client";
 
 /**
@@ -244,11 +249,35 @@ function TicketChips({ tickets }: { tickets: IntakeTicketItem[] }) {
 /**
  * 인테이크 1건의 전이 타임라인 — 행 확장 시 렌더된다(그때 처음 조회).
  * 발급 원장이 있으면 타임라인 아래에 identifier 칩을 잇는다.
+ *
+ * CE-337: `projectId` 가 주어지면 프로젝트 스코프 경로(딜리버리 콘솔)를,
+ * 없으면 기존 admin 경로(control_tower:read)를 쓴다. 두 훅을 항상 호출하되
+ * `enabled` 로 한쪽만 활성화한다(React 훅 규칙 준수 — 조건부 호출 금지).
  */
-export function IntakeTimeline({ item }: { item: IntakeResponse }) {
+export function IntakeTimeline({
+  item,
+  projectId,
+  timelineOverride,
+}: {
+  item: IntakeResponse;
+  projectId?: string;
+  /** 목업 모드용 주입 데이터 — 주어지면 fetch 없이 이 값을 렌더한다(단일 컴포넌트 재사용). */
+  timelineOverride?: IntakeTimelineResponse;
+}) {
   const t = useTranslations("intake.chain.timeline");
   const tEvent = useTranslations("intake.chain.event");
-  const { data, isLoading, error } = useIntakeTimeline(item.id);
+  const useOverride = !!timelineOverride;
+  const useProjectScope = !!projectId;
+  // 두 훅은 항상 호출하되(React 훅 규칙), override/스코프에 따라 한쪽만 enabled.
+  const adminQuery = useIntakeTimeline(item.id, !useProjectScope && !useOverride);
+  const projectQuery = useProjectIntakeTimeline(
+    projectId ?? "",
+    useProjectScope && !useOverride,
+  );
+  const active = useProjectScope ? projectQuery : adminQuery;
+  const data = timelineOverride ?? active.data;
+  const isLoading = useOverride ? false : active.isLoading;
+  const error = useOverride ? null : active.error;
 
   const tickets = item.tickets ?? [];
 
