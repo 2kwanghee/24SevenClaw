@@ -9283,6 +9283,60 @@
         }
       }
     },
+    "/api/v1/intake/machine/projects": {
+      "get": {
+        "tags": [
+          "intake"
+        ],
+        "summary": "List Machine Projects",
+        "description": "머신 조회 (P5/F-4) — 서비스 키 조직의 인테이크 유래 프로젝트 목록.\n\n무인 워크스페이스 automap 원장(workspace_map.py)의 소스다. POST /intake 와 동일한\nX-ClickEye-Service-Key 머신 인증만 요구한다(사용자 JWT 불요). project_id 없는\n(프로젝트 미생성) 인테이크는 제외하고, ticket_prefix 는 서버가 계산해 내려준다.\n\n리터럴 경로라 아래 `/{intake_id}/...` 패턴과 충돌하지 않지만, 등록 순서를 리터럴\n우선으로 유지하기 위해 머신 인증 섹션 상단에 둔다(/overview·/*/pending 과 동일 원칙).",
+        "operationId": "list_machine_projects_api_v1_intake_machine_projects_get",
+        "parameters": [
+          {
+            "name": "x-clickeye-service-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Clickeye-Service-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeMachineProjectItem"
+                  },
+                  "title": "Response List Machine Projects Api V1 Intake Machine Projects Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/intake/{intake_id}/accept": {
       "post": {
         "tags": [
@@ -15905,6 +15959,42 @@
         ],
         "title": "IntakeIssuePendingItem",
         "description": "머신 발급 대기 목록 항목 — 무인 발급 배치(intake_issue.sh)가 소비한다.\n\nstatus 로 배치의 다음 행동이 갈린다: pending_review 면 auto-accept 를 먼저 호출\n(기계 수락 opt-in 일 때만 목록에 나타난다), accepted 면 바로 분해·발급."
+      },
+      "IntakeMachineProjectItem": {
+        "properties": {
+          "intake_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Intake Id"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "tickets_status": {
+            "type": "string",
+            "title": "Tickets Status"
+          },
+          "ticket_prefix": {
+            "type": "string",
+            "title": "Ticket Prefix"
+          }
+        },
+        "type": "object",
+        "required": [
+          "intake_id",
+          "project_id",
+          "title",
+          "tickets_status",
+          "ticket_prefix"
+        ],
+        "title": "IntakeMachineProjectItem",
+        "description": "머신 조회 항목 (다프로젝트화 P5/F-4) — 무인 워크스페이스 automap 원장 소스.\n\nticket_prefix 는 서버가 intake_issue.sh 규약(`[수주:<intake_id 앞 8자>] `)을\n재현한 값이다 — 머신(러너)이 project_id 만으로 유도할 수 없던 접두사를 내려준다."
       },
       "IntakeRefinePendingItem": {
         "properties": {

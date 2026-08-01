@@ -56,6 +56,20 @@ class IntakeAcceptedResponse(BaseModel):
     status: str
 
 
+class IntakeMachineProjectItem(BaseModel):
+    """머신 조회 항목 (다프로젝트화 P5/F-4) — 무인 워크스페이스 automap 원장 소스.
+
+    ticket_prefix 는 서버가 intake_issue.sh 규약(`[수주:<intake_id 앞 8자>] `)을
+    재현한 값이다 — 머신(러너)이 project_id 만으로 유도할 수 없던 접두사를 내려준다.
+    """
+
+    intake_id: UUID
+    project_id: UUID
+    title: str
+    tickets_status: str
+    ticket_prefix: str
+
+
 class IntakeResponse(BaseModel):
     """인테이크 상세/목록 응답 (검토 콘솔용)."""
 

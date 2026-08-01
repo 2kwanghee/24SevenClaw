@@ -13,6 +13,7 @@ logs/metrics/
 .ralph/TASK.md
 .ralph/fix_plan.md
 .ralph/.pipeline_lock
+.ralph/.pipeline_lock.*
 .ralph/.task_mapping.json
 .ralph/.task_mapping_full.json
 .ralph/.iteration_count

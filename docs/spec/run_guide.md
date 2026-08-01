@@ -2,7 +2,7 @@
 title: 서비스 실행 가이드 (운영자용)
 category: guide
 status: current
-last_updated: 2026-07-30
+last_updated: 2026-08-01
 related:
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
@@ -255,7 +255,10 @@ FLOWOPS_DELIVERY_VERIFY=true scripts/delivery_verify.sh
 **환경변수 오버라이드**:
 - `API_URL` (기본: `http://localhost:8000`)
 - `MAX_ITEMS` (기본: 5 — 건당 게이트 실행, 가변)
-- `VERIFY_WORKDIR` (기본: 저장소 루트)
+- `VERIFY_WORKDIR` (기본: 저장소 루트 — 워크스페이스 모드(`FLOWOPS_WORKSPACE`[+`_AUTOMAP`])
+  활성 시 명시하지 않으면 건별로 해당 워크스페이스 경로가 기본값. 명시 설정이 항상 우선)
+- `VERIFY_GATES_FILE` (기본: `.clickeye-gates.txt` — 워크스페이스에
+  `.claude/harness-gates.txt`가 있으면 건별로 그것이 기본값. 명시 설정이 항상 우선, CE-339)
 - `GATE_TIMEOUT` (기본: 1800초)
 
 **cron 예시** (야간 배치):

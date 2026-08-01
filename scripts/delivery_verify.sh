@@ -41,8 +41,28 @@ DRY_RUN=false
 
 API_URL="${API_URL:-http://localhost:8000}"
 MAX_ITEMS="${MAX_ITEMS:-5}"
-VERIFY_WORKDIR="${VERIFY_WORKDIR:-$PROJECT_DIR}"
 GATE_TIMEOUT="${GATE_TIMEOUT:-1800}"
+
+# ── [파생형 하네스] 워크스페이스 연동 (CE-339) ──
+# 명시 env(VERIFY_WORKDIR·VERIFY_GATES_FILE)는 **항상 우선**한다. 명시가 없을 때만
+# 워크스페이스 해석(WORKSPACE_KEY 전용 러너 또는 automap 제목 접두사 → 원장)으로
+# 건별 workdir·gates 기본값을 채운다. 미해석(워크스페이스 모드 off/미매핑) 시 현행
+# (self-repo · .clickeye-gates.txt) 그대로 = 무회귀.
+VERIFY_WORKDIR_EXPLICIT="${VERIFY_WORKDIR:-}"
+VERIFY_GATES_EXPLICIT="${VERIFY_GATES_FILE:-}"
+WORKSPACE_KEY_INITIAL="${WORKSPACE_KEY:-}"
+# 설정 로그·기본값(명시 없으면 self-repo). 실제 건별 값은 루프에서 해석한다.
+VERIFY_WORKDIR="${VERIFY_WORKDIR_EXPLICIT:-$PROJECT_DIR}"
+
+resolve_ws_dir() {
+  # 워크스페이스 키의 물리 경로를 echo(워크스페이스 모드 활성 + 디렉터리 존재 시에만).
+  # 아니면 빈 값 — resolve_impl_workdir(auto_dev_pipeline.sh)과 동일한 게이트.
+  local key="$1"
+  if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
+    && [ -n "$key" ] && [ -d "$PROJECT_DIR/workspaces/$key" ]; then
+    printf '%s\n' "$PROJECT_DIR/workspaces/$key"
+  fi
+}
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 die() { echo "ERROR: $*" >&2; exit 2; }
@@ -98,11 +118,29 @@ for i in $(seq 1 "$N_TOTAL"); do
   TITLE="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['title'])" "$ITEM")"
   log "--- [$i/$N_TOTAL] $INTAKE_ID · $TITLE ---"
 
-  VERIFIER_ARGS=(--ledger "$WORK_DIR/ledger_$i.json" --workdir "$VERIFY_WORKDIR" --gate-timeout "$GATE_TIMEOUT")
+  # ── 워크스페이스 건별 해석 (명시 env 우선 → WORKSPACE_KEY/automap → self-repo) ──
+  ITEM_KEY="$WORKSPACE_KEY_INITIAL"
+  if [ -z "$ITEM_KEY" ] && is_enabled "FLOWOPS_WORKSPACE_AUTOMAP" 2>/dev/null \
+    && [ -n "${FLOWOPS_WORKSPACE_AUTOMAP:-}" ]; then
+    ITEM_KEY="$(python3 "$PROJECT_DIR/scripts/workspace_map.py" \
+      --resolve-title "$TITLE" --output "$PROJECT_DIR/.ralph/workspaces.json" 2>/dev/null || true)"
+  fi
+  ITEM_WS_DIR="$(resolve_ws_dir "$ITEM_KEY")"
+  # workdir: 명시 우선 → 워크스페이스 → self-repo.
+  ITEM_WORKDIR="${VERIFY_WORKDIR_EXPLICIT:-${ITEM_WS_DIR:-$PROJECT_DIR}}"
+  # gates: 명시 우선 → 워크스페이스 harness-gates.txt → 전역(.clickeye-gates.txt).
+  ITEM_GATES="$GATES_FILE"
+  if [ -z "$VERIFY_GATES_EXPLICIT" ] && [ -n "$ITEM_WS_DIR" ] \
+    && [ -f "$ITEM_WS_DIR/.claude/harness-gates.txt" ]; then
+    ITEM_GATES="$ITEM_WS_DIR/.claude/harness-gates.txt"
+  fi
+  [ -n "$ITEM_WS_DIR" ] && log "  워크스페이스: ${ITEM_KEY} (workdir=$ITEM_WORKDIR gates=${ITEM_GATES:-없음})"
+
+  VERIFIER_ARGS=(--ledger "$WORK_DIR/ledger_$i.json" --workdir "$ITEM_WORKDIR" --gate-timeout "$GATE_TIMEOUT")
   if $DRY_RUN; then
     VERIFIER_ARGS+=(--check-only)   # Linear 읽기 전용 — 게이트·POST 없음
-  elif [[ -n "$GATES_FILE" ]]; then
-    VERIFIER_ARGS+=(--gates-file "$GATES_FILE")
+  elif [[ -n "$ITEM_GATES" ]]; then
+    VERIFIER_ARGS+=(--gates-file "$ITEM_GATES")
   fi
 
   RESULT="$WORK_DIR/result_$i.json"
