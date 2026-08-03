@@ -19,6 +19,10 @@ logs/metrics/
 .ralph/.iteration_count
 .ralph/.pipeline_result.json
 .ralph/.task_list.tmp
+# 시트 풀 원장/자격증명 (CE-345 — 계정 배정과 OAuth 토큰은 절대 추적하지 않는다)
+.ralph/seats.json
+.ralph/seats/
+.ralph/.seat_lock.*
 # llm-prompt-evolve 배치 후보(전이 산출물 — 챔피언/ledger 만 추적)
 clickeye-llm/prompts/candidates/
 .worktrees/

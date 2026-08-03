@@ -2,7 +2,7 @@
 title: 서비스 실행 가이드 (운영자용)
 category: guide
 status: current
-last_updated: 2026-08-01
+last_updated: 2026-08-03
 related:
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
@@ -627,6 +627,16 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 
 # LLM 게이트웨이 (CE-299, CE-328)
 # FLOWOPS_USAGE_INGEST=true     — 로컬 claude -p 사용량 → 서버 원장 인제스트 (기본 off)
+
+# 다프로젝트 (CE-339, CE-345)
+# FLOWOPS_WORKSPACE=true        — 워크스페이스 모드 (+WORKSPACE_KEY, 기본 off)
+# FLOWOPS_WORKSPACE_AUTOMAP=true — 이슈 제목 접두사 → 워크스페이스 자동 해석 (기본 off)
+# FLOWOPS_SEAT_POOL=true        — 워크스페이스 배정 시트(.ralph/seats.json)의 OAuth 토큰 주입
+#                                 (기본 off). 원장 관리 CLI: scripts/seat_map.py,
+#                                 부트스트랩 절차: docs/multiproject-delivery.md §5-3
+# FLOWOPS_SEAT_POOL_STRICT=true — 시트 미배정/점유 시 단계 미실행 + 이슈를 실패 경로
+#                                 (재시도 복귀/Backlog)로 되돌림 (기본 off = 경고 후 폴백).
+#                                 disabled 시트·토큰 미판독은 이 토글과 무관하게 차단
 ```
 
 ---

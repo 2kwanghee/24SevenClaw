@@ -61,6 +61,87 @@ resolve_impl_workdir() {
   fi
 }
 
+# ── [시트 풀] 워크스페이스 배정 시트를 CLI 인증에 주입 (CE-345, opt-in — 미설정=off) ──
+# 해석된 WORKSPACE_KEY 의 배정 시트(.ralph/seats.json)를 이 프로세스의 CLI 인증으로 주입한다.
+# off/미배정/pending_login/disabled/상위 주입 존재 → 아무 것도 하지 않는다(현행 세션 = 폴백).
+# 반드시 **서브셸 내부**에서 호출한다 — export 가 서브셸 로컬이라 이터레이션 간 누출이 없다.
+# 반환 3 = STRICT 스킵 신호(호출부가 exit 97 로 변환).
+apply_seat_env() {
+  is_enabled "FLOWOPS_SEAT_POOL" 2>/dev/null && [ -n "${FLOWOPS_SEAT_POOL:-}" ] || return 0
+  # with_seat.sh/project_runner 가 이미 시트를 주입했으면 존중(이중 시트 금지)
+  if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || [ -n "${CLICKEYE_SEAT_ID:-}" ]; then return 0; fi
+  local key="${WORKSPACE_KEY:-}" desc
+  desc="$(python3 "$PROJECT_DIR/scripts/seat_map.py" resolve \
+           --resolve-key "$key" --output "$PROJECT_DIR/.ralph/seats.json" 2>/dev/null || true)"
+  if [ -z "$desc" ]; then
+    log "WARN: 시트 미배정 워크스페이스 '${key:-self}' — 기본 로그인 세션 폴백(운영 계정 사용 위험)"
+    if [ "${FLOWOPS_SEAT_POOL_STRICT:-}" = "true" ]; then return 3; fi
+    return 0
+  fi
+  eval "$desc"   # SEAT_ID / SEAT_TOKEN_FILE / SEAT_CONFIG_DIR 또는 SEAT_BLOCKED (경로만, 비밀 미포함)
+
+  # 운영자가 한도도달·차단으로 내린 시트(disabled)는 STRICT 무관 차단 — 그 워크스페이스를
+  # 기본 계정으로 돌리는 것은 원장 오귀속이므로 폴백보다 미실행이 옳다.
+  if [ -n "${SEAT_BLOCKED:-}" ]; then
+    log "WARN: 워크스페이스 '${key:-self}' 배정 시트가 ${SEAT_BLOCKED} 상태 — 단계 미실행(기본 계정 폴백 금지)"
+    return 3
+  fi
+
+  # 자문(advisory) 시트 락: 다른 살아있는 러너가 같은 시트 점유 시 경고(STRICT 시 스킵).
+  # PID 파일 기반이라 TOCTOU·PID 재사용을 막지 못한다 — v1 은 경고/스킵 수준의 advisory 이며
+  # 엄밀한 상호배제는 시트별 원장 락(서버 경로)과 함께 온다.
+  local seat_lock="$PROJECT_DIR/.ralph/.seat_lock.${SEAT_ID}" holder
+  holder="$(cat "$seat_lock" 2>/dev/null || true)"
+  if [ -n "$holder" ] && [ "$holder" != "$$" ] && kill -0 "$holder" 2>/dev/null; then
+    log "WARN: 시트 '${SEAT_ID}' 를 다른 러너(PID ${holder})가 점유 중"
+    if [ "${FLOWOPS_SEAT_POOL_STRICT:-}" = "true" ]; then return 3; fi
+  fi
+
+  # 인증 적재 — **성공한 경우에만** 시트를 표방한다. 토큰이 안 읽히거나 비었는데
+  # CLICKEYE_SEAT_ID 만 붙이면 기본 계정으로 돌면서 원장엔 그 시트로 기록된다(오귀속).
+  local injected="" seat_token=""
+  if [ -n "${SEAT_TOKEN_FILE:-}" ] && [ -r "$SEAT_TOKEN_FILE" ]; then
+    # 파일→env 만 경유(인자·로그 미기록). CRLF 저장분은 그대로 쓰면 인증이 깨지므로 제거.
+    seat_token="$(tr -d '\r' < "$SEAT_TOKEN_FILE" 2>/dev/null || true)"
+    if [ -n "$seat_token" ]; then
+      export CLAUDE_CODE_OAUTH_TOKEN="$seat_token"
+      injected="token"
+    fi
+    unset seat_token
+  fi
+  if [ -z "$injected" ] && [ -n "${SEAT_CONFIG_DIR:-}" ] && [ -d "$SEAT_CONFIG_DIR" ]; then
+    export CLAUDE_CONFIG_DIR="$SEAT_CONFIG_DIR"
+    injected="config_dir"
+  fi
+  if [ -z "$injected" ]; then
+    unset SEAT_ID SEAT_TOKEN_FILE SEAT_CONFIG_DIR   # 시트 참칭 금지 — 미배정과 동일 취급
+    log "WARN: 시트 인증 적재 실패(파일 미판독/빈 토큰) — 기본 로그인 세션 폴백(운영 계정 사용 위험)"
+    if [ "${FLOWOPS_SEAT_POOL_STRICT:-}" = "true" ]; then return 3; fi
+    return 0
+  fi
+
+  export CLICKEYE_SEAT_ID="$SEAT_ID"
+  unset ANTHROPIC_API_KEY   # 인증 우선순위상 API 키가 시트 토큰을 이긴다(with_seat.sh 와 동일 불변식)
+  echo "$$" > "$seat_lock" 2>/dev/null || true
+  log "시트 주입: seat=${SEAT_ID} workspace=${key:-self} (${injected})"
+  return 0
+}
+
+# ── [시트 풀] STRICT 스킵 라우팅 (CE-345) ──
+# 시트를 확보하지 못해 단계를 **실행하지 않았을** 때, 빈 브랜치가 거버넌스·AUTO_MERGE 를 지나
+# "완료"로 소진되는 것을 막고 기존 실패 처리 경로(재시도 복귀 / Backlog)로 되돌린다.
+# 호출부는 이 함수 호출 뒤 continue 로 다음 이슈로 넘어간다.
+seat_strict_skip() {
+  local stage="$1"
+  log "WARN: 시트 STRICT 스킵 — ${stage} 미실행 (${ISSUE_KEY})"
+  safe_git checkout main 2>/dev/null || true
+  if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "시트 미확보로 ${stage} 미실행"; then
+    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+    log "Linear 상태: Backlog (시트 STRICT 스킵)"
+  fi
+  FAILED=$((FAILED + 1))
+}
+
 # ── [파생형 하네스 Tier 3a] 파이프라인 메트릭 기록 (opt-in — 미설정=off, 비차단) ──
 # FLOWOPS_METRICS 이중 opt-in 시에만 단계 이벤트를 JSONL 원장에 append 한다. off 면
 # no-op(python3 호출조차 안 함). 관측은 파이프라인을 절대 죽이지 않는다(|| true).
@@ -185,6 +266,11 @@ echo $$ > "$LOCK_FILE"
 
 cleanup() {
   rm -f "$LOCK_FILE"
+  # [시트 풀] 자기 PID 가 잡고 있던 자문 시트 락만 회수(다른 러너의 락은 건드리지 않는다).
+  for _seat_lock in "$PROJECT_DIR"/.ralph/.seat_lock.*; do
+    [ -f "$_seat_lock" ] || continue
+    [ "$(cat "$_seat_lock" 2>/dev/null || true)" = "$$" ] && rm -f "$_seat_lock"
+  done
   safe_git checkout main 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -382,11 +468,20 @@ $(cat .ralph/fix_plan.md 2>/dev/null || echo '(없음)')
 정제된 구현 스펙(마크다운)만 출력하라. 코드는 작성하지 마라."
       REFINE_LOG="$PROJECT_DIR/logs/refine_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
       # Claude 구독 세션 사용 (API 크레딧 차감 방지)
+      REFINE_RC=0
       ( unset ANTHROPIC_API_KEY
+        # [시트 풀] 이 서브셸의 stdout 은 정제 산출물 전용 → 시트 로그는 stderr(REFINE_LOG)로.
+        apply_seat_env >&2 || exit 97
         timeout "${REFINE_TIMEOUT:-600}" claude -p "$REFINE_PROMPT" \
           --model sonnet \
           --dangerously-skip-permissions \
-          </dev/null ) > "$REFINED_FILE" 2>>"$REFINE_LOG" || true
+          </dev/null ) > "$REFINED_FILE" 2>>"$REFINE_LOG" || REFINE_RC=$?
+      # 97 = 시트 STRICT 스킵(정제 미실행) → 티켓 무작업 소진 대신 실패 경로로 되돌린다.
+      if [ "$REFINE_RC" = "97" ]; then
+        rm -f "$REFINED_FILE"
+        seat_strict_skip "STEP A 정제"
+        continue
+      fi
     else
       log "기존 정제 스펙 재사용: $REFINED_FILE"
     fi
@@ -481,15 +576,25 @@ $(cat .ralph/PROMPT.md)"
   fi
 
   M_IMPL_START=$(date +%s)   # [Tier 3a 메트릭] 구현 소요 관측용(동작 불변)
-  ( cd "$IMPL_WORKDIR" && claude -p "$IMPL_PROMPT" \
+  # [시트 풀] fd 9 = 메인 로그(파이프 이전 stdout). 시트 로그를 여기로 보내 CLAUDE_LOG 의
+  # stream-json 을 오염시키지 않는다(usage_ingest 등 후속 파서가 이 로그를 읽는다).
+  IMPL_RC=0
+  exec 9>&1
+  ( cd "$IMPL_WORKDIR" && { apply_seat_env >&9 || exit 97; } && claude -p "$IMPL_PROMPT" \
     --model sonnet \
     --dangerously-skip-permissions \
     --verbose \
     --output-format stream-json \
     ${MAX_TURNS:+--max-turns $MAX_TURNS} ) \
-    2>&1 | tee "$CLAUDE_LOG" || {
+    2>&1 | tee "$CLAUDE_LOG" || IMPL_RC="${PIPESTATUS[0]:-1}"
+  exec 9>&-
+  # 97 = 시트 STRICT 스킵(구현 미실행) → 빈 브랜치를 완료로 소진시키지 않고 실패 경로로.
+  if [ "$IMPL_RC" = "97" ]; then
+    seat_strict_skip "STEP B 구현"
+    continue
+  elif [ "$IMPL_RC" != "0" ]; then
     log "WARN: Claude 실행 비정상 종료"
-  }
+  fi
 
   log "Claude 구현 완료: $TITLE"
 

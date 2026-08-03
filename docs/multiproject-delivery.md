@@ -6,6 +6,8 @@ last_updated: 2026-08-03
 related:
   - clickeye-api/app/api/v1/intake.py
   - scripts/workspace_map.py
+  - scripts/seat_map.py
+  - scripts/with_seat.sh
   - scripts/auto_dev_pipeline.sh
   - scripts/delivery_verify.sh
   - scripts/workspace_provision.sh
@@ -254,6 +256,44 @@ error 행으로 기록(D-9). 부수 발견·수정: Anthropic 키 부재 시 유
 5. **작업 경로 격리** — `.ralph/` 단일 경로 → 프로젝트별(또는 worktree별) 경로.
 6. **락 세분화** — 전역 PID 락 → 프로젝트 단위 락. → 🔄 v1 (2026-08-01, CE-339): 전용
    워크스페이스 러너는 키별 락(`.ralph/.pipeline_lock.<key>`), 단일 automap 러너는 전역 락 유지.
+
+#### 시트 풀 매핑 v1 (2026-08-03, CE-345)
+
+위 2번(프로젝트↔시트 배정)의 **로컬 절반**. 워크스페이스별 전용 러너가 자기 시트로 `claude`
+를 실행한다. 운영 원칙은 **"전용 러너 = 전용 시트"** — 시트 하나를 두 워크스페이스에 걸면
+`assign` 이 `--force` 없이 거부한다(같은 계정 동시 실행 = 원장·레이트 한도가 거짓이 된다).
+
+- **원장**: `.ralph/seats.json`(git 미추적) — `scripts/seat_map.py` 가 관리(stdlib·오프라인·멱등).
+  토큰 **값**은 원장에도 stdout 에도 담지 않는다(경로만). `.ralph/workspaces.json` 과는
+  완전 분리 — 서로 읽지 않으며 assignments 키는 workspace_key 문자열일 뿐이다.
+- **주입 지점**: `auto_dev_pipeline.sh` `apply_seat_env()` 가 STEP A(정제)·STEP B(구현)
+  **서브셸 내부**에서 호출된다(export 가 서브셸 로컬 → 이터레이션 간 누출 없음).
+- **서버 경로와의 관계**: `scripts/with_seat.sh`(P4 T3, 서버 원장에서 시트 토큰 수령)가 이미
+  `CLAUDE_CODE_OAUTH_TOKEN`/`CLICKEYE_SEAT_ID` 를 주입했으면 로컬 경로는 **아무 것도 하지
+  않는다**(상위 주입 존중 = 상호배타). 두 경로는 공존하며 이중 시트가 생기지 않는다.
+- **토글**: `FLOWOPS_SEAT_POOL`(미설정=off → 현행 로그인 세션, 회귀 0) ·
+  `FLOWOPS_SEAT_POOL_STRICT=true`(미배정/타 러너 점유 시 폴백 대신 해당 단계 스킵).
+  off 가 아니어도 미배정·`pending_login`·인증 파일 미판독은 경고 후 기본 세션 폴백.
+- **오귀속 금지 2종**(STRICT 무관): ① 배정 시트가 `disabled` 면 폴백하지 않고 단계를 막는다
+  ② 토큰이 안 읽히거나 비면 `CLICKEYE_SEAT_ID` 를 붙이지 않는다(시트 참칭 금지).
+  스킵된 티켓은 빈 브랜치로 소진되지 않고 기존 실패 경로(재시도 복귀/Backlog)로 되돌아간다.
+
+**부트스트랩**(시트 계정마다 1회, 그 계정으로 로그인된 클린 셸에서):
+
+```bash
+mkdir -p .ralph/seats && umask 077
+claude setup-token                       # 시트 계정 OAuth 토큰 발급 → 출력값 복사
+read -rs TOKEN                           # 셸 히스토리에 남기지 않고 입력(에코 없음)
+printf '%s' "$TOKEN" > .ralph/seats/seat-a.token && unset TOKEN
+ls -l .ralph/seats/seat-a.token          # -rw------- (600) 확인
+python3 scripts/seat_map.py register-seat --id seat-a --token-file .ralph/seats/seat-a.token
+python3 scripts/seat_map.py assign --workspace <workspace_key> --seat seat-a
+python3 scripts/seat_map.py resolve --resolve-key <workspace_key>   # 비면 배정/상태 점검
+```
+
+한도 도달 계정은 `set-status --seat seat-a --status disabled` 로 내린다 — 해당 워크스페이스는
+기본 계정으로 폴백하지 않고 **단계를 건너뛴다**(오귀속 금지). 잔여: 서버 원장 시트 축과의
+동기화·자동 재배정.
 
 ### 5-4. 리뷰 독립성과 시트
 
