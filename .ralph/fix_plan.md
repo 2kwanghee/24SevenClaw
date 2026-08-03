@@ -8,7 +8,7 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **pending_source → repo 소스 등재 플로우 v1 (workspace_map CLI)**
+- [x] **pending_source → repo 소스 등재 플로우 v1 (workspace_map CLI)**
   > 요청사항: ## 배경
 
 [CE-339](https://linear.app/flow-ops/issue/CE-339/3-다프로젝트-워크스페이스-조달-남의-프로젝트를-무인-구현할-실행면-후속) v1의 `.ralph/workspaces.json` 원장은 repo_source 미상 항목을 `pending_source`로 표기만 한다(추측 clone 금지). 현재 `mapped`로 전환하는 유일한 방법이 운영자의 JSON 수동 편집 — 절차·검증·멱등 보장이 없다.
@@ -44,3 +44,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-08-03 | pending_source → repo 소스 등재 플로우 v1 | `[x]` 완료 | `workspace_map.py`에 `set_source()`/`format_list()` + `--set-source`/`--list` CLI 추가. pytest 17개 전부 통과(신규 12개). |

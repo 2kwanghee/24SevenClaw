@@ -147,5 +147,160 @@ def test_cli_resolve_title(tmp_path, capsys):
     assert capsys.readouterr().out.strip() == "3be49b62"
 
 
+# ── ⑤ set_source: 수동 기입 + mapped 전환 (순수 함수) ─────────────────────────
+
+
+def test_set_source_by_prefix():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    new_ledger = wm.set_source(ledger, "[수주:3be49b62] ", "git@github.com:acme/shop.git")
+
+    entry = new_ledger["workspaces"]["[수주:3be49b62] "]
+    assert entry["repo_source"] == "git@github.com:acme/shop.git"
+    assert entry["status"] == "mapped"
+    # 다른 항목은 불변.
+    other = new_ledger["workspaces"]["[수주:77c0ffee] "]
+    assert other == ledger["workspaces"]["[수주:77c0ffee] "]
+    # 원본 ledger 는 변경되지 않는다(순수 함수).
+    assert ledger["workspaces"]["[수주:3be49b62] "]["repo_source"] is None
+    assert ledger["workspaces"]["[수주:3be49b62] "]["status"] == "pending_source"
+
+
+def test_set_source_by_workspace_key():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    new_ledger = wm.set_source(ledger, "3be49b62", "git@github.com:acme/shop.git")
+
+    entry = new_ledger["workspaces"]["[수주:3be49b62] "]
+    assert entry["repo_source"] == "git@github.com:acme/shop.git"
+    assert entry["status"] == "mapped"
+
+
+def test_set_source_idempotent():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    first = wm.set_source(ledger, "3be49b62", "git@github.com:acme/shop.git")
+    second = wm.set_source(first, "3be49b62", "git@github.com:acme/shop.git")
+    # updated_at 포함 완전 동일 — set_source 는 updated_at 을 건드리지 않는다.
+    assert first == second
+    assert first["updated_at"] == ledger["updated_at"]
+
+
+def test_set_source_missing_key_raises():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    with pytest.raises(KeyError):
+        wm.set_source(ledger, "존재하지않는키", "git@x:acme/shop.git")
+    # 존재하지 않는 키로 새 항목을 창작하지 않는다.
+    assert set(ledger["workspaces"]) == {"[수주:3be49b62] ", "[수주:77c0ffee] "}
+
+
+# ── ⑥ set_source 후 build_ledger 재폴링 — 수동 값 보존 회귀 방지 ───────────────
+
+
+def test_set_source_then_rebuild_preserves_mapping():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    mapped = wm.set_source(ledger, "3be49b62", "git@github.com:acme/shop.git")
+
+    rebuilt = wm.build_ledger(PROJECTS, existing=mapped, now="2026-08-02T00:00:00Z")
+    entry = rebuilt["workspaces"]["[수주:3be49b62] "]
+    assert entry["repo_source"] == "git@github.com:acme/shop.git"
+    assert entry["status"] == "mapped"
+
+
+def test_set_source_then_resolve_key_for_title():
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    mapped = wm.set_source(ledger, "3be49b62", "git@github.com:acme/shop.git")
+    assert wm.resolve_key_for_title(mapped, "[수주:3be49b62] 회원가입 구현") == "3be49b62"
+
+
+# ── CLI 스모크: --set-source / --list 오프라인 모드 ────────────────────────────
+
+
+def test_cli_set_source_success(tmp_path, capsys):
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    out = tmp_path / "workspaces.json"
+    out.write_text(json.dumps(ledger, ensure_ascii=False), encoding="utf-8")
+
+    rc = wm.main(
+        ["--set-source", "3be49b62", "git@github.com:acme/shop.git", "--output", str(out)]
+    )
+    assert rc == 0
+    err = capsys.readouterr().err
+    assert "3be49b62" in err
+
+    saved = json.loads(out.read_text(encoding="utf-8"))
+    entry = saved["workspaces"]["[수주:3be49b62] "]
+    assert entry["repo_source"] == "git@github.com:acme/shop.git"
+    assert entry["status"] == "mapped"
+
+    # --resolve-title 이 workspace_key 를 반환하는지 확인.
+    rc2 = wm.main(["--resolve-title", "[수주:3be49b62] 무언가", "--output", str(out)])
+    assert rc2 == 0
+    assert capsys.readouterr().out.strip() == "3be49b62"
+
+
+def test_cli_set_source_idempotent_bytes(tmp_path):
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    out = tmp_path / "workspaces.json"
+    out.write_text(json.dumps(ledger, ensure_ascii=False), encoding="utf-8")
+
+    rc1 = wm.main(
+        ["--set-source", "3be49b62", "git@github.com:acme/shop.git", "--output", str(out)]
+    )
+    assert rc1 == 0
+    first_bytes = out.read_bytes()
+
+    rc2 = wm.main(
+        ["--set-source", "3be49b62", "git@github.com:acme/shop.git", "--output", str(out)]
+    )
+    assert rc2 == 0
+    second_bytes = out.read_bytes()
+    assert first_bytes == second_bytes
+
+
+def test_cli_set_source_missing_ledger(tmp_path, capsys):
+    missing = tmp_path / "no_such_ledger.json"
+    rc = wm.main(
+        ["--set-source", "3be49b62", "git@github.com:acme/shop.git", "--output", str(missing)]
+    )
+    assert rc != 0
+    assert not missing.exists()
+    assert "ERROR" in capsys.readouterr().err
+
+
+def test_cli_set_source_missing_key(tmp_path, capsys):
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    out = tmp_path / "workspaces.json"
+    out.write_text(json.dumps(ledger, ensure_ascii=False), encoding="utf-8")
+    original_bytes = out.read_bytes()
+
+    rc = wm.main(
+        ["--set-source", "존재하지않는키", "git@x:acme/shop.git", "--output", str(out)]
+    )
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "존재하지않는키" in err
+    # 실패 시 원장 파일은 절대 쓰지 않는다.
+    assert out.read_bytes() == original_bytes
+
+
+def test_cli_list(tmp_path, capsys):
+    ledger = wm.build_ledger(PROJECTS, existing=None, now="2026-08-01T00:00:00Z")
+    out = tmp_path / "workspaces.json"
+    out.write_text(json.dumps(ledger, ensure_ascii=False), encoding="utf-8")
+
+    rc = wm.main(["--list", "--output", str(out)])
+    assert rc == 0
+    stdout = capsys.readouterr().out
+    assert "[수주:3be49b62] " in stdout
+    assert "[수주:77c0ffee] " in stdout
+    assert "pending_source" in stdout
+
+
+def test_cli_list_missing_ledger(tmp_path, capsys):
+    missing = tmp_path / "no_such_ledger.json"
+    rc = wm.main(["--list", "--output", str(missing)])
+    # 조회 실패는 비차단 원칙 — 항상 0.
+    assert rc == 0
+    assert capsys.readouterr().out.strip() != ""
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

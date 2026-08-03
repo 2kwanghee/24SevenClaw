@@ -139,6 +139,60 @@ def resolve_key_for_title(ledger: dict[str, Any] | None, title: str) -> str:
     return best_key
 
 
+def set_source(ledger: dict[str, Any], key: str, repo_source: str) -> dict[str, Any]:
+    """원장 항목에 repo_source 를 수동 기입하고 status 를 mapped 로 전환한다(순수 함수).
+
+    key 는 ticket_prefix(예: "[수주:3be49b62] ") 또는 workspace_key(예: "3be49b62")
+    둘 중 하나로 매칭한다 — 먼저 workspaces 의 키(prefix)와 정확히 일치하는지 확인하고,
+    없으면 각 항목의 workspace_key 필드와 일치하는 것을 찾는다.
+
+    매칭되는 항목이 없으면 KeyError(항목을 새로 만들지 않는다 — 미존재 키는 에러로 거부).
+    ledger["updated_at"] 은 건드리지 않는다 — 동일 호출을 반복해도 반환 dict 가 바이트
+    단위로 동일해야 하는 멱등 요건은 이 함수가 updated_at 을 갱신하지 않음으로써 보장된다.
+    """
+    workspaces: dict[str, Any] = ledger.get("workspaces") or {}
+    prefix = key if key in workspaces else None
+    if prefix is None:
+        for p, meta in workspaces.items():
+            if meta.get("workspace_key") == key:
+                prefix = p
+                break
+    if prefix is None:
+        raise KeyError(f"워크스페이스를 찾을 수 없습니다: {key!r}")
+
+    new_ws = dict(workspaces)
+    entry = dict(new_ws[prefix])
+    entry["repo_source"] = repo_source
+    entry["status"] = "mapped"
+    new_ws[prefix] = entry
+
+    new_ledger = dict(ledger)
+    new_ledger["workspaces"] = new_ws
+    return new_ledger
+
+
+def format_list(ledger: dict[str, Any] | None) -> str:
+    """원장 상태 요약 — `--list` 용 사람이 읽기 쉬운 텍스트를 만든다(순수 함수).
+
+    ticket_prefix 정렬 순으로 한 줄씩: prefix, workspace_key, status, repo_source 유무.
+    원장이 없거나 workspaces 가 비어있으면 안내 문구 한 줄을 반환한다.
+    """
+    if not ledger:
+        return "원장 없음"
+    workspaces: dict[str, Any] = ledger.get("workspaces") or {}
+    if not workspaces:
+        return "원장에 워크스페이스 항목이 없습니다."
+    lines = []
+    for prefix in sorted(workspaces):
+        meta = workspaces[prefix]
+        repo_source = meta.get("repo_source")
+        lines.append(
+            f"{prefix} workspace_key={meta.get('workspace_key', '')} "
+            f"status={meta.get('status', '')} repo_source={repo_source or '없음'}"
+        )
+    return "\n".join(lines)
+
+
 def write_ledger(path: str, ledger: dict[str, Any]) -> None:
     """원장을 원자적으로 쓴다(임시 파일 → rename). 상위 디렉터리 자동 생성."""
     parent = os.path.dirname(path) or "."
@@ -178,6 +232,20 @@ def main(argv: list[str] | None = None) -> int:
         help="오프라인 해석 모드 — 원장(--output)에서 이 제목의 workspace_key 를 stdout 에 "
         "출력하고 종료(미매핑이면 빈 줄). 네트워크·서비스 키 불요. 파이프라인 automap 용.",
     )
+    parser.add_argument(
+        "--set-source",
+        nargs=2,
+        metavar=("KEY", "REPO_SOURCE"),
+        help="오프라인 기입 모드 — 원장(--output)에서 KEY(ticket_prefix 또는 workspace_key)로 "
+        "찾은 항목에 REPO_SOURCE 를 기입하고 status 를 mapped 로 전환한다. 미존재 KEY 는 "
+        "에러(항목을 새로 만들지 않음). 네트워크·서비스 키 불요.",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="오프라인 조회 모드 — 원장(--output)의 워크스페이스 상태 요약을 stdout 에 출력하고 "
+        "종료. 네트워크·서비스 키 불요.",
+    )
     args = parser.parse_args(argv)
 
     # ── 오프라인 해석 모드 (파이프라인 automap): 원장 파일만 읽어 키를 출력한다. ──
@@ -185,6 +253,28 @@ def main(argv: list[str] | None = None) -> int:
     if args.resolve_title is not None:
         ledger = load_ledger(args.output)
         print(resolve_key_for_title(ledger, args.resolve_title))
+        return 0
+
+    # ── 오프라인 기입 모드: 원장 항목에 repo_source 를 수동 기입해 mapped 로 전환한다. ──
+    if args.set_source is not None:
+        key, repo_source = args.set_source
+        ledger = load_ledger(args.output)
+        if ledger is None:
+            print(f"ERROR: 원장 파일이 없습니다: {args.output}", file=sys.stderr)
+            return 2
+        try:
+            new_ledger = set_source(ledger, key, repo_source)
+        except KeyError:
+            print(f"ERROR: 워크스페이스를 찾을 수 없습니다: {key!r}", file=sys.stderr)
+            return 2
+        write_ledger(args.output, new_ledger)
+        print(f"매핑 갱신: {key!r} → mapped (repo_source={repo_source})", file=sys.stderr)
+        return 0
+
+    # ── 오프라인 조회 모드: 원장 상태 요약을 출력한다(비차단 — 원장 없어도 0). ──
+    if args.list:
+        ledger = load_ledger(args.output)
+        print(format_list(ledger))
         return 0
 
     service_key = os.environ.get("CLICKEYE_SERVICE_KEY", "")
