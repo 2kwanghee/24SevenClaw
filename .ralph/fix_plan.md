@@ -8,7 +8,7 @@
 
 ## P1: 기능 요구사항
 
-- [ ] **워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존)**
+- [x] **워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존)**
   > 요청사항: ## 배경
 
 `scripts/workspace_provision.sh:64-68`가 Tier 0 코어 복사 시 대상 레포의 기존 `.claude/settings.json`을 **무조건 덮어쓴다**. `CLAUDE.md`는 존재 시 보존하는 것과 비대칭. 지금까지는 조달 대상이 신규 clone이라 문제가 없었지만, 자체 `.claude/settings.json`(훅·권한·env)을 가진 실 고객 레포 투입 전 반드시 해소해야 한다(고객 설정 무단 파괴 + 고객 훅 소실).
@@ -39,3 +39,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
+| 2026-08-03 | 워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존) | `[x]` 완료 | `workspace_provision.sh` Tier 0 복사에 존재 여부 분기 추가 — 없으면 현행대로 복사, 있으면 원본 보존 + `settings.core.json` 병치 + 경고 로그(`SETTINGS_PRESERVED` 요약 안내 포함). `test_workspace_provision.py` 신규 pytest 3개(신규조달/보존/멱등) 전부 통과. |

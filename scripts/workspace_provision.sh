@@ -62,7 +62,18 @@ mkdir -p "$WS_CLAUDE"
 log "Tier 0 코어 복사: $CORE_DIR → $WS_CLAUDE"
 # CLAUDE.core.md · settings.json · hooks/ 를 복사(코어 프래그먼트 물질화)
 cp "$CORE_DIR/CLAUDE.core.md" "$WS_CLAUDE/CLAUDE.core.md"
-cp "$CORE_DIR/settings.json" "$WS_CLAUDE/settings.json"
+
+# settings.json 은 CLAUDE.md 처리와 대칭(보수적 보존): 대상 레포에 이미 있으면
+# 덮어쓰지 않고 코어 버전을 settings.core.json 으로 병치(고객 훅·권한·env 파괴 방지).
+SETTINGS_PRESERVED=0
+if [ -f "$WS_CLAUDE/settings.json" ]; then
+  log "대상 레포에 .claude/settings.json 존재 — 덮어쓰지 않음(settings.core.json 병치, 코어 훅 수동 병합 필요): $WS_CLAUDE/settings.json"
+  cp "$CORE_DIR/settings.json" "$WS_CLAUDE/settings.core.json"
+  SETTINGS_PRESERVED=1
+else
+  cp "$CORE_DIR/settings.json" "$WS_CLAUDE/settings.json"
+fi
+
 if [ -d "$CORE_DIR/hooks" ]; then
   mkdir -p "$WS_CLAUDE/hooks"
   cp "$CORE_DIR/hooks/"* "$WS_CLAUDE/hooks/" 2>/dev/null || true
@@ -93,3 +104,6 @@ log "조달 완료: $WS"
 log "  프로파일: $WS_CLAUDE/harness-profile.json"
 log "  스택규약: $WS_CLAUDE/CLAUDE.stack.md"
 log "  게이트:   $WS_CLAUDE/harness-gates.txt"
+if [ "$SETTINGS_PRESERVED" = "1" ]; then
+  log "  주의: 기존 settings.json 보존됨 — 코어 훅이 자동 설치되지 않았을 수 있음. $WS_CLAUDE/settings.core.json 과 수동 병합 필요"
+fi
