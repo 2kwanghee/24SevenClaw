@@ -53,6 +53,31 @@ if [ -d "$WS/.git" ] || [ -d "$WS" ]; then
 else
   log "워크스페이스 조달 clone: $SOURCE → $WS"
   git clone "$SOURCE" "$WS" || die "git clone 실패: $SOURCE"
+  # [CE-347] 고객 기본 브랜치를 clone 직후에 기록한다 — 딜리버리 리다이렉트가 base 를 정할 때
+  # origin/HEAD 가 지워졌거나 참조 불가한 clone 에서 쓰는 폴백(2단). 이후 태스크 브랜치로
+  # 옮겨간 뒤에는 HEAD 가 기본 브랜치가 아니므로 여기서만 기록한다.
+  WS_DEFAULT_BRANCH="$(git -C "$WS" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [ -n "$WS_DEFAULT_BRANCH" ] && [ "$WS_DEFAULT_BRANCH" != "HEAD" ]; then
+    printf '%s\n' "$WS_DEFAULT_BRANCH" > "$WS/.clickeye_default_branch"
+  else
+    # unborn HEAD(커밋 0개) 또는 detached — 리터럴 'HEAD' 를 기본 브랜치로 기록하면 이후
+    # checkout/push 가 엉뚱한 ref 를 겨냥한다. 기록을 생략하고 origin/HEAD 경로에 맡긴다.
+    log "WARN: clone 의 HEAD 가 기본 브랜치를 가리키지 않음(빈 레포/detached) — 기본 브랜치 메모 생략: $WS"
+  fi
+fi
+
+# ── ①-c ClickEye 주입물 clone-로컬 제외 (멱등) ──────────────────────────────
+# 아래 항목은 ClickEye 가 워크스페이스에 심는 것이라 고객 레포의 추적 대상이 아니다. 제외하지
+# 않으면 ① 에이전트의 `git add -A` 가 이들을 고객 브랜치에 커밋하고(오염) ② 딜리버리
+# 리다이렉트의 "더러운 트리" 판정이 항상 참이 되어 stash 가 하네스 프래그먼트를 걷어간다.
+# exclude 는 untracked 만 대상이므로 고객이 실제로 추적하는 CLAUDE.md 등에는 영향이 없다.
+# 목록은 auto_dev_pipeline.sh 의 ws_exclude_harness_artifacts 와 짝 — 한쪽만 바꾸지 말 것.
+if [ -d "$WS/.git" ]; then
+  mkdir -p "$WS/.git/info"
+  for _ex in '.clickeye_default_branch' '.claude/' 'CLAUDE.md'; do
+    grep -qxF -- "$_ex" "$WS/.git/info/exclude" 2>/dev/null \
+      || printf '%s\n' "$_ex" >> "$WS/.git/info/exclude" 2>/dev/null || true
+  done
 fi
 [ -d "$WS" ] || die "워크스페이스 디렉터리 없음: $WS"
 

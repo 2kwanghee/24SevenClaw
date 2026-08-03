@@ -47,6 +47,12 @@ _load_flowops_env() {
 #   FLOWOPS_LLM_INGEST     — LLM KB 머신 인제스트
 #   FLOWOPS_WORKSPACE      — 파생형 하네스: WORKSPACE_KEY 워크스페이스에서 구현 실행
 #                            (workspaces/<key> 존재 시에만 STEP B cwd 전환, 미설정=off)
+#   FLOWOPS_WORKSPACE_DELIVERY — 고객 레포 딜리버리 리다이렉트(CE-347): 워크스페이스 모드에서
+#                            브랜치 생성·구현 커밋 확인·거버넌스·push 대상을 ClickEye 레포
+#                            대신 고객 clone(IMPL_WORKDIR)으로 돌린다. 태스크 브랜치만 고객
+#                            origin 에 push 하고 기본 브랜치 머지·PR 은 하지 않는다.
+#                            FLOWOPS_WORKSPACE + WORKSPACE_KEY 가 함께 성립할 때만 유효
+#                            (미설정=off → 기존 자기레포 머지 경로 그대로)
 #   FLOWOPS_DOMAIN_PROFILE — 파생형 하네스 Tier 2: STEP A 정제 산출물의 도메인 제약을
 #                            대상 워크디렉터리 .claude/CLAUDE.domain.md 로 누적(미설정=off)
 #   FLOWOPS_METRICS        — 파생형 하네스 Tier 3a: 단계 경계 이벤트를

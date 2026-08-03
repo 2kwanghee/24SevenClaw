@@ -1,0 +1,8 @@
+{
+  "contract_surface_prefixes": [],
+  "high_prefixes": [],
+  "high_path_patterns": [],
+  "toggles": {
+    "FLOWOPS_GOVERNANCE_CONTRACT": false
+  }
+}

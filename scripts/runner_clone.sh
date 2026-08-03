@@ -77,6 +77,24 @@ else
   ORIGIN_ACTION="없음"
 fi
 
+# ── ①-c 재사용 clone 신선도 유지 (CE-347 리뷰 G7, best-effort — 실패는 경고만) ──────────
+# 구버전 clone 이 계속 살아 있으면 그 러너만 낡은 파이프라인으로 돌아 **혼합 함대**가 된다
+# (예: 딜리버리 리다이렉트가 없는 판이 허상 머지를 계속 만든다). canonical origin 에서 기본
+# 브랜치를 ff-only 로 당긴다. 로컬 커밋·충돌·미커밋 변경이 있으면 당기지 않고 경고만 남긴다
+# — 러너의 진행 중 상태를 프로비저닝이 되돌리는 사고가 더 비싸다. 스폰은 어떤 경우에도 계속.
+if [ "$CLONE_ACTION" = "재사용" ] && [ "$ORIGIN_ACTION" != "제거" ] && [ "$ORIGIN_ACTION" != "없음" ]; then
+  CLONE_HEAD="$(git -C "$CLONE_DIR" symbolic-ref --short HEAD 2>/dev/null || true)"
+  if [ -z "$CLONE_HEAD" ]; then
+    warn "clone HEAD 가 브랜치를 가리키지 않음(detached) — 신선도 갱신 생략: $CLONE_DIR"
+  elif ! git -C "$CLONE_DIR" fetch origin >/dev/null 2>&1; then
+    warn "clone fetch 실패(원격 접근 불가?) — 낡은 판으로 기동될 수 있다: $CLONE_DIR"
+  elif git -C "$CLONE_DIR" pull --ff-only origin "$CLONE_HEAD" >/dev/null 2>&1; then
+    echo "[runner-clone] $KEY: clone ff-only 갱신 ($CLONE_HEAD)"
+  else
+    warn "clone ff-only 갱신 실패(로컬 커밋·충돌·미커밋 변경?) — 낡은 판으로 기동될 수 있다: $CLONE_DIR"
+  fi
+fi
+
 # ── ② 심볼릭 배선 (멱등) ────────────────────────────────────────────────────
 # 이미 올바른 링크면 무동작. 링크가 아닌 실체가 자리를 차지하고 있으면 덮어쓰지 않고 경고한다
 # (러너가 만든 실제 산출물을 프로비저닝이 지우는 사고를 막는다).
