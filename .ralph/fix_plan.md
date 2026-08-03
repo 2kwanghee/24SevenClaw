@@ -8,33 +8,28 @@
 
 ## P1: 기능 요구사항
 
-- [x] **pending_source → repo 소스 등재 플로우 v1 (workspace_map CLI)**
+- [x] **워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존)**
   > 요청사항: ## 배경
 
-[CE-339](https://linear.app/flow-ops/issue/CE-339/3-다프로젝트-워크스페이스-조달-남의-프로젝트를-무인-구현할-실행면-후속) v1의 `.ralph/workspaces.json` 원장은 repo_source 미상 항목을 `pending_source`로 표기만 한다(추측 clone 금지). 현재 `mapped`로 전환하는 유일한 방법이 운영자의 JSON 수동 편집 — 절차·검증·멱등 보장이 없다.
+`scripts/workspace_provision.sh:64-68`가 Tier 0 코어 복사 시 대상 레포의 기존 `.claude/settings.json`을 **무조건 덮어쓴다**. `CLAUDE.md`는 존재 시 보존하는 것과 비대칭. 지금까지는 조달 대상이 신규 clone이라 문제가 없었지만, 자체 `.claude/settings.json`(훅·권한·env)을 가진 실 고객 레포 투입 전 반드시 해소해야 한다(고객 설정 무단 파괴 + 고객 훅 소실).
 
-## v1 범위 (소형)
+## v1 정책 (보수적 보존 — CLAUDE.md와 대칭)
 
-`scripts/workspace_map.py`에 등재 서브커맨드 추가:
-
-* `--set-source <ticket_prefix|workspace_key> <repo_source>` — 항목 존재 검증 후 repo_source 기입 + `status: mapped` 전환. 멱등(동일 명령 2회 = 파일 바이트 동일). 미존재 키는 에러(exit ≠ 0)로 거부 — 항목 창작 금지.
-* `--list` — 원장 상태 요약(prefix / key / status / repo_source 유무) 출력.
-* 폴링(`build_ledger`)의 수동 값 보존 규칙은 불변 — set-source로 기입한 값을 폴링이 덮어쓰지 않음(기존 동작 유지 확인).
+* 대상 레포에 `.claude/settings.json`이 **없으면**: 현행과 동일하게 코어 settings 복사(회귀 0).
+* **있으면**: 기존 파일을 건드리지 않고 보존. 코어 버전을 `.claude/settings.core.json`으로 병치 + 경고 로그(수동 병합 안내). 코어 훅 미설치 가능성을 조달 출력에 명시.
+* 키 단위 자동 병합(고객 설정 + 코어 훅 주입, 충돌 규칙)은 v2 — 정책 판단(고객 훅 vs 게이트 훅 우선순위) 필요.
 
 ## 변경 파일
 
-* `scripts/workspace_map.py`
-* `scripts/tests/test_workspace_map.py` (set-source 성공/멱등/미존재 거부/폴링 보존 테스트)
+* `scripts/workspace_provision.sh`
+* 조달 테스트(기존 스크립트 테스트 위치 준수)
+* `docs/multiproject-delivery.md` 해당 절(조달 동작 설명) 갱신
 
 ## 수용 기준
 
-* set-source 후 `--resolve-title "[수주:xxxxxxxx] ..."`가 workspace_key를 반환(mapped 해석 성립)
-* 동일 set-source 2회 → 파일 내용 동일
-* 미존재 prefix/key → 비0 종료 + 원장 무변경
-
-## v2 (범위 외)
-
-인테이크 접수 폼 repo URL 필드 / 관리자 화면 등재 / 접근 자격 증명(deploy key) 관리 — 시트 풀 설계와 연계 후 별도.
+* 기존 settings.json 없는 신규 조달 → 현행과 동일 결과(바이트 수준)
+* 기존 settings.json 있는 조달 → 원본 바이트 보존 + `settings.core.json` 생성 + 경고 출력
+* 멱등: 동일 조달 2회 = 동일 결과
 
 ---
 
@@ -44,4 +39,4 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-08-03 | pending_source → repo 소스 등재 플로우 v1 | `[x]` 완료 | `workspace_map.py`에 `set_source()`/`format_list()` + `--set-source`/`--list` CLI 추가. pytest 17개 전부 통과(신규 12개). |
+| 2026-08-03 | 워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존) | `[x]` 완료 | `workspace_provision.sh` Tier 0 복사에 존재 여부 분기 추가 — 없으면 현행대로 복사, 있으면 원본 보존 + `settings.core.json` 병치 + 경고 로그(`SETTINGS_PRESERVED` 요약 안내 포함). `test_workspace_provision.py` 신규 pytest 3개(신규조달/보존/멱등) 전부 통과. |

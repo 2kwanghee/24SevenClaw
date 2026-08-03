@@ -319,6 +319,12 @@ CE-340 조달 위에 "남의 프로젝트" 실행면의 남은 배관을 얹는�
   <ticket_prefix|workspace_key> <repo_source>`가 원장 항목을 검증 후 `mapped`로 전환(멱등,
   미존재 키는 비0 종료로 거부·항목 창작 금지). `--list`는 원장 상태 요약을 출력. 둘 다
   오프라인(네트워크·서비스 키 불요) — JSON 수동 편집을 대체.
+- **settings.json 보존 정책 v1 (2026-08-03, CE-344)** — `workspace_provision.sh` Tier 0
+  코어 복사 시 대상 레포에 기존 `.claude/settings.json`이 없으면 현행대로 코어 버전을
+  그대로 복사한다. **있으면**(실 고객 레포 투입 시 자체 훅·권한·env를 가진 경우) 원본을
+  건드리지 않고 보존하며, 코어 버전은 `.claude/settings.core.json`으로 병치 + 경고 로그
+  출력(수동 병합 필요 안내) — `CLAUDE.md` 처리(④, 있으면 덮어쓰지 않음)와 대칭되는 보수적
+  정책이다. 키 단위 자동 병합(고객 훅 + 코어 훅 병합 규칙)은 v2 범위 밖.
 - **automap 배선** — `auto_dev_pipeline.sh`가 이슈 제목 접두사로 원장을 조회
   (`workspace_map.py --resolve-title`, 단일 소스)해 `mapped` 항목만 `WORKSPACE_KEY` 를 자동
   설정. 토글 `FLOWOPS_WORKSPACE_AUTOMAP`(이중 opt-in). 미매핑/pending_source/원장 없음은 self-repo.
