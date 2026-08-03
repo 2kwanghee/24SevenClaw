@@ -35,7 +35,18 @@ PATH=/home/lkh/.local/bin:/home/lkh/bin:/usr/local/bin:/usr/bin:/bin
 
 # ── 파이프라인 실행(호스트) ──────────────────────────────────────────────────
 # 업무시간 폴링: 평일 09~18시 5분마다 1회 실행(잔여 Queued 이슈 처리).
+# [필수] 아래 디스패처를 켜면 이 단일 러너와 전용 러너가 같은 `[수주:] ` 티켓을 다툰다.
+#   디스패처를 켜기 **전에** 이 줄에 `WATCHER_EXCLUDE_PREFIXES` 를 붙여 전용 러너가 맡은
+#   프로젝트를 제외해야 한다. 구분자는 **탭**이다(접두사가 공백을 포함하므로 공백 구분 불가).
+#   auto_dev_pipeline.sh 는 `--exclude-prefix` 인자를 넘기지 않지만(본체 무수정), watcher 가
+#   이 env 를 직접 읽으므로 cron 라인만 고치면 된다. 예(전용 러너 2개를 제외):
+#     */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:aaa11111] \t[수주:bbb22222] ')" bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
+#   설정 후 검증: python3 scripts/linear_watcher.py --dry-run 출력에 제외 대상이 없어야 한다.
 */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
+# 러너 디스패처(P5/CE-346): 워크스페이스별 전용 러너를 clone 안에서 스폰/감시/회수.
+#   FLOWOPS_RUNNER_DISPATCH 미설정이면 SKIP 후 exit 0 이므로 등록해도 무해하다(회귀 0).
+#   틱 중첩은 flock(.ralph/dispatch/.dispatch_lock)이 막고, 동시 러너 수는 active 시트 수로 캡.
+*/5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/runner_dispatcher.sh >> logs/dispatcher.log 2>&1
 # 야간 배치: 매일 자정, 최대 50반복으로 밀린 작업 소진.
 0 0 * * * cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --max-iterations 50 >> logs/pipeline-night.log 2>&1
 # confirmer: 평일 정오, Confirm 상태 이슈 확정 처리.

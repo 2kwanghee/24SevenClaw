@@ -1,7 +1,7 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-08-03
 related:
   - scripts/webhook_server.py
@@ -303,6 +303,11 @@ crontab -l
 > 인테이크 3배치와 watchdog 항목이 모두 이 파일에 정의돼 있으니, 개별 줄을 여기 문서에
 > 중복 기재하지 않습니다. 등록 전 `SHELL`/`PATH` 지시와 로컬 `claude`/`ngrok` 설치 경로가
 > 일치하는지(`command -v claude ngrok`) 파일 상단 체크리스트를 따르세요.
+>
+> 정본에는 러너 디스패처(`runner_dispatcher.sh`, CE-346) 줄도 포함돼 있습니다.
+> `FLOWOPS_RUNNER_DISPATCH` 를 켜지 않으면 SKIP 후 즉시 종료하므로 등록만으로는 아무 일도
+> 일어나지 않습니다. 켤 때의 전제(시트 배정·전용 러너와 단일 러너의 티켓 경합)는
+> `docs/multiproject-delivery.md` §5-3 을 먼저 읽으세요.
 
 watchdog 항목은 **호스트 워커**(`webhook_worker.py`)와 ngrok 을 감시합니다. webhook 수신부는
 이제 compose 컨테이너이므로 호스트 `webhook_server.py` watchdog 은 더 이상 등록하지 않습니다.

@@ -97,8 +97,37 @@ def incomplete_blockers(issue: dict) -> list[str]:
     return blockers
 
 
+def apply_title_filters(
+    nodes: list[dict],
+    title_prefix: str | None = None,
+    exclude_prefixes: list[str] | None = None,
+) -> list[dict]:
+    """제목 접두사 필터 (순수 함수) — include 먼저, exclude 나중.
+
+    include(title_prefix)는 "이 프로젝트 티켓만" 을, exclude(exclude_prefixes)는 "이
+    프로젝트 티켓은 빼고" 를 뜻한다. 둘 다 미지정이면 입력을 그대로 돌려준다(회귀 0).
+
+    코디네이션 용도: 전용 러너가 `[수주:<key>] ` 접두사 티켓을 전담하는 동안, 기존 단일
+    러너는 같은 접두사를 --exclude-prefix 로 빼서 티켓을 두 러너가 다투지 않게 한다.
+    """
+    if title_prefix:
+        nodes = [n for n in nodes if (n.get("title") or "").startswith(title_prefix)]
+    if exclude_prefixes:
+        actives = [p for p in exclude_prefixes if p]
+        if actives:
+            nodes = [
+                n
+                for n in nodes
+                if not any((n.get("title") or "").startswith(p) for p in actives)
+            ]
+    return nodes
+
+
 def fetch_queued_issues(
-    api_key: str, team_id: str, title_prefix: str | None = None
+    api_key: str,
+    team_id: str,
+    title_prefix: str | None = None,
+    exclude_prefixes: list[str] | None = None,
 ) -> list[dict]:
     """큐 상태 이슈를 조회하고 부모 이슈는 활성 리프 태스크로 확장해 반환한다.
 
@@ -108,6 +137,9 @@ def fetch_queued_issues(
     title_prefix(P5 다프로젝트): 지정 시 해당 접두사로 시작하는 이슈만 수집 —
     프로젝트 러너가 자기 프로젝트의 발급 티켓(`[수주:<intake8>]` 접두사, P6 규약)만
     집게 하여, 러너 간 티켓 중복 수거를 막는다. 미지정이면 기존 전체(회귀 0).
+
+    exclude_prefixes(P5/CE-346): 지정 시 해당 접두사로 시작하는 이슈를 제외 —
+    전용 러너가 맡은 프로젝트를 단일 러너가 함께 긁는 경합을 막는다.
     """
     query = """
     query($teamId: ID!) {
@@ -144,8 +176,7 @@ def fetch_queued_issues(
     nodes = data.get("issues", {}).get("nodes", [])
 
     # P5 프로젝트 필터 — 확장 전에 적용(발급기는 부모·리프 모두에 접두사를 붙인다).
-    if title_prefix:
-        nodes = [n for n in nodes if (n.get("title") or "").startswith(title_prefix)]
+    nodes = apply_title_filters(nodes, title_prefix, exclude_prefixes)
 
     # 부모 이슈 → 활성 리프 태스크로 확장 (중복 제거)
     # 자식이 없는 일반 이슈는 expand_to_leaves가 [issue]로 반환하므로 백워드 호환.
@@ -325,9 +356,33 @@ def save_task_mapping(tasks: list[dict]):
         json.dump(mapping, f, ensure_ascii=False, indent=2)
 
 
+def resolve_exclude_prefixes(cli_values: list[str] | None) -> list[str] | None:
+    """--exclude-prefix(CLI) 와 WATCHER_EXCLUDE_PREFIXES(env)를 병합한다.
+
+    파이프라인 본체를 수정하지 않고 단일 러너에 exclude 를 넣기 위한 경로 —
+    `auto_dev_pipeline.sh` 는 이 인자를 넘기지 않지만 cron 라인의 env 는 상속된다.
+    구분자가 **탭**인 이유: 접두사(`[수주:xxxxxxxx] `)는 공백을 포함하므로 공백 구분은 안전하지
+    않다. 중복은 순서를 지키며 제거하고, 아무것도 없으면 None(=필터 없음, 회귀 0).
+    """
+    merged: list[str] = list(cli_values or [])
+    merged.extend(p for p in os.environ.get("WATCHER_EXCLUDE_PREFIXES", "").split("\t") if p)
+    deduped: list[str] = []
+    for prefix in merged:
+        if prefix and prefix not in deduped:
+            deduped.append(prefix)
+    return deduped or None
+
+
 def main():
     import argparse
-    from pipeline_config import check_enabled
+    from pipeline_config import check_enabled, is_enabled
+
+    # --check-only 는 "할 일이 있는지" 를 exit code 로만 답하는 관측 모드다. 비활성 시
+    # check_enabled 의 exit 0 을 그대로 쓰면 호출자(디스패처)가 "Queued 있음"으로 오판해
+    # 러너를 스폰한다 — 이 모드에서만 비활성을 exit 2(할 일 없음)로 답한다.
+    if "--check-only" in sys.argv[1:] and not is_enabled("FLOWOPS_LINEAR_WATCHER"):
+        print("EMPTY: FLOWOPS_LINEAR_WATCHER 비활성 — 확인할 큐 없음.")
+        sys.exit(2)
 
     check_enabled("FLOWOPS_LINEAR_WATCHER", "Linear 요구사항 감지")
 
@@ -340,15 +395,34 @@ def main():
     parser.add_argument("--title-prefix", default=None,
                         help="P5 다프로젝트: 이 접두사로 시작하는 이슈만 수집 "
                              "(프로젝트 러너용, 미지정=전체)")
+    parser.add_argument("--exclude-prefix", action="append", default=None,
+                        dest="exclude_prefix",
+                        help="이 접두사로 시작하는 이슈는 제외(반복 지정 가능). "
+                             "전용 러너가 맡은 프로젝트를 단일 러너에서 빼는 용도. "
+                             "env WATCHER_EXCLUDE_PREFIXES(탭 구분)와 병합된다")
+    parser.add_argument("--check-only", action="store_true",
+                        help="매칭 이슈 존재 여부만 확인하고 종료 — 어떤 파일도 쓰지 않는다 "
+                             "(있음 0 / 없음 2). 디스패처의 Queued 사전확인용")
     args = parser.parse_args()
 
     api_key, team_id = get_env()
 
     # 1. DayQueued/NightQueued 이슈 조회
-    issues = fetch_queued_issues(api_key, team_id, title_prefix=args.title_prefix)
+    issues = fetch_queued_issues(
+        api_key,
+        team_id,
+        title_prefix=args.title_prefix,
+        exclude_prefixes=resolve_exclude_prefixes(args.exclude_prefix),
+    )
     if not issues:
         print("EMPTY: DayQueued/NightQueued 이슈 없음.")
         sys.exit(2)
+
+    # 1-1. 존재 확인 전용 — fix_plan / .task_mapping.json / .ralph/tasks 를 오염시키지 않기
+    #      위해 어떤 쓰기 경로에도 진입하지 않고 여기서 끝낸다.
+    if args.check_only:
+        print(f"FOUND: {len(issues)}개")
+        sys.exit(0)
 
     # 2. 태스크 정보 추출 (--limit 적용)
     if args.limit > 0:

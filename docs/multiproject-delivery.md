@@ -1,13 +1,15 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: current
+status: needs-revision
 last_updated: 2026-08-03
 related:
   - clickeye-api/app/api/v1/intake.py
   - scripts/workspace_map.py
   - scripts/seat_map.py
   - scripts/with_seat.sh
+  - scripts/runner_dispatcher.sh
+  - scripts/runner_clone.sh
   - scripts/auto_dev_pipeline.sh
   - scripts/delivery_verify.sh
   - scripts/workspace_provision.sh
@@ -295,6 +297,79 @@ python3 scripts/seat_map.py resolve --resolve-key <workspace_key>   # 비면 배
 기본 계정으로 폴백하지 않고 **단계를 건너뛴다**(오귀속 금지). 잔여: 서버 원장 시트 축과의
 동기화·자동 재배정.
 
+#### 러너 디스패처 v1 (2026-08-03, CE-346)
+
+CE-339(키별 락)·CE-345(시트 원장)가 만든 것은 병행의 **허용 조건**이었다. 디스패처는 그 위에서
+실제로 병행을 **만들어내는** 층이다 — 5분 틱마다 두 원장을 읽어 워크스페이스별 전용 러너를
+스폰·감시·회수한다(`scripts/runner_dispatcher.sh`, cron `*/5 9-18 * * 1-5`).
+
+- **git 격리 = 워크스페이스별 로컬 clone**(`scripts/runner_clone.sh`, 기본 루트
+  `$HOME/.clickeye-runners/<key>`). 한 체크아웃을 공유하면 키 없는 스크래치
+  (`.ralph/fix_plan.md`·`.ralph/.task_mapping.json`)가 레이스하고 이터레이션 내내 공유 HEAD 를
+  점유해 러너들이 서로를 깨뜨린다. `git worktree` 는 **같은 브랜치를 두 곳에 체크아웃할 수
+  없어**(main 상시 충돌) 기각했다. clone 은 독립 refs + 독립 `.ralph` 를 공짜로 준다.
+- **clone 의 origin 은 PRIMARY 가 아니라 PRIMARY 의 origin(GitHub)** 으로 재지정한다.
+  `git clone <PRIMARY>` 의 기본 origin 을 그대로 두면 러너의 `push origin main` 과
+  `push origin --delete ralph/<KEY>` 가 **PRIMARY 체크아웃을 겨냥한다**(브랜치 삭제까지
+  성사됨을 실측). 재지정으로 push/PR/pull 대상이 현행 단일 러너와 같아지고, "PRIMARY git
+  무접촉" 불변식이 실질적으로 성립하며, clone 의 main 최신성도 canonical 로 해결된다.
+- **공유는 심볼릭 6종만**: `.env` · `.ralph/seats.json` · `.ralph/seats/` ·
+  `.ralph/workspaces.json` · `workspaces/`(키별 서브디렉터리라 무충돌) · `logs/`(관측 일원화).
+  나머지 `.ralph/` 는 clone-로컬 — 락·스크래치 격리가 이 설계의 본질이다. 프로비저닝은 멱등이며
+  링크 자리에 실체가 있으면 덮어쓰지 않고 건너뛴다.
+- **스폰 산정**(모두 통과해야 스폰): mapped → 시트 배정 + `active` → 그 키의 러너 미실행
+  → 그 **시트**의 러너 미실행 → 캡(라이브+이번 틱 스폰 < active 시트 수) → 해당 접두사
+  Queued 실재(`linear_watcher --check-only`, 파일 무기록). Queued 확인이 마지막인 이유는
+  어차피 스폰 못 할 후보에 Linear API 비용을 치르지 않기 위해서다. 틱 중첩은
+  `flock .ralph/dispatch/.dispatch_lock` 이 막는다.
+- **시트 배타는 디스패처가 담당한다.** 파이프라인의 `.ralph/.seat_lock.<seat_id>` 는
+  **clone-로컬**이라 clone 간 상호배제가 되지 않는다(실측). 같은 시트가 두 워크스페이스에
+  걸리면 두 러너가 같은 계정으로 동시에 돌아 원장·레이트 한도가 거짓이 된다. 방어는 두
+  겹이다: ① `seat_map.py assign` 의 1:1 가드(`--force` 없이 중복 배정 거부) ② 디스패처
+  마커의 `seat_id` — 그 시트를 쓰는 라이브 러너가 있으면 스폰하지 않는다.
+- **회수는 마커 정리까지만**: 마커 형식은 `<pid> <epoch> <seat_id>`. `kill -0` 뿐 아니라
+  `/proc/<pid>/cmdline` 으로 신원까지 확인해 **PID 재사용**(마커가 남은 사이 OS 가 그 PID 를
+  재배정)을 회수한다 — 확인하지 않으면 남의 프로세스를 러너로 오인해 그 키가 영구 스킵된다.
+  `/proc` 를 못 읽는 환경에서는 판단을 보류(생존 인정)하며, 확인 불가를 회수 근거로 삼지
+  않는다. `DISPATCH_STALE_HOURS`(기본 6) 초과 생존은 경고만 하고 **강제 종료하지 않는다**
+  (러너가 브랜치 중간 상태를 들고 있을 수 있다).
+- **스폰 env 가 공유 `.env` 를 이긴다**: 러너 clone 은 PRIMARY 의 `.env` 를 심볼릭으로
+  공유하는데, `pipeline_config.sh` 의 기본 동작은 무조건 덮어쓰기다. 운영자가 `.env` 에
+  `FLOWOPS_SEAT_POOL=false` 를 써두면 전 러너가 개인 계정으로 폴백해 CE-345 가 막은 오귀속이
+  재발한다. 디스패처는 `FLOWOPS_ENV_KEEP_EXISTING=true` 를 함께 넘겨 **이미 set 된 값은
+  `.env` 가 덮지 못하게** 한다(이 마커가 없으면 로더 동작은 이전과 동일 — 회귀 0).
+- **PRIMARY git 무접촉**: 디스패처·프로비저닝은 PRIMARY 저장소에서 checkout/commit 을 하지
+  않는다. 인터랙티브 작업과 cron 이 같은 체크아웃을 놓고 싸우지 않기 위한 불변식이다.
+- **토글**: `FLOWOPS_RUNNER_DISPATCH`(이중 opt-in, 미설정=SKIP exit 0 → cron 등록해도 무해) ·
+  `FLOWOPS_RUNNER_DISPATCH_DRYRUN`(산정 결과만 출력).
+**활성 절차** (순서를 지킬 것 — 1번을 건너뛰면 티켓이 두 러너에 이중 수거된다):
+
+1. **단일 러너에서 전용 프로젝트를 제외한다.** cron 정본의 `auto_dev_pipeline.sh --once`
+   라인에 `WATCHER_EXCLUDE_PREFIXES` 를 붙인다(**탭 구분** — 접두사가 공백을 포함하므로 공백
+   구분은 안전하지 않다). `linear_watcher.py` 가 이 env 를 직접 읽으므로 파이프라인 본체는
+   손대지 않는다. 검증: `python3 scripts/linear_watcher.py --dry-run` 에 제외 대상이 없을 것.
+   ```bash
+   WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:aaa11111] \t[수주:bbb22222] ')" \
+     bash scripts/auto_dev_pipeline.sh --once
+   ```
+2. 워크스페이스마다 시트를 배정한다(`seat_map.py assign`, 1시트:1워크스페이스).
+3. `FLOWOPS_RUNNER_DISPATCH_DRYRUN=true` 로 산정 결과를 먼저 읽는다.
+4. `FLOWOPS_RUNNER_DISPATCH=true` 로 전환한다.
+
+> **사실 A — 워크스페이스 딜리버리는 아직 허상이다.** 전용 러너는 clone 안에서 브랜치를 만들고
+> 커밋·머지하지만, **고객 레포로 가는 결과물은 없다**. 워크스페이스 모드에서 구현은
+> `workspaces/<key>`(남의 레포)에서 일어나지만 커밋·머지·push 는 ClickEye 레포를 대상으로
+> 돌아가므로, GitHub main 에는 사실상 **빈 커밋에 가까운 부기**만 남고 Linear 티켓은 그대로
+> Done 까지 간다 — 즉 "완주했는데 산출물이 없다". 실제 고객 레포 push(딜리버리 리다이렉트)는
+> **CE-347** 별도 티켓이다. v1 의 목적은 spawn/watch/reap 기전 실증이며, 이 절의 "딜리버리"를
+> 완결된 것으로 읽지 말 것.
+>
+> **v1 관측 한계(운영 수동 정리)**: ① clone 회수 정책이 없다 — `$HOME/.clickeye-runners/<key>`
+> 는 계속 쌓이며 워크스페이스가 폐기돼도 자동 삭제되지 않는다. ② `logs/` 를 전 러너가 공유하므로
+> 머지 로그(`merge_<초단위>.log`)가 같은 초에 겹치면 덮어쓰기가 나고, 메트릭 원장
+> (`logs/metrics/pipeline_runs.jsonl`)은 러너별 레코드가 인터리브된다. 두 항목 모두 러너 수가
+> 늘기 전에 정리 정책이 필요하다.
+
 ### 5-4. 리뷰 독립성과 시트
 
 §4-3 의 문제가 여기서 풀린다. 리뷰 2인 정족수를 **서로 다른 시트**에 배정하면 종량 API 없이도
@@ -536,6 +611,7 @@ infraeye-harness (실측 2026-07-29)
 | 2026-07-29 | **P8 방식 확정(층 분리 이식)·보류 결정 + 후속 과제 F-1~F-5 등재.** 이전 판의 "선행 구현 리뷰 미결" 서술을 실측으로 정정(241 pass·리뷰어 정족수 통과, 잔여는 install.sh 부재) | 낡은 스냅샷을 반복 인용하고 있었음 — 실측으로 교체 |
 | 2026-07-29 | **F-1 v1 완료(CE-328)** — 로컬 `claude -p` 사용량 → 서버 원장 인제스트 배관(seat_id 축·session_id 멱등·202 비블로킹) + ① 구현 스텝 배선. §5-2 현행화(seat_id/session_id 컬럼·배관 완료)·§8-2 F-1 진행 반영·거버넌스 예산 상호작용(M2) 기록 | 계정별 토큰 모니터링의 로컬 절반 연결 |
 | 2026-07-28 | **E2E 리허설 통과** — 모의 수주 1건 ①~⑥ live 관통(정제·분해=claude 구독, Linear 실물 CE-320~323, verified 확정). 실증 결함 2건 수정: 완주 판정 name→**type 기준**(팀 커스텀 Confirm=completed 대응) · 발급 기본 상태 →Queued. 미배선 확인: 제어면 gates→검증 배치 자동 해석(P5/P8) | 코드 검증만으로 못 잡는 팀별 워크플로 차이를 실증으로 확인 |
+| 2026-08-03 | **러너 디스패처 v1(CE-346)** — 워크스페이스별 전용 러너 스폰·감시·회수(`runner_dispatcher.sh`) + 러너별 로컬 clone 프로비저닝(`runner_clone.sh`, worktree 기각 근거 기록). `linear_watcher.py` `--exclude-prefix`/`--check-only`/`WATCHER_EXCLUDE_PREFIXES`. 2인 리뷰 반영 4건: clone origin 을 PRIMARY→canonical 로 재지정(러너 push 가 PRIMARY 브랜치를 지우는 것 차단) · 스폰 env 권위(`FLOWOPS_ENV_KEEP_EXISTING`) · 시트 단위 이중 스폰 가드(clone-로컬 `.seat_lock` 무력 보완) · `--check-only` 비활성 오판(exit 2). §5-3 에 디스패처 절 신설 + **딜리버리 리다이렉트 미배선(CE-347)** 명시 | 병행 허용 조건(CE-339·CE-345) 위에 실제 병행을 만드는 층이 없었음 |
 | 2026-07-30 | **F-5 완료** — 개발 파이프라인 종량 경로 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`.github/workflows/ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. CODE_REVIEW 문서를 구독형 경로(codex CLI + `code-reviewer` 서브에이전트)로 현행화. §4-3 잔존 경로·P3·F-5 상태 갱신 | 구독형 전용 원칙 정합 — 종량 API 키 호출자 4개(OpenAI 3+Gemini 1) 소멸 |
 
 ---

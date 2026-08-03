@@ -23,6 +23,8 @@ logs/metrics/
 .ralph/seats.json
 .ralph/seats/
 .ralph/.seat_lock.*
+# 디스패처 런타임(러너 PID 마커·틱 락) — 호스트 로컬 상태 (CE-346)
+.ralph/dispatch/
 # llm-prompt-evolve 배치 후보(전이 산출물 — 챔피언/ledger 만 추적)
 clickeye-llm/prompts/candidates/
 .worktrees/
