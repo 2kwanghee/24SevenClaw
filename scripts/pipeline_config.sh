@@ -35,6 +35,11 @@ _load_flowops_env() {
 #                            대상 워크디렉터리 .claude/CLAUDE.domain.md 로 누적(미설정=off)
 #   FLOWOPS_METRICS        — 파생형 하네스 Tier 3a: 단계 경계 이벤트를
 #                            logs/metrics/pipeline_runs.jsonl 원장에 수집(미설정=off, 비차단)
+#   FLOWOPS_SEAT_POOL      — 시트 풀: WORKSPACE_KEY 에 배정된 시트(.ralph/seats.json)를
+#                            claude CLI 인증에 주입(미설정=off → 현행 로그인 세션)
+#   FLOWOPS_SEAT_POOL_STRICT — 위 토글의 fail-closed 모드(=true 일 때만).
+#                            시트 미배정/타 러너 점유 시 경고 후 진행하지 않고 해당 단계를
+#                            스킵한다(기본 미설정 = 경고만 하고 기본 세션으로 진행)
 
 # 모듈 활성화 여부 확인
 # 기본값: true (설정이 없으면 활성화)

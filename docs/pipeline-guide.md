@@ -2,7 +2,7 @@
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
 status: current
-last_updated: 2026-08-01
+last_updated: 2026-08-03
 related:
   - scripts/auto_dev_pipeline.sh
   - scripts/pre_merge_gate.py
@@ -531,6 +531,14 @@ FLOWOPS_WORKSPACE=                   # 다프로젝트 워크스페이스 모드
 FLOWOPS_WORKSPACE_AUTOMAP=           # 이슈 제목 접두사 → .ralph/workspaces.json 원장으로
                                      # WORKSPACE_KEY 자동 해석 (CE-339, 이중 opt-in, 기본 off).
                                      # 원장 갱신: scripts/workspace_map.py (머신 조회 API 폴링)
+FLOWOPS_SEAT_POOL=                   # 시트 풀 주입 (CE-345, 이중 opt-in, 기본 off).
+                                     # WORKSPACE_KEY 배정 시트(.ralph/seats.json)의 OAuth 토큰을
+                                     # claude 서브셸에 주입. 원장 관리: scripts/seat_map.py
+FLOWOPS_SEAT_POOL_STRICT=            # 시트 미배정/점유 시 해당 단계를 실행하지 않고 이슈를
+                                     # 실패 경로(재시도 복귀/Backlog)로 되돌림 (기본 off =
+                                     # 경고 후 기본 로그인 세션 폴백). 단, 배정 시트가
+                                     # disabled 이거나 토큰 미판독이면 이 토글과 무관하게
+                                     # 시트를 표방하지 않는다(원장 오귀속 방지)
 ```
 
 설정 로더: `scripts/pipeline_config.sh`
