@@ -1,8 +1,8 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: needs-revision
-last_updated: 2026-08-01
+status: current
+last_updated: 2026-08-03
 related:
   - clickeye-api/app/api/v1/intake.py
   - scripts/workspace_map.py
@@ -315,6 +315,10 @@ CE-340 조달 위에 "남의 프로젝트" 실행면의 남은 배관을 얹는�
 - **자동 매핑 원장** — `scripts/workspace_map.py`(stdlib)가 머신 조회를 폴링해
   `.ralph/workspaces.json`(ticket_prefix → workspace_key/intake/project/repo_source/status)을
   멱등 갱신. repo_source 미확보는 `pending_source` 표기만(**추측 clone 금지**), 수동 기입값 보존.
+- **pending_source 등재 CLI (2026-08-03, CE-343)** — `workspace_map.py --set-source
+  <ticket_prefix|workspace_key> <repo_source>`가 원장 항목을 검증 후 `mapped`로 전환(멱등,
+  미존재 키는 비0 종료로 거부·항목 창작 금지). `--list`는 원장 상태 요약을 출력. 둘 다
+  오프라인(네트워크·서비스 키 불요) — JSON 수동 편집을 대체.
 - **automap 배선** — `auto_dev_pipeline.sh`가 이슈 제목 접두사로 원장을 조회
   (`workspace_map.py --resolve-title`, 단일 소스)해 `mapped` 항목만 `WORKSPACE_KEY` 를 자동
   설정. 토글 `FLOWOPS_WORKSPACE_AUTOMAP`(이중 opt-in). 미매핑/pending_source/원장 없음은 self-repo.
