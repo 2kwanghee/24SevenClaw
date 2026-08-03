@@ -1,7 +1,7 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: needs-revision
+status: current
 last_updated: 2026-08-03
 related:
   - clickeye-api/app/api/v1/intake.py
@@ -13,6 +13,8 @@ related:
   - scripts/auto_dev_pipeline.sh
   - scripts/delivery_verify.sh
   - scripts/workspace_provision.sh
+  - scripts/tests/test_workspace_delivery.sh
+  - templates/harness-core/governance-workspace.policy.json
   - clickeye-api/app/models/intake.py
   - clickeye-api/app/models/llm_usage_ledger.py
   - clickeye-api/app/models/user_anthropic_credentials.py
@@ -356,13 +358,14 @@ CE-339(키별 락)·CE-345(시트 원장)가 만든 것은 병행의 **허용 �
 3. `FLOWOPS_RUNNER_DISPATCH_DRYRUN=true` 로 산정 결과를 먼저 읽는다.
 4. `FLOWOPS_RUNNER_DISPATCH=true` 로 전환한다.
 
-> **사실 A — 워크스페이스 딜리버리는 아직 허상이다.** 전용 러너는 clone 안에서 브랜치를 만들고
-> 커밋·머지하지만, **고객 레포로 가는 결과물은 없다**. 워크스페이스 모드에서 구현은
-> `workspaces/<key>`(남의 레포)에서 일어나지만 커밋·머지·push 는 ClickEye 레포를 대상으로
-> 돌아가므로, GitHub main 에는 사실상 **빈 커밋에 가까운 부기**만 남고 Linear 티켓은 그대로
-> Done 까지 간다 — 즉 "완주했는데 산출물이 없다". 실제 고객 레포 push(딜리버리 리다이렉트)는
-> **CE-347** 별도 티켓이다. v1 의 목적은 spawn/watch/reap 기전 실증이며, 이 절의 "딜리버리"를
-> 완결된 것으로 읽지 말 것.
+> **사실 A — 워크스페이스 딜리버리는 배선되었다(CE-347, `FLOWOPS_WORKSPACE_DELIVERY`).**
+> 이전 판의 "허상" 서술은 이 토글이 없던 상태를 가리킨다. 그때는 구현이
+> `workspaces/<key>`(남의 레포)에서 일어나는데 브랜치·커밋확인·머지·push 는 ClickEye 레포를
+> 대상으로 돌아가서, GitHub main 에는 빈 커밋에 가까운 부기만 남고 Linear 티켓은 Done 까지
+> 갔다 — "완주했는데 산출물이 없다". 이제 토글이 명시 활성이고 구현 대상이 self-repo 가
+> 아니면 브랜치 생성·구현 커밋 확인·거버넌스·push 가 모두 고객 clone 을 향한다(§5-5).
+> **v1 은 태스크 브랜치만 고객 origin 에 push 한다** — 고객 기본 브랜치로의 머지는 고객
+> 소유이며 파이프라인이 대신 하지 않는다. 토글 미설정 또는 자기레포 이슈는 기존 경로 그대로다.
 >
 > **v1 관측 한계(운영 수동 정리)**: ① clone 회수 정책이 없다 — `$HOME/.clickeye-runners/<key>`
 > 는 계속 쌓이며 워크스페이스가 폐기돼도 자동 삭제되지 않는다. ② `logs/` 를 전 러너가 공유하므로
@@ -374,6 +377,110 @@ CE-339(키별 락)·CE-345(시트 원장)가 만든 것은 병행의 **허용 �
 
 §4-3 의 문제가 여기서 풀린다. 리뷰 2인 정족수를 **서로 다른 시트**에 배정하면 종량 API 없이도
 독립 리뷰가 성립한다. 시트 풀은 동시성 자원이자 **역할 분리 자원**이다.
+
+### 5-5. 고객 레포 딜리버리 리다이렉트 v1 (CE-347)
+
+§5-3 사실 A 가 지목한 결함을 해소한다. 워크스페이스 모드에서 git 조작 대상을 ClickEye 레포
+(`PROJECT_DIR`)에서 고객 clone(`IMPL_WORKDIR`)으로 돌린다.
+
+**발동 조건(3중 게이트, 하나라도 불충족이면 기존 경로 그대로)**
+
+1. `FLOWOPS_WORKSPACE_DELIVERY` 이중 opt-in(`is_enabled` + 비어있지 않음) — 미설정 = off
+2. `FLOWOPS_WORKSPACE` + `WORKSPACE_KEY` + `workspaces/<key>` 존재 (`resolve_impl_workdir` 내포)
+3. `IMPL_WORKDIR != PROJECT_DIR` — 자기레포 이슈는 켜져 있어도 기존 머지 경로
+
+**리다이렉트 지점** — 전부 `git -C "$IMPL_WORKDIR"`(헬퍼 `impl_git`) 경유.
+
+| 지점 | 기존(자기레포) | 워크스페이스 딜리버리 |
+|---|---|---|
+| 기준 브랜치 | `checkout main` + `pull origin main` (ClickEye) | `checkout <고객 기본 브랜치>` + `pull origin <같음>` (고객 clone). ClickEye 는 무접촉 |
+| 태스크 브랜치 | ClickEye 에 `checkout -b` | **STEP B 이전에** 고객 clone 에 생성 → 에이전트 커밋이 이 브랜치에 얹힌다 |
+| 머지된 동명 브랜치 정리 | `branch -d` | 생략(고객 레포 브랜치를 삭제하지 않음) |
+| 구현 커밋 확인 | 없음(빈 머지가 "성공") | 브랜치 확보 직후의 tip 을 기억해 `rev-list --count <tip_before>..HEAD` 로 **이번 런 델타**를 본다. 0 이면 실패 확정 |
+| Linear 처분 | `linear_reporter.py`(PRIMARY fix_plan·git 요약 기준) | reporter 생략. push 성공 시 `linear_tracker update --status Done` + 딜리버리 코멘트 |
+| 거버넌스 | HTTP 서비스 또는 로컬 shim, `base=main`, ClickEye 정책 | 로컬 shim 만, `--project-dir <clone> --base <고객 기본 브랜치> --policy templates/harness-core/governance-workspace.policy.json` |
+| 최종 반영 | `merge --no-ff` → `push origin main` → `branch -d` | 머지 없음. `push origin <태스크 브랜치>` 만 |
+| PR | `auto_pr_creator.py` | 호출하지 않음(`gh` 가 ClickEye GitHub 을 겨냥하므로 잘못된 대상) |
+
+**고객 기본 브랜치 감지 3단** — `main` 추측 금지(틀린 base 는 잘못된 diff·push 로 이어진다).
+
+1. `git symbolic-ref --short refs/remotes/origin/HEAD` → `origin/` 스트립.
+   비어 있으면 `git remote set-head -a origin` 으로 **1회 복구를 시도**한 뒤 재판정한다
+   (origin/HEAD 는 삭제·구버전 clone·부분 fetch 로 없을 수 있다)
+2. `<clone>/.clickeye_default_branch` — `workspace_provision.sh` 가 clone 직후 기록하는 메모.
+   unborn/detached HEAD 면 리터럴 `HEAD` 를 쓰지 않고 기록을 **생략**한다
+3. 둘 다 없으면 **실패 처리** — 감지 못한 채로 진행하지 않는다
+
+**clone 위생 — 지우지 않고 비켜두기.** 고객 clone 은 여러 티켓이 재사용하므로 이전 런의 잔재가
+다음 런을 막는다. 세 가지를 브랜치 확보 전에 처리하며, 모두 **유실 0**을 지킨다.
+
+| 잔재 | 처리 |
+|---|---|
+| 미커밋 변경(에이전트가 죽은 자리) | `git stash push --include-untracked -m "clickeye-auto-preserve <KEY> <ts>"` 로 보존 후 진행. 복구: `git -C <clone> stash list` → `git stash apply <ref>`. **stash 실패 시에만** 실패 처리 |
+| detached HEAD(이전 런 크래시) | `CUST_BASE` 계보 밖이면 `rescue/<KEY>-detached-<ts>` 브랜치로 보존 후 진행 |
+| ClickEye 주입물(`.claude/`·`CLAUDE.md`·`.clickeye_default_branch`) | clone 로컬 `.git/info/exclude` 에 등재(provision + 파이프라인 양쪽에서 멱등 top-up). 등재하지 않으면 ① 더러운 트리 판정이 항상 참이 되어 stash 가 하네스 프래그먼트를 걷어가고 ② 에이전트의 `git add -A` 가 이들을 고객 브랜치에 커밋한다 |
+
+**오염 가드**: R4 통과 후 이번 런 델타에 `.ralph/`·`.claude/`·`fix_plan.md`·`LoadMap_v3.md`·
+`TODO.md` 가 있으면 실패 처리한다(fail-closed). ralph PROMPT 가 에이전트에게 fix_plan 갱신·커밋을
+지시하므로 WS cwd 에서 ClickEye 운영 파일이 고객 브랜치로 새어나갈 수 있다.
+
+**detached HEAD 에서의 구현은 실패다**: 커밋이 태스크 브랜치 ref 에 얹히지 않아 push 는 성공해도
+산출물이 나가지 않는다(= 허상 재발). `rescue/<KEY>-<ts>` 로 보존하고 실패 처리한다.
+
+**중립 정책** `templates/harness-core/governance-workspace.policy.json` (JSON 이라 주석 불가 —
+용도는 여기에 기재): 남의 레포에는 ClickEye 계약면·모듈 경로 정책이 성립하지 않으므로
+`contract_surface_prefixes`/`high_prefixes`/`high_path_patterns` 를 비우고
+`FLOWOPS_GOVERNANCE_CONTRACT` 를 끈다. 결과적으로 실효 검증은 **ticket-ref** 뿐이며(브랜치의
+이슈 키 형태), 고객 레포의 `auth/**` 변경이 HIGH 로 오분류되어 PR 강등되는 일이 없다.
+plan-trace 는 고객 clone 에 `.ralph` 가 없어 자동 skip(비블로킹)이다. 프로젝트별 실질 정책은
+`DeliveryProfile.policy` 로 승격하는 P8/CE-329 의 범위다.
+
+**실패 모드** — 전부 `handle_task_failure`(재시도 복귀 또는 Backlog) + 다음 이슈로 진행.
+
+| 실패 | 조건 | 부수 효과 |
+|---|---|---|
+| 고객 origin 없음 | `remote get-url origin` 비어 있음 | 착수 전 차단(push 대상 없음) |
+| 고객 origin 이 ClickEye | origin 이 `PROJECT_DIR` 또는 PRIMARY 의 origin 과 동일 | 착수 전 차단 — 그대로 두면 브랜치가 ClickEye 로 올라가고 고객에겐 아무 것도 안 간다 |
+| 기본 브랜치 감지 실패 | 위 3단 모두 실패(복구 시도 포함) | 착수 전 차단 |
+| 중립 정책 파일 없음 | 거버넌스 활성 + 정책 판독 불가 | 착수 전 차단(게이트 시점까지 끌면 원인이 "거버넌스 차단"으로 오표기) |
+| 미커밋 변경 보존 실패 | `stash push` 실패 | 브랜치 생성 전 차단(수동 정리 필요) |
+| 기준 브랜치 checkout/pull 실패 | 충돌·네트워크·권한 | 브랜치 생성 전 차단 |
+| 태스크 브랜치 생성 실패 | `checkout -b`·`checkout` 모두 실패 | — |
+| HEAD 해석 실패 | 빈 레포 등 | tip 기준선을 못 잡으면 델타 판정이 불가 |
+| detached HEAD 구현 | STEP B 후 `symbolic-ref HEAD` 실패 | `rescue/<KEY>-<ts>` 보존, push 미수행 |
+| 이번 런 구현 커밋 없음 | `rev-list <tip_before>..HEAD` 0 | push 미수행. 잔여 커밋이 있는 재사용 브랜치도 소진되지 않는다 |
+| 하네스 산출물 오염 | 델타에 `.ralph/`·`.claude/`·`fix_plan.md` 등 | push 미수행(fail-closed) |
+| push 거부 | 보호 브랜치·권한·비패스트포워드 | **로컬 브랜치·커밋 보존**. `branch -d`·`push --delete` 를 실행하지 않는다(유실 0) |
+
+git stderr 는 삼키지 않고 `logs/ws_delivery_<KEY>_<ts>.log` 에 남긴다(실패 로그가 그 경로를 가리킨다).
+
+**자격 증명 전제**: 고객 origin 에 대한 push 권한은 러너 환경이 이미 갖고 있어야 한다
+(clone 에 심긴 credential helper·SSH 키·토큰 URL). 파이프라인은 자격 증명을 주입하지 않으며,
+없으면 위 표의 "push 거부"로 떨어진다.
+
+**Done 시점**: WS 경로에서는 `linear_reporter.py` 를 **호출하지 않는다**. reporter 는 PRIMARY 의
+`fix_plan.md` 와 ClickEye git 요약을 읽으므로 WS 모드에선 항상 `incomplete` → **Backlog** 로
+되돌리고 엉뚱한 커밋 요약을 코멘트한다(설계 초안의 "조기 Done" 전제는 실측으로 반증됐다).
+대신 **push 성공 직후가 유일한 성공 확정 지점**이며, 그 자리에서 `linear_tracker update
+--status Done` + 딜리버리 코멘트(원격·브랜치·base·변경 요약, "머지는 고객 측")를 올린다.
+실패는 `ws_delivery_fail` → `handle_task_failure`(재시도 복귀/Backlog)가 확정한다.
+
+**재사용 브랜치의 커밋 스택**: 재시도로 같은 브랜치를 다시 쓰면 push 는 지난 런 커밋까지
+함께 올린다(유실 금지 원칙상 지우지 않는다). 판정만 이번 런 델타로 하며, 고객에게는 누적
+브랜치가 보인다 — 티켓 1건이 여러 번 재시도된 경우 커밋 정리는 고객 머지 시점의 몫이다.
+
+**러너 clone 신선도**: `runner_clone.sh` 는 clone 재사용 시 canonical origin 에서 기본 브랜치를
+`--ff-only` 로 당긴다(best-effort — 실패는 경고만, 스폰은 계속). 구버전 clone 이 남아 그 러너만
+리다이렉트 없는 판으로 도는 **혼합 함대**를 완화한다. 로컬 커밋·충돌이 있으면 당기지 않는다.
+
+**v1 제외**: ① 고객 기본 브랜치 자동 머지 ② 고객 레포 PR 자동 생성 ③ Done 전이 완전 지연
+④ 고객 레포별 실질 거버넌스 정책(중립 정책으로 대체) ⑤ 재사용 브랜치 커밋 정리.
+
+**테스트**: `scripts/tests/test_workspace_delivery.sh` — bare 고객 레포 + 스텁 PRIMARY 픽스처로
+실제 파이프라인을 `--once` 구동한다(14 시나리오/64 단언: 토글 off 무회귀 · 자기레포 무발동 ·
+감지 3단 + origin/HEAD 복구 · 정상 push · 커밋 없음 · push 거부 보존 · 중립 정책 · 기본 브랜치
+`develop` · 재시도 델타 판정 · 더러운 clone stash · Linear 처분(reporter 미호출 + tracker Done) ·
+오염 차단 · detached 회수 · origin 오조달 차단).
 
 ---
 
@@ -612,6 +719,7 @@ infraeye-harness (실측 2026-07-29)
 | 2026-07-29 | **F-1 v1 완료(CE-328)** — 로컬 `claude -p` 사용량 → 서버 원장 인제스트 배관(seat_id 축·session_id 멱등·202 비블로킹) + ① 구현 스텝 배선. §5-2 현행화(seat_id/session_id 컬럼·배관 완료)·§8-2 F-1 진행 반영·거버넌스 예산 상호작용(M2) 기록 | 계정별 토큰 모니터링의 로컬 절반 연결 |
 | 2026-07-28 | **E2E 리허설 통과** — 모의 수주 1건 ①~⑥ live 관통(정제·분해=claude 구독, Linear 실물 CE-320~323, verified 확정). 실증 결함 2건 수정: 완주 판정 name→**type 기준**(팀 커스텀 Confirm=completed 대응) · 발급 기본 상태 →Queued. 미배선 확인: 제어면 gates→검증 배치 자동 해석(P5/P8) | 코드 검증만으로 못 잡는 팀별 워크플로 차이를 실증으로 확인 |
 | 2026-08-03 | **러너 디스패처 v1(CE-346)** — 워크스페이스별 전용 러너 스폰·감시·회수(`runner_dispatcher.sh`) + 러너별 로컬 clone 프로비저닝(`runner_clone.sh`, worktree 기각 근거 기록). `linear_watcher.py` `--exclude-prefix`/`--check-only`/`WATCHER_EXCLUDE_PREFIXES`. 2인 리뷰 반영 4건: clone origin 을 PRIMARY→canonical 로 재지정(러너 push 가 PRIMARY 브랜치를 지우는 것 차단) · 스폰 env 권위(`FLOWOPS_ENV_KEEP_EXISTING`) · 시트 단위 이중 스폰 가드(clone-로컬 `.seat_lock` 무력 보완) · `--check-only` 비활성 오판(exit 2). §5-3 에 디스패처 절 신설 + **딜리버리 리다이렉트 미배선(CE-347)** 명시 | 병행 허용 조건(CE-339·CE-345) 위에 실제 병행을 만드는 층이 없었음 |
+| 2026-08-03 | **딜리버리 리다이렉트 v1(CE-347)** — 워크스페이스 모드의 브랜치 생성·구현 커밋 확인·거버넌스·push 를 고객 clone(`IMPL_WORKDIR`)으로 리다이렉트(`FLOWOPS_WORKSPACE_DELIVERY`, 이중 opt-in). 태스크 브랜치만 고객 origin 에 push(머지·PR 없음) · 기본 브랜치 감지 3단(`main` 추측 금지) · 중립 정책 `templates/harness-core/governance-workspace.policy.json` · push 거부 시 로컬 브랜치 보존. §5-3 사실 A 를 "허상"→"배선"으로 정정 + §5-5 신설. **2인 리뷰 반영**: 이번 런 델타로 커밋 판정(재시도 잔여 브랜치가 빈손 런을 성공 처리하는 것 차단) · 더러운 clone stash 자기치유(영구 wedge 해소) · WS 경로 `linear_reporter` 생략 + push 성공 시 명시 Done(reporter 가 PRIMARY 기준으로 Backlog 되돌리던 것 — "조기 Done" 전제가 실측 반증됨) · detached HEAD 회수 브랜치 · 하네스 산출물 오염 fail-closed · origin 오조달 차단 · git stderr 보존 · clone 신선도 ff-only | 러너 병행(CE-346)이 만든 산출물이 고객 레포로 나가지 못하고 있었음 |
 | 2026-07-30 | **F-5 완료** — 개발 파이프라인 종량 경로 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`.github/workflows/ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. CODE_REVIEW 문서를 구독형 경로(codex CLI + `code-reviewer` 서브에이전트)로 현행화. §4-3 잔존 경로·P3·F-5 상태 갱신 | 구독형 전용 원칙 정합 — 종량 API 키 호출자 4개(OpenAI 3+Gemini 1) 소멸 |
 
 ---

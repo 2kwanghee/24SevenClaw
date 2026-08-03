@@ -61,6 +61,44 @@ resolve_impl_workdir() {
   fi
 }
 
+# ── [고객 레포 딜리버리] IMPL_WORKDIR 대상 git 실행 (CE-347) ──
+# 워크스페이스 모드에서 브랜치 생성·diff·push 대상을 고객 clone 으로 돌리는 유일한 통로.
+# 자기레포 경로는 이 함수를 쓰지 않는다(safe_git 그대로 = 회귀 0). IMPL_WORKDIR 은
+# 이터레이션 시작부에서 1회 해석·캐시된 값을 참조한다.
+impl_git() {
+  git -C "$IMPL_WORKDIR" "$@"
+}
+
+# ── [고객 레포 딜리버리] ClickEye 주입물 clone-로컬 제외 (CE-347 리뷰 G2/G6) ──
+# workspace_provision.sh 가 고객 clone 에 심는 산출물(.claude/ · CLAUDE.md · 기본브랜치 메모)은
+# 고객 레포 입장에서 untracked 다. 제외하지 않으면 ① 더러운 트리 판정이 항상 참이 되어 G2 의
+# stash 가 하네스 프래그먼트를 걷어가고 ② 에이전트의 `git add -A` 가 이들을 고객 브랜치에
+# 커밋한다(오염). 멱등이며 고객 레포의 추적 파일에는 영향이 없다(exclude 는 untracked 만 대상).
+# 이 티켓 이전에 조달된 워크스페이스도 이 호출로 자기치유된다.
+# 목록은 workspace_provision.sh 의 동일 목록과 짝을 이룬다 — 한쪽만 바꾸지 말 것.
+ws_exclude_harness_artifacts() {
+  local ex="$IMPL_WORKDIR/.git/info/exclude" p
+  [ -d "$IMPL_WORKDIR/.git" ] || return 0
+  mkdir -p "$IMPL_WORKDIR/.git/info" 2>/dev/null || return 0
+  for p in '.clickeye_default_branch' '.claude/' 'CLAUDE.md'; do
+    grep -qxF -- "$p" "$ex" 2>/dev/null || printf '%s\n' "$p" >> "$ex" 2>/dev/null || true
+  done
+}
+
+# ── [고객 레포 딜리버리] 실패 공통 처리 (CE-347) ──
+# 워크스페이스 딜리버리 경로의 실패는 전부 동일하게 처리한다: 로그 → 기존 실패 처리
+# (재시도 복귀 또는 Backlog) → 실패 카운트. 호출부는 이 함수 뒤에 continue 한다.
+# 고객 레포의 로컬 브랜치는 어떤 실패에서도 삭제하지 않는다(구현 결과 유실 0).
+ws_delivery_fail() {
+  local reason="$1"
+  log "ERROR: 워크스페이스 딜리버리 실패 — ${reason} (${ISSUE_KEY})"
+  if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "워크스페이스 딜리버리: ${reason}"; then
+    python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+    log "Linear 상태: Backlog (워크스페이스 딜리버리 실패)"
+  fi
+  FAILED=$((FAILED + 1))
+}
+
 # ── [시트 풀] 워크스페이스 배정 시트를 CLI 인증에 주입 (CE-345, opt-in — 미설정=off) ──
 # 해석된 WORKSPACE_KEY 의 배정 시트(.ralph/seats.json)를 이 프로세스의 CLI 인증으로 주입한다.
 # off/미배정/pending_login/disabled/상위 주입 존재 → 아무 것도 하지 않는다(현행 세션 = 폴백).
@@ -385,23 +423,149 @@ for title, meta in m.items():
       --issue-key "$ISSUE_KEY" --head "$BRANCH" >>"$CLAUDE_LOG" 2>&1 || true
   fi
 
-  # 브랜치 생성/전환
-  safe_git checkout main 2>/dev/null || true
-  safe_git pull origin main 2>/dev/null || true
-  # 이미 머지된 동명 브랜치가 있으면 삭제 후 재생성
-  if safe_git branch --merged main | grep -q "$BRANCH"; then
-    log "WARN: 머지 완료된 브랜치 $BRANCH 삭제 후 재생성"
-    safe_git branch -d "$BRANCH" 2>/dev/null || true
+  # ── [고객 레포 딜리버리 v1] 워크스페이스 git 리다이렉트 판정 (CE-347, opt-in — 미설정=off) ──
+  # 워크스페이스 모드에서 구현 claude 는 고객 clone 에서 돌지만 브랜치·머지·push 는 ClickEye
+  # 레포를 향해 있었다 → 고객 커밋이 아무 데도 나가지 않고 빈 머지가 "완료"로 소진됐다.
+  # 이 토글이 명시 활성이고 구현 대상이 self-repo 가 아닐 때만 브랜치·검증·push 를 고객
+  # clone 으로 돌린다. 미설정/자기레포 → 이후 모든 분기가 원본 경로 그대로(회귀 0).
+  # IMPL_WORKDIR 은 여기서 1회 해석해 이터레이션 내내 재사용한다(STEP B 재해석과 동일 값).
+  IMPL_WORKDIR="$(resolve_impl_workdir)"
+  WS_DELIVERY=false
+  CUST_BASE=""
+  WS_ORIGIN=""
+  if is_enabled "FLOWOPS_WORKSPACE_DELIVERY" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE_DELIVERY:-}" ] \
+    && [ "$IMPL_WORKDIR" != "$PROJECT_DIR" ]; then
+    WS_DELIVERY=true
   fi
-  safe_git checkout -b "$BRANCH" 2>/dev/null || safe_git checkout "$BRANCH" 2>/dev/null || {
-    log "ERROR: 브랜치 생성 실패: $BRANCH"
-    if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "브랜치 생성 실패: $BRANCH"; then
-      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
-      log "Linear 상태: Backlog (브랜치 생성 실패)"
+
+  WS_GIT_LOG=""
+  WS_POLICY="$PROJECT_DIR/templates/harness-core/governance-workspace.policy.json"
+  WS_TIP_BEFORE=""
+  if [ "$WS_DELIVERY" = true ]; then
+    # [G5] 워크스페이스 git 진단 로그 — 실패 원인(git stderr)을 삼키지 않는다. CLAUDE_LOG 는
+    # STEP B 에서야 정의되므로(브랜치 단계에서 참조하면 set -u 위반) 이터레이션 전용 파일을 쓴다.
+    mkdir -p "$PROJECT_DIR/logs"
+    WS_GIT_LOG="$PROJECT_DIR/logs/ws_delivery_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
+    log "워크스페이스 딜리버리 git 로그: $WS_GIT_LOG"
+
+    # [G2/G6] ClickEye 주입물을 clone-로컬 제외에 등재(멱등, 자기치유). 더러운 트리 판정과
+    # 오염 가드가 하네스 프래그먼트를 오탐하지 않게 하는 선행 조건이다.
+    ws_exclude_harness_artifacts
+
+    # 선행 검증 ① 고객 origin — 없으면 push 대상이 없으므로 착수 자체를 막는다(허상 방지).
+    WS_ORIGIN="$(impl_git remote get-url origin 2>>"$WS_GIT_LOG" || true)"
+    if [ -z "$WS_ORIGIN" ]; then
+      ws_delivery_fail "고객 레포 origin 없음: $IMPL_WORKDIR"
+      continue
     fi
-    FAILED=$((FAILED + 1))
-    continue
-  }
+    # [G8] 고객 origin 이 ClickEye 자신을 가리키면(오조달·runner_clone 잔재) push 가 PRIMARY 를
+    # 겨냥한다 — 브랜치가 ClickEye 로 올라가고 고객에겐 아무 것도 안 간다. 착수 전 차단.
+    WS_PRIMARY_ORIGIN="$(safe_git remote get-url origin 2>>"$WS_GIT_LOG" || true)"
+    if [ "$WS_ORIGIN" = "$PROJECT_DIR" ] || [ "$WS_ORIGIN" = "file://$PROJECT_DIR" ] \
+      || { [ -n "$WS_PRIMARY_ORIGIN" ] && [ "$WS_ORIGIN" = "$WS_PRIMARY_ORIGIN" ]; }; then
+      ws_delivery_fail "고객 origin 이 ClickEye 레포를 가리킴(오조달 — push 대상 오류): $WS_ORIGIN"
+      continue
+    fi
+    # 선행 검증 ② 고객 기본 브랜치 감지 3단(origin/HEAD → 조달 시 기록 파일 → 실패).
+    # main 추측 금지 — 틀린 base 로 diff·push 하면 잘못된 딜리버리가 된다.
+    CUST_BASE="$(impl_git symbolic-ref --short refs/remotes/origin/HEAD 2>>"$WS_GIT_LOG" \
+      | sed 's#^origin/##' || true)"
+    if [ -z "$CUST_BASE" ]; then
+      # [G11] origin/HEAD 는 삭제·구버전 clone·부분 fetch 로 없을 수 있다. 원격에 물어 1회
+      # 복구를 시도한 뒤 재판정한다(네트워크 실패는 무해 — 아래 기록 파일 폴백으로 진행).
+      impl_git remote set-head -a origin >>"$WS_GIT_LOG" 2>&1 || true
+      CUST_BASE="$(impl_git symbolic-ref --short refs/remotes/origin/HEAD 2>>"$WS_GIT_LOG" \
+        | sed 's#^origin/##' || true)"
+    fi
+    if [ -z "$CUST_BASE" ] && [ -r "$IMPL_WORKDIR/.clickeye_default_branch" ]; then
+      CUST_BASE="$(tr -d '[:space:]' < "$IMPL_WORKDIR/.clickeye_default_branch" 2>>"$WS_GIT_LOG" || true)"
+    fi
+    if [ -z "$CUST_BASE" ]; then
+      ws_delivery_fail "고객 기본 브랜치 감지 실패(origin/HEAD 복구·.clickeye_default_branch 모두 실패): $IMPL_WORKDIR"
+      continue
+    fi
+    # [G9] 중립 정책 파일 부재를 게이트 시점까지 끌고 가면 shim 이 exit 2 로 떨어져 원인이
+    # "거버넌스 차단"으로 오표기된다. 거버넌스가 켜져 있을 때만 선행 확인(fail-closed).
+    if is_enabled "FLOWOPS_GOVERNANCE" 2>/dev/null && [ ! -r "$WS_POLICY" ]; then
+      ws_delivery_fail "워크스페이스 거버넌스 중립 정책 파일 없음/판독 불가: $WS_POLICY"
+      continue
+    fi
+    log "워크스페이스 딜리버리: 대상=$IMPL_WORKDIR origin=$WS_ORIGIN 기본브랜치=$CUST_BASE"
+  fi
+
+  # 브랜치 생성/전환
+  if [ "$WS_DELIVERY" = true ]; then
+    # [R1/R3] 고객 clone 에서 기본 브랜치를 최신화한 뒤 태스크 브랜치를 만든다. STEP B 의
+    # 구현 커밋이 이 브랜치에 얹히는 것이 이 티켓의 핵심 — ClickEye 쪽 checkout/pull 은
+    # 이 경로에서 실행하지 않는다(PRIMARY 브랜치 무접촉).
+    # [R2] 머지된 동명 브랜치 정리는 생략 — 고객 레포 브랜치는 삭제하지 않는다.
+
+    # [G4] 이전 런이 detached HEAD 를 남겼으면(크래시·에이전트의 checkout --detach) 아래
+    # checkout 이 그 커밋을 고아로 만든다. CUST_BASE 계보 밖일 때만 회수 브랜치로 보존한다
+    # (계보 안이면 잃을 것이 없다). 보존 실패도 진행을 막지 않는다 — 경고로 드러낸다.
+    if ! impl_git symbolic-ref -q HEAD >/dev/null 2>&1; then
+      WS_ORPHAN_SHA="$(impl_git rev-parse HEAD 2>>"$WS_GIT_LOG" || true)"
+      if [ -n "$WS_ORPHAN_SHA" ] \
+        && ! impl_git merge-base --is-ancestor "$WS_ORPHAN_SHA" "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
+        WS_RESCUE_PRE="rescue/${ISSUE_KEY}-detached-$(date '+%Y%m%d_%H%M%S')"
+        if impl_git branch "$WS_RESCUE_PRE" "$WS_ORPHAN_SHA" 2>>"$WS_GIT_LOG"; then
+          log "WARN: 고객 clone 이 detached HEAD(${WS_ORPHAN_SHA}) — 회수 브랜치 ${WS_RESCUE_PRE} 보존 후 진행"
+        else
+          log "WARN: detached HEAD(${WS_ORPHAN_SHA}) 회수 브랜치 생성 실패 — 진행(상세: $WS_GIT_LOG)"
+        fi
+      fi
+    fi
+
+    # [G2] 에이전트가 미커밋 변경을 남기고 죽으면 checkout 이 영구히 막혀 그 워크스페이스의
+    # 모든 후속 티켓이 실패한다(wedge). 지우지 않고 stash 로 비켜둔 뒤 진행한다 — 유실 0.
+    # 복구: git -C <clone> stash list | grep clickeye-auto-preserve → git stash apply <ref>
+    if [ -n "$(impl_git status --porcelain 2>>"$WS_GIT_LOG" || true)" ]; then
+      WS_STASH_MSG="clickeye-auto-preserve ${ISSUE_KEY} $(date '+%Y%m%d_%H%M%S')"
+      if impl_git stash push --include-untracked -m "$WS_STASH_MSG" >>"$WS_GIT_LOG" 2>&1; then
+        log "WARN: 고객 clone 에 미커밋 변경 존재 — stash 보존 후 진행 ('${WS_STASH_MSG}'). 복구: git -C '$IMPL_WORKDIR' stash list"
+      else
+        ws_delivery_fail "고객 clone 미커밋 변경을 stash 로 보존하지 못함(유실 위험 — 수동 정리 필요): $IMPL_WORKDIR"
+        continue
+      fi
+    fi
+
+    if ! impl_git checkout "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
+      ws_delivery_fail "고객 기본 브랜치 checkout 실패: $CUST_BASE (상세: $WS_GIT_LOG)"
+      continue
+    fi
+    if ! impl_git pull origin "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
+      ws_delivery_fail "고객 기본 브랜치 pull 실패(충돌/네트워크/권한): $CUST_BASE (상세: $WS_GIT_LOG)"
+      continue
+    fi
+    impl_git checkout -b "$BRANCH" 2>>"$WS_GIT_LOG" || impl_git checkout "$BRANCH" 2>>"$WS_GIT_LOG" || {
+      ws_delivery_fail "고객 레포 태스크 브랜치 생성 실패: $BRANCH (상세: $WS_GIT_LOG)"
+      continue
+    }
+    # [G1] 이번 런의 시작 tip. R4 는 이 값 기준의 **델타**로 판정한다 — 재시도로 잔여 커밋이
+    # 있는 브랜치를 재사용할 때, 이번 런이 빈손인데 지난 런 커밋 때문에 성공 처리되는 것을 막는다.
+    WS_TIP_BEFORE="$(impl_git rev-parse HEAD 2>>"$WS_GIT_LOG" || true)"
+    if [ -z "$WS_TIP_BEFORE" ]; then
+      ws_delivery_fail "고객 clone HEAD 해석 실패(빈 레포?): $IMPL_WORKDIR (상세: $WS_GIT_LOG)"
+      continue
+    fi
+  else
+    safe_git checkout main 2>/dev/null || true
+    safe_git pull origin main 2>/dev/null || true
+    # 이미 머지된 동명 브랜치가 있으면 삭제 후 재생성
+    if safe_git branch --merged main | grep -q "$BRANCH"; then
+      log "WARN: 머지 완료된 브랜치 $BRANCH 삭제 후 재생성"
+      safe_git branch -d "$BRANCH" 2>/dev/null || true
+    fi
+    safe_git checkout -b "$BRANCH" 2>/dev/null || safe_git checkout "$BRANCH" 2>/dev/null || {
+      log "ERROR: 브랜치 생성 실패: $BRANCH"
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "브랜치 생성 실패: $BRANCH"; then
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+        log "Linear 상태: Backlog (브랜치 생성 실패)"
+      fi
+      FAILED=$((FAILED + 1))
+      continue
+    }
+  fi
 
   # fix_plan 준비
   mkdir -p ".ralph"
@@ -616,6 +780,38 @@ $(cat .ralph/PROMPT.md)"
     log "사용량 인제스트 시도(비차단): ${ISSUE_KEY}"
   fi
 
+  # ── [R4 · 고객 레포 딜리버리] 구현 커밋 존재 확인 (CE-347) ──
+  # 워크스페이스 경로에는 "빈 브랜치를 머지 성공으로 소진"하는 완충이 없다. 에이전트가 고객
+  # clone 태스크 브랜치에 커밋을 남기지 않았으면 여기서 실패로 확정한다(자기레포 경로 무변경).
+  if [ "$WS_DELIVERY" = true ]; then
+    # [G4] detached HEAD 에서 구현이 이뤄지면 커밋이 태스크 브랜치 ref 에 얹히지 않는다 →
+    # push 는 성공하지만 산출물은 나가지 않는다(허상 재발). 커밋을 회수 브랜치로 보존하고
+    # 실패 처리한다(fail-closed).
+    if ! impl_git symbolic-ref -q HEAD >/dev/null 2>&1; then
+      WS_RESCUE="rescue/${ISSUE_KEY}-$(date '+%Y%m%d_%H%M%S')"
+      impl_git branch "$WS_RESCUE" HEAD 2>>"$WS_GIT_LOG" || true
+      ws_delivery_fail "구현이 detached HEAD 에서 이뤄져 태스크 브랜치 ${BRANCH} 에 얹히지 않음 — 회수 브랜치 ${WS_RESCUE} 로 보존"
+      continue
+    fi
+    # [G1] 이번 런 델타로 판정 — 잔여 커밋이 있는 재사용 브랜치를 빈손 런이 소진하지 못하게.
+    WS_COMMITS="$(impl_git rev-list --count "${WS_TIP_BEFORE}..HEAD" 2>>"$WS_GIT_LOG" || echo 0)"
+    WS_COMMITS="${WS_COMMITS//[^0-9]/}"   # 비수치 출력(오류 문자열)은 0 으로 수축 = 실패 처리
+    if [ "${WS_COMMITS:-0}" -le 0 ]; then
+      ws_delivery_fail "이번 런 구현 커밋 없음 (${WS_TIP_BEFORE}..HEAD, 브랜치 ${BRANCH})"
+      continue
+    fi
+    # [G6] 하네스 산출물 오염 가드 — ralph PROMPT 가 에이전트에게 fix_plan 갱신·커밋을 지시하므로
+    # WS cwd 에서 ClickEye 운영 파일이 고객 브랜치에 커밋될 수 있다. 발견 시 fail-closed.
+    WS_DELTA_FILES="$(impl_git diff --name-only "${WS_TIP_BEFORE}..HEAD" 2>>"$WS_GIT_LOG" || true)"
+    WS_POLLUTED="$(printf '%s\n' "$WS_DELTA_FILES" \
+      | grep -E '(^|/)(\.ralph/|\.claude/|fix_plan\.md$|LoadMap_v3\.md$|TODO\.md$)' || true)"
+    if [ -n "$WS_POLLUTED" ]; then
+      ws_delivery_fail "하네스 산출물이 고객 브랜치에 커밋됨 — 오염 차단: $(printf '%s' "$WS_POLLUTED" | head -n5 | tr '\n' ' ')"
+      continue
+    fi
+    log "워크스페이스 딜리버리: 이번 런 구현 커밋 ${WS_COMMITS}건 확인 (${BRANCH})"
+  fi
+
   # Claude 실행 후 TASK.md 자동 생성 (없으면)
   if [ ! -f .ralph/TASK.md ]; then
     log "TASK.md 자동 생성 (Claude 실행 결과 기반)"
@@ -623,7 +819,12 @@ $(cat .ralph/PROMPT.md)"
       echo "# TASK — ${TITLE}"
       echo ""
       echo "## 변경 파일"
-      safe_git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
+      # [R5] 워크스페이스 경로는 고객 clone 의 기본 브랜치 기준 diff 로 채운다.
+      if [ "$WS_DELIVERY" = true ]; then
+        impl_git diff --name-only "$CUST_BASE" 2>/dev/null | while read -r f; do echo "- $f"; done
+      else
+        safe_git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
+      fi
       echo ""
       echo "## 구현 내용"
       echo "fix_plan.md 기반 자율 구현 완료"
@@ -651,9 +852,17 @@ $(cat .ralph/PROMPT.md)"
   fi
 
   # Linear 결과 보고
-  python3 scripts/linear_reporter.py --task-id "$ISSUE_KEY" 2>&1 || {
-    log "WARN: Linear 결과 보고 실패"
-  }
+  # [G3] 워크스페이스 딜리버리는 건너뛴다 — linear_reporter 는 **PRIMARY** 의 fix_plan 과 git
+  # 요약을 읽으므로 WS 모드에선 항상 incomplete→Backlog 로 되돌리고 ClickEye 커밋 요약을
+  # 코멘트해 티켓을 오도한다. WS 경로의 처분은 push 성공 시 명시 Done, 실패 시
+  # ws_delivery_fail/handle_task_failure 가 확정한다.
+  if [ "$WS_DELIVERY" = true ]; then
+    log "워크스페이스 딜리버리: linear_reporter 생략(PRIMARY 기준 보고·오도 코멘트 방지)"
+  else
+    python3 scripts/linear_reporter.py --task-id "$ISSUE_KEY" 2>&1 || {
+      log "WARN: Linear 결과 보고 실패"
+    }
+  fi
 
   # ── [거버넌스 게이트] 머지 직전 권위 검증+위험분류 (SSOT: scripts/pre_merge_gate.py) ──
   # direct-merge + push origin main 이 유일한 비보호 경로 → 여기가 권위 게이트. CI(ci.yml)는 미러.
@@ -667,7 +876,10 @@ $(cat .ralph/PROMPT.md)"
     # ── 거버넌스 판정 획득: HTTP 컨트롤 플레인 경유(선택) → 실패 시 로컬 shim 폴백 ──
     # FLOWOPS_GOVERNANCE_SERVICE_URL 이 설정된 경우에만 HTTP 서비스를 경유한다.
     # 미설정(빈 값)이면 이 블록 전체를 건너뛰어 기존 로컬 shim 경로 그대로 → 회귀 0.
-    if [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
+    # [R7] 워크스페이스 딜리버리는 HTTP 서비스 경로를 타지 않는다 — 서비스는 ClickEye
+    # 레포(base=main)와 ClickEye 정책을 전제하므로 남의 레포 판정에 쓸 수 없다.
+    # 토글 off/자기레포에서는 조건이 참이라 기존 경로 그대로(회귀 0).
+    if [ "$WS_DELIVERY" != true ] && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
       # 변경 파일 목록 계산(원격 호출자는 git 접근 불가 → 명시 전달). 커널과 동일 three-dot(merge-base) 사용.
       GATE_FILES=$(safe_git diff --name-only "main...${BRANCH}" 2>>"$CLAUDE_LOG" || true)
       # JSON 페이로드 구성(jq 우선, 없으면 python3 로 안전 직렬화)
@@ -697,7 +909,16 @@ $(cat .ralph/PROMPT.md)"
 
     # HTTP 미사용(URL 미설정) 또는 HTTP 실패 → 로컬 shim(SSOT) 으로 판정(권위 게이트 유지).
     if [ -z "$GATE_JSON" ]; then
-      GATE_JSON=$(python3 scripts/pre_merge_gate.py --base main --head "$BRANCH" --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+      if [ "$WS_DELIVERY" = true ]; then
+        # [R7] 고객 clone 기준 판정 — ClickEye 계약면·고위험 경로 정책은 남의 레포에
+        # 의미가 없으므로 중립 정책을 주입한다(실효 검증은 ticket-ref). block 처리는 동일.
+        GATE_JSON=$(python3 scripts/pre_merge_gate.py \
+          --project-dir "$IMPL_WORKDIR" --base "$CUST_BASE" --head "$BRANCH" \
+          --policy "$WS_POLICY" \
+          --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+      else
+        GATE_JSON=$(python3 scripts/pre_merge_gate.py --base main --head "$BRANCH" --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
+      fi
     fi
 
     GATE_DECISION=$(printf '%s' "$GATE_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('merge_decision','block'))" 2>/dev/null || echo "block")
@@ -737,7 +958,93 @@ $(cat .ralph/PROMPT.md)"
   fi
 
   # PR 생성 또는 직접 머지 (거버넌스 위험강등 우선)
-  if [ "$GATE_DECISION" = "pr" ]; then
+  # [R9~R11/R14] 워크스페이스 딜리버리는 이 체인의 **첫 분기**로 갈라진다: 머지 없음,
+  # 태스크 브랜치만 고객 origin 으로 push, ClickEye GitHub 을 겨냥하는 auto_pr_creator 미호출.
+  # 고객 기본 브랜치로의 머지는 고객 소유이며 v1 범위 밖이다.
+  # 토글 off/자기레포면 WS_DELIVERY=false → 아래 elif 가 원래의 첫 조건 그대로 평가된다.
+  if [ "$WS_DELIVERY" = true ]; then
+    # [R8] 딜리버리 로그·추적성 승격 입력을 고객 clone 기준으로 채운다.
+    # [G10] diff 는 three-dot(merge-base 기준) — 커널의 get_changed_files 와 일치시키고, base 가
+    # 전진한 경우 그 전진분이 "이 브랜치의 변경"으로 오기록되는 것을 막는다. 반면 `log` 는
+    # three-dot 이 대칭차집합이 되어 base 전용 커밋까지 끌어오므로 two-dot 이 정답이다.
+    MERGE_DIFF_STAT=$(impl_git diff --stat "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "(diff 없음)")
+    MERGE_DIFF_FILES=$(impl_git diff --name-only "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
+    MERGE_COMMITS=$(impl_git log --oneline "${CUST_BASE}..${BRANCH}" 2>>"$WS_GIT_LOG" || echo "(커밋 없음)")
+    MERGE_DIFF_DETAIL=$(impl_git diff "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
+
+    log "워크스페이스 딜리버리: 태스크 브랜치 push → ${WS_ORIGIN} (${BRANCH})"
+    if impl_git push origin "$BRANCH" 2>>"$WS_GIT_LOG"; then
+      log "고객 레포 push 성공: ${BRANCH} (기본 브랜치 ${CUST_BASE} 무변경)"
+      RUN_OUTCOME="pushed"
+
+      # [G3] 이 시점이 WS 경로의 **유일한 성공 확정 지점** — linear_reporter 를 건너뛴 대신
+      # 여기서 명시적으로 Done 으로 옮기고 딜리버리 사실을 코멘트한다(고객 머지는 고객 소유).
+      python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Done" 2>>"$WS_GIT_LOG" \
+        && log "Linear 상태: Done (고객 레포 push 성공)" \
+        || log "WARN: Linear Done 전이 실패 — 수동 확인 필요 (${ISSUE_KEY}, 상세: $WS_GIT_LOG)"
+      python3 - "$ISSUE_ID" "$ISSUE_KEY" "$BRANCH" "$CUST_BASE" "$WS_ORIGIN" "$MERGE_DIFF_STAT" <<'PY' 2>/dev/null || true
+import sys
+sys.path.insert(0, "scripts")
+from linear_client import get_env, linear_request
+issue_id, key, branch, base, origin, stat = sys.argv[1:7]
+api_key, _ = get_env()
+body = (
+    "🚚 **고객 레포 딜리버리 완료 — 태스크 브랜치 push**\n\n"
+    f"- 이슈: {key}\n"
+    f"- 고객 원격: `{origin}`\n"
+    f"- 브랜치: `{branch}` (base `{base}`)\n"
+    "- 머지: **고객 측에서 수행합니다** — 파이프라인은 기본 브랜치를 변경하지 않습니다.\n\n"
+    "변경 요약:\n```\n" + stat[:3000] + "\n```"
+)
+linear_request(
+    api_key,
+    "mutation($issueId:String!,$body:String!){commentCreate(input:{issueId:$issueId,body:$body}){comment{id}}}",
+    {"issueId": issue_id, "body": body},
+)
+PY
+      log "Linear 코멘트 게시(딜리버리 결과)"
+
+      MERGE_LOG_FILE="$PROJECT_DIR/logs/delivery_${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S').log"
+      mkdir -p "$PROJECT_DIR/logs"
+      {
+        echo "════════════════════════════════════════════════════════════"
+        echo "  DELIVERY LOG (고객 레포 태스크 브랜치 push)"
+        echo "════════════════════════════════════════════════════════════"
+        echo ""
+        echo "일시:     $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "이슈:     ${ISSUE_KEY}"
+        echo "워크스페이스: ${WORKSPACE_KEY:-} ($IMPL_WORKDIR)"
+        echo "고객 origin:  ${WS_ORIGIN}"
+        echo "브랜치:   ${BRANCH} (base ${CUST_BASE} — 머지하지 않음)"
+        echo "제목:     ${TITLE}"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  커밋 목록"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_COMMITS"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  변경 파일"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_DIFF_STAT"
+        echo ""
+        echo "────────────────────────────────────────────────────────────"
+        echo "  상세 변경 내용 (diff)"
+        echo "────────────────────────────────────────────────────────────"
+        echo "$MERGE_DIFF_DETAIL"
+        echo ""
+        echo "════════════════════════════════════════════════════════════"
+      } > "$MERGE_LOG_FILE"
+      log "딜리버리 로그: $MERGE_LOG_FILE"
+    else
+      # [R11] push 거부(권한·보호 브랜치·비패스트포워드) → 로컬 브랜치를 **보존**한 채 실패.
+      # branch -d / push --delete 를 절대 실행하지 않는다(구현 결과 유실 0). linear_reporter
+      # 가 앞서 올린 Done 은 handle_task_failure 의 상태 복귀로 사후 정정된다.
+      log "WARN: 고객 레포 push 거부 — 로컬 브랜치 보존: ${BRANCH} ($IMPL_WORKDIR)"
+      ws_delivery_fail "고객 레포 push 거부: ${BRANCH}"
+      continue
+    fi
+  elif [ "$GATE_DECISION" = "pr" ]; then
     log "위험분류 ${GATE_TIER} → 직접머지 금지, 기존 PR 경로로 강등(사람 머지 게이트)"
     RUN_OUTCOME="demoted"
     python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
@@ -836,7 +1143,10 @@ $(cat .ralph/PROMPT.md)"
   # direct-merge(LOW) 경로에서만 의미 — HIGH는 PR로 강등되어 REVIEW.md가 PR 본문에 보존됨.
   # 재생성 없음(promote only). refined 원본은 Linear 코멘트, diff는 logs/merge_*.log 에 이미 존재.
   # 고복잡도 대용 프록시(변경파일 수/diff 라인)로 한정. FLOWOPS_GOVERNANCE_PROMOTE 토글.
-  if is_enabled "FLOWOPS_GOVERNANCE_PROMOTE" 2>/dev/null && [ "${MERGED_DIRECT:-false}" = true ]; then
+  # [R8] 워크스페이스 딜리버리(push 성공)도 direct-merge 와 같은 추적성 대상이다 — 고객
+  # 레포에는 PR 본문이 없으므로 REVIEW/refined 를 여기서만 영속화할 수 있다.
+  if is_enabled "FLOWOPS_GOVERNANCE_PROMOTE" 2>/dev/null \
+    && { [ "${MERGED_DIRECT:-false}" = true ] || [ "${RUN_OUTCOME:-}" = "pushed" ]; }; then
     PROMOTE_FILES=$(printf '%s\n' "$MERGE_DIFF_FILES" | grep -c . 2>/dev/null || echo 0)
     PROMOTE_LINES=$(printf '%s\n' "$MERGE_DIFF_DETAIL" | wc -l | tr -d ' ')
     if [ "$PROMOTE_FILES" -ge "${FLOWOPS_PROMOTE_MIN_FILES:-10}" ] || [ "$PROMOTE_LINES" -ge "${FLOWOPS_PROMOTE_MIN_LINES:-400}" ]; then
@@ -883,10 +1193,17 @@ $(cat .ralph/PROMPT.md)"
 
   # DayQueued 모드: 태스크별 즉시 PR 알림
   if [ "$TASK_MODE" = "day" ] && is_enabled "FLOWOPS_TELEGRAM" 2>/dev/null; then
-    python3 scripts/telegram_notify.py --message \
-      "✅ 작업완료 ${ISSUE_KEY} — ${TITLE}
+    # [G13] WS 딜리버리에는 PR 이 없다 — "PR을 머지해주세요" 는 오안내이므로 문구를 분기한다.
+    if [ "$WS_DELIVERY" = true ]; then
+      python3 scripts/telegram_notify.py --message \
+        "✅ 작업완료 ${ISSUE_KEY} — ${TITLE}
+고객 레포에 브랜치 push 완료 — 고객 측 머지 필요: ${BRANCH}" 2>/dev/null || true
+    else
+      python3 scripts/telegram_notify.py --message \
+        "✅ 작업완료 ${ISSUE_KEY} — ${TITLE}
 PR을 머지해주세요.
 🔗 브랜치: ${BRANCH}" 2>/dev/null || true
+    fi
   fi
 
   # --once 모드면 1개만 처리 후 종료

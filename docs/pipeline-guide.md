@@ -338,6 +338,11 @@ API 서버 `GET /api/v1/governance/policy` 엔드포인트로 노출된다(인�
 ### Step 6: 머지 — 2가지 경로
 
 > 거버넌스 게이트(Step 5.5)가 먼저 판정한다. HIGH-tier면 아래 경로와 무관하게 PR로 강등된다.
+>
+> **워크스페이스 딜리버리 예외**(`FLOWOPS_WORKSPACE_DELIVERY`, CE-347): 구현 대상이 고객
+> clone일 때는 아래 두 경로 대신 **태스크 브랜치만 고객 origin으로 push**한다(머지·PR 없음,
+> 브랜치 삭제 없음). 브랜치 생성·구현 커밋 확인·거버넌스도 고객 clone 기준으로 수행된다.
+> 상세: `docs/multiproject-delivery.md` §5-5.
 
 #### A. AUTO_MERGE ON (직접 머지 — LOW-tier 한정)
 `FLOWOPS_AUTO_MERGE=true` 설정 시:
@@ -531,6 +536,10 @@ FLOWOPS_WORKSPACE=                   # 다프로젝트 워크스페이스 모드
 FLOWOPS_WORKSPACE_AUTOMAP=           # 이슈 제목 접두사 → .ralph/workspaces.json 원장으로
                                      # WORKSPACE_KEY 자동 해석 (CE-339, 이중 opt-in, 기본 off).
                                      # 원장 갱신: scripts/workspace_map.py (머신 조회 API 폴링)
+FLOWOPS_WORKSPACE_DELIVERY=          # 고객 레포 딜리버리 리다이렉트 (CE-347, 이중 opt-in,
+                                     # 기본 off). 브랜치 생성·커밋 확인·거버넌스·push 대상을
+                                     # 고객 clone으로 전환하고 태스크 브랜치만 고객 origin에
+                                     # push. FLOWOPS_WORKSPACE + WORKSPACE_KEY 성립 시에만 유효
 FLOWOPS_SEAT_POOL=                   # 시트 풀 주입 (CE-345, 이중 opt-in, 기본 off).
                                      # WORKSPACE_KEY 배정 시트(.ralph/seats.json)의 OAuth 토큰을
                                      # claude 서브셸에 주입. 원장 관리: scripts/seat_map.py
