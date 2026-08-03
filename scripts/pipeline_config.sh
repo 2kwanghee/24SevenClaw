@@ -66,6 +66,9 @@ _load_flowops_env() {
 #   FLOWOPS_ENV_KEEP_EXISTING — .env 로더가 **이미 set 된 FLOWOPS_* 변수를 덮지 않는다**.
 #                            디스패처가 스폰 러너에 넘기는 값(WORKSPACE/SEAT_POOL 등)이
 #                            공유 .env 에 눌리는 것을 막는다(미설정=off → 기존 덮어쓰기)
+#   FLOWOPS_ENFORCEMENT   — P8 집행면 게이트(CE-329): 조달 시 워크스페이스
+#                            .claude/settings.json 에 PreToolUse 훅(gitguard-gate.cjs)을
+#                            가산 배선. 미설정=off → 조달 산출물 현행과 바이트 동일
 #   FLOWOPS_SEAT_POOL_STRICT — 위 토글의 fail-closed 모드(=true 일 때만).
 #                            시트 미배정/타 러너 점유 시 경고 후 진행하지 않고 해당 단계를
 #                            스킵한다(기본 미설정 = 경고만 하고 기본 세션으로 진행)

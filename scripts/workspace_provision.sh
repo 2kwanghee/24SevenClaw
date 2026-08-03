@@ -44,6 +44,23 @@ done
 CORE_DIR="$PROJECT_DIR/templates/harness-core"
 [ -d "$CORE_DIR" ] || die "harness-core 템플릿 없음: $CORE_DIR"
 
+# ── [CE-329] P8 집행면 게이트 토글 (이중 opt-in, 미설정=off) ──────────────────
+# is_enabled 는 미설정 시 true 를 돌려주므로 `-n` 을 함께 본다. off 일 때 아래
+# 배선 블록 전체가 no-op 이고 조달 산출물은 현행과 바이트 단위로 동일하다.
+#
+# ⚠️ 호출자 env 우선(CE-346 해법 재사용). pipeline_config.sh 의 `_load_flowops_env` 는
+# 기본적으로 `.env` 값으로 **이미 set 된 변수를 덮는다**. 그대로 두면
+# `FLOWOPS_ENFORCEMENT=true scripts/workspace_provision.sh …` 가 `.env` 의 false 에
+# 강등되어 **조용히 미배선**된다(CE-345/346 에서 이미 겪은 오귀속 계열). 이 스크립트가
+# 읽는 FLOWOPS_* 는 ENFORCEMENT 하나뿐이라 이 마커가 다른 해석에 영향을 주지 않는다.
+FLOWOPS_ENV_KEEP_EXISTING="${FLOWOPS_ENV_KEEP_EXISTING:-true}"
+export FLOWOPS_ENV_KEEP_EXISTING
+source "$PROJECT_DIR/scripts/pipeline_config.sh" 2>/dev/null || true
+ENFORCEMENT_ON=0
+if is_enabled "FLOWOPS_ENFORCEMENT" 2>/dev/null && [ -n "${FLOWOPS_ENFORCEMENT:-}" ]; then
+  ENFORCEMENT_ON=1
+fi
+
 WS="$DEST/$KEY"
 mkdir -p "$DEST"
 
@@ -74,7 +91,9 @@ fi
 # 목록은 auto_dev_pipeline.sh 의 ws_exclude_harness_artifacts 와 짝 — 한쪽만 바꾸지 말 것.
 if [ -d "$WS/.git" ]; then
   mkdir -p "$WS/.git/info"
-  for _ex in '.clickeye_default_branch' '.claude/' 'CLAUDE.md'; do
+  # [CE-329] '.harness/' — 집행면 감사 로그(enforce-audit.jsonl). 토글과 무관하게 등재한다:
+  # 없는 디렉터리 exclude 는 no-op 이고, 짝 목록을 조건부로 갈라두면 불변식이 깨진다.
+  for _ex in '.clickeye_default_branch' '.claude/' 'CLAUDE.md' '.harness/'; do
     grep -qxF -- "$_ex" "$WS/.git/info/exclude" 2>/dev/null \
       || printf '%s\n' "$_ex" >> "$WS/.git/info/exclude" 2>/dev/null || true
   done
@@ -101,8 +120,98 @@ fi
 
 if [ -d "$CORE_DIR/hooks" ]; then
   mkdir -p "$WS_CLAUDE/hooks"
-  cp "$CORE_DIR/hooks/"* "$WS_CLAUDE/hooks/" 2>/dev/null || true
+  for _hook in "$CORE_DIR/hooks/"*; do
+    [ -f "$_hook" ] || continue
+    # [CE-329] 집행면 번들은 토글 on 일 때만 물질화한다(off = 조달 산출물 현행 동일).
+    if [ "$(basename "$_hook")" = "gitguard-gate.cjs" ] && [ "$ENFORCEMENT_ON" != "1" ]; then
+      continue
+    fi
+    cp "$_hook" "$WS_CLAUDE/hooks/" 2>/dev/null || true
+  done
   chmod +x "$WS_CLAUDE/hooks/"*.sh 2>/dev/null || true
+fi
+
+# ── ②-b [CE-329] settings.json 에 집행면 PreToolUse 훅 가산 병합 ──────────────
+# 두 조달 경로(신규 복사 / CE-344 기존 settings 보존)를 한 코드로 덮는다:
+#   - 신규 조달: 방금 복사한 코어 settings.json 에 엔트리를 **가산**한다. 정적 템플릿
+#     파일 자체는 건드리지 않는다 — 토글 off 조달 결과가 현행과 같아야 하므로.
+#   - 보존 경로: 고객 settings.json 에 PreToolUse 엔트리 1개만 가산한다(다른 키 불변).
+# 멱등: 같은 훅 명령이 이미 있으면 아무것도 하지 않는다.
+# 병합 실패(고객 JSON 손상 등)는 경고만 남기고 조달을 계속한다 — 비차단.
+if [ "$ENFORCEMENT_ON" = "1" ]; then
+  ENFORCE_BUNDLE="$WS_CLAUDE/hooks/gitguard-gate.cjs"
+  if [ ! -f "$ENFORCE_BUNDLE" ]; then
+    log "WARN: 집행면 번들이 없어 훅 배선을 건너뜀(빌드 필요: templates/harness-core/enforce → npm run build): $ENFORCE_BUNDLE"
+  else
+    # [CE-329 F8] `${CLAUDE_PROJECT_DIR:-.}` + `|| exit 2` 두 겹으로 fail-closed 한다.
+    #   ① 변수 미설정 시 `node /.claude/...` 를 실행해 **rc=1(자문형) = 게이트 우회**가
+    #      되던 것을 cwd 폴백으로 막는다.
+    #   ② 번들이 지워지거나 손상돼 node 가 rc=1 로 죽어도 셸이 2 로 바꿔 차단한다.
+    #      allow(0)는 `||` 를 타지 않으므로 정상 통과는 그대로다.
+    #      exit 1 이 자문형이라는 실측 사실에 대한 배선 층 방어선이다.
+    ENFORCE_CMD='node "${CLAUDE_PROJECT_DIR:-.}"/.claude/hooks/gitguard-gate.cjs || exit 2'
+    ENFORCE_MATCHER='Bash|Write|Edit|MultiEdit|NotebookEdit'
+    MERGE_JS="$(mktemp)"
+    # shellcheck disable=SC2064
+    trap "rm -f '$MERGE_JS'" EXIT
+    cat > "$MERGE_JS" <<'MERGEEOF'
+// settings.json 멱등 병합 — infraeye-harness/install.sh 의 병합 JS 이식(CE-329).
+// PreToolUse 엔트리 1개만 가산하고 다른 키는 건드리지 않는다.
+const fs = require('fs');
+const path = require('path');
+const [, , settingsPath, gateCmd, matcher, timeout] = process.argv;
+
+let obj = {};
+if (fs.existsSync(settingsPath)) {
+  const raw = fs.readFileSync(settingsPath, 'utf8').trim();
+  if (raw !== '') {
+    try { obj = JSON.parse(raw); }
+    catch (e) { console.error('PARSE_ERROR: ' + e.message); process.exit(3); }
+  }
+}
+if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+  console.error('NOT_OBJECT'); process.exit(3);
+}
+
+if (!obj.hooks || typeof obj.hooks !== 'object' || Array.isArray(obj.hooks)) obj.hooks = {};
+const pre = Array.isArray(obj.hooks.PreToolUse) ? obj.hooks.PreToolUse : [];
+
+// 멱등성: 집행면 훅이 이미 등록돼 있으면 아무것도 하지 않는다.
+// [CE-329] 원본은 gateCmd 정확 일치였다. 경로 표기나 따옴표가 바뀌면 같은 훅이 중복
+// 누적되므로 번들 파일명 포함 여부로 판정한다(훅 1개 = 파일 1개).
+const installed = pre.some(
+  (e) =>
+    e &&
+    Array.isArray(e.hooks) &&
+    e.hooks.some((h) => h && typeof h.command === 'string' && h.command.includes('gitguard-gate.cjs')),
+);
+if (installed) { console.log('ALREADY'); process.exit(0); }
+
+pre.push({
+  matcher,
+  hooks: [{ type: 'command', command: gateCmd, timeout: Number(timeout) }],
+});
+obj.hooks.PreToolUse = pre;
+
+fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+fs.writeFileSync(settingsPath, JSON.stringify(obj, null, 2) + '\n');
+console.log('ADDED');
+MERGEEOF
+
+    if MERGE_OUT="$(node "$MERGE_JS" "$WS_CLAUDE/settings.json" "$ENFORCE_CMD" "$ENFORCE_MATCHER" 15 2>&1)"; then
+      case "$MERGE_OUT" in
+        ADDED)   log "집행면 훅 배선: settings.json PreToolUse 엔트리 등록 완료" ;;
+        ALREADY) log "집행면 훅 배선: 이미 등록됨 — 변경 없음(멱등)" ;;
+        *)       log "WARN: 집행면 훅 병합 결과가 예상과 다름 — enforcement 미배선 상태로 조달됨(게이트 없음): $MERGE_OUT" ;;
+      esac
+    else
+      log "WARN: 집행면 훅 병합 실패 — enforcement 미배선 상태로 조달됨(게이트 없음). 조달은 계속: $MERGE_OUT"
+      log "      이 워크스페이스의 에이전트 git·파일 조작은 집행면 검사를 받지 않는다."
+      log "      고객 .claude/settings.json 의 JSON 문법을 고치고 재조달하라: $WS_CLAUDE/settings.json"
+    fi
+    rm -f "$MERGE_JS"
+    trap - EXIT
+  fi
 fi
 
 # ── ③ Tier 1 스택 프로파일 생성 → .claude/ ──

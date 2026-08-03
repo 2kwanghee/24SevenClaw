@@ -543,6 +543,13 @@ FLOWOPS_WORKSPACE_DELIVERY=          # 고객 레포 딜리버리 리다이렉�
 FLOWOPS_SEAT_POOL=                   # 시트 풀 주입 (CE-345, 이중 opt-in, 기본 off).
                                      # WORKSPACE_KEY 배정 시트(.ralph/seats.json)의 OAuth 토큰을
                                      # claude 서브셸에 주입. 원장 관리: scripts/seat_map.py
+FLOWOPS_ENFORCEMENT=                 # P8 집행면 게이트 (CE-329, 이중 opt-in, 기본 off).
+                                     # 조달 시 워크스페이스 .claude/hooks/gitguard-gate.cjs 를
+                                     # 물질화하고 settings.json PreToolUse 에 엔트리를 가산 병합.
+                                     # 에이전트의 git·파일 조작을 층 A(gitguard F1~F7 /
+                                     # secrets S1~S4) + 작업면 경계(E-01)로 판정하고 위반은
+                                     # exit 2 로 차단. 미설정=off → 조달 산출물 현행 동일.
+                                     # 집행 범위·한계: docs/multiproject-delivery.md §8-1-1
 FLOWOPS_SEAT_POOL_STRICT=            # 시트 미배정/점유 시 해당 단계를 실행하지 않고 이슈를
                                      # 실패 경로(재시도 복귀/Backlog)로 되돌림 (기본 off =
                                      # 경고 후 기본 로그인 세션 폴백). 단, 배정 시트가

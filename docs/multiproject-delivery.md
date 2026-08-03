@@ -5,6 +5,11 @@ status: current
 last_updated: 2026-08-03
 related:
   - clickeye-api/app/api/v1/intake.py
+  - templates/harness-core/enforce/src/enforce.ts
+  - templates/harness-core/enforce/src/gitguard.ts
+  - templates/harness-core/enforce/src/secrets.ts
+  - templates/harness-core/hooks/gitguard-gate.cjs
+  - scripts/tests/test_enforcement_gate.sh
   - scripts/workspace_map.py
   - scripts/seat_map.py
   - scripts/with_seat.sh
@@ -645,7 +650,7 @@ projectId 스코프로 재사용 — admin 뷰와 공유). CE-336 갭도 함께 
 | **P5** | **다프로젝트 실행** (§5-3) | ✅ v1 완료 (2026-07-29) — watcher 프로젝트 필터 + project_runner(시트×범위×파이프라인 합성, 순차-다프로젝트). **병렬 확정 설계**: 단일 체크아웃 병렬은 git 구조 충돌(main 점유·머지 경합, 실측)로 배제 — 러너 수평 확장(프로젝트별 클론/컨테이너, 하이브리드 러너 방향) + main 머지 직렬화 요구. **선행 과제**: 시트별 레이트 카운터는 로컬 claude 사용량의 원장 인제스트 배관 이후(관측 불가 데이터 위에 카운터를 세우지 않는다). **automap·락 분리 1단계 (2026-08-01, CE-339)**: 머신 조회면 + `workspace_map.py` 매핑 원장 + 이슈 접두사 automap + 워크스페이스별 락으로 다른 워크스페이스 병행 허용. 러너 수평 확장(진짜 병렬)·시트별 레이트 카운터·시트 풀 매핑은 여전히 후속 |
 | **P6** | **티켓 전량 자동 발급** — 인테이크 → Linear, 사람 확인 제거 (§6-3) | ✅ 완료 (2026-07-28) — 기계수락(opt-in)·분해 배치·3상 발급기·원장/콜백 |
 | **P7** | **정합성 테스트 게이트** — 전 티켓 완주 후 통합 검증 (§6-2) | ✅ 완료 (2026-07-28) — 완주판정·게이트 실행·verified/gate_failed·최종 콜백 |
-| **P8** | 집행면 게이트 엔진 + 룰 플러그인 | ⏸ **후속 보류**(2026-07-29 사용자 결정). 방식은 §8-1 로 확정(층 분리 이식). 지금 막는 것 없음 — T3 티어에서만 필요하고 현재 실행은 순차(P5 v1) |
+| **P8** | 집행면 게이트 엔진 + 룰 플러그인 | 🔄 **v1 착수 (2026-08-03, CE-329)** — 층 A(gitguard F1~F7 · secrets S1~S4) 무수정 이식 + 워크스페이스 `.claude/settings.json` PreToolUse 배선. 토글 `FLOWOPS_ENFORCEMENT`(이중 opt-in, 미설정=off → 조달 산출물 현행 동일). 방식 근거는 §8-1, v1 범위/제외는 §8-1-1 |
 | **P9** | 기록면 1급화 + 대시보드 | ✅ 완료 (2026-07-29) — `delivery_events`(전이 이력 append-only, 실패 전이 포함 D-9) + 타임라인/집계 API + 인테이크 콘솔 체인 뷰. seat 축은 P4 에서 추가 |
 
 **순서의 근거:** P1(완주)이 없으면 나머지가 전부 무의미하다 — 티켓이 조용히 유실되는 위에
@@ -690,13 +695,125 @@ infraeye-harness (실측 2026-07-29)
 현재 무인 체인은 머지 게이트(P0·P2) + 완주 오케스트레이터(P1) + 정합성 게이트(P7)로 닫혀
 있으며 실행은 순차(P5 v1)다 — **집행면 부재로 지금 막히는 것이 없다.**
 
+보류 판단이 뒤집힌 계기는 티어가 아니라 **실행 형태**다. CE-346(러너 디스패처)·CE-347(딜리버리
+리다이렉트)로 `claude -p --dangerously-skip-permissions` 가 **고객 clone 안에서 병렬로** 돌기
+시작했다. 순차 자기레포 실행에서는 사고 반경이 PRIMARY 한 곳이었지만, 지금은 에이전트의
+`git add -A` 한 번이 고객 브랜치를 오염시킨다. 그래서 v1 을 착수했다.
+
+### 8-1-1. P8 v1 — 층 A 이식 + PreToolUse 배선 (2026-08-03, CE-329)
+
+> **⚠️ v1 이 제공하는 보증 수준 — 먼저 읽을 것.**
+> 이 게이트는 **우발적 위반 방어**다: 에이전트가 잘못 판단해서 저지르는 `git add -A`,
+> `--no-verify`, `force-push`, plumbing 등가물, 작업면 밖 쓰기, 평문 비밀 기록을 막는다.
+> 여기에 **흔한 우회 시그니처**(파이프로 셸 먹이기·인터프리터 인라인 git·대시 디스패치·
+> 게이트 자기 삭제) 몇 가지를 얹었다.
+> **적대적 우회 집행이 아니다.** 우회하려고 마음먹은 실행 주체는 막지 못한다 — 변수 조립,
+> 인코딩, `npm run`/`make`/스크립트 경유 간접 실행이 전부 열려 있다.
+> 이유는 구조적이다: 층 A(`gitguard.ts`)는 **"허용된 git 명령의 의미"** 만 판정하고,
+> **"무엇을 실행·기록할 수 있는가"** 는 층 B 의 G-11 Bash 화이트리스트에 명시 위임돼 있다
+> (`gitguard.ts:1476-1523` 주석). 화이트리스트 없이 블랙리스트만으로는 이 성질이 바뀌지 않는다.
+> **v2 조건: 층 B 이식**(G-11 화이트리스트 · 정체성 · 소유권 · `protect.ts` 보호 경로).
+
+**들어온 것 (층 A, 무수정 이식):** `templates/harness-core/enforce/src/` 에 `gitguard.ts`(1,544줄,
+F1~F7: force-push · `git -c alias..=!…` 셸주입 · `--no-verify` · plumbing 등가물(`read-tree`/
+`update-index`) · `git -C` 경계 이탈 · 변수 전개 · 바이너리 직접 실행)와 `secrets.ts`(593줄,
+S1~S4 비밀 패턴 + 마크다운 표 셀 유출)를 원본 그대로 두고, 승계 테스트 80케이스도 같이 옮겼다.
+두 모듈은 파일시스템·환경변수 접근이 없는 순수 함수라 의존성 드래그가 0이다.
+
+**신규는 어댑터 하나뿐이다:** `enforce/src/enforce.ts` 가 stdin payload 를 읽어 판정기에
+컨텍스트를 주입하고 종료코드로 옮긴다. 배포물은 esbuild 자족 CJS 번들
+`templates/harness-core/hooks/gitguard-gate.cjs` 1파일(node 내장 모듈만 require — 워크스페이스에
+node_modules 가 없어도 동작).
+
+**exit 2 만 차단이다 (실측).** PreToolUse 훅은 skip-permissions 에서도 실행되지만 `exit 1` 은
+자문형(non-blocking)이라 툴이 그대로 실행된다. 기존 `harness-plan-gate.sh` 가 `exit 1` 이라
+**실질적으로 비차단**인 것도 같은 실측에서 확인됐다(플랜 게이트는 리마인더로 남는다).
+그래서 집행면은 통과 `exit 0` 하나, 나머지 전부 `exit 2` 로 닫았고 — 번들 최상단
+fail-closed 배너가 모듈 로딩 예외까지 `exit 2` 로 끌어내린다.
+
+**`ask` 도 거부다.** 무인 실행에는 사용자 확인 채널이 없으므로 `ask` 를 허용으로 흘리면
+판정 불능이 곧 우회가 된다. 이 강경 매핑이 딜리버리 흐름을 끊지 않는 이유는 두 가지다:
+어댑터가 `integrateRoots: [cwd]`(clone 루트 = 통합 작업면)를 주입해 에이전트의 정상 조작
+(`git add <파일>` · `git commit`)이 이미 `allow` 이고, push·브랜치 조작은 파이프라인
+`impl_git` 소관이라 훅을 거치지 않는다.
+
+**배선 (`scripts/workspace_provision.sh`):** 토글 `FLOWOPS_ENFORCEMENT` 이중 opt-in
+(`is_enabled` + 비어있지 않음). on 일 때만 번들을 `.claude/hooks/` 로 복사하고
+settings.json 에 PreToolUse 엔트리 1개를 **가산 병합**한다
+(matcher `Bash|Write|Edit|MultiEdit|NotebookEdit`, timeout 15). 신규 조달과 CE-344 보존
+경로(고객 settings 존재)를 같은 멱등 병합으로 덮으며, 다른 키는 건드리지 않고 이미
+등록돼 있으면 무변경이다. 고객 JSON 이 손상돼 병합이 실패하면 경고만 남기고 조달은
+계속한다(비차단). **off 면 settings 산출물이 현행과 바이트 동일**하다.
+
+**감사는 best-effort 다.** 차단 판정만 `<cwd>/.harness/enforce-audit.jsonl` 에 1줄 append 하고
+실패는 무시한다 — 감사 실패가 판정을 바꾸면 감사가 곧 우회 수단이 된다. 층 A 는 탐지된
+비밀 값을 사유에 싣지 않으므로 로그에도 남지 않는다.
+
+**v1 집행 범위 — 무엇을 막고 무엇을 못 막는가 (2인 리뷰 반영):**
+
+| 대상 | 막는다 | 못 막는다 |
+|---|---|---|
+| **Bash git 조작** (층 A 이식) | `git add -A`/`git add .` 및 정규화 등가물 · `--no-verify` · `push --force` · `git -c alias..=!…` 셸주입 · plumbing 등가물(`read-tree`/`update-index`) · `cd`·`git -C` 로 clone 이탈 · 명령 이름이 변수(ask→거부) | 새 우회 계열(층 A 가 모르는 git 표면). 판정 불능은 거부로 떨어지므로 조용히 열리지는 않는다 |
+| **쓰기 툴 경계** (어댑터가 집행, E-01) | `..`·절대경로·심볼릭 링크로 clone 밖을 겨냥한 Write/Edit/MultiEdit/NotebookEdit · 경로 부재 · cwd 자체 겨냥 | clone **안**에서의 파일 선택은 보지 않는다 — 소유권·보호 경로 판정은 층 B 소관이고 미이식이다 |
+| **쓰기 툴 내용** (층 A S1~S4) | AWS 키·고정 토큰 패턴 · 키-값 자격증명 · 마크다운 표 셀 유출 · `.harness/secrets-deny.txt` 등재 값 | 인코딩(base64)·변수 조립·외부 다운로드 |
+| **Bash 경유 비밀 기록** (원본 범위 밖, v1 보강) | 흔한 평문 경로 — `echo`·`printf`·heredoc·`tee` 로 쓰는 자격증명 | **완전 차단이 아니다.** 인코딩·변수 조립·`curl`로 받아 쓰기는 통과한다. 방어 깊이용 한 겹이지 경계가 아니다 |
+| **게이트 자기보호** (어댑터, E-02) | `.claude/hooks/`·`.claude/settings.json`·`.harness/` 를 겨냥한 삭제·이동·복사·권한변경·리다이렉트 덮어쓰기·`sed -i`·`git rm`/`checkout --`, 그리고 쓰기 툴로 같은 경로에 쓰기 | **문자열·토큰 기반이라 변수 조립으로 우회된다**(`P=.claude/hooks; rm -f $P/x`). 읽기는 막지 않는다. 근본 해법은 층 B `protect.ts` |
+| **불투명 실행 표면** (어댑터, E-03) | 파이프로 셸 먹이기(`\| bash`, `curl \| bash`) · `bash <파일>`/`sh -s`/`source`/`.` · 인터프리터 인라인 코드 안의 git(`python3 -c`/`node -e`/`perl -e`/`ruby -e`) · `find -exec git`/`xargs … git` · `git-<sub>` 대시 디스패치 · `git apply`/`git am` | **`npm run`·`make`·`pytest`·`uv run`·`./x.sh` 는 허용한다** — 막으면 무인 체인이 마비된다. 따라서 **간접 실행을 통한 git 조작은 v1 이 막지 못한다**(스크립트 파일 안의 git, package.json script 안의 git). 이것이 층 B G-11 화이트리스트가 필요한 정확한 이유다 |
+| **툴 표면 자체** | matcher 에 열거된 `Bash`·`Write`·`Edit`·`MultiEdit`·`NotebookEdit` | `Task`·`WebFetch` 등 비열거 툴. 서브에이전트가 도는 동안의 툴 호출에도 프로젝트 `settings.json` 훅이 적용되는지가 관건인데, **부분 관측만 있다**(아래) |
+
+두 가지를 정직하게 적어 둔다. ① **쓰기 경계 집행은 원본에 없던 것이다** — 원본은 이 판정
+(`targetsFrom()` 의 `rel === null`)을 층 B(ownership)에서 집행하는데 층 B 를 이식하지
+않았으므로 집행이 비어 있었고, 실측으로 `Write ../../etc/evil.txt` 가 통과했다. 판정식은
+원본을 그대로 옮기고 집행만 어댑터가 한다. ② **Bash 비밀 스캔도 원본 범위 밖이다** —
+원본 G-03 은 쓰기 툴만 본다. 그 판단은 원본 환경에서 옳지만, 여기서는 결과가 고객 레포로
+push 되므로 한 겹 더 얹었다.
+
+**관측된 오탐 1건(수정하지 않음):** `echo "DATABASE_URL=postgresql://user:${DB_PASSWORD}@localhost/db" >> .env.example`
+처럼 **URL 안의 자리표시자 비밀번호**는 `URL 내 basic-auth 자격증명` 으로 거부된다
+(층 A 의 자리표시자 완화가 키-값 경로에만 적용되고 URL 경로에는 적용되지 않는다).
+일상 명령 42건 표본에서 유일한 오탐이고(약 2.4%), `secrets.ts` 무수정 원칙 때문에
+패턴을 끄지 않았다. 거부는 사유와 함께 stderr 로 나가므로 에이전트가 표현을 바꿔
+진행할 수 있다. **관측된 미탐 1건:** `printf "password: <값>\n" > f` 형태는 통과한다
+(위 표의 "완전 차단이 아니다" 가 가리키는 바로 그 한계다).
+
+**v1 이 하지 않는 것:**
+
+| 제외 | 이유 |
+|---|---|
+| 프로젝트별 F/S 정책 (룰 플러그인) | 지금은 전 워크스페이스 동일 규칙. 제어면 YAML 로 규칙을 주입하는 층은 F-4 와 함께 설계 |
+| 티어 해석 (T1~T3 별 강도) | 티어 축을 훅에 넣으면 층 B 를 끌고 오게 된다 |
+| 감사 1급화 | `.harness/enforce-audit.jsonl` 은 워크스페이스 로컬 파일이다. `delivery_events`(P9) 편입은 별건 |
+| 층 B 정체성 집행 (누가 무엇을 만질 권한이 있는가) | `CONTROL.yaml`·`assignment.json`·shard worktree 전제가 ClickEye 축(프로젝트→시트→러너)과 맞지 않는다 — §8-1 의 층 분리 판단 그대로. 단 **작업면 경계**만은 어댑터로 끌어왔다(위 범위표) |
+| 보호 경로의 **정본 집행** (`protect.ts` 1,063줄) | v1 은 어댑터의 문자열 기반 자기보호(E-02)로 값싼 구멍만 닫았다. 변수 조립 우회가 남으므로 정본은 층 B 이식 시 |
+| Bash 화이트리스트 (G-11) | **v2 의 핵심.** 블랙리스트로는 간접 실행을 닫을 수 없다 — 층 A 주석이 이 위임을 명시한다 |
+
+**서브에이전트 표면 — 부분 관측(완전 검증 아님).** CE-329 구현 세션에서 **서브에이전트로 실행 중인
+툴 호출에 프로젝트 `settings.json` 의 `PostToolUse(Edit|Write)` 훅이 실제로 발화**하는 것을
+관측했다(`docs-sync-reminder.sh` 가 서브에이전트의 편집을 잡아 영향 문서를 `needs-revision` 으로
+표시했다). 훅 배선 기제가 같으므로 `PreToolUse` 도 동일하게 적용될 가능성이 높지만,
+**`Task` 툴 자체를 대상으로 한 직접 검증은 하지 않았다.** 만약 서브에이전트 세션이 훅을 타지
+않는 구성이 존재한다면 `Task` 하나로 전 규칙을 우회할 수 있다. matcher 에 `Task` 를 추가하는
+것은 정상 기능(서브에이전트 위임) 차단 위험이 커서 v1 에서 하지 않았다 — v2 에서 직접 검증 후 판단한다.
+
+**배선 층 fail-closed (F8).** 훅 명령은
+`node "${CLAUDE_PROJECT_DIR:-.}"/.claude/hooks/gitguard-gate.cjs || exit 2` 다. 두 겹으로
+조용히 열리는 경로를 닫는다: ① `CLAUDE_PROJECT_DIR` 미설정 시 `node /.claude/…` 를 실행해
+rc=1(자문형)이 되던 것을 cwd 폴백으로 막고, ② 번들이 지워지거나 손상돼 node 가 rc=1 로
+죽어도 셸이 2 로 바꾼다. `exit 1` 이 자문형이라는 실측 사실에 대한, 게이트 바깥의 방어선이다.
+통과(0)는 `||` 를 타지 않으므로 정상 흐름은 그대로다.
+
+**토글 강등 방지 (F3).** 조달 스크립트는 `pipeline_config.sh` 를 source 하기 전에
+`FLOWOPS_ENV_KEEP_EXISTING=true` 를 세운다. 이것이 없으면 `.env` 의 `FLOWOPS_ENFORCEMENT=false`
+가 호출자 env 의 `true` 를 덮어 **조용히 미배선**된다(CE-345/346 에서 겪은 오귀속 계열).
+호출자가 말이 없으면 `.env` 설정이 그대로 적용된다.
+
 ### 8-2. 후속 과제 (착수 대기)
 
 | # | 과제 | 값 / 차단 |
 |---|---|---|
 | **F-1** | **사용량 인제스트 배관** — 로컬 `claude -p` 사용량을 서버 원장(`LlmUsageLedger`, seat_id 축)으로 | 🔄 **v1 완료 (2026-07-29, CE-328)** — 서버 인제스트(`POST /llm/ingest/usage`, 202 비블로킹·seat 사전검증·(session_id,model) 멱등) + ① 구현 스텝(`auto_dev_pipeline.sh` stream-json 사후 파싱, 토글 `FLOWOPS_USAGE_INGEST`/`FEATURE_LLM_USAGE_INGEST` opt-in, off면 회귀 0)까지. **후속(별도 티켓)**: ② 정제·③ 분해/인테이크 지점의 json 전환(엔벨로프 오염 다중 회귀 경로 재설계 필요). P5 유보분(시트별 레이트 카운터)의 선행 해소 |
 | **F-2** | **실토큰 다계정 실증** — 레이트 한도가 계정별 독립인지 | P4 가정 미확정. 팀원 시트 첫 등록 시 |
-| **F-3** | P8 집행면 (§8-1 방식) | T3 티어 착수 시 |
+| **F-3** | P8 집행면 (§8-1 방식) | 🔄 **v1 완료 (2026-08-03, CE-329)** — 층 A 이식 + PreToolUse 배선(§8-1-1). **잔여**: 프로젝트별 F/S 정책 · 티어 해석 · 감사 1급화 · 층 B 정체성 집행 |
 | **F-4** | 제어면 YAML `gates` → 검증 배치 자동 해석 | 🔄 **워크스페이스 자동 해석 (2026-08-01, CE-339)** — `delivery_verify.sh`가 명시 env 부재 시 워크스페이스 `harness-gates.txt`(stack_profiler 도출)를 `VERIFY_GATES_FILE` 기본값으로, 워크스페이스 경로를 `VERIFY_WORKDIR` 기본값으로 채택(명시 항상 우선). **잔여**: 제어면 YAML `gates` 직접 소비(harness-gates.txt 는 스택 도출분이지 YAML 정본이 아니다) |
 | **F-5** | 종량 잔존 스크립트 처분 — `gpt_pr_review.py`·`fix_plan_generator.py`(OPENAI_API_KEY) | ✅ **완료 (2026-07-30)** — 개발 파이프라인 종량 경로 전량 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. `.env` 키는 clickeye-api 제품면이 참조하므로 유지(폐기는 사용자 판단) |
 
@@ -720,6 +837,7 @@ infraeye-harness (실측 2026-07-29)
 | 2026-07-28 | **E2E 리허설 통과** — 모의 수주 1건 ①~⑥ live 관통(정제·분해=claude 구독, Linear 실물 CE-320~323, verified 확정). 실증 결함 2건 수정: 완주 판정 name→**type 기준**(팀 커스텀 Confirm=completed 대응) · 발급 기본 상태 →Queued. 미배선 확인: 제어면 gates→검증 배치 자동 해석(P5/P8) | 코드 검증만으로 못 잡는 팀별 워크플로 차이를 실증으로 확인 |
 | 2026-08-03 | **러너 디스패처 v1(CE-346)** — 워크스페이스별 전용 러너 스폰·감시·회수(`runner_dispatcher.sh`) + 러너별 로컬 clone 프로비저닝(`runner_clone.sh`, worktree 기각 근거 기록). `linear_watcher.py` `--exclude-prefix`/`--check-only`/`WATCHER_EXCLUDE_PREFIXES`. 2인 리뷰 반영 4건: clone origin 을 PRIMARY→canonical 로 재지정(러너 push 가 PRIMARY 브랜치를 지우는 것 차단) · 스폰 env 권위(`FLOWOPS_ENV_KEEP_EXISTING`) · 시트 단위 이중 스폰 가드(clone-로컬 `.seat_lock` 무력 보완) · `--check-only` 비활성 오판(exit 2). §5-3 에 디스패처 절 신설 + **딜리버리 리다이렉트 미배선(CE-347)** 명시 | 병행 허용 조건(CE-339·CE-345) 위에 실제 병행을 만드는 층이 없었음 |
 | 2026-08-03 | **딜리버리 리다이렉트 v1(CE-347)** — 워크스페이스 모드의 브랜치 생성·구현 커밋 확인·거버넌스·push 를 고객 clone(`IMPL_WORKDIR`)으로 리다이렉트(`FLOWOPS_WORKSPACE_DELIVERY`, 이중 opt-in). 태스크 브랜치만 고객 origin 에 push(머지·PR 없음) · 기본 브랜치 감지 3단(`main` 추측 금지) · 중립 정책 `templates/harness-core/governance-workspace.policy.json` · push 거부 시 로컬 브랜치 보존. §5-3 사실 A 를 "허상"→"배선"으로 정정 + §5-5 신설. **2인 리뷰 반영**: 이번 런 델타로 커밋 판정(재시도 잔여 브랜치가 빈손 런을 성공 처리하는 것 차단) · 더러운 clone stash 자기치유(영구 wedge 해소) · WS 경로 `linear_reporter` 생략 + push 성공 시 명시 Done(reporter 가 PRIMARY 기준으로 Backlog 되돌리던 것 — "조기 Done" 전제가 실측 반증됨) · detached HEAD 회수 브랜치 · 하네스 산출물 오염 fail-closed · origin 오조달 차단 · git stderr 보존 · clone 신선도 ff-only | 러너 병행(CE-346)이 만든 산출물이 고객 레포로 나가지 못하고 있었음 |
+| 2026-08-03 | **P8 집행면 v1(CE-329)** — 층 A(`gitguard.ts` F1~F7 · `secrets.ts` S1~S4) 무수정 이식 + 승계 테스트 80케이스 + 신규 어댑터(`enforce.ts`) → 자족 CJS 번들 `hooks/gitguard-gate.cjs`. `workspace_provision.sh` 이중 opt-in 배선(`FLOWOPS_ENFORCEMENT`, 신규/CE-344 보존 경로 공통 멱등 병합, off=바이트 동일). **실측 근거**: PreToolUse 는 skip-permissions 에서도 실행되지만 `exit 2` 만 차단 — 기존 `harness-plan-gate.sh`(exit 1)는 자문형이었다. `ask`→거부(무인 실행에 확인 채널 없음), 정상 조작은 `integrateRoots:[cwd]` 주입으로 allow. §8-1-1 신설 + P8·F-3 상태 갱신. **2인 리뷰 반영**: 쓰기 툴 작업면 경계 집행(E-01 — 원본은 층 B 소관이라 미이식 구간이었고 `Write ../../etc/evil.txt` 실측 통과, 심볼릭 링크 경유까지 차단) · Bash 명령 문자열 비밀 스캔(원본 범위 밖, 평문 경로 방어 깊이) · exclude 짝 목록 불변식 복원 · fail-open 가시성(병합 실패 시 "게이트 없음" 명시) · 멱등 판정을 번들 파일명 기준으로 완화. **적대적 리뷰 반영**: 게이트 자기보호(E-02 — `rm -f <훅>` 등이 실측 통과했고, 번들이 사라지면 훅이 rc=1 자문형이 되어 게이트가 조용히 열린다) · 비문자열 command 거부 · 불투명 실행 표면 좁은 표적 차단(E-03: 파이프 셸·인라인 인터프리터 git·대시 디스패치·`git apply`/`am`, 단 `npm run`/`make`/`./x.sh` 는 허용 유지) · 배선 층 fail-closed(`${CLAUDE_PROJECT_DIR:-.}` + `\|\| exit 2`) · `.env` 토글 강등 방지. **보증 수준을 "우발적 위반 방어"로 정정**하고 적대적 우회 집행이 아님을 명시(층 B G-11 화이트리스트가 v2 조건) | CE-346·CE-347 로 skip-permissions 에이전트가 고객 clone 에서 병렬 실행되기 시작 — 사고 반경이 PRIMARY 에서 고객 레포로 넓어졌다 |
 | 2026-07-30 | **F-5 완료** — 개발 파이프라인 종량 경로 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`.github/workflows/ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. CODE_REVIEW 문서를 구독형 경로(codex CLI + `code-reviewer` 서브에이전트)로 현행화. §4-3 잔존 경로·P3·F-5 상태 갱신 | 구독형 전용 원칙 정합 — 종량 API 키 호출자 4개(OpenAI 3+Gemini 1) 소멸 |
 
 ---

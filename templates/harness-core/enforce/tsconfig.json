@@ -1,0 +1,26 @@
+{
+  "// 목적": [
+    "이 tsconfig는 **타입 검사 전용**이다(noEmit). 산출물은 두 갈래로 나온다:",
+    "  - 프로덕션: esbuild → ../hooks/gitguard-gate.cjs (단일 CJS 번들, GATE-SPEC §8)",
+    "  - 테스트  : node --test 가 .ts를 직접 실행 (Node 22 타입 스트리핑)",
+    "따라서 상대 import에 .ts 확장자를 붙인다 — Node ESM이 확장자를 요구한다."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "rootDir": ".",
+    "strict": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules"]
+}
