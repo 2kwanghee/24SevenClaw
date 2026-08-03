@@ -80,7 +80,7 @@ ws_exclude_harness_artifacts() {
   local ex="$IMPL_WORKDIR/.git/info/exclude" p
   [ -d "$IMPL_WORKDIR/.git" ] || return 0
   mkdir -p "$IMPL_WORKDIR/.git/info" 2>/dev/null || return 0
-  for p in '.clickeye_default_branch' '.claude/' 'CLAUDE.md'; do
+  for p in '.clickeye_default_branch' '.claude/' 'CLAUDE.md' '.harness/'; do
     grep -qxF -- "$p" "$ex" 2>/dev/null || printf '%s\n' "$p" >> "$ex" 2>/dev/null || true
   done
 }

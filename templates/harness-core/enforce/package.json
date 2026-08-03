@@ -1,0 +1,23 @@
+{
+  "name": "clickeye-harness-enforce",
+  "version": "1.0.0",
+  "private": true,
+  "description": "P8 집행면 게이트 (CE-329) — 층 A(gitguard/secrets) 무수정 이식 + PreToolUse 어댑터. 이 디렉터리는 빌드/테스트 전용이고, 워크스페이스에 배포되는 런타임 산출물은 ../hooks/gitguard-gate.cjs 자족 번들 1파일이다.",
+  "license": "UNLICENSED",
+  "//deps": "원본은 js-yaml(CONTROL.yaml 파싱)을 쓰지만 그건 층 B 소관이다. 층 A(F1~F7/S1~S4)와 어댑터는 node 내장 모듈만 쓰므로 런타임 의존성이 0이다.",
+  "//test": "`test` 는 build 를 선행하므로 커밋 대상 번들(../hooks/gitguard-gate.cjs)을 덮어쓴다. 빌드는 재현 가능(동일 입력→동일 바이트)이라 정상 흐름에서는 무해하지만, 번들을 건드리면 안 되는 상황(CI 검증·릴리스 확인)에서는 `test:nobuild` 를 쓴다 — 그때는 현재 커밋된 번들을 그대로 검사한다.",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test --test-concurrency=1 \"test/*.test.ts\"",
+    "test:nobuild": "node --test --test-concurrency=1 \"test/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
