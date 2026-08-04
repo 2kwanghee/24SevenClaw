@@ -6,6 +6,7 @@ last_updated: 2026-08-04
 related:
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
+  - scripts/webhook-doctor.sh
   - scripts/clickeye_cron.txt
   - clickeye-infra/docker/Dockerfile.webhook
   - scripts/auto_dev_pipeline.sh
@@ -328,15 +329,48 @@ watchdog 항목은 **호스트 워커**(`webhook_worker.py`)와 ngrok 을 감시
 ```cron
 # 웹훅 실행 워커 watchdog (10분마다, 죽으면 재기동)
 */10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
-# ngrok watchdog (10분마다, 죽으면 재기동)
-*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+# ngrok watchdog (10분마다, 죽으면 재기동 — 예약 도메인 고정)
+*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --url="https://$NGROK_DOMAIN" --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
 ```
+
+> **`--url` 은 생략하면 안 됩니다(CE-338).** 무료 플랜은 재기동마다 랜덤 URL 을 배정하므로,
+> watchdog 이 `--url` 없이 되살리면 Linear 에 등록된 예약 도메인과 불일치해 이벤트가
+> **조용히** 유실됩니다(에러 없음 — 폴링 cron 만 남아 최대 5분 지연, 업무시간 밖이면 더).
+> 정본은 `NGROK_DOMAIN` 을 crontab 변수로 두고 이 줄에서 확장합니다(cron 은 crontab 변수를
+> 커맨드 환경으로 export 하므로 `SHELL=/bin/bash` 아래에서 확장됩니다). 기본값 SSOT 는
+> `scripts/webhook-doctor.sh:34` — 도메인을 바꾸면 두 곳을 함께 갱신하세요.
 
 > **WSL2 영구 자동 시작**: `/etc/wsl.conf`에 아래 설정을 추가하면 WSL 부팅 시 cron이 자동 시작됩니다.
 > ```ini
 > [boot]
 > command = service cron start
 > ```
+
+#### 3-5-1. 재부팅 후 복구는 아직 무인이 아니다 (CE-351)
+
+WSL·도커를 재시작하면 **cron watchdog 만으로는 체인이 돌아오지 않습니다.** 실측(2026-08-04
+마운트 장애 후 재진입):
+
+| 구성요소 | 자동 복구 | 이유 |
+|---|---|---|
+| `docker.service` | ✅ | `systemctl is-enabled docker` = enabled |
+| `clickeye-db` · `clickeye-redis` | ❌ | `RestartPolicy=no` |
+| `clickeye-webhook` | ⚠️ 컨테이너만 살아남음 | `restart: unless-stopped` — 다만 redis 가 없으면 적재 불가 |
+| 호스트 API(uvicorn :8000) | ❌ | 수동 기동만 |
+| 호스트 워커 · ngrok | ⚠️ | cron watchdog 10분 — Redis 부재 시 접속 실패 경로 |
+
+재시작 후에는 아래 2줄로 복구합니다(순서 중요 — db·redis 가 healthy 여야 워커가 큐를 잡습니다):
+
+```bash
+cd /mnt/c/workspace/ClickEye/clickeye-infra/docker && docker compose --profile full up -d db redis webhook
+cd /mnt/c/workspace/ClickEye && bash scripts/webhook-doctor.sh   # 워커 + ngrok(예약 도메인) 기동 + 종단 검증
+```
+
+`webhook-doctor.sh` 는 컨테이너 소유 PID 를 호스트 잔재로 오탐하지 않습니다(cgroup 판정,
+CE-338). WSL 은 컨테이너 프로세스를 호스트 PID 네임스페이스에 노출하므로 `ps` 에 보이는
+`webhook_server.py` 는 정상적인 컨테이너 수신부일 수 있습니다 — `--force` 로 죽이지 마세요.
+
+부팅 자동 복구(compose restart 정책 + systemd 유닛)는 **CE-351** 에서 다룹니다.
 
 ---
 
@@ -381,10 +415,21 @@ python3 scripts/seat_map.py list
 
 **2단계: 워크스페이스 매핑**
 
+> **⚠ 선행 조건 — 이 단계는 현재 그냥 실행하면 막힙니다(CE-350).** 아래 폴링은
+> `CLICKEYE_SERVICE_KEY`(머신 서비스 키 평문)를 요구하는데, 실측(2026-08-04) 결과
+> `.env`·`clickeye-api/.env`·`clickeye-infra/managed/*.env` 어디에도 이 키가 없고
+> `scripts/workspace_map.py` 는 `ERROR: CLICKEYE_SERVICE_KEY 환경변수가 필요합니다`(exit 2)
+> 로 종료합니다. DB `intake_service_keys` 의 기존 키는 sha256 해시만 저장되어 평문을
+> 복구할 수 없고, 신규 발급 경로는 `POST /api/v1/intake/service-keys`(`require_superadmin`)
+> 뿐이라 **웹 로그인 + superadmin 계정**이 필요합니다.
+>
+> 발급 후 `.env` 에 `CLICKEYE_SERVICE_KEY=<평문>` 을 등재하세요(권한 600, 히스토리 미기록 —
+> 1단계 토큰 취급과 같은 규약). 운영자용 발급 CLI 는 **CE-350** 에서 제공합니다.
+
 고객 프로젝트 목록을 머신 API에서 폴링하여 `.ralph/workspaces.json` 원장을 갱신합니다:
 
 ```bash
-# API 정보 확인 (머신 제어 서버)
+# API 정보 확인 (머신 제어 서버) — 없으면 위 선행 조건 참조
 grep CLICKEYE_SERVICE_KEY /mnt/c/workspace/ClickEye/.env
 
 # 원장 폴링 (머신 API 조회 + pending_source 마킹)
@@ -725,6 +770,36 @@ tail -5  logs/ngrok.log
    python3 scripts/linear_watcher.py --dry-run --limit 5
    # exit 0: 이슈 있음 / exit 2: 이슈 없음
    ```
+
+---
+
+#### 워커 로그에 `STOP-CHAIN` 이 찍히고 티켓이 처리되지 않는다
+
+**정상 동작입니다(CE-349).** 재트리거 체인을 의도적으로 끊은 신호입니다.
+
+```
+STOP-CHAIN: 파이프라인 파일락 보유 PID 158709 생존 — 직전 실행이 SKIP(진척 0)으로 종료.
+            재트리거 중단(폴링 cron 이 복구)
+```
+
+의미: Queued 이슈가 남아 있는데 파이프라인이 `.ralph/.pipeline_lock` 에 걸려 아무 일도
+하지 못하고 끝났다는 뜻입니다. 이때 재트리거하면 락 보유자가 끝날 때까지 **6초 주기로
+무한 스핀**하므로(수정 전 실측: 25초에 5회, 스핀마다 쓰레기 로그 1개) 체인을 끊습니다.
+
+```bash
+# 누가 락을 잡고 있는지 확인
+cat /mnt/c/workspace/ClickEye/.ralph/.pipeline_lock
+ps -o pid,etime,cmd -p "$(cat /mnt/c/workspace/ClickEye/.ralph/.pipeline_lock)"
+```
+
+- **다른 파이프라인/러너가 정상 실행 중** → 그대로 두면 됩니다. 그 실행이 끝난 뒤 폴링
+  cron(평일 09~18시 `*/5`)이 잔여 Queued 를 집어갑니다.
+- **인터랙티브 작업을 위해 사람이 선점한 락** → 작업이 끝나면 보유 프로세스를 종료하세요.
+  잔류 락은 다음 실행이 `WARN: 잔류 lock 파일 제거` 로 스스로 치웁니다.
+
+`STOP-CHAIN: 연속 재트리거 상한 5회 도달` 형태로 찍힌 경우는 락 외의 원인(배정 시트가
+`disabled`, `WATCHER_EXCLUDE_PREFIXES` 와 watcher 조회 범위 불일치 등)으로 진척이 없다는
+신호입니다. 시트 상태(`python3 scripts/seat_map.py list`)와 제외 접두사를 확인하세요.
 
 ---
 

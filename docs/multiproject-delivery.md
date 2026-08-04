@@ -2,7 +2,7 @@
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
 status: current
-last_updated: 2026-08-03
+last_updated: 2026-08-04
 related:
   - clickeye-api/app/api/v1/intake.py
   - templates/harness-core/enforce/src/enforce.ts
@@ -32,6 +32,8 @@ related:
   - governance/core.py
   - scripts/auto_dev_pipeline.sh
   - scripts/webhook_server.py
+  - scripts/webhook_worker.py
+  - scripts/clickeye_cron.txt
   - scripts/linear_watcher.py
 ---
 
@@ -496,14 +498,22 @@ git stderr 는 삼키지 않고 `logs/ws_delivery_<KEY>_<ts>.log` 에 남긴다(
 무인 운전에서 가장 위험한 결함이며 현재 실재한다.
 
 ```
-auto_dev_pipeline.sh   실패 시 → Linear 상태 "Backlog"
-                       (:197 브랜치실패 · :208 fix_plan없음 · :440 거버넌스차단 · :605-618 일괄)
-webhook_server.py:59   _check_and_retrigger() → DayQueued/NightQueued 만 조회
+auto_dev_pipeline.sh    실패 시 → Linear 상태 "Backlog"
+                        (:197 브랜치실패 · :208 fix_plan없음 · :440 거버넌스차단 · :605-618 일괄)
+webhook_server.py:119   _check_and_retrigger() → DayQueued/NightQueued/Queued 만 조회
 ```
 
 Backlog 는 Queued 가 아니므로 실패 티켓은 재트리거 대상에서 제외되고, 루프는
 `"IDLE: 잔여 이슈 없음"` 으로 **정상 종료**한다. 즉 **일부 티켓이 실패한 채로 완료가
 보고된다.** "발급된 티켓 전부를 A-Z" 가 구조적으로 보장되지 않는다.
+
+> **재트리거 체인은 이제 무한하지 않다(CE-349, 2026-08-04).** 위 조회가 "잔여 이슈 있음"을
+> 돌려주더라도, 직전 실행이 진척을 만들지 못했으면 체인을 끊는다 — `_live_lock_holder()`
+> (`webhook_server.py:93`)가 `.ralph/.pipeline_lock` 보유 PID 생존을 확정 신호로 보고 즉시
+> 중단하고, 그 밖의 원인(시트 `disabled`·제외 접두사 불일치)은 `MAX_RETRIGGER_CHAIN=5`
+> 상한이 받는다. 이 결함의 실측 증상은 **6초 주기 무한 스핀**이었다(25초에 5회, 스핀마다
+> 쓰레기 로그 1개). 중단 후 복구는 폴링 cron 이 담당하므로 위 "실패 티켓 유실" 문제와는
+> 층이 다르다 — 이 절의 요구(재시도 상태화)는 여전히 유효하다.
 
 **요구:** 실패는 종료 사유가 아니라 재시도 상태다. 재시도 한도(`retry_limits`) 소진 시에만
 정지하고, 그때는 **완료가 아니라 정지로 보고**한다.
@@ -838,6 +848,7 @@ rc=1(자문형)이 되던 것을 cwd 폴백으로 막고, ② 번들이 지워�
 | 2026-08-03 | **러너 디스패처 v1(CE-346)** — 워크스페이스별 전용 러너 스폰·감시·회수(`runner_dispatcher.sh`) + 러너별 로컬 clone 프로비저닝(`runner_clone.sh`, worktree 기각 근거 기록). `linear_watcher.py` `--exclude-prefix`/`--check-only`/`WATCHER_EXCLUDE_PREFIXES`. 2인 리뷰 반영 4건: clone origin 을 PRIMARY→canonical 로 재지정(러너 push 가 PRIMARY 브랜치를 지우는 것 차단) · 스폰 env 권위(`FLOWOPS_ENV_KEEP_EXISTING`) · 시트 단위 이중 스폰 가드(clone-로컬 `.seat_lock` 무력 보완) · `--check-only` 비활성 오판(exit 2). §5-3 에 디스패처 절 신설 + **딜리버리 리다이렉트 미배선(CE-347)** 명시 | 병행 허용 조건(CE-339·CE-345) 위에 실제 병행을 만드는 층이 없었음 |
 | 2026-08-03 | **딜리버리 리다이렉트 v1(CE-347)** — 워크스페이스 모드의 브랜치 생성·구현 커밋 확인·거버넌스·push 를 고객 clone(`IMPL_WORKDIR`)으로 리다이렉트(`FLOWOPS_WORKSPACE_DELIVERY`, 이중 opt-in). 태스크 브랜치만 고객 origin 에 push(머지·PR 없음) · 기본 브랜치 감지 3단(`main` 추측 금지) · 중립 정책 `templates/harness-core/governance-workspace.policy.json` · push 거부 시 로컬 브랜치 보존. §5-3 사실 A 를 "허상"→"배선"으로 정정 + §5-5 신설. **2인 리뷰 반영**: 이번 런 델타로 커밋 판정(재시도 잔여 브랜치가 빈손 런을 성공 처리하는 것 차단) · 더러운 clone stash 자기치유(영구 wedge 해소) · WS 경로 `linear_reporter` 생략 + push 성공 시 명시 Done(reporter 가 PRIMARY 기준으로 Backlog 되돌리던 것 — "조기 Done" 전제가 실측 반증됨) · detached HEAD 회수 브랜치 · 하네스 산출물 오염 fail-closed · origin 오조달 차단 · git stderr 보존 · clone 신선도 ff-only | 러너 병행(CE-346)이 만든 산출물이 고객 레포로 나가지 못하고 있었음 |
 | 2026-08-03 | **P8 집행면 v1(CE-329)** — 층 A(`gitguard.ts` F1~F7 · `secrets.ts` S1~S4) 무수정 이식 + 승계 테스트 80케이스 + 신규 어댑터(`enforce.ts`) → 자족 CJS 번들 `hooks/gitguard-gate.cjs`. `workspace_provision.sh` 이중 opt-in 배선(`FLOWOPS_ENFORCEMENT`, 신규/CE-344 보존 경로 공통 멱등 병합, off=바이트 동일). **실측 근거**: PreToolUse 는 skip-permissions 에서도 실행되지만 `exit 2` 만 차단 — 기존 `harness-plan-gate.sh`(exit 1)는 자문형이었다. `ask`→거부(무인 실행에 확인 채널 없음), 정상 조작은 `integrateRoots:[cwd]` 주입으로 allow. §8-1-1 신설 + P8·F-3 상태 갱신. **2인 리뷰 반영**: 쓰기 툴 작업면 경계 집행(E-01 — 원본은 층 B 소관이라 미이식 구간이었고 `Write ../../etc/evil.txt` 실측 통과, 심볼릭 링크 경유까지 차단) · Bash 명령 문자열 비밀 스캔(원본 범위 밖, 평문 경로 방어 깊이) · exclude 짝 목록 불변식 복원 · fail-open 가시성(병합 실패 시 "게이트 없음" 명시) · 멱등 판정을 번들 파일명 기준으로 완화. **적대적 리뷰 반영**: 게이트 자기보호(E-02 — `rm -f <훅>` 등이 실측 통과했고, 번들이 사라지면 훅이 rc=1 자문형이 되어 게이트가 조용히 열린다) · 비문자열 command 거부 · 불투명 실행 표면 좁은 표적 차단(E-03: 파이프 셸·인라인 인터프리터 git·대시 디스패치·`git apply`/`am`, 단 `npm run`/`make`/`./x.sh` 는 허용 유지) · 배선 층 fail-closed(`${CLAUDE_PROJECT_DIR:-.}` + `\|\| exit 2`) · `.env` 토글 강등 방지. **보증 수준을 "우발적 위반 방어"로 정정**하고 적대적 우회 집행이 아님을 명시(층 B G-11 화이트리스트가 v2 조건) | CE-346·CE-347 로 skip-permissions 에이전트가 고객 clone 에서 병렬 실행되기 시작 — 사고 반경이 PRIMARY 에서 고객 레포로 넓어졌다 |
+| 2026-08-04 | **무인 점화 종단 검증(CE-338 완료) + 결함 3건 수정(CE-349).** 체인이 실제로 관통함을 실측: Linear 이벤트 → ngrok(예약 도메인) → 수신 컨테이너 적재 → Redis 큐 → 호스트 워커 → 파이프라인 디스패치. crontab 을 정본(`scripts/clickeye_cron.txt`)과 완전 일치하게 재설치(경로가 죽은 옛 항목 제거). **검증 중 실측한 결함**: ① 재트리거 무한 루프 — 파일락 SKIP(진척 0) 시 6초 주기 무한 스핀 → 락 보유자 생존 판정 + 체인 상한 5회(§6-1 주석) ② `webhook-doctor.sh` 가 컨테이너 소유 PID 를 "호스트 잔재"로 오탐해 `--force` 종료 대상에 넣음(운영 중 수신부를 죽이는 경로) → cgroup 판정 ③ ngrok watchdog 이 `--url` 없이 되살려 랜덤 URL 배정 → Linear 등록 URL 불일치로 이벤트 조용히 유실 → `NGROK_DOMAIN` 고정. **활성 절차의 잔여 블로커 등재**: 머신 서비스 키 발급 경로 부재(CE-350 — 평문 복구 불가·발급이 superadmin JWT 전용이라 헤드리스 활성 불가), 재부팅 내구성 부재(CE-351 — db·redis `RestartPolicy=no` 실측), 큐 at-most-once(CE-352) | 부품은 다 있었지만 종단으로 한 번도 통과시키지 않았음 — 통과시키는 순간 3건이 드러났다 |
 | 2026-07-30 | **F-5 완료** — 개발 파이프라인 종량 경로 제거(`gpt_pr_review.py`·`fix_plan_generator.py`·`.github/workflows/ai-review.yml`·`ai-critique` 스킬)·`--use-gpt-plan` 분기 삭제. CODE_REVIEW 문서를 구독형 경로(codex CLI + `code-reviewer` 서브에이전트)로 현행화. §4-3 잔존 경로·P3·F-5 상태 갱신 | 구독형 전용 원칙 정합 — 종량 API 키 호출자 4개(OpenAI 3+Gemini 1) 소멸 |
 
 ---
