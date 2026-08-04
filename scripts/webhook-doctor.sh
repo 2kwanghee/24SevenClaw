@@ -83,8 +83,23 @@ port_owner_pid() {
         | sed 's/pid=//'
 }
 
+# 컨테이너 소유 PID 판정 (CE-338 잔여). WSL 의 docker 는 컨테이너 프로세스를 호스트
+# PID 네임스페이스에 노출하므로, pgrep 만으로는 compose 수신부(clickeye-webhook)의
+# webhook_server.py 를 "호스트 잔재"로 오탐한다. 실측(2026-08-04): PID 1598 이
+# cgroup `…/docker-<id>.scope` 인데 잔재로 경고되고 --force 대상에 들어갔다 —
+# 그대로 강제 종료하면 운영 중인 수신부를 죽인다. cgroup 으로 걸러낸다.
+is_container_proc() {
+    grep -qE '(docker-[0-9a-f]{12,}|/docker/|containerd)' "/proc/$1/cgroup" 2>/dev/null
+}
+
 list_webhook_pids() {
-    pgrep -f "webhook_server\.py" 2>/dev/null | sort -u
+    # 호스트 프로세스만 반환한다(컨테이너 소유는 제외 — 컨테이너 상태는
+    # webhook_container_running 이 별도로 본다).
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        is_container_proc "$pid" && continue
+        echo "$pid"
+    done < <(pgrep -f "webhook_server\.py" 2>/dev/null | sort -u)
 }
 
 list_ngrok_pids() {

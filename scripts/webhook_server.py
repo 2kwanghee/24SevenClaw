@@ -55,6 +55,18 @@ _pipeline_lock = threading.Lock()
 _last_trigger_time = 0
 MIN_TRIGGER_INTERVAL = 5  # 최소 5초 간격 (메모리 lock이 파이프라인 수명과 동기화됨)
 
+# ── 재트리거 체인 제어 (CE-349) ──
+# 잔여 Queued 이슈가 있어도 파이프라인이 그것을 "소비할 수 없는" 상태면 재트리거는
+# 진척 없는 busy loop 가 된다(실측: 파일락 SKIP 시 6초 주기 무한 스핀). 두 겹으로 끊는다.
+#   ① 파일락 생존 판정 — 직전 실행이 SKIP 으로 끝났음을 확정 신호로 감지(즉시 중단)
+#   ② 연속 체인 상한 — 락 외 원인(시트 disabled, 제외 접두사 불일치 등)의 안전망
+# 중단 후 복구는 폴링 cron(auto_dev_pipeline.sh --once)이 담당한다.
+MAX_RETRIGGER_CHAIN = 5
+_retrigger_chain = 0
+# auto_dev_pipeline.sh:32 의 LOCK_FILE 과 동일 경로. 전용 러너의 키별 락
+# (.pipeline_lock.<KEY>)은 웹훅이 띄우는 기본 러너를 막지 않으므로 기본 락만 본다.
+PIPELINE_LOCK_FILE = os.path.join(PROJECT_DIR, ".ralph", ".pipeline_lock")
+
 
 def log(msg: str):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -67,19 +79,85 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
+def reset_retrigger_chain():
+    """새 외부 이벤트 처리 시작 시 재트리거 체인 예산을 되돌린다(CE-349).
+
+    상한은 "한 이벤트에서 파생된 연속 체인"에 걸린다. 새로 도착한 이벤트는 별개의
+    작업이므로 예산을 full 로 돌려주지 않으면 이전 체인의 잔여가 새 이벤트를 굶긴다.
+    호출부: _handle_event(직접 실행 경로) / webhook_worker(큐 소비 경로).
+    """
+    global _retrigger_chain
+    _retrigger_chain = 0
+
+
+def _live_lock_holder():
+    """파이프라인 파일락을 잡고 있는 살아있는 타 프로세스 PID(없으면 None) — CE-349.
+
+    auto_dev_pipeline.sh 는 정상 종료 시 trap cleanup 으로 락을 지운다. 따라서 재트리거
+    판정 시점에 락 파일이 남아 있고 그 PID 가 살아 있다면, 직전 실행은 그 락에 걸려
+    "SKIP: 이전 파이프라인 실행 중" 으로 끝났다는 뜻이다(= 진척 0). 이 상태에서 재트리거
+    하면 락 보유자가 끝날 때까지 무한 스핀한다.
+    """
+    try:
+        with open(PIPELINE_LOCK_FILE) as f:
+            pid = int(f.read().strip())
+    except (OSError, ValueError):
+        return None          # 락 없음 or 판독 불가 → 판정 보류(체인 상한이 안전망)
+    if pid <= 0 or pid == os.getpid():
+        return None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None          # 잔류 락(보유자 이미 종료) — 다음 실행이 스스로 제거한다
+    except PermissionError:
+        return pid           # 타 사용자 소유이지만 생존
+    except OSError:
+        return None
+    return pid
+
+
 def _check_and_retrigger():
-    """파이프라인 완료 후 잔여 DayQueued/NightQueued 이슈 확인 → 재트리거."""
+    """파이프라인 완료 후 잔여 DayQueued/NightQueued 이슈 확인 → 재트리거.
+
+    재트리거는 "직전 실행이 실제로 진척을 만들었을 때"만 의미가 있다. 진척 없는
+    재트리거를 두 겹으로 차단한다(CE-349 — 상세 근거는 MAX_RETRIGGER_CHAIN 주석).
+    """
+    global _retrigger_chain
     try:
         result = subprocess.run(
             ["python3", "scripts/linear_watcher.py", "--dry-run", "--limit", "1"],
             capture_output=True, text=True, cwd=PROJECT_DIR,
         )
-        if result.returncode == 0:  # DayQueued/NightQueued 이슈 존재
-            log("RE-TRIGGER: 잔여 DayQueued/NightQueued 이슈 감지 → 재트리거")
-            time.sleep(5)
-            trigger_pipeline()
-        else:
+        if result.returncode != 0:
             log("IDLE: 잔여 DayQueued/NightQueued 이슈 없음")
+            _retrigger_chain = 0
+            return
+
+        # DayQueued/NightQueued 이슈 존재 — 다만 소비 가능한 상태인지 먼저 확인한다.
+        holder = _live_lock_holder()
+        if holder is not None:
+            log(
+                f"STOP-CHAIN: 파이프라인 파일락 보유 PID {holder} 생존 — 직전 실행이 "
+                "SKIP(진척 0)으로 종료. 재트리거 중단(폴링 cron 이 복구)"
+            )
+            _retrigger_chain = 0
+            return
+
+        if _retrigger_chain >= MAX_RETRIGGER_CHAIN:
+            log(
+                f"STOP-CHAIN: 연속 재트리거 상한 {MAX_RETRIGGER_CHAIN}회 도달 — "
+                "체인 중단(폴링 cron 이 복구)"
+            )
+            _retrigger_chain = 0
+            return
+
+        _retrigger_chain += 1
+        log(
+            "RE-TRIGGER: 잔여 DayQueued/NightQueued 이슈 감지 → 재트리거 "
+            f"({_retrigger_chain}/{MAX_RETRIGGER_CHAIN})"
+        )
+        time.sleep(5)
+        trigger_pipeline()
     except Exception as e:
         log(f"WARN: 재트리거 확인 실패: {e}")
 
@@ -353,6 +431,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
             else:
                 # 기존 경로(회귀 0): 호스트에서 직접 파이프라인 실행.
                 log(f"{state_name.upper()}: {identifier} — 파이프라인 트리거")
+                reset_retrigger_chain()  # 새 이벤트 = 새 체인 예산 (CE-349)
                 thread = threading.Thread(target=trigger_pipeline, daemon=True)
                 thread.start()
         elif state_name == "Confirm" and action == "update":

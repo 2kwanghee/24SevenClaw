@@ -135,6 +135,7 @@ def _wait_pipeline_idle(max_wait: float = 600.0):
 def _dispatch_pipeline(client, job: dict):
     """pipeline job: 트리거 후 프로세스 완료까지 대기(순차). 미점화는 idle 대기 후 재시도·재적재."""
     identifier = job.get("identifier", "?")
+    ws.reset_retrigger_chain()  # 새 job = 새 재트리거 체인 예산 (CE-349)
     res = trigger_pipeline()
     if isinstance(res, subprocess.Popen):
         res.wait()             # 이 파이프라인 프로세스 종료까지 대기(결정적 신호)
