@@ -30,7 +30,13 @@ BRANCH="ralph/$ISSUE_KEY"
 
 TMP="$(mktemp -d)"
 cleanup() { chmod -R u+w "$TMP" 2>/dev/null; rm -rf "$TMP"; }
-trap cleanup EXIT
+# CE_KEEP_FIXTURES=1 로 실행하면 픽스처를 남긴다 — 실패 시 run.log·고객 bare 를 들여다보려면
+# 정리를 막아야 하는데, 이전에는 그 방법이 없어 진단이 어려웠다.
+if [ -n "${CE_KEEP_FIXTURES:-}" ]; then
+  printf '[keep] 픽스처 보존: %s\n' "$TMP"
+else
+  trap cleanup EXIT
+fi
 
 export GIT_AUTHOR_NAME="ce347-test" GIT_AUTHOR_EMAIL="ce347@example.com"
 export GIT_COMMITTER_NAME="ce347-test" GIT_COMMITTER_EMAIL="ce347@example.com"
@@ -79,7 +85,10 @@ if [ "${STUB_CLAUDE_DETACH:-0}" = "1" ]; then
   git checkout -q --detach HEAD >/dev/null 2>&1
 fi
 f="${STUB_CLAUDE_FILE:-impl_feature.txt}"
-printf '구현 산출물(스텁)\n' > "$f"
+# 티켓별로 내용을 다르게 쓴다. 고정 문자열이면 **같은 브랜치를 이어 쓰는 2회차**(CE-369 의
+# 인테이크 단위 브랜치)에서 이미 같은 내용이 있어 변경이 0 → 커밋 없음으로 오판된다.
+# 실제 티켓은 서로 다른 일을 하므로 스텁도 그것을 반영해야 한다.
+printf '구현 산출물(스텁) %s\n' "${STUB_ISSUE_KEY:-CE-999}" > "$f"
 git add -- "$f" >/dev/null 2>&1
 if [ "${STUB_CLAUDE_POLLUTE:-0}" = "1" ]; then
   printf '# fix_plan (하네스 운영 파일)\n' > fix_plan.md
@@ -219,7 +228,7 @@ build_customer "$TMP/c1.git" "$P1/workspaces/proj1" main
 run_pipeline "$P1" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj1
 deny_log "$P1/run.log" "워크스페이스 딜리버리" "리다이렉트 미발동(로그 무출현)"
 want_log "$P1/run.log" "AUTO_MERGE 활성화" "원본 자기레포 머지 경로 진입"
-deny_ref "$TMP/c1.git" "refs/heads/$BRANCH" "고객 bare 에 태스크 브랜치 없음(허상 = 현행 버그 재현)"
+deny_ref "$TMP/c1.git" "refs/heads/clickeye/intake-proj1" "고객 bare 에 태스크 브랜치 없음(허상 = 현행 버그 재현)"
 want_eq "$(git -C "$P1/workspaces/proj1" rev-parse --abbrev-ref HEAD)" "main" \
   "고객 clone 이 기본 브랜치에 머묾(태스크 브랜치 미생성)"
 
@@ -244,7 +253,7 @@ git -C "$P3B/workspaces/proj3" symbolic-ref -d refs/remotes/origin/HEAD 2>/dev/n
 printf 'main\n' > "$P3B/workspaces/proj3/.clickeye_default_branch"
 run_pipeline "$P3B" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj3 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P3B/run.log" "기본브랜치=main" "②단 .clickeye_default_branch 폴백"
-want_ref "$TMP/c3b.git" "refs/heads/$BRANCH" "폴백 경로에서도 push 성공"
+want_ref "$TMP/c3b.git" "refs/heads/clickeye/intake-proj3" "폴백 경로에서도 push 성공"
 
 # ③-c origin/HEAD 제거 + 메모 없음 + 원격 접근 가능 → G11 remote set-head 복구
 P3C="$TMP/p3c"; build_primary "$P3C"
@@ -252,7 +261,7 @@ build_customer "$TMP/c3c.git" "$P3C/workspaces/proj3" main
 git -C "$P3C/workspaces/proj3" symbolic-ref -d refs/remotes/origin/HEAD 2>/dev/null || true
 run_pipeline "$P3C" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj3 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P3C/run.log" "기본브랜치=main" "G11 remote set-head 로 origin/HEAD 복구"
-want_ref "$TMP/c3c.git" "refs/heads/$BRANCH" "복구 경로에서도 push 성공"
+want_ref "$TMP/c3c.git" "refs/heads/clickeye/intake-proj3" "복구 경로에서도 push 성공"
 
 # ③-d origin/HEAD 제거 + 메모 없음 + 원격 접근 불가 → 실패(main 추측 금지)
 P3D="$TMP/p3d"; build_primary "$P3D"
@@ -261,7 +270,7 @@ git -C "$P3D/workspaces/proj3" symbolic-ref -d refs/remotes/origin/HEAD 2>/dev/n
 git -C "$P3D/workspaces/proj3" remote set-url origin "$TMP/absent-remote.git"
 run_pipeline "$P3D" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj3 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P3D/run.log" "고객 기본 브랜치 감지 실패" "3단 전부 실패 → 실패 처리(추측 금지)"
-deny_ref "$TMP/c3d.git" "refs/heads/$BRANCH" "감지 실패 시 push 없음"
+deny_ref "$TMP/c3d.git" "refs/heads/clickeye/intake-proj3" "감지 실패 시 push 없음"
 
 echo "── ④ 정상 딜리버리: 태스크 브랜치만 고객 origin 으로 push ──"
 P4="$TMP/p4"; build_primary "$P4"
@@ -269,12 +278,12 @@ build_customer "$TMP/c4.git" "$P4/workspaces/proj4" main
 BASE_SHA_BEFORE="$(git -C "$TMP/c4.git" rev-parse refs/heads/main)"
 run_pipeline "$P4" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj4 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P4/run.log" "고객 레포 push 성공" "push 성공 로그"
-want_ref "$TMP/c4.git" "refs/heads/$BRANCH" "고객 bare 에 태스크 브랜치 도달"
+want_ref "$TMP/c4.git" "refs/heads/clickeye/intake-proj4" "고객 bare 에 태스크 브랜치 도달"
 want_eq "$(git -C "$TMP/c4.git" rev-parse refs/heads/main)" "$BASE_SHA_BEFORE" \
   "고객 기본 브랜치 tip 불변(머지 안 함)"
-want_eq "$(git -C "$P4/workspaces/proj4" rev-parse --abbrev-ref HEAD)" "$BRANCH" \
+want_eq "$(git -C "$P4/workspaces/proj4" rev-parse --abbrev-ref HEAD)" "clickeye/intake-proj4" \
   "고객 clone 이 태스크 브랜치에 위치"
-want_eq "$(git -C "$P4/workspaces/proj4" rev-list --count "main..$BRANCH")" "1" \
+want_eq "$(git -C "$P4/workspaces/proj4" rev-list --count "main..clickeye/intake-proj4")" "1" \
   "구현 커밋이 태스크 브랜치에 얹힘"
 deny_ref "$P4" "refs/heads/$BRANCH" "PRIMARY 레포에는 태스크 브랜치를 만들지 않음"
 deny_log "$P4/run.log" "AUTO_MERGE 활성화" "머지 경로 미진입(머지 없음)"
@@ -288,7 +297,7 @@ run_pipeline "$P5" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj5 FLOWOPS_WORKSPACE_
   STUB_CLAUDE_COMMIT=0
 want_log "$P5/run.log" "구현 커밋 없음" "rev-list 0 → 실패 확정(빈 머지 성공 대체)"
 deny_log "$P5/run.log" "고객 레포 push 성공" "커밋 없으면 push 미수행"
-deny_ref "$TMP/c5.git" "refs/heads/$BRANCH" "고객 bare 에 빈 브랜치 미도달"
+deny_ref "$TMP/c5.git" "refs/heads/clickeye/intake-proj5" "고객 bare 에 빈 브랜치 미도달"
 
 echo "── ⑥ push 거부 → 실패 + 로컬 브랜치 보존 ──"
 P6="$TMP/p6"; build_primary "$P6"
@@ -298,9 +307,9 @@ chmod +x "$TMP/c6.git/hooks/pre-receive"
 run_pipeline "$P6" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj6 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P6/run.log" "push 거부" "push 거부 감지 → 실패 처리"
 want_log "$P6/run.log" "브랜치 보존" "브랜치 보존 로그"
-deny_ref "$TMP/c6.git" "refs/heads/$BRANCH" "거부되어 원격에는 미반영"
-want_ref "$P6/workspaces/proj6" "refs/heads/$BRANCH" "로컬 태스크 브랜치 보존(유실 0)"
-want_eq "$(git -C "$P6/workspaces/proj6" rev-list --count "main..$BRANCH")" "1" \
+deny_ref "$TMP/c6.git" "refs/heads/clickeye/intake-proj6" "거부되어 원격에는 미반영"
+want_ref "$P6/workspaces/proj6" "refs/heads/clickeye/intake-proj6" "로컬 태스크 브랜치 보존(유실 0)"
+want_eq "$(git -C "$P6/workspaces/proj6" rev-list --count "main..clickeye/intake-proj6")" "1" \
   "보존된 브랜치에 구현 커밋 유지"
 
 echo "── ⑦ 중립 정책(governance-workspace.policy.json) ──"
@@ -338,11 +347,11 @@ build_customer "$TMP/c8.git" "$P8/workspaces/proj8" develop
 DEV_SHA_BEFORE="$(git -C "$TMP/c8.git" rev-parse refs/heads/develop)"
 run_pipeline "$P8" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj8 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P8/run.log" "기본브랜치=develop" "develop 을 base 로 감지"
-want_ref "$TMP/c8.git" "refs/heads/$BRANCH" "develop 기준 태스크 브랜치 push"
+want_ref "$TMP/c8.git" "refs/heads/clickeye/intake-proj8" "develop 기준 태스크 브랜치 push"
 want_eq "$(git -C "$TMP/c8.git" rev-parse refs/heads/develop)" "$DEV_SHA_BEFORE" \
   "develop tip 불변"
 deny_ref "$TMP/c8.git" "refs/heads/main" "main 을 만들지 않음(추측 금지 확인)"
-want_eq "$(git -C "$P8/workspaces/proj8" rev-list --count "develop..$BRANCH")" "1" \
+want_eq "$(git -C "$P8/workspaces/proj8" rev-list --count "develop..clickeye/intake-proj8")" "1" \
   "develop..태스크 브랜치 커밋 1건"
 
 echo "── ⑨ 재시도 잔여 브랜치: 이번 런 델타로 판정 (G1) ──"
@@ -350,13 +359,13 @@ P9="$TMP/p9"; build_primary "$P9"
 build_customer "$TMP/c9.git" "$P9/workspaces/proj9" main
 run_pipeline "$P9" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj9 FLOWOPS_WORKSPACE_DELIVERY=true
 want_log "$P9/run.log" "고객 레포 push 성공" "1회차 push 성공"
-RUN1_SHA="$(git -C "$TMP/c9.git" rev-parse "refs/heads/$BRANCH")"
+RUN1_SHA="$(git -C "$TMP/c9.git" rev-parse "refs/heads/clickeye/intake-proj9")"
 rm -f "$P9/.ralph/.stub_watch_count"   # 같은 티켓 재수거(재시도) 재현
 run_pipeline "$P9" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj9 FLOWOPS_WORKSPACE_DELIVERY=true \
   STUB_CLAUDE_COMMIT=0
 want_log "$P9/run.log" "이번 런 구현 커밋 없음" "2회차 빈손 → 잔여 커밋이 있어도 실패 판정"
 deny_log "$P9/run.log" "고객 레포 push 성공" "2회차 push 미수행"
-want_eq "$(git -C "$TMP/c9.git" rev-parse "refs/heads/$BRANCH")" "$RUN1_SHA" \
+want_eq "$(git -C "$TMP/c9.git" rev-parse "refs/heads/clickeye/intake-proj9")" "$RUN1_SHA" \
   "고객 원격 브랜치 tip 불변(빈손 런이 성공으로 소진되지 않음)"
 
 echo "── ⑩ 더러운 clone: stash 보존 후 진행 (G2) ──"
@@ -364,7 +373,7 @@ P10="$TMP/p10"; build_primary "$P10"
 build_customer "$TMP/c10.git" "$P10/workspaces/proj10" main
 run_pipeline "$P10" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj10 FLOWOPS_WORKSPACE_DELIVERY=true \
   STUB_ISSUE_KEY=CE-901 STUB_BRANCH=ralph/CE-901
-want_ref "$TMP/c10.git" "refs/heads/ralph/CE-901" "1회차 CE-901 push"
+want_ref "$TMP/c10.git" "refs/heads/clickeye/intake-proj10" "1회차 CE-901 push"
 # 에이전트가 미커밋 변경(추적 파일 수정 + 미추적 파일)을 남기고 죽은 상태 재현
 printf '미커밋 잔여\n' >> "$P10/workspaces/proj10/impl_feature.txt"
 printf '미추적 잔여\n' > "$P10/workspaces/proj10/leftover_untracked.txt"
@@ -373,7 +382,7 @@ run_pipeline "$P10" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj10 FLOWOPS_WORKSPAC
   STUB_ISSUE_KEY=CE-902 STUB_BRANCH=ralph/CE-902
 want_log "$P10/run.log" "stash 보존 후 진행" "미커밋 변경을 stash 로 보존"
 want_log "$P10/run.log" "고객 레포 push 성공" "wedge 없이 2회차 완주"
-want_ref "$TMP/c10.git" "refs/heads/ralph/CE-902" "2회차 CE-902 push"
+want_ref "$TMP/c10.git" "refs/heads/clickeye/intake-proj10" "2회차 CE-902 push"
 git -C "$P10/workspaces/proj10" stash list 2>/dev/null | grep -q "clickeye-auto-preserve" \
   && ok "stash 항목이 복구 가능하게 남음(유실 0)" || ng "stash 항목이 복구 가능하게 남음"
 
@@ -401,7 +410,7 @@ run_pipeline "$P12" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj12 FLOWOPS_WORKSPAC
   STUB_CLAUDE_POLLUTE=1
 want_log "$P12/run.log" "오염 차단" "하네스 운영 파일 커밋 → fail-closed"
 deny_log "$P12/run.log" "고객 레포 push 성공" "오염 시 push 미수행"
-deny_ref "$TMP/c12.git" "refs/heads/$BRANCH" "오염 브랜치가 고객 원격에 안 감"
+deny_ref "$TMP/c12.git" "refs/heads/clickeye/intake-proj12" "오염 브랜치가 고객 원격에 안 감"
 
 echo "── ⑬ detached HEAD 구현 → 회수 브랜치 + 실패 (G4) ──"
 P13="$TMP/p13"; build_primary "$P13"
