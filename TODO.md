@@ -13,6 +13,9 @@
 - [x] **CE-349** 웹훅 재트리거 무한 루프 차단 (PR #89) — 락 보유자 생존 판정 + 체인 상한 5회. 부수 수정 2건: `webhook-doctor.sh` 컨테이너 PID 오탐, ngrok watchdog 예약 도메인 고정
 - [x] 다음 스프린트 큐 리필 — CE-350~354 등재 (전부 `Wait`)
 - [x] `/docs-sync` — `run_guide.md`(3-5-1 재부팅 복구 절·3-6 2단계 선행조건·STOP-CHAIN 트러블슈팅), `multiproject-delivery.md`(§6-1 주석·변경 이력)
+- [x] **풀스택 런처** `scripts/fullstack_run.sh` (PR #91) — `bash scripts/fullstack_run.sh` 한 줄로 컨테이너·API·웹·워커·ngrok 기동(콜드스타트 19초 실측). `--check`/`--stop`/`--no-*`. 테스트 13케이스
+- [x] compose `migrate` 이미지 재빌드 — 리비전 058 미보유로 `exit 255` 였음(= `up -d` 만으로는 마이그레이션 미적용, `api` 컨테이너도 기동 불가 상태였다)
+- [x] `.run/` 추적 해제 (PR #92) — 자동커밋이 PID 파일을 물어 main 을 분기시키던 경로 차단
 
 ### 차단 — 사용자 입력 필요 (다프로젝트 체인 활성, run_guide 3-6)
 - [ ] **1단계 시트 풀 등록** — `claude setup-token` 을 구독 계정 셸에서 직접 실행해야 함 (원장 `.ralph/seats.json` 아직 없음)
