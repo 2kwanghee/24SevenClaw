@@ -1,7 +1,7 @@
 ---
 title: 다프로젝트 무인 딜리버리 아키텍처 (3-서비스 체인 · YAML 제어면 · 구독형 전용)
 category: architecture
-status: current
+status: needs-revision
 last_updated: 2026-08-04
 related:
   - clickeye-api/app/api/v1/intake.py
