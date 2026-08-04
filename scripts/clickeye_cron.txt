@@ -89,8 +89,11 @@ NGROK_DOMAIN=understandingly-unforecasted-raymundo.ngrok-free.dev
 # 패턴은 문자클래스 형태([w]…)로 둔다. cron 이 `/bin/sh -c` 로 실행하는 이 줄 자신의
 # cmdline 에 pgrep 패턴이 그대로 들어가므로, "webhook_worker.py" 로 쓰면 pgrep 이 자기
 # 자신에 매칭되어 워커가 죽어도 재기동 분기가 절대 실행되지 않는다(실측 확인).
-*/10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
+# 재기동 시도·실패는 logs/watchdog.log 에 남긴다. 이전 판은 출력을 /dev/null 로 버려
+#   되살리기가 실패해도 흔적이 없었다 — 실측(2026-08-04): ngrok 이 13:35 에 죽고
+#   2시간 20분간 복구되지 않았는데 로그가 어디에도 없었다(무인 운영에서 가장 나쁜 형태).
+*/10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && echo "[$(date '+\%F \%T')] watchdog: 워커 재기동 시도" >> logs/watchdog.log && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
 # ngrok 터널(Linear → 호스트:9876 → compose webhook 컨테이너).
 # --url 로 위 NGROK_DOMAIN 을 고정한다. 무료 플랜의 랜덤 URL 로 되살아나면 Linear 에
 # 등록된 URL 과 불일치해 이벤트가 조용히 유실된다(폴링 cron 만 남아 최대 5분 지연).
-*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --url="https://$NGROK_DOMAIN" --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && echo "[$(date '+\%F \%T')] watchdog: ngrok 재기동 시도(domain=$NGROK_DOMAIN)" >> logs/watchdog.log && setsid --fork ngrok http 9876 --url="https://$NGROK_DOMAIN" --log=logs/ngrok.log --log-format=logfmt >> logs/watchdog.log 2>&1)
