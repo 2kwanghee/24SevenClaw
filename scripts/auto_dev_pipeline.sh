@@ -613,18 +613,44 @@ for title, meta in m.items():
       fi
     fi
 
-    if ! impl_git checkout "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
-      ws_delivery_fail "고객 기본 브랜치 checkout 실패: $CUST_BASE (상세: $WS_GIT_LOG)"
-      continue
+    # ── [CE-369] 인테이크 1건 = 고객 브랜치 1개 ──────────────────────────────
+    # 이전 판은 티켓마다 `ralph/<ISSUE_KEY>` 를 고객 기본 브랜치에서 새로 분기했다. 머지는
+    # 고객 몫(CE-347)이라 앞선 티켓 산출물이 기본 브랜치에 없으므로, **의존 티켓 체인이
+    # 구조적으로 깨졌다** — 실측(CE-368): CE-366 이 만든 docs/INSTALL.md 를 후속 티켓이
+    # 보지 못해 BLOCKED.
+    #
+    # 내부 브랜치명(BRANCH=ralph/<KEY>)은 **그대로 둔다** — 거버넌스 ticket-ref 가 브랜치명에서
+    # `^[A-Z0-9]+-\d+$` 키를 추출하므로(pre_merge_gate.py) 인테이크 단위로 바꾸면 게이트가
+    # 깨진다. 고객 레포에만 쓰는 별도 이름을 둔다: 고객 입장에서 "수주 1건 = 브랜치 1개".
+    WS_BRANCH="clickeye/intake-${WORKSPACE_KEY}"
+
+    # 원격 상태를 먼저 최신화한다 — 이 브랜치의 존재 여부가 base 를 결정한다.
+    impl_git fetch origin --prune 2>>"$WS_GIT_LOG" || \
+      log "WARN: 고객 origin fetch 실패 — 로컬 참조로 진행(상세: $WS_GIT_LOG)"
+
+    if impl_git rev-parse --verify --quiet "refs/remotes/origin/${WS_BRANCH}" >/dev/null 2>&1; then
+      # 같은 인테이크의 앞선 티켓이 이미 만든 브랜치 → 그 위에 얹는다(체인 성립).
+      log "워크스페이스 딜리버리: 기존 인테이크 브랜치 위에 이어붙임 (origin/${WS_BRANCH})"
+      if ! impl_git checkout -B "$WS_BRANCH" "origin/${WS_BRANCH}" 2>>"$WS_GIT_LOG"; then
+        ws_delivery_fail "인테이크 브랜치 체크아웃 실패: ${WS_BRANCH} (상세: $WS_GIT_LOG)"
+        continue
+      fi
+    else
+      # 이 인테이크의 첫 티켓 → 고객 기본 브랜치에서 분기.
+      if ! impl_git checkout "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
+        ws_delivery_fail "고객 기본 브랜치 checkout 실패: $CUST_BASE (상세: $WS_GIT_LOG)"
+        continue
+      fi
+      if ! impl_git pull origin "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
+        ws_delivery_fail "고객 기본 브랜치 pull 실패(충돌/네트워크/권한): $CUST_BASE (상세: $WS_GIT_LOG)"
+        continue
+      fi
+      log "워크스페이스 딜리버리: 인테이크 브랜치 신규 생성 (${WS_BRANCH} ← ${CUST_BASE})"
+      if ! impl_git checkout -B "$WS_BRANCH" 2>>"$WS_GIT_LOG"; then
+        ws_delivery_fail "고객 레포 인테이크 브랜치 생성 실패: ${WS_BRANCH} (상세: $WS_GIT_LOG)"
+        continue
+      fi
     fi
-    if ! impl_git pull origin "$CUST_BASE" 2>>"$WS_GIT_LOG"; then
-      ws_delivery_fail "고객 기본 브랜치 pull 실패(충돌/네트워크/권한): $CUST_BASE (상세: $WS_GIT_LOG)"
-      continue
-    fi
-    impl_git checkout -b "$BRANCH" 2>>"$WS_GIT_LOG" || impl_git checkout "$BRANCH" 2>>"$WS_GIT_LOG" || {
-      ws_delivery_fail "고객 레포 태스크 브랜치 생성 실패: $BRANCH (상세: $WS_GIT_LOG)"
-      continue
-    }
     # [G1] 이번 런의 시작 tip. R4 는 이 값 기준의 **델타**로 판정한다 — 재시도로 잔여 커밋이
     # 있는 브랜치를 재사용할 때, 이번 런이 빈손인데 지난 런 커밋 때문에 성공 처리되는 것을 막는다.
     WS_TIP_BEFORE="$(impl_git rev-parse HEAD 2>>"$WS_GIT_LOG" || true)"
@@ -912,7 +938,7 @@ PY
     if ! impl_git symbolic-ref -q HEAD >/dev/null 2>&1; then
       WS_RESCUE="rescue/${ISSUE_KEY}-$(date '+%Y%m%d_%H%M%S')"
       impl_git branch "$WS_RESCUE" HEAD 2>>"$WS_GIT_LOG" || true
-      ws_delivery_fail "구현이 detached HEAD 에서 이뤄져 태스크 브랜치 ${BRANCH} 에 얹히지 않음 — 회수 브랜치 ${WS_RESCUE} 로 보존"
+      ws_delivery_fail "구현이 detached HEAD 에서 이뤄져 인테이크 브랜치 ${WS_BRANCH} 에 얹히지 않음 — 회수 브랜치 ${WS_RESCUE} 로 보존"
       continue
     fi
     # [G1] 이번 런 델타로 판정 — 잔여 커밋이 있는 재사용 브랜치를 빈손 런이 소진하지 못하게.
@@ -932,11 +958,11 @@ PY
         && grep -q "promise>DONE<" "$CLAUDE_LOG" 2>/dev/null \
         && [ -z "$WS_DIRTY" ]; then
         log "워크스페이스 딜리버리: 무변경 완료(no-op) — 에이전트 DONE + 워킹트리 클린 + 커밋 0"
-        log "  스펙이 파일 변경을 요구하지 않는 티켓으로 판단해 실패로 처리하지 않는다(${BRANCH} 미push)"
+        log "  스펙이 파일 변경을 요구하지 않는 티켓으로 판단해 실패로 처리하지 않는다(${WS_BRANCH} 미push)"
         python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Done" 2>/dev/null || true
         # 사람이 사후 감사할 수 있게 근거를 티켓에 남긴다 — 자동 판정만으로는 "게으른 DONE" 과
         # "정당한 no-op" 을 구분할 수 없다.
-        python3 - "$ISSUE_ID" "$BRANCH" <<'PY' 2>/dev/null || true
+        python3 - "$ISSUE_ID" "$WS_BRANCH" <<'PY' 2>/dev/null || true
 import sys
 sys.path.insert(0, "scripts")
 from linear_client import get_env, linear_request
@@ -960,7 +986,7 @@ PY
         log "Linear 상태: Done (무변경 완료)"
         continue
       fi
-      ws_delivery_fail "이번 런 구현 커밋 없음 (${WS_TIP_BEFORE}..HEAD, 브랜치 ${BRANCH})$([ -n "$WS_DIRTY" ] && echo ' — 워킹트리에 미커밋 변경 존재(커밋 누락)')"
+      ws_delivery_fail "이번 런 구현 커밋 없음 (${WS_TIP_BEFORE}..HEAD, 브랜치 ${WS_BRANCH})$([ -n "$WS_DIRTY" ] && echo ' — 워킹트리에 미커밋 변경 존재(커밋 누락)')"
       continue
     fi
     # [G6] 하네스 산출물 오염 가드 — ralph PROMPT 가 에이전트에게 fix_plan 갱신·커밋을 지시하므로
@@ -972,7 +998,7 @@ PY
       ws_delivery_fail "하네스 산출물이 고객 브랜치에 커밋됨 — 오염 차단: $(printf '%s' "$WS_POLLUTED" | head -n5 | tr '\n' ' ')"
       continue
     fi
-    log "워크스페이스 딜리버리: 이번 런 구현 커밋 ${WS_COMMITS}건 확인 (${BRANCH})"
+    log "워크스페이스 딜리버리: 이번 런 구현 커밋 ${WS_COMMITS}건 확인 (${WS_BRANCH})"
   fi
 
   # Claude 실행 후 TASK.md 자동 생성 (없으면)
@@ -1075,8 +1101,14 @@ PY
       if [ "$WS_DELIVERY" = true ]; then
         # [R7] 고객 clone 기준 판정 — ClickEye 계약면·고위험 경로 정책은 남의 레포에
         # 의미가 없으므로 중립 정책을 주입한다(실효 검증은 ticket-ref). block 처리는 동일.
+        # [CE-369] 고객 브랜치는 인테이크 단위(WS_BRANCH)라 이슈 키를 담지 않는다. 게이트의
+        # ticket-ref 는 head 이름에서 `^[A-Z0-9]+-\d+$` 키를 뽑으므로 head 로는 **티켓 브랜치
+        # 이름**(BRANCH)을 넘기고, 변경 파일은 실제 고객 브랜치 델타를 --diff-files 로 준다.
+        # 둘을 섞지 않으면 하나가 반드시 틀린다(키 추출 실패 또는 존재하지 않는 ref 조회).
+        GATE_WS_FILES=$(impl_git diff --name-only "${CUST_BASE}...${WS_BRANCH}" 2>>"$WS_GIT_LOG" || true)
         GATE_JSON=$(python3 scripts/pre_merge_gate.py \
           --project-dir "$IMPL_WORKDIR" --base "$CUST_BASE" --head "$BRANCH" \
+          --diff-files "$GATE_WS_FILES" \
           --policy "$WS_POLICY" \
           --json 2>>"$CLAUDE_LOG") || GATE_RC=$?
       else
@@ -1130,14 +1162,14 @@ PY
     # [G10] diff 는 three-dot(merge-base 기준) — 커널의 get_changed_files 와 일치시키고, base 가
     # 전진한 경우 그 전진분이 "이 브랜치의 변경"으로 오기록되는 것을 막는다. 반면 `log` 는
     # three-dot 이 대칭차집합이 되어 base 전용 커밋까지 끌어오므로 two-dot 이 정답이다.
-    MERGE_DIFF_STAT=$(impl_git diff --stat "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "(diff 없음)")
-    MERGE_DIFF_FILES=$(impl_git diff --name-only "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
-    MERGE_COMMITS=$(impl_git log --oneline "${CUST_BASE}..${BRANCH}" 2>>"$WS_GIT_LOG" || echo "(커밋 없음)")
-    MERGE_DIFF_DETAIL=$(impl_git diff "${CUST_BASE}...${BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
+    MERGE_DIFF_STAT=$(impl_git diff --stat "${CUST_BASE}...${WS_BRANCH}" 2>>"$WS_GIT_LOG" || echo "(diff 없음)")
+    MERGE_DIFF_FILES=$(impl_git diff --name-only "${CUST_BASE}...${WS_BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
+    MERGE_COMMITS=$(impl_git log --oneline "${CUST_BASE}..${WS_BRANCH}" 2>>"$WS_GIT_LOG" || echo "(커밋 없음)")
+    MERGE_DIFF_DETAIL=$(impl_git diff "${CUST_BASE}...${WS_BRANCH}" 2>>"$WS_GIT_LOG" || echo "")
 
-    log "워크스페이스 딜리버리: 태스크 브랜치 push → ${WS_ORIGIN} (${BRANCH})"
-    if impl_git push origin "$BRANCH" 2>>"$WS_GIT_LOG"; then
-      log "고객 레포 push 성공: ${BRANCH} (기본 브랜치 ${CUST_BASE} 무변경)"
+    log "워크스페이스 딜리버리: 인테이크 브랜치 push → ${WS_ORIGIN} (${WS_BRANCH})"
+    if impl_git push origin "$WS_BRANCH" 2>>"$WS_GIT_LOG"; then
+      log "고객 레포 push 성공: ${WS_BRANCH} (기본 브랜치 ${CUST_BASE} 무변경)"
       RUN_OUTCOME="pushed"
 
       # [G3] 이 시점이 WS 경로의 **유일한 성공 확정 지점** — linear_reporter 를 건너뛴 대신
@@ -1145,7 +1177,7 @@ PY
       python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Done" 2>>"$WS_GIT_LOG" \
         && log "Linear 상태: Done (고객 레포 push 성공)" \
         || log "WARN: Linear Done 전이 실패 — 수동 확인 필요 (${ISSUE_KEY}, 상세: $WS_GIT_LOG)"
-      python3 - "$ISSUE_ID" "$ISSUE_KEY" "$BRANCH" "$CUST_BASE" "$WS_ORIGIN" "$MERGE_DIFF_STAT" <<'PY' 2>/dev/null || true
+      python3 - "$ISSUE_ID" "$ISSUE_KEY" "$WS_BRANCH" "$CUST_BASE" "$WS_ORIGIN" "$MERGE_DIFF_STAT" <<'PY' 2>/dev/null || true
 import sys
 sys.path.insert(0, "scripts")
 from linear_client import get_env, linear_request
