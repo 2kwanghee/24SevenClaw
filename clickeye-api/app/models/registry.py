@@ -4,6 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, String, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.database import Base
 
@@ -25,7 +26,7 @@ class Agent(Base):
     is_public = Column(Boolean, nullable=False, default=True)
     required = Column(Boolean, nullable=False, default=False)
     output_file = Column(String(200), nullable=True)
-    dependencies = Column(JSON, nullable=False, default=list)
+    dependencies = Column(JSONB, nullable=False, default=list)
     config_schema = Column(JSON, nullable=False, default=dict)
     tags = Column(JSON, nullable=False, default=list)
     domains = Column(JSON, nullable=False, default=list)
@@ -55,9 +56,9 @@ class Skill(Base):
     is_public = Column(Boolean, nullable=False, default=True)
     required = Column(Boolean, nullable=False, default=False)
     output_file = Column(String(200), nullable=True)
-    dependencies = Column(JSON, nullable=False, default=list)
-    hook_events = Column(JSON, nullable=False, default=list)
-    env_vars = Column(JSON, nullable=False, default=list)
+    dependencies = Column(JSONB, nullable=False, default=list)
+    hook_events = Column(JSONB, nullable=False, default=list)
+    env_vars = Column(JSONB, nullable=False, default=list)
     config_schema = Column(JSON, nullable=False, default=dict)
     tags = Column(JSON, nullable=False, default=list)
     domains = Column(JSON, nullable=False, default=list)
@@ -91,7 +92,7 @@ class Hook(Base):
     is_public = Column(Boolean, nullable=False, default=True)
     required = Column(Boolean, nullable=False, default=False)
     output_file = Column(String(200), nullable=True)
-    config_schema = Column(JSON, nullable=False, default=dict)
+    config_schema = Column(JSONB, nullable=False, default=dict)
     tags = Column(JSON, nullable=False, default=list)
     domains = Column(JSON, nullable=False, default=list)
     compatible_pm_specialties = Column(JSON, nullable=False, default=list)

@@ -22,6 +22,7 @@ from app.models.pm_composition import PMComposition  # noqa: F401
 from app.models.pm_metrics import PMMetrics  # noqa: F401
 from app.models.pm_profile import PMProfile  # noqa: F401
 from app.models.pm_rating import PMRating  # noqa: F401
+from app.models.pm_recommendation_log import PMRecommendationLog  # noqa: F401
 from app.models.preset import Preset  # noqa: F401
 from app.models.project import Project  # noqa: F401
 from app.models.project_config import ProjectConfig  # noqa: F401
@@ -31,6 +32,7 @@ from app.models.quality_gate import QualityCheck, QualityGateEvent, QualityGateR
 from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
 from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
+from app.models.roi_standard import RoiStandard  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
 
@@ -71,6 +73,7 @@ __all__ = [
     "PMMetrics",
     "PMProfile",
     "PMRating",
+    "PMRecommendationLog",
     "PhaseEvent",
     "Preset",
     "Project",
@@ -81,6 +84,7 @@ __all__ = [
     "QualityGateRun",
     "ReviewEvent",
     "ReviewRound",
+    "RoiStandard",
     "RoleAuditLog",
     "Skill",
     "SubTask",

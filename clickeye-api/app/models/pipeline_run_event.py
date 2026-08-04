@@ -42,9 +42,7 @@ class PipelineRunEvent(Base):
     # Linear 이슈 키(CE-366 등). 티켓별 스레드 조회의 축.
     issue_key = Column(String(64), nullable=False)
     # 딜리버리 프로젝트. self-repo 실행은 프로젝트가 없으므로 nullable.
-    project_id = Column(
-        Uuid, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
-    )
+    project_id = Column(Uuid, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
     # 워크스페이스(고객 clone) 키. self-repo 는 NULL.
     workspace_key = Column(String(64), nullable=True)
     # pipeline_metrics.py 의 이벤트 이름을 그대로 쓴다(서버가 새 이름을 막지 않는다).
@@ -53,6 +51,4 @@ class PipelineRunEvent(Base):
     data = Column(JSONB, nullable=False, default=dict, server_default="{}")
     # 파이프라인이 이벤트를 만든 시각(로컬). 없으면 수신 시각으로 채운다.
     occurred_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))

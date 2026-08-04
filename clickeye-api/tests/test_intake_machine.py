@@ -58,9 +58,7 @@ async def _register_owner(client: AsyncClient) -> uuid.UUID:
         "/api/v1/auth/register",
         json={"email": email, "password": "pw12345678", "display_name": "owner"},
     )
-    resp = await client.post(
-        "/api/v1/auth/login", json={"email": email, "password": "pw12345678"}
-    )
+    resp = await client.post("/api/v1/auth/login", json={"email": email, "password": "pw12345678"})
     token = resp.json()["access_token"]
     me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     return uuid.UUID(me.json()["id"])
@@ -154,9 +152,7 @@ async def test_machine_projects_success(
 
 
 @pytest.mark.asyncio
-async def test_machine_projects_requires_key(
-    client: AsyncClient, intake_enabled: None
-) -> None:
+async def test_machine_projects_requires_key(client: AsyncClient, intake_enabled: None) -> None:
     """무키 → 401 (POST /intake 와 동일한 머신 인증 계약)."""
     resp = await client.get("/api/v1/intake/machine/projects")
     assert resp.status_code == 401

@@ -117,7 +117,7 @@ async def get_project_intake_timeline(
     intake = await intake_svc.get_by_project_id(project_id)
     if intake is None:
         raise AppError("INTAKE_NOT_FOUND", "이 프로젝트에 연결된 인테이크가 없습니다.", 404)
-    intake, events = await intake_svc.get_timeline(intake.id)
+    intake, events = await intake_svc.get_timeline(intake.id)  # type: ignore[arg-type]
     # 역조회 결과라 이미 일치하지만, 경로 스코프를 방어적으로 재확인한다.
     if intake.project_id != project_id:
         raise AppError("INTAKE_NOT_FOUND", "이 프로젝트에 연결된 인테이크가 없습니다.", 404)

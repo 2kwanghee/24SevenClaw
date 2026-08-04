@@ -105,8 +105,8 @@ class PipelineRunService(BaseService):
         total = await self.db.scalar(select(func.count()).select_from(grp.subquery()))
         total = int(total or 0)
 
-        page_stmt = grp.order_by(func.max(PipelineRunEvent.created_at).desc()).limit(limit).offset(
-            offset
+        page_stmt = (
+            grp.order_by(func.max(PipelineRunEvent.created_at).desc()).limit(limit).offset(offset)
         )
         page_rows = (await self.db.execute(page_stmt)).all()
         run_ids = [r.run_id for r in page_rows]

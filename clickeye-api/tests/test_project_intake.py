@@ -28,7 +28,9 @@ async def _register_login(
     return headers, me.json()["id"]
 
 
-async def _create_project(client: AsyncClient, headers: dict[str, str], name: str = "인테이크 프로젝트") -> str:
+async def _create_project(
+    client: AsyncClient, headers: dict[str, str], name: str = "인테이크 프로젝트"
+) -> str:
     resp = await client.post("/api/v1/projects/", json={"name": name}, headers=headers)
     assert resp.status_code == 201
     return resp.json()["id"]
@@ -143,9 +145,7 @@ async def test_get_project_intake_timeline_ok(
     project_id = await _create_project(client, auth_headers)
     intake = await _seed_intake(db_session, project_id, with_events=True)
 
-    resp = await client.get(
-        f"/api/v1/projects/{project_id}/intake/timeline", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/projects/{project_id}/intake/timeline", headers=auth_headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["intake_id"] == str(intake.id)
@@ -164,9 +164,7 @@ async def test_get_project_intake_timeline_404_when_no_intake(
     client: AsyncClient, auth_headers: dict[str, str]
 ) -> None:
     project_id = await _create_project(client, auth_headers, name="수동 프로젝트")
-    resp = await client.get(
-        f"/api/v1/projects/{project_id}/intake/timeline", headers=auth_headers
-    )
+    resp = await client.get(f"/api/v1/projects/{project_id}/intake/timeline", headers=auth_headers)
     assert resp.status_code == 404
 
 
@@ -178,9 +176,7 @@ async def test_get_project_intake_timeline_other_user_forbidden(
     await _seed_intake(db_session, project_id, with_events=True)
 
     other_headers, _ = await _register_login(client, "intake_other2@test.com")
-    resp = await client.get(
-        f"/api/v1/projects/{project_id}/intake/timeline", headers=other_headers
-    )
+    resp = await client.get(f"/api/v1/projects/{project_id}/intake/timeline", headers=other_headers)
     assert resp.status_code == 404
 
 

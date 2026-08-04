@@ -627,13 +627,18 @@ tail -20 "$(ls -t logs/runner_*.log | head -1)"     # ② 전용 러너(시트 �
 tail -20 "$(ls -t logs/ws_delivery_*.log | head -1)" # ③ 고객 clone git stderr(실패 시 사유)
 tail -20 "$(ls -t logs/delivery_*.log | head -1)"   # ④ 고객 push 결과
 
-# ⑤ 최종 확인 — 고객 저장소에 태스크 브랜치가 도달했는지(고객 기본 브랜치는 불변)
-git -C workspaces/3be49b62 ls-remote --heads origin "ralph/*"
+# ⑤ 최종 확인 — 고객 저장소에 인테이크 브랜치가 도달했는지(고객 기본 브랜치는 불변)
+git -C workspaces/3be49b62 ls-remote --heads origin "clickeye/intake-*"
 ```
 
-성공 기준: ①에 스폰 1건, ②에 `시트 주입: seat=...`, ④에 push 성공, ⑤에 `ralph/<티켓키>`
-브랜치 존재, Linear 티켓이 Done. **push 가 실패하면 티켓은 Done 이 되지 않고 재시도
-경로로 되돌아가며 로컬 브랜치는 보존**됩니다(작업 유실 없음).
+성공 기준: ①에 스폰 1건, ②에 `시트 주입: seat=...`, ④에 push 성공, ⑤에
+`clickeye/intake-<워크스페이스키>` 브랜치 존재, Linear 티켓이 Done. **push 가 실패하면
+티켓은 Done 이 되지 않고 재시도 경로로 되돌아가며 로컬 브랜치는 보존**됩니다(작업 유실 없음).
+
+**브랜치는 인테이크당 1개다(CE-369).** 티켓마다 새로 만들지 않고
+`clickeye/intake-<워크스페이스키>` 하나에 커밋을 쌓는다 — 원격에 이미 있으면 그것을
+이어받고, 없으면 고객 기본 브랜치에서 뗀다. 이래야 뒤 티켓이 앞 티켓의 산출물을 본다
+(전에는 티켓마다 기본 브랜치에서 떠서 의존 티켓이 앞 결과를 못 봤다).
 
 ---
 
@@ -678,14 +683,31 @@ from llm_usage_ledger where project_id is not null group by project_id;"
 
 티켓 단위로 보려면 `task_id` 로 묶는다(`where task_id = 'CE-366'`).
 
-실행 이력(단계별 소요·판정)은 호스트 로컬 파일에 쌓인다:
+실행 이력(단계별 소요·판정)은 **호스트 로컬 파일과 서버 원장 두 곳**에 쌓인다(CE-363).
+로컬 jsonl 을 먼저 쓰고 그다음 서버로 보내므로, 서버가 죽어 있어도 이력은 남는다
+(전송 실패는 전부 삼키고 파이프라인을 죽이지 않는다).
 
 ```bash
+# ① 호스트 로컬 (항상 기록)
 python3 -c "
 import json
 for l in open('logs/metrics/pipeline_runs.jsonl'):
     d=json.loads(l); print(d.get('event'), d.get('data'))"
+
+# ② 서버 원장 — run 단위로 묶어서 조회(이벤트 스레드 + 그 티켓 소비 토큰 동반)
+#    admin/superadmin JWT 필요. issue_key·project_id 로 좁힐 수 있다.
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/api/v1/pipeline-runs?limit=5" | python3 -m json.tool
+
+# ③ 원장 직접 확인
+docker exec clickeye-db psql -U clickeye -d clickeye -c \
+  "select run_id, issue_key, event, occurred_at from pipeline_run_events
+   order by created_at desc limit 10;"
 ```
+
+서버 원장은 `(run_id, event)` 유일 제약으로 멱등하다 — 재전송·재시도가 행을 늘리지 않는다.
+**토큰은 이 테이블에 복제하지 않는다**(`llm_usage_ledger` 가 유일한 출처이고, 조회 시점에
+`task_id` = 티켓 키로 조인해 채운다).
 
 읽는 법 — 반드시 알아둘 것:
 
