@@ -443,6 +443,31 @@ for title, meta in m.items():
     fi
   fi
 
+  # ── [CE-358] 수주 접두사 fail-closed — 미매핑 수주 티켓을 self-repo 로 흘리지 않는다 ──
+  # `[수주:xxxxxxxx] ` 접두사는 "이 티켓은 고객 프로젝트 것" 이라는 명시적 선언이다
+  # (intake_issue.sh:174 가 인테이크 id 앞 8자로 붙인다). 그런데 automap 이 못 풀거나
+  # workspaces/<key> 가 없으면 resolve_impl_workdir 이 **조용히 PROJECT_DIR 로 폴백**해
+  # 고객 요구사항이 ClickEye 레포에 구현·머지된다(실측 확인한 폴백 경로).
+  # 조달 누락은 운영자가 고칠 일이고, 그 사이 남의 요구사항이 우리 레포에 들어오는 것은
+  # 어떤 경우에도 옳지 않다 → 폴백 대신 실패로 끊는다(재시도 원장 경유, 티켓 유실 없음).
+  if printf '%s' "$TITLE" | grep -qE '^\[수주:[0-9a-zA-Z]{6,}\][[:space:]]'; then
+    WS_PREFIX_KEY="$(printf '%s' "$TITLE" | sed -E 's/^\[수주:([0-9a-zA-Z]{6,})\].*/\1/')"
+    if [ -z "${WORKSPACE_KEY:-}" ] || [ ! -d "$PROJECT_DIR/workspaces/${WORKSPACE_KEY}" ]; then
+      log "ERROR: 수주 티켓인데 워크스페이스가 없다 — self-repo 폴백을 차단한다 (${ISSUE_KEY})"
+      log "  접두사 키=${WS_PREFIX_KEY} / automap 해석=${WORKSPACE_KEY:-(없음)}"
+      log "  조치: python3 scripts/workspace_map.py --list 로 상태 확인 →"
+      log "        --set-source ${WS_PREFIX_KEY} <git-url> → scripts/workspace_provision.sh --key ${WS_PREFIX_KEY} --source <git-url>"
+      # 실패 처분은 ws_delivery_fail 과 동일 관례: 재시도 원장이 되돌리지 못하면 Backlog.
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" \
+        "수주 티켓 미조달: 워크스페이스 ${WS_PREFIX_KEY} 없음(self-repo 폴백 차단)"; then
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+        log "Linear 상태: Backlog (수주 티켓 미조달)"
+      fi
+      FAILED=$((FAILED + 1))
+      continue
+    fi
+  fi
+
   # [P1 완주] 이번 런에서 이미 실패해 Queued 복귀된 이슈를 즉시 재수거하면 무한루프
   # → 런을 종료하고 webhook 재트리거(다음 런)로 이월한다. MIN_TRIGGER_INTERVAL 이 완충.
   if [ -n "$FAILED_THIS_RUN" ] && printf '%s\n' $FAILED_THIS_RUN | grep -qx "$ISSUE_KEY"; then
