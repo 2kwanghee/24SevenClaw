@@ -848,11 +848,23 @@ PY
   # usage_ingest.py 자체가 모든 실패를 삼켜 exit 0 하지만, || true 로 이중 방어(파이프라인 불사).
   if is_enabled "FLOWOPS_USAGE_INGEST" 2>/dev/null && [ -n "${FLOWOPS_USAGE_INGEST:-}" ] \
     && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
-    python3 scripts/usage_ingest.py \
+    # ── [CE-362] 프로젝트 축 연결 ──
+    # usage_ingest.py 는 CLICKEYE_PROJECT_ID env 로 프로젝트 축을 받는데 파이프라인이 그것을
+    # 넘기지 않아, 인제스트를 켜도 project_id 가 NULL 로 들어갔다 → "프로젝트당 얼마 썼나" 를
+    # 집계할 수 없다. 수락 시 생성된 Project id 는 이미 워크스페이스 원장에 있으므로
+    # (machine/projects 폴링 산출물) 서버를 다시 조회하지 않고 원장에서 읽는다.
+    # self-repo 이슈는 프로젝트가 없으므로 빈 값 = 기존과 동일(축 없이 기록).
+    USAGE_PROJECT_ID=""
+    if [ -n "${WORKSPACE_KEY:-}" ]; then
+      USAGE_PROJECT_ID="$(python3 "$PROJECT_DIR/scripts/workspace_map.py" \
+        --resolve-project "$WORKSPACE_KEY" \
+        --output "$PROJECT_DIR/.ralph/workspaces.json" 2>/dev/null || true)"
+    fi
+    CLICKEYE_PROJECT_ID="$USAGE_PROJECT_ID" python3 scripts/usage_ingest.py \
       --log "$CLAUDE_LOG" \
       --request-kind local_batch_implement \
       --task-id "$ISSUE_KEY" 2>>"$CLAUDE_LOG" || true
-    log "사용량 인제스트 시도(비차단): ${ISSUE_KEY}"
+    log "사용량 인제스트 시도(비차단): ${ISSUE_KEY} project=${USAGE_PROJECT_ID:-(없음)}"
   fi
 
   # ── [R4 · 고객 레포 딜리버리] 구현 커밋 존재 확인 (CE-347) ──
