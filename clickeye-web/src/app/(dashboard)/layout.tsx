@@ -62,17 +62,38 @@ const adminItems: NavItem[] = [
   { href: "/admin/intake", labelKey: "admin.intake", icon: Inbox },
   { href: "/admin/users", labelKey: "admin.users", icon: Shield },
   { href: "/admin/contracts", labelKey: "admin.contracts", icon: FileText },
+  { href: "/admin/roi-standards", labelKey: "admin.roiStandards", icon: Calculator },
+  { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
+  { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
+];
+
+// ── 네비에서 숨긴 관리 메뉴 (2026-08-04) ─────────────────────────────────────
+// **라우트·페이지·API·데이터는 모두 살아 있다.** 아래 URL 로 직접 접근하면 그대로 열린다.
+// 되살리려면 해당 항목을 adminItems 로 옮기면 된다(labelKey·i18n 문구도 그대로 남겨 두었다).
+//
+// 왜 숨겼나 — 딜리버리 체인이 이 화면들의 데이터를 **전혀 참조하지 않는다**(실측으로 3지점 확인):
+//   · 실행면(scripts/) — 레지스트리·PM·ROI API 호출 0건. 워크스페이스 조달은
+//     templates/harness-core(Tier 0)만 복사하고 카탈로그를 승계하지 않으며, 스택·게이트는
+//     stack_profiler.py 가 저장소에서 자동 도출한다(사람이 피커에서 고르지 않는다)
+//   · 수주→수락(intake_service.py) — PM·ROI·레지스트리 참조 0건(Project 만 생성)
+//   · 딜리버리 콘솔 페이지 — 해당 훅 참조 0건
+// 즉 위저드/솔루션빌더 시절의 "프로젝트마다 콘솔에서 에이전트·스킬을 조합한다" 전제가
+// 파생형 하네스로 대체된 뒤 남은 화면들이다. 데이터는 구성 자산(pm_compositions 173 ·
+// skills 24 · agents 17 · prototype_catalog 15)이 실제 딜리버리 데이터(projects 5 ·
+// intake_requests 3)의 수십 배로 쌓여 있어, 메뉴에 남겨 두면 운영자가 볼 곳을 흐린다.
+//
+// 삭제하지 않는 이유: 되돌리기가 비싸고 PM 구성 매칭(CE-273)처럼 마이그레이션까지 들어간
+// 자산이 섞여 있다. 폐기 판단은 별도 티켓에서 데이터 이관·아카이브와 함께 다룬다.
+const hiddenAdminItems: NavItem[] = [
   { href: "/admin/pm", labelKey: "admin.pm", icon: Users },
   { href: "/admin/registry/agents", labelKey: "admin.agentsRegistry", icon: Bot },
   { href: "/admin/registry/skills", labelKey: "admin.skillsRegistry", icon: Puzzle },
   { href: "/admin/registry/mcps", labelKey: "admin.mcpsRegistry", icon: Blocks },
   { href: "/admin/registry/prototype-catalog", labelKey: "admin.prototypeCatalog", icon: Sparkles },
   { href: "/admin/registry/prototype-tags", labelKey: "admin.prototypeTags", icon: Puzzle },
-  { href: "/admin/roi-standards", labelKey: "admin.roiStandards", icon: Calculator },
-  { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
   { href: "/admin/recommendations", labelKey: "admin.recommendations", icon: BarChart3 },
-  { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
 ];
+void hiddenAdminItems; // 렌더하지 않는다 — 위 주석의 복원 목록으로만 존재한다
 
 // 운영(Ops) 네비: superadmin 전용. 실경계는 백엔드(FEATURE_OPS_PANEL + superadmin)가 강제.
 const opsItems: NavItem[] = [
