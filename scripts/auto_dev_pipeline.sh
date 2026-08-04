@@ -85,6 +85,53 @@ ws_exclude_harness_artifacts() {
   done
 }
 
+# ── [CE-356] 구현 프롬프트 조립 (self-repo / 워크스페이스 분기) ──
+# 순수 함수: 인자만 읽고 조립 결과를 stdout 으로 낸다(부작용·로그 없음 → 테스트 가능).
+#
+# 왜 분기가 필요한가(실측 2026-08-04, CE-355):
+#   `.ralph/PROMPT.md` 는 `.ralph/PLAN.md`·`.ralph/fix_plan.md` 를 **상대경로**로 읽으라
+#   지시하고 ClickEye 5개 레포 구조·`LoadMap_v3.md` 동기화를 전제한다. 구현 콜은
+#   `cd "$IMPL_WORKDIR"`(고객 clone)에서 실행되므로 그 입력이 사라지고, 에이전트는
+#   "계획 파일도 없고 기대한 레포 구조도 없다" 며 BLOCKED 로 끝냈다 → 커밋 0 → 딜리버리 실패.
+#   따라서 워크스페이스 모드에서는 **계획을 프롬프트에 인라인**하고 self-repo 전제가 없는
+#   전용 프롬프트(templates/harness-core/PROMPT.workspace.md)를 쓴다.
+#
+# self-repo 경로의 출력은 이전과 동일하다(회귀 0 — 테스트로 고정).
+build_impl_prompt() {
+  local workdir="$1" refined="$2" issue_key="$3" title="$4"
+  local ws_prompt="$PROJECT_DIR/templates/harness-core/PROMPT.workspace.md"
+
+  # ① self-repo — 기존 동작 그대로.
+  if [ "$workdir" = "$PROJECT_DIR" ] || [ ! -f "$ws_prompt" ]; then
+    if [ -s "$refined" ]; then
+      printf '%s\n%s\n\n---\n\n%s\n' \
+        "## 정제된 구현 스펙 (메타프롬프팅 결과 — 우선 참고)" \
+        "$(cat "$refined")" "$(cat "$PROJECT_DIR/.ralph/PROMPT.md")"
+    else
+      cat "$PROJECT_DIR/.ralph/PROMPT.md"
+    fi
+    return 0
+  fi
+
+  # ② 워크스페이스 — 스펙을 인라인한다. 출처 우선순위: 정제 스펙 > PLAN.md > 제목만.
+  #    PLAN.md 는 정제 실패 시 fix_plan 폴백본이 복사돼 있다(STEP A).
+  local spec=""
+  if [ -s "$refined" ]; then
+    spec="$(cat "$refined")"
+  elif [ -s "$PROJECT_DIR/.ralph/PLAN.md" ]; then
+    spec="$(cat "$PROJECT_DIR/.ralph/PLAN.md")"
+  fi
+  if [ -z "$spec" ]; then
+    # 빈 스펙으로 남의 저장소를 건드리게 하지 않는다 — 에이전트가 BLOCKED 로 끝내도록 명시.
+    spec="(구현 스펙을 확보하지 못했다. 무엇을 만들어야 하는지 판단할 수 없으면 구현하지 말고
+BLOCKED 로 보고하라.)"
+  fi
+
+  printf '%s\n\n- 티켓: %s\n- 제목: %s\n\n%s\n\n---\n\n%s\n' \
+    "# 구현 스펙 (이번 작업의 전부 — 파일을 찾지 말고 이 내용을 따르라)" \
+    "$issue_key" "$title" "$spec" "$(cat "$ws_prompt")"
+}
+
 # ── [고객 레포 딜리버리] 실패 공통 처리 (CE-347) ──
 # 워크스페이스 딜리버리 경로의 실패는 전부 동일하게 처리한다: 로그 → 기존 실패 처리
 # (재시도 복귀 또는 Backlog) → 실패 카운트. 호출부는 이 함수 뒤에 continue 한다.
@@ -732,21 +779,12 @@ PY
   # ANTHROPIC_API_KEY를 unset — claude.ai 구독 세션 사용 (API 크레딧 차감 방지)
   unset ANTHROPIC_API_KEY
 
-  # 정제 스펙이 있으면 구현 프롬프트 맨 앞에 prepend (메타프롬프팅 결과 우선 참고)
-  if [ -s "$REFINED_FILE" ]; then
-    IMPL_PROMPT="## 정제된 구현 스펙 (메타프롬프팅 결과 — 우선 참고)
-$(cat "$REFINED_FILE")
-
----
-
-$(cat .ralph/PROMPT.md)"
-  else
-    IMPL_PROMPT="$(cat .ralph/PROMPT.md)"
-  fi
-
   # ── [파생형 하네스 Tier 1] 워크스페이스 cwd 전환 (opt-in — 미설정=off, 회귀 0) ──
   # 해석 로직은 resolve_impl_workdir()(상단 정의) 공유 — STEP A 도메인 프로파일과 동일 대상.
+  # 프롬프트 조립보다 **먼저** 해석해야 한다 — 어느 프롬프트를 쓸지가 이 값으로 갈린다(CE-356).
   IMPL_WORKDIR="$(resolve_impl_workdir)"
+
+  IMPL_PROMPT="$(build_impl_prompt "$IMPL_WORKDIR" "$REFINED_FILE" "$ISSUE_KEY" "$TITLE")"
   if [ "$IMPL_WORKDIR" != "$PROJECT_DIR" ]; then
     log "파생형 하네스: 구현 cwd → 워크스페이스 ${WORKSPACE_KEY} ($IMPL_WORKDIR)"
   fi
