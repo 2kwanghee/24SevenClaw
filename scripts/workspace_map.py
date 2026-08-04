@@ -116,6 +116,27 @@ def build_ledger(
     return {"version": LEDGER_VERSION, "updated_at": updated_at, "workspaces": new_ws}
 
 
+def resolve_project_for_key(ledger: dict[str, Any] | None, key: str) -> str:
+    """workspace_key(또는 ticket_prefix) → project_id 해석.
+
+    소비 토큰 원장(`llm_usage_ledger.project_id`)의 프로젝트 축을 파이프라인이 채우는 데 쓴다.
+    이 축이 없으면 "프로젝트당 얼마 썼나" 를 집계할 수 없다(CE-362).
+
+    수락 시 생성된 Project 의 id 는 이미 원장에 담겨 있으므로(machine/projects 폴링 산출물)
+    서버를 다시 조회하지 않는다. 미매핑·원장 없음·project_id 부재는 빈 문자열 —
+    호출부는 축 없이 진행한다(관측이 파이프라인을 막지 않는다).
+    """
+    if not ledger or not key:
+        return ""
+    workspaces = ledger.get("workspaces") or {}
+    for prefix, meta in workspaces.items():
+        if not isinstance(meta, dict):
+            continue
+        if key in (meta.get("workspace_key"), prefix, prefix.strip()):
+            return str(meta.get("project_id") or "")
+    return ""
+
+
 def resolve_key_for_title(ledger: dict[str, Any] | None, title: str) -> str:
     """이슈 제목 → workspace_key 해석 (auto_dev_pipeline.sh automap 단일 소스).
 
@@ -233,6 +254,13 @@ def main(argv: list[str] | None = None) -> int:
         "출력하고 종료(미매핑이면 빈 줄). 네트워크·서비스 키 불요. 파이프라인 automap 용.",
     )
     parser.add_argument(
+        "--resolve-project",
+        metavar="KEY",
+        help="오프라인 해석 모드 — KEY(ticket_prefix 또는 workspace_key)의 project_id 를 "
+        "stdout 에 출력하고 종료(미매핑이면 빈 줄). 소비 토큰 원장의 프로젝트 축 "
+        "(CLICKEYE_PROJECT_ID)을 파이프라인이 채우는 데 쓴다. 네트워크·서비스 키 불요.",
+    )
+    parser.add_argument(
         "--set-source",
         nargs=2,
         metavar=("KEY", "REPO_SOURCE"),
@@ -253,6 +281,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.resolve_title is not None:
         ledger = load_ledger(args.output)
         print(resolve_key_for_title(ledger, args.resolve_title))
+        return 0
+
+    if args.resolve_project is not None:
+        ledger = load_ledger(args.output)
+        print(resolve_project_for_key(ledger, args.resolve_project))
         return 0
 
     # ── 오프라인 기입 모드: 원장 항목에 repo_source 를 수동 기입해 mapped 로 전환한다. ──

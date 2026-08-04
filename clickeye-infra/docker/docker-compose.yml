@@ -125,6 +125,10 @@ services:
       FEATURE_OPS_PANEL: "true"          # /admin/ops 운영 패널 (superadmin)
       FEATURE_INTAKE: "true"             # 인테이크 수주 API /api/v1/intake
       FEATURE_LLM_AUTOINGEST: "true"     # 딜리버리 이벤트 → clickeye-llm KB 자동 인제스트
+      # 소비 토큰 원장 수신(CE-362). off 면 POST /llm/ingest/usage 가 {status: disabled} 로
+      #   조용히 무시한다(llm.py:312) — 로컬 토글만 켜고 이걸 잊으면 원장이 계속 빈다.
+      #   구독형 소비량 관측용(잔여 한도 아님).
+      FEATURE_LLM_USAGE_INGEST: "true"   # 소비 토큰 → llm_usage_ledger
     # 관리형 env 배관(CE-305 PR-1): 관리형 파일을 env_file 로 병행 로드. 빈 배관 파일이 항상
     #   존재하므로 plain string 형식 사용(구버전 compose 호환). 기존 environment: 키는 불변
     #   — 실제 관리대상 키 이관은 PR-3(precedence 회피).
