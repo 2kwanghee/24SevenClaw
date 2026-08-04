@@ -71,6 +71,18 @@ def intake_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
+def intake_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """feature_intake 킬스위치 **비활성화**를 명시 고정한다.
+
+    킬스위치 off 동작을 `settings` 기본값에 의존해 검증하면, 인테이크를 켠 환경
+    (`clickeye-api/.env` 에 `FEATURE_INTAKE=true` — CE-338 로 실제 운영 환경이 그렇다)에서
+    404 대신 401 이 와서 테스트가 붉어진다(실측 2026-08-04). 검증 대상 설정은 앰비언트
+    환경이 아니라 테스트가 고정해야 한다.
+    """
+    monkeypatch.setattr(settings, "feature_intake", False)
+
+
+@pytest.fixture
 async def org(db_session: AsyncSession) -> Organization:
     o = Organization(company_name="테스트고객사")
     db_session.add(o)
@@ -116,8 +128,8 @@ def _structured_body(title: str = "쇼핑몰 구축") -> dict:
 
 
 @pytest.mark.asyncio
-async def test_killswitch_off_returns_404(client: AsyncClient) -> None:
-    """FEATURE_INTAKE 기본 off → 전 라우트 404 (존재 은닉)."""
+async def test_killswitch_off_returns_404(client: AsyncClient, intake_disabled: None) -> None:
+    """FEATURE_INTAKE off → 전 라우트 404 (존재 은닉)."""
     resp = await client.post("/api/v1/intake", json=_structured_body(), headers=_machine_headers())
     assert resp.status_code == 404
     assert (await client.get("/api/v1/intake")).status_code == 404
