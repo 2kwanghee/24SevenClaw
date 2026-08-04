@@ -872,7 +872,48 @@ PY
     WS_COMMITS="$(impl_git rev-list --count "${WS_TIP_BEFORE}..HEAD" 2>>"$WS_GIT_LOG" || echo 0)"
     WS_COMMITS="${WS_COMMITS//[^0-9]/}"   # 비수치 출력(오류 문자열)은 0 으로 수축 = 실패 처리
     if [ "${WS_COMMITS:-0}" -le 0 ]; then
-      ws_delivery_fail "이번 런 구현 커밋 없음 (${WS_TIP_BEFORE}..HEAD, 브랜치 ${BRANCH})"
+      # ── [CE-362 A] 무변경 완료(no-op) 처분 ──
+      # 스펙이 의도적으로 "파일 변경 없음" 을 지시하는 티켓이 있다(설계·계약 확정형).
+      # 실측(CE-359): 정제 스펙이 "실제 파일 작성은 제외 범위" 라 명시해 에이전트가 사실조사만
+      # 하고 <promise>DONE</promise> 로 정상 종료했는데, 커밋 0 이라는 이유로 실패·Backlog 가
+      # 됐다 — 에이전트는 스펙을 지켰고 파이프라인이 오판한 것이다.
+      #
+      # 완화의 안전핀은 ③ 워킹트리 클린이다. "파일을 만들었는데 커밋만 못 한" 진짜 실패는
+      # 워킹트리가 더럽기 때문에 여기 걸리지 않고 아래 실패 경로로 간다.
+      WS_DIRTY="$(impl_git status --porcelain 2>>"$WS_GIT_LOG" || echo "unknown")"
+      if [ "${IMPL_RC:-1}" = "0" ] \
+        && grep -q "promise>DONE<" "$CLAUDE_LOG" 2>/dev/null \
+        && [ -z "$WS_DIRTY" ]; then
+        log "워크스페이스 딜리버리: 무변경 완료(no-op) — 에이전트 DONE + 워킹트리 클린 + 커밋 0"
+        log "  스펙이 파일 변경을 요구하지 않는 티켓으로 판단해 실패로 처리하지 않는다(${BRANCH} 미push)"
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Done" 2>/dev/null || true
+        # 사람이 사후 감사할 수 있게 근거를 티켓에 남긴다 — 자동 판정만으로는 "게으른 DONE" 과
+        # "정당한 no-op" 을 구분할 수 없다.
+        python3 - "$ISSUE_ID" "$BRANCH" <<'PY' 2>/dev/null || true
+import sys
+sys.path.insert(0, "scripts")
+from linear_client import get_env, linear_request
+issue_id, branch = sys.argv[1], sys.argv[2]
+api_key, _ = get_env()
+body = (
+    "**무변경 완료(no-op)로 처분됨**\n\n"
+    "무인 파이프라인이 이 티켓을 실행했고 에이전트가 `<promise>DONE</promise>` 로 정상 "
+    "종료했으나, 대상 저장소에 커밋이 생기지 않았습니다(워킹트리도 클린).\n\n"
+    "정제 스펙이 파일 변경을 요구하지 않는 티켓(설계·계약 확정형)으로 판단해 실패가 아닌 "
+    "완료로 처분했습니다. 태스크 브랜치는 push 하지 않았습니다(보낼 변경이 없음).\n\n"
+    f"- 태스크 브랜치: `{branch}` (미push)\n"
+    "- 산출물이 있어야 할 티켓이었다면 이 처분이 오판입니다 — 스펙을 조정해 재점화하세요."
+)
+linear_request(
+    api_key,
+    "mutation($issueId:String!,$body:String!){commentCreate(input:{issueId:$issueId,body:$body}){comment{id}}}",
+    {"issueId": issue_id, "body": body},
+)
+PY
+        log "Linear 상태: Done (무변경 완료)"
+        continue
+      fi
+      ws_delivery_fail "이번 런 구현 커밋 없음 (${WS_TIP_BEFORE}..HEAD, 브랜치 ${BRANCH})$([ -n "$WS_DIRTY" ] && echo ' — 워킹트리에 미커밋 변경 존재(커밋 누락)')"
       continue
     fi
     # [G6] 하네스 산출물 오염 가드 — ralph PROMPT 가 에이전트에게 fix_plan 갱신·커밋을 지시하므로
