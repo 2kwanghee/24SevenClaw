@@ -615,7 +615,19 @@ for title, meta in m.items():
     log "── 메타프롬프트 정제 시작 ──"
     # 멱등성: 이미 정제된 스펙이 있으면 정제 콜 생략 (중복 토큰 방지)
     if [ ! -s "$REFINED_FILE" ]; then
-      REFINE_PROMPT="$(cat "$METAPROMPT_SKILL")
+      # SKILL.md 는 `---` YAML 프론트매터로 시작한다. 그 문자열이 claude 의 첫 인자 맨 앞에
+      # 오면 CLI 가 옵션으로 파싱해 `error: unknown option '---…'` 로 즉시 죽는다 — 실측
+      # (2026-08-04, logs/refine_CE-355_*.log): 정제가 **전 티켓에서 조용히 실패**하고
+      # "fix_plan→PLAN 폴백" 으로 돌고 있었다(파이프라인은 계속 진행하므로 관측이 어려웠다).
+      # 프론트매터를 떼고, 첫 줄이 항상 `#` 로 시작하도록 헤더를 앞세운다(이중 방어).
+      METAPROMPT_BODY="$(awk '
+        NR==1 && /^---[[:space:]]*$/ { fm=1; next }
+        fm  && /^---[[:space:]]*$/   { fm=0; next }
+        !fm
+      ' "$METAPROMPT_SKILL")"
+      REFINE_PROMPT="# 정제 지침 (metaprompt 스킬)
+
+$METAPROMPT_BODY
 
 ---
 
