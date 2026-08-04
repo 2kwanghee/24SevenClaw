@@ -6,30 +6,35 @@
 
 ---
 
-## P1: 기능 요구사항
+## P2: 기능 요구사항
 
-- [x] **워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존)**
-  > 요청사항: ## 배경
+- [ ] **[수주:71e00c25] 리허설 저장소에 docs/INSTALL.md 신규 작성 + README 링크 1줄**
+  > 요청사항: [CE-362](https://linear.app/flow-ops/issue/CE-362/관측-1단계-소비량실행-원장이-한-건도-안-쌓인다-인제스트메트릭-배선-점화)(관측 원장 점화) 라이브 검증 겸 딜리버리 티켓입니다. 대상은 고객 레포 `24seven-delivery-rehearsal`(워크스페이스 `71e00c25`, 조달 완료).
 
-`scripts/workspace_provision.sh:64-68`가 Tier 0 코어 복사 시 대상 레포의 기존 `.claude/settings.json`을 **무조건 덮어쓴다**. `CLAUDE.md`는 존재 시 보존하는 것과 비대칭. 지금까지는 조달 대상이 신규 clone이라 문제가 없었지만, 자체 `.claude/settings.json`(훅·권한·env)을 가진 실 고객 레포 투입 전 반드시 해소해야 한다(고객 설정 무단 파괴 + 고객 훅 소실).
+## 요구사항
 
-## v1 정책 (보수적 보존 — CLAUDE.md와 대칭)
+**1.** `docs/INSTALL.md` **신규 작성** (한국어). 아래 3개 섹션을 이 순서로:
 
-* 대상 레포에 `.claude/settings.json`이 **없으면**: 현행과 동일하게 코어 settings 복사(회귀 0).
-* **있으면**: 기존 파일을 건드리지 않고 보존. 코어 버전을 `.claude/settings.core.json`으로 병치 + 경고 로그(수동 병합 안내). 코어 훅 미설치 가능성을 조달 출력에 명시.
-* 키 단위 자동 병합(고객 설정 + 코어 훅 주입, 충돌 규칙)은 v2 — 정책 판단(고객 훅 vs 게이트 훅 우선순위) 필요.
+* `## 사전 요구사항` — `git` 만 기재(`git --version` 확인 명령 포함). 원문 근거가 없는 런타임(Node/Python 등)은 쓰지 않는다.
+* `## 클론 방법` — `git clone https://github.com/2kwanghee/24seven-delivery-rehearsal.git` + `cd 24seven-delivery-rehearsal`
+* `## 브랜치 규약` — 형식 `{type}/{module}/{TICKET-KEY}-{description}` 과 예시 1~2개. 단일 저장소이므로 `{module}` 생략 가능함을 1줄 명시.
 
-## 변경 파일
+**2.** `README.md` **에 링크 1줄 추가** — `- [설치 안내](docs/INSTALL.md)`. 기존 라인은 수정·삭제하지 않는다(순수 추가).
 
-* `scripts/workspace_provision.sh`
-* 조달 테스트(기존 스크립트 테스트 위치 준수)
-* `docs/multiproject-delivery.md` 해당 절(조달 동작 설명) 갱신
+## 제외 범위
+
+빌드·배포·환경변수·의존성 설치 안내, README 재구성, CI·템플릿 신설. 프론트매터는 대상 저장소에 그 관례가 없으므로 만들지 않는다.
 
 ## 수용 기준
 
-* 기존 settings.json 없는 신규 조달 → 현행과 동일 결과(바이트 수준)
-* 기존 settings.json 있는 조달 → 원본 바이트 보존 + `settings.core.json` 생성 + 경고 출력
-* 멱등: 동일 조달 2회 = 동일 결과
+* `docs/INSTALL.md` 가 존재하고 3개 섹션이 순서대로 있다
+* `README.md` 변경이 순수 추가다(`git diff --numstat` 에서 삭제 0)
+* 추가된 상대경로가 실제 파일을 가리킨다
+* 전부 한국어
+
+## 관측 검증 (운영자 확인용, 에이전트 작업 아님)
+
+완주 후 `llm_usage_ledger` 에 이 티켓의 레코드가 `project_id=76e9af30-196f-4694-8f63-36b6e053f25c` 와 함께 들어와야 한다.
 
 ---
 
@@ -39,4 +44,3 @@
 
 | 시각 | 항목 | 상태 | 비고 |
 |------|------|------|------|
-| 2026-08-03 | 워크스페이스 조달 settings.json 병합 정책 v1 (보수적 보존) | `[x]` 완료 | `workspace_provision.sh` Tier 0 복사에 존재 여부 분기 추가 — 없으면 현행대로 복사, 있으면 원본 보존 + `settings.core.json` 병치 + 경고 로그(`SETTINGS_PRESERVED` 요약 안내 포함). `test_workspace_provision.py` 신규 pytest 3개(신규조달/보존/멱등) 전부 통과. |
