@@ -1,7 +1,7 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-08-04
 related:
   - scripts/fullstack_run.sh
@@ -535,6 +535,19 @@ grep -c gitguard-gate workspaces/3be49b62/.claude/settings.json
 상세 절차: `docs/multiproject-delivery.md` §5-4
 
 **4단계: 단일 러너 티켓 경합 차단 (선행 필수)**
+
+> **⚠ 이 단계는 시트를 등록한 뒤에만 하세요(실측 2026-08-04).** 디스패처는 워크스페이스마다
+> **배정 시트를 무조건 요구**합니다 — `scripts/runner_dispatcher.sh:186` 이 `seats.json` 에
+> 배정이 없으면 `no_seat` 로 영구 스킵하며, 이 판정은 `FLOWOPS_SEAT_POOL` 토글과 **무관**합니다
+> (그 토글은 `auto_dev_pipeline.sh` 의 시트 주입만 좌우합니다).
+>
+> 따라서 시트 없이 제외만 걸면 그 티켓은 **단일 러너에서 빠지고 디스패처도 스킵해 아무도
+> 처리하지 않는 죽은 조합**이 됩니다(실측: `후보=1 스폰=0 스킵=1`).
+>
+> **시트가 없다면 이 단계와 5단계의 `FLOWOPS_RUNNER_DISPATCH` 를 건너뛰세요.** 단일 러너가
+> `FLOWOPS_WORKSPACE_AUTOMAP` 으로 `[수주:<key>]` 티켓을 직접 집어 워크스페이스 모드로
+> 처리합니다(구독 계정 1개·워크스페이스 소수면 이 구성이 정상입니다). 디스패처는 여러 계정으로
+> **병렬** 실행할 때 필요한 층입니다.
 
 디스패처를 켜기 전에 단일 러너(cron)가 디스패처가 관리할 티켓을 건드리지 않도록 제외 목록을 등록합니다:
 
