@@ -1,8 +1,8 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: needs-revision
-last_updated: 2026-08-03
+status: current
+last_updated: 2026-08-04
 related:
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
@@ -12,9 +12,15 @@ related:
   - scripts/intake_refine.sh
   - scripts/intake_issue.sh
   - scripts/delivery_verify.sh
+  - scripts/seat_map.py
+  - scripts/workspace_map.py
+  - scripts/workspace_provision.sh
+  - scripts/runner_dispatcher.sh
+  - scripts/runner_clone.sh
   - clickeye-api
   - clickeye-web
   - docs/clickeye-product-guide.md
+  - docs/multiproject-delivery.md
 ---
 
 # 서비스 실행 가이드
@@ -292,6 +298,12 @@ service cron status
 # 꺼져 있으면 시작
 sudo service cron start
 
+# 정본과 현재 crontab 대조 (정본에만 있는 줄 찾기)
+comm -23 \
+  <(grep -v '^#' /mnt/c/workspace/ClickEye/scripts/clickeye_cron.txt | grep -v '^$' | sort) \
+  <(crontab -l 2>/dev/null | grep -v '^#' | grep -v '^$' | sort) \
+  | head -5
+
 # crontab 등록 (cron 정본 = scripts/clickeye_cron.txt)
 (crontab -l 2>/dev/null; cat /mnt/c/workspace/ClickEye/scripts/clickeye_cron.txt) | crontab -
 
@@ -325,6 +337,181 @@ watchdog 항목은 **호스트 워커**(`webhook_worker.py`)와 ngrok 을 감시
 > [boot]
 > command = service cron start
 > ```
+
+---
+
+### 3-6. 다프로젝트 체인 활성 절차 (CE-345/346/347/329)
+
+다프로젝트 무인 딜리버리를 위한 4종 티켓(시트 풀·디스패처·리다이렉트·집행면)이 모두 main에 머지되었습니다.
+여기서는 운영자가 순서대로 실행할 절차를 기술합니다. 이론 상세는 `docs/multiproject-delivery.md` §5-3 ~ §5-5를 참조하세요.
+
+**1단계: 시트 풀 등록**
+
+구독 계정마다 1회, **그 계정으로 로그인된 클린 셸에서** 수행합니다. 시트 인증은
+`claude setup-token` 이 발급하는 **구독 OAuth 토큰**입니다 — API 키(크레딧 과금)를
+넣지 마세요. 실행면은 구독형 전용입니다:
+
+```bash
+cd /mnt/c/workspace/ClickEye
+mkdir -p .ralph/seats && umask 077        # 새 파일 권한 600
+
+claude setup-token                        # 시트 계정 OAuth 토큰 발급 → 출력값 복사
+read -rs TOKEN                            # 에코 없이 입력(Enter 로 종료) — 히스토리에 남지 않음
+printf '%s' "$TOKEN" > .ralph/seats/seat-a.token && unset TOKEN
+ls -l .ralph/seats/seat-a.token            # -rw------- (600) 확인
+
+# 시트 등재
+python3 scripts/seat_map.py register-seat \
+  --id seat-a \
+  --token-file .ralph/seats/seat-a.token \
+  --label "계정 A (구독 시트)"
+
+# 워크스페이스에 배정 (1 시트 : 1 워크스페이스 — 중복 배정은 --force 없이 거부)
+python3 scripts/seat_map.py assign --workspace "3be49b62" --seat seat-a
+
+# 해석 확인 (빈 출력이면 배정·상태·토큰 파일을 점검)
+python3 scripts/seat_map.py resolve --resolve-key "3be49b62"
+python3 scripts/seat_map.py list
+```
+
+한도 도달 계정은 `set-status --seat seat-a --status disabled` 로 내립니다. 그 워크스페이스는
+기본 계정으로 폴백하지 않고 **단계를 건너뜁니다**(사용량 오귀속 금지).
+
+상세 절차: `docs/multiproject-delivery.md` §5-3
+
+**2단계: 워크스페이스 매핑**
+
+고객 프로젝트 목록을 머신 API에서 폴링하여 `.ralph/workspaces.json` 원장을 갱신합니다:
+
+```bash
+# API 정보 확인 (머신 제어 서버)
+grep CLICKEYE_SERVICE_KEY /mnt/c/workspace/ClickEye/.env
+
+# 원장 폴링 (머신 API 조회 + pending_source 마킹)
+CLICKEYE_SERVICE_KEY="..." python3 scripts/workspace_map.py
+
+# 상태 조회
+python3 scripts/workspace_map.py --list
+
+# 각 pending_source 항목에 repo 수동 등재
+python3 scripts/workspace_map.py --set-source "3be49b62" "git@github.com:customer/repo.git"
+
+# 재확인
+python3 scripts/workspace_map.py --list
+```
+
+상세 절차: `docs/multiproject-delivery.md` §5-3
+
+**3단계: 워크스페이스 조달**
+
+고객 저장소를 clone하고 Tier 0 코어 + 집행면 훅을 배치합니다:
+
+```bash
+# 조달 (멱등 — 이미 있으면 clone 을 건너뛰고 코어 배치만 검증한다)
+# FLOWOPS_ENFORCEMENT=true 를 함께 주면 집행면 훅(gitguard-gate.cjs)까지 배선된다.
+FLOWOPS_ENFORCEMENT=true bash scripts/workspace_provision.sh \
+  --key "3be49b62" \
+  --source "git@github.com:customer/repo.git"
+
+# 조달 완료 확인 — 훅 번들과 settings 엔트리
+ls -l workspaces/3be49b62/.claude/hooks/gitguard-gate.cjs
+grep -c gitguard-gate workspaces/3be49b62/.claude/settings.json
+```
+
+고객 저장소에 이미 `.claude/settings.json` 이 있으면 **원본을 보존**하고 집행면 훅
+엔트리만 가산 병합합니다(다른 키·기존 훅 불변, 재실행 멱등). 병합이 불가능한 경우
+(주석 포함 JSON 등)에는 경고만 남기고 조달은 계속되며 **그 워크스페이스는 집행면 없이
+동작**하므로, 위 `grep -c` 가 0이면 수동 병합이 필요합니다.
+
+상세 절차: `docs/multiproject-delivery.md` §5-4
+
+**4단계: 단일 러너 티켓 경합 차단 (선행 필수)**
+
+디스패처를 켜기 전에 단일 러너(cron)가 디스패처가 관리할 티켓을 건드리지 않도록 제외 목록을 등록합니다:
+
+```bash
+# 운영 중인 전용 러너의 workspace_key 확인
+python3 scripts/workspace_map.py --list | grep "status=mapped"
+
+# crontab에서 해당 커맨드 라인을 찾고 WATCHER_EXCLUDE_PREFIXES 인자 추가
+# 구분자는 탭 문자입니다 (공백 불가):
+crontab -e
+
+# 예시 (기존 라인):
+# */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once
+
+# 수정된 라인 (2개 러너 제외):
+# */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && \
+#   WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:ws1] \t[수주:ws2] ')" \
+#   bash scripts/auto_dev_pipeline.sh --once
+
+# 검증 — 제외를 준 상태로 조회해서 해당 접두사 티켓이 목록에서 빠지는지 본다
+WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:ws1] \t[수주:ws2] ')" \
+  python3 scripts/linear_watcher.py --dry-run
+# (--dry-run 은 조회만 하고 원장·Linear 상태를 바꾸지 않는다)
+```
+
+상세 절차: `docs/multiproject-delivery.md` §5-5
+
+**5단계: 토글 순차 활성화**
+
+`/mnt/c/workspace/ClickEye/.env`에서 다음 토글을 순서대로 활성화합니다:
+
+```bash
+# .env 편집
+nano /mnt/c/workspace/ClickEye/.env
+
+# 순서대로 추가(또는 기존 값을 true로 변경):
+# 1. 워크스페이스 모드 필수 조건:
+#    FLOWOPS_WORKSPACE=true
+#    FLOWOPS_WORKSPACE_AUTOMAP=true (선택)
+#    FLOWOPS_SEAT_POOL=true
+#    FLOWOPS_SEAT_POOL_STRICT=true (선택, 기본 경고 후 폴백)
+
+# 2. 다프로젝트 기능 활성화 (순서 지키기):
+#    FLOWOPS_WORKSPACE_DELIVERY=true    # 고객 리다이렉트
+#    FLOWOPS_RUNNER_DISPATCH=true       # 전용 러너 디스패처
+#    FLOWOPS_ENFORCEMENT=true (선택)   # 집행면 훅
+
+# 켜기 전 검증 — 실행 없이 판정만 보는 경로를 쓴다.
+# ⚠ auto_dev_pipeline.sh 에는 --dry-run 이 없다(--once / --max-iterations / --max-turns 뿐).
+#   즉 파이프라인을 실행하면 실제로 티켓을 처리한다. 먼저 조회 단계만 확인한다:
+python3 scripts/linear_watcher.py --dry-run
+
+# 디스패처는 반드시 DRYRUN 과 함께 — 이 변수를 빼면 실제로 러너를 스폰한다:
+FLOWOPS_RUNNER_DISPATCH=true FLOWOPS_RUNNER_DISPATCH_DRYRUN=true \
+  bash scripts/runner_dispatcher.sh    # 스폰 대상 목록만 출력, 스폰·clone 없음
+
+# 시트 해석·워크스페이스 원장은 오프라인 조회로 확인(부작용 없음):
+python3 scripts/seat_map.py resolve --resolve-key "3be49b62"
+python3 scripts/workspace_map.py --list
+```
+
+**6단계: 종단 검증**
+
+전 체인이 정상 동작하는지 확인합니다:
+
+```bash
+# 단일 러너 폴링 (Queued 이슈 감지)
+python3 scripts/linear_watcher.py --dry-run
+
+# 디스패처 시뮬레이션
+FLOWOPS_RUNNER_DISPATCH=true FLOWOPS_RUNNER_DISPATCH_DRYRUN=true bash scripts/runner_dispatcher.sh
+
+# 실제 1건 통과 — Linear 에서 테스트 이슈(제목이 대상 워크스페이스 접두사로 시작)를
+# Queued 로 바꾸고, 아래 순서로 로그를 따라가며 각 단계가 실제로 일어났는지 확인한다.
+tail -20 logs/dispatcher.log                        # ① 후보 산정 → 스폰
+tail -20 "$(ls -t logs/runner_*.log | head -1)"     # ② 전용 러너(시트 주입 로그 확인)
+tail -20 "$(ls -t logs/ws_delivery_*.log | head -1)" # ③ 고객 clone git stderr(실패 시 사유)
+tail -20 "$(ls -t logs/delivery_*.log | head -1)"   # ④ 고객 push 결과
+
+# ⑤ 최종 확인 — 고객 저장소에 태스크 브랜치가 도달했는지(고객 기본 브랜치는 불변)
+git -C workspaces/3be49b62 ls-remote --heads origin "ralph/*"
+```
+
+성공 기준: ①에 스폰 1건, ②에 `시트 주입: seat=...`, ④에 push 성공, ⑤에 `ralph/<티켓키>`
+브랜치 존재, Linear 티켓이 Done. **push 가 실패하면 티켓은 Done 이 되지 않고 재시도
+경로로 되돌아가며 로컬 브랜치는 보존**됩니다(작업 유실 없음).
 
 ---
 
@@ -633,7 +820,7 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 # LLM 게이트웨이 (CE-299, CE-328)
 # FLOWOPS_USAGE_INGEST=true     — 로컬 claude -p 사용량 → 서버 원장 인제스트 (기본 off)
 
-# 다프로젝트 (CE-339, CE-345)
+# 다프로젝트 (CE-339, CE-345, CE-346, CE-347, CE-329)
 # FLOWOPS_WORKSPACE=true        — 워크스페이스 모드 (+WORKSPACE_KEY, 기본 off)
 # FLOWOPS_WORKSPACE_AUTOMAP=true — 이슈 제목 접두사 → 워크스페이스 자동 해석 (기본 off)
 # FLOWOPS_SEAT_POOL=true        — 워크스페이스 배정 시트(.ralph/seats.json)의 OAuth 토큰 주입
@@ -642,6 +829,13 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 # FLOWOPS_SEAT_POOL_STRICT=true — 시트 미배정/점유 시 단계 미실행 + 이슈를 실패 경로
 #                                 (재시도 복귀/Backlog)로 되돌림 (기본 off = 경고 후 폴백).
 #                                 disabled 시트·토큰 미판독은 이 토글과 무관하게 차단
+# FLOWOPS_RUNNER_DISPATCH=true   — 워크스페이스별 전용 러너 스폰(디스패처, 기본 off).
+#                                 FLOWOPS_RUNNER_DISPATCH_DRYRUN 도 참조.
+#                                 단일 러너와 전용 러너 간 티켓 경합 차단: multiproject-delivery.md §5-5
+# FLOWOPS_WORKSPACE_DELIVERY=true — 고객 clone 에 태스크 브랜치 생성·push (기본 off).
+#                                   3중 게이트(조건 만족 시만 실행). 상세: multiproject-delivery.md §5-5
+# FLOWOPS_ENFORCEMENT=true       — 조달 시 집행면 PreToolUse 훅 배선(기본 off).
+#                                 workspace_provision.sh 에서 호출자 env 우선(FLOWOPS_ENV_KEEP_EXISTING).
 ```
 
 ---
@@ -659,6 +853,10 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 | `logs/merge_*.log` | AUTO_MERGE 실행 결과 + diff 전체 |
 | `logs/confirmer.log` | 정오 Confirm → Done 전환 로그 |
 | `logs/ngrok.log` | ngrok 터널 연결 상태 로그 |
+| `logs/dispatcher.log` | 워크스페이스별 전용 러너 디스패처 틱 로그 (CE-346) |
+| `logs/runner_<key>_*.log` | 워크스페이스별 전용 러너 개별 실행 로그 (CE-346) |
+| `logs/ws_delivery_<KEY>_*.log` | 고객 clone git 조작 stderr (태스크 브랜치 생성·push, CE-347) |
+| `logs/delivery_<KEY>_*.log` | 고객 clone 푸시 결과 로그 (CE-347) |
 
 최근 파이프라인 실행 확인:
 
