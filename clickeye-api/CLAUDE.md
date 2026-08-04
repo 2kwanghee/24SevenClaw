@@ -139,6 +139,13 @@ class ProjectService:
 - 마이그레이션 적용 → `alembic upgrade head`
 - **절대 수동으로 DB 스키마 변경 금지**
 - 마이그레이션 메시지는 한국어
+- **autogenerate 출력은 반드시 검토한다.** 모델이 `app/models/__init__.py` 에 등록되지
+  않았거나(누락) 선언이 실제 스키마와 다르면(JSON↔JSONB, 부분 인덱스 미선언 등)
+  autogenerate 가 **`drop_table`·`drop_index` 를 생성**한다 — 그대로 적용하면 실데이터가
+  삭제된다(CE-370 실측: roi_standards·pm_recommendation_logs·CE-328 멱등 인덱스 삭제문).
+  원칙은 **모델을 실제 스키마에 맞춘다**(DB 를 모델에 맞추는 새 마이그레이션 금지). 새 모델은
+  반드시 `__init__.py` 에 등록하고, 부분 유니크 인덱스는 모델 `__table_args__` 에
+  `postgresql_where` 로 선언한다. 회귀 방지: `tests/test_model_registration.py`.
 
 ### WebSocket Hub (Agent 통신)
 - `app/ws/hub.py`: Agent WebSocket 연결 관리

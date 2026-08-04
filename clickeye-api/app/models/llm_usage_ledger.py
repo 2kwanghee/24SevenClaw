@@ -14,10 +14,12 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -44,6 +46,22 @@ class LlmUsageStatus(StrEnum):
 class LlmUsageLedger(Base):
     __tablename__ = "llm_usage_ledger"
 
+    # (session_id, model) 부분 유니크 인덱스 — 마이그레이션 057 이 만든 것과 정확히 일치.
+    # CE-328 사용량 인제스트 멱등 키다. 모델이 선언하지 않으면 autogenerate 가 drop_index 를
+    # 낸다(모델↔실 스키마 드리프트, CE-370). session_id 가 있는 행에만 유일성을 강제하며,
+    # sqlite_where 로 테스트 create_all 에서도 부분 인덱스가 되게 해 in-API(session_id NULL)
+    # 다중 행이 전체 유니크에 걸리지 않도록 한다(047 선례의 회귀 회피).
+    __table_args__ = (
+        Index(
+            "uq_llm_usage_ledger_session_model",
+            "session_id",
+            "model",
+            unique=True,
+            postgresql_where=text("session_id IS NOT NULL"),
+            sqlite_where=text("session_id IS NOT NULL"),
+        ),
+    )
+
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
     # 파이프라인 태스크/프로젝트 상관관계 (nullable — in-API 호출은 프로젝트 없이 발생 가능)
@@ -68,9 +86,8 @@ class LlmUsageLedger(Base):
     cost = Column(Numeric(14, 6), nullable=True)
     request_kind = Column(String(64), nullable=False)  # 예: wizard_preview
     # 로컬 배치(claude -p) result 이벤트의 session_id — 멱등 인제스트 키(CE-328).
-    # in-API 게이트웨이 호출은 session 개념이 없어 NULL. 부분 유니크 인덱스
-    # (session_id, model) WHERE session_id IS NOT NULL 은 마이그레이션 057 에만 둔다
-    # (047 선례 — SQLite 가 postgresql_where 를 무시해 테스트가 깨지는 것 회피).
+    # in-API 게이트웨이 호출은 session 개념이 없어 NULL. 부분 유니크 인덱스는 위
+    # __table_args__ 에 선언(CE-370 — 마이그레이션 057 과 일치, sqlite_where 로 테스트 회귀 회피).
     session_id = Column(String(64), nullable=True)
     meta = Column(JSONB, nullable=True)
     status: Column[LlmUsageStatus] = Column(

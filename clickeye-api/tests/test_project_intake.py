@@ -28,7 +28,9 @@ async def _register_login(
     return headers, me.json()["id"]
 
 
-async def _create_project(client: AsyncClient, headers: dict[str, str], name: str = "인테이크 프로젝트") -> str:
+async def _create_project(
+    client: AsyncClient, headers: dict[str, str], name: str = "인테이크 프로젝트"
+) -> str:
     resp = await client.post("/api/v1/projects/", json={"name": name}, headers=headers)
     assert resp.status_code == 201
     return resp.json()["id"]
