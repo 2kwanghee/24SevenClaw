@@ -8000,6 +8000,163 @@
         }
       }
     },
+    "/api/v1/pipeline-runs/events": {
+      "post": {
+        "tags": [
+          "pipeline-runs"
+        ],
+        "summary": "Ingest Events",
+        "description": "파이프라인 단계 이벤트 배치 인제스트 — X-Governance-Token 보호(JWT 아님).\n\n항상 202(비블로킹 계약):\n- 관측 계열 공통 스위치 FEATURE_LLM_USAGE_INGEST off → {status: disabled} (에러 아님).\n- 정상 → {status: accepted, count: N}. 멱등 upsert 는 PipelineRunService 위임.",
+        "operationId": "ingest_events_api_v1_pipeline_runs_events_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineEventsIngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ingest Events Api V1 Pipeline Runs Events Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipeline-runs": {
+      "get": {
+        "tags": [
+          "pipeline-runs"
+        ],
+        "summary": "List Runs",
+        "description": "run 단위(최신순) 실행 이력 조회 — 이벤트 스레드 + 그 티켓의 소비 토큰.",
+        "operationId": "list_runs_api_v1_pipeline_runs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "issue_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Key"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRunListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/contracts/": {
       "post": {
         "tags": [
@@ -20303,6 +20460,301 @@
           "target_phase"
         ],
         "title": "PhaseTransitionRequest"
+      },
+      "PipelineEventIn": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Run Id"
+          },
+          "issue_key": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Issue Key"
+          },
+          "event": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Event"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "workspace_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Key"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "issue_key",
+          "event"
+        ],
+        "title": "PipelineEventIn",
+        "description": "이벤트 1건. 이름·페이로드는 `pipeline_metrics.py` 값을 그대로 받는다."
+      },
+      "PipelineEventResponse": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "title": "Event"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data",
+          "occurred_at",
+          "created_at"
+        ],
+        "title": "PipelineEventResponse"
+      },
+      "PipelineEventsIngestRequest": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineEventIn"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "PipelineEventsIngestRequest",
+        "description": "배치 인제스트 — 한 번에 여러 이벤트."
+      },
+      "PipelineRunListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineRunResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "PipelineRunListResponse"
+      },
+      "PipelineRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "issue_key": {
+            "type": "string",
+            "title": "Issue Key"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "workspace_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Key"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/PipelineRunUsage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "issue_key",
+          "project_id",
+          "workspace_key",
+          "started_at",
+          "ended_at",
+          "duration_s",
+          "outcome",
+          "events",
+          "usage"
+        ],
+        "title": "PipelineRunResponse",
+        "description": "실행 1건(run) = 티켓 처리 1회. 단계 이벤트 + 그 티켓의 소비 토큰."
+      },
+      "PipelineRunUsage": {
+        "properties": {
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "cache_read_tokens": {
+            "type": "integer",
+            "title": "Cache Read Tokens",
+            "default": 0
+          },
+          "ref_cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Cost Usd"
+          }
+        },
+        "type": "object",
+        "title": "PipelineRunUsage",
+        "description": "그 티켓이 소비한 토큰 — `llm_usage_ledger` 에서 조인해 채운다.\n\n구독형이므로 **소비량**이며 잔여 한도가 아니다. `ref_cost_usd` 는 청구액이 아닌\n참고 환산값이다(CE-362 규약)."
       },
       "PlatformSummaryResponse": {
         "properties": {
