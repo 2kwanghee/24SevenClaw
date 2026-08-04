@@ -69,8 +69,8 @@ def test_issue_prints_plaintext_on_stdout_only(capsys):
     # stdout 은 평문 한 줄만 — 여기에 안내 문구가 섞이면 `KEY=$(...)` 가 오염된다.
     assert "\n" not in raw
     assert len(raw) >= 32
-    assert "발급 완료" in out.err          # 안내는 stderr
-    assert raw not in out.err              # 평문이 안내에 중복 노출되지 않는다
+    assert "발급 완료" in out.err  # 안내는 stderr
+    assert raw not in out.err  # 평문이 안내에 중복 노출되지 않는다
 
 
 @pytest.mark.asyncio
@@ -156,8 +156,8 @@ async def test_list_does_not_leak_hash_or_plaintext(capsys, db_session: AsyncSes
     listing = out.out + out.err
     assert "목록 확인" in listing
     assert str(row.id) in listing
-    assert raw not in listing                    # 평문 미노출
-    assert str(row.key_hash) not in listing      # 해시 미노출
+    assert raw not in listing  # 평문 미노출
+    assert str(row.key_hash) not in listing  # 해시 미노출
 
 
 def test_verify_via_env(capsys, monkeypatch):

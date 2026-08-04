@@ -87,8 +87,10 @@ async def test_ingest_idempotent_updates_data_preserves_created_at(pg_db: AsyncS
 
     pg_db.expire_all()
     rows = (
-        await pg_db.execute(select(PipelineRunEvent).where(PipelineRunEvent.run_id == "RUN-A"))
-    ).scalars().all()
+        (await pg_db.execute(select(PipelineRunEvent).where(PipelineRunEvent.run_id == "RUN-A")))
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1  # 멱등 — 중복 적재 없음
     assert rows[0].data == {"duration_s": 99}  # data 갱신됨
     assert rows[0].created_at == first_created  # created_at 보존
@@ -107,8 +109,10 @@ async def test_ingest_batch(pg_db: AsyncSession):
     )
     assert n == 3
     rows = (
-        await pg_db.execute(select(PipelineRunEvent).where(PipelineRunEvent.run_id == "RUN-B"))
-    ).scalars().all()
+        (await pg_db.execute(select(PipelineRunEvent).where(PipelineRunEvent.run_id == "RUN-B")))
+        .scalars()
+        .all()
+    )
     assert {r.event for r in rows} == {"refine_done", "impl_done", "run_done"}
 
 
@@ -122,10 +126,18 @@ async def test_list_groups_by_run_derives_and_joins_usage(pg_db: AsyncSession):
     await svc.ingest(
         [
             _ev("RUN-1", "refine_done", occurred_at=base),
-            _ev("RUN-1", "impl_done", occurred_at=base + timedelta(seconds=30),
-                data={"duration_s": 42}),
-            _ev("RUN-1", "run_done", occurred_at=base + timedelta(seconds=60),
-                data={"outcome": "merged"}),
+            _ev(
+                "RUN-1",
+                "impl_done",
+                occurred_at=base + timedelta(seconds=30),
+                data={"duration_s": 42},
+            ),
+            _ev(
+                "RUN-1",
+                "run_done",
+                occurred_at=base + timedelta(seconds=60),
+                data={"outcome": "merged"},
+            ),
         ]
     )
     # run 2: 다른 이슈 — 묶임 분리 확인

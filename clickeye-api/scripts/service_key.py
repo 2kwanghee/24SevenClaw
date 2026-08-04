@@ -98,7 +98,9 @@ async def _issue(name: str, organization_id: UUID | None, print_env: bool) -> in
     async with async_session() as db:
         raw, key = await IntakeService(db).create_service_key(name, organization_id)
 
-    _err(f"발급 완료: id={key.id} name={key.name!r} org={key.organization_id} active={key.is_active}")
+    _err(
+        f"발급 완료: id={key.id} name={key.name!r} org={key.organization_id} active={key.is_active}"
+    )
     _err("평문은 지금 1회만 노출됩니다 — DB 에는 sha256 해시만 저장되며 복구할 수 없습니다.")
     if print_env:
         print(f"CLICKEYE_SERVICE_KEY={raw}")
@@ -167,10 +169,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     pi = sub.add_parser("issue", help="새 키 발급 — 평문을 stdout 에 1회 출력")
     pi.add_argument("--name", required=True, help="키 라벨(용도 식별용, 예: '로컬 러너')")
-    pi.add_argument("--organization", default=None,
-                    help="키 소속 조직 UUID(선택). accept 시 생성되는 Project 로 전파된다")
-    pi.add_argument("--print-env", action="store_true",
-                    help="평문 대신 `CLICKEYE_SERVICE_KEY=<평문>` 한 줄을 출력(.env 등재용)")
+    pi.add_argument(
+        "--organization",
+        default=None,
+        help="키 소속 조직 UUID(선택). accept 시 생성되는 Project 로 전파된다",
+    )
+    pi.add_argument(
+        "--print-env",
+        action="store_true",
+        help="평문 대신 `CLICKEYE_SERVICE_KEY=<평문>` 한 줄을 출력(.env 등재용)",
+    )
 
     sub.add_parser("list", help="발급 목록(해시·평문 미노출)")
 
@@ -178,8 +186,11 @@ def build_parser() -> argparse.ArgumentParser:
     pd.add_argument("--id", required=True, help="회수할 키의 UUID(`list` 로 확인)")
 
     pv = sub.add_parser("verify", help="평문이 실제로 인증되는지 확인")
-    pv.add_argument("--stdin", action="store_true",
-                    help="평문을 stdin 으로 받는다(미지정 시 CLICKEYE_SERVICE_KEY 환경변수)")
+    pv.add_argument(
+        "--stdin",
+        action="store_true",
+        help="평문을 stdin 으로 받는다(미지정 시 CLICKEYE_SERVICE_KEY 환경변수)",
+    )
 
     return p
 
@@ -221,8 +232,10 @@ async def run_async(argv: list[str] | None = None) -> int:
     if args.command == "verify":
         raw = _read_raw(args)
         if not raw:
-            _err("ERROR: 평문이 비어 있습니다 — --stdin 으로 넘기거나 "
-                 "CLICKEYE_SERVICE_KEY 를 설정하세요.")
+            _err(
+                "ERROR: 평문이 비어 있습니다 — --stdin 으로 넘기거나 "
+                "CLICKEYE_SERVICE_KEY 를 설정하세요."
+            )
             return 2
         return await _verify(raw)
 

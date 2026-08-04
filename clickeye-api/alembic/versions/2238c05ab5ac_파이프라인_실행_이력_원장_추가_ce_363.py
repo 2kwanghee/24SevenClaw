@@ -12,49 +12,51 @@ JSONB→JSON 타입 변경까지 포함하고 있었다. 원인은 그 모델들
 그대로 적용하면 데이터가 사라진다. 이 리비전은 **신규 테이블 생성만** 수행한다.
 (등록 누락 자체는 별도 티켓 — 다음 autogenerate 도 같은 위험을 만든다.)
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
+
 # revision identifiers, used by Alembic
-revision: str = '2238c05ab5ac'
-down_revision: Union[str, None] = '058'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "2238c05ab5ac"
+down_revision: str | None = "058"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     op.create_table(
-        'pipeline_run_events',
-        sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('run_id', sa.String(length=128), nullable=False),
-        sa.Column('issue_key', sa.String(length=64), nullable=False),
-        sa.Column('project_id', sa.Uuid(), nullable=True),
-        sa.Column('workspace_key', sa.String(length=64), nullable=True),
-        sa.Column('event', sa.String(length=64), nullable=False),
+        "pipeline_run_events",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("run_id", sa.String(length=128), nullable=False),
+        sa.Column("issue_key", sa.String(length=64), nullable=False),
+        sa.Column("project_id", sa.Uuid(), nullable=True),
+        sa.Column("workspace_key", sa.String(length=64), nullable=True),
+        sa.Column("event", sa.String(length=64), nullable=False),
         sa.Column(
-            'data',
+            "data",
             postgresql.JSONB(astext_type=sa.Text()),
-            server_default='{}',
+            server_default="{}",
             nullable=False,
         ),
-        sa.Column('occurred_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='SET NULL'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('run_id', 'event', name='uq_pipeline_run_event'),
+        sa.Column("occurred_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="SET NULL"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("run_id", "event", name="uq_pipeline_run_event"),
     )
     op.create_index(
-        'ix_pipeline_run_events_issue_key', 'pipeline_run_events', ['issue_key'], unique=False
+        "ix_pipeline_run_events_issue_key", "pipeline_run_events", ["issue_key"], unique=False
     )
     op.create_index(
-        'ix_pipeline_run_events_project_id', 'pipeline_run_events', ['project_id'], unique=False
+        "ix_pipeline_run_events_project_id", "pipeline_run_events", ["project_id"], unique=False
     )
 
 
 def downgrade() -> None:
-    op.drop_index('ix_pipeline_run_events_project_id', table_name='pipeline_run_events')
-    op.drop_index('ix_pipeline_run_events_issue_key', table_name='pipeline_run_events')
-    op.drop_table('pipeline_run_events')
+    op.drop_index("ix_pipeline_run_events_project_id", table_name="pipeline_run_events")
+    op.drop_index("ix_pipeline_run_events_issue_key", table_name="pipeline_run_events")
+    op.drop_table("pipeline_run_events")
