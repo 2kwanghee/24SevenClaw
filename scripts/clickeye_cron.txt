@@ -32,6 +32,11 @@
 # (실측 위치는 위 "[등록 전 필수] PATH 검증" 참조 — 변경 시 이 줄도 함께 갱신.)
 SHELL=/bin/bash
 PATH=/home/lkh/.local/bin:/home/lkh/bin:/usr/local/bin:/usr/bin:/bin
+# ngrok reserved 도메인. Linear 에 등록된 webhook URL 이 이 도메인이므로, watchdog 가
+# 되살릴 때도 **반드시 같은 도메인**으로 띄워야 한다(--url 없이 띄우면 랜덤 URL 이
+# 배정되어 Linear→호스트 경로가 조용히 끊긴다 — 무인 운영에서 관측이 어렵다).
+# 기본값의 SSOT 는 scripts/webhook-doctor.sh:34 — 도메인 변경 시 두 곳을 함께 갱신한다.
+NGROK_DOMAIN=understandingly-unforecasted-raymundo.ngrok-free.dev
 
 # ── 파이프라인 실행(호스트) ──────────────────────────────────────────────────
 # 업무시간 폴링: 평일 09~18시 5분마다 1회 실행(잔여 Queued 이슈 처리).
@@ -78,4 +83,6 @@ PATH=/home/lkh/.local/bin:/home/lkh/bin:/usr/local/bin:/usr/bin:/bin
 # 자신에 매칭되어 워커가 죽어도 재기동 분기가 절대 실행되지 않는다(실측 확인).
 */10 * * * * pgrep -f "[w]ebhook_worker.py" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup python3 scripts/webhook_worker.py >> logs/webhook-worker.log 2>&1 &)
 # ngrok 터널(Linear → 호스트:9876 → compose webhook 컨테이너).
-*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
+# --url 로 위 NGROK_DOMAIN 을 고정한다. 무료 플랜의 랜덤 URL 로 되살아나면 Linear 에
+# 등록된 URL 과 불일치해 이벤트가 조용히 유실된다(폴링 cron 만 남아 최대 5분 지연).
+*/10 * * * * pgrep -f "[n]grok http 9876" > /dev/null || (cd /mnt/c/workspace/ClickEye && nohup ngrok http 9876 --url="https://$NGROK_DOMAIN" --log=logs/ngrok.log --log-format=logfmt >> /dev/null 2>&1 &)
