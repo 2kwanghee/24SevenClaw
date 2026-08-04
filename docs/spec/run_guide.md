@@ -5,6 +5,7 @@ status: current
 last_updated: 2026-08-04
 related:
   - scripts/fullstack_run.sh
+  - clickeye-api/scripts/service_key.py
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
   - scripts/webhook-doctor.sh
@@ -452,16 +453,42 @@ python3 scripts/seat_map.py list
 
 **2단계: 워크스페이스 매핑**
 
-> **⚠ 선행 조건 — 이 단계는 현재 그냥 실행하면 막힙니다(CE-350).** 아래 폴링은
-> `CLICKEYE_SERVICE_KEY`(머신 서비스 키 평문)를 요구하는데, 실측(2026-08-04) 결과
-> `.env`·`clickeye-api/.env`·`clickeye-infra/managed/*.env` 어디에도 이 키가 없고
-> `scripts/workspace_map.py` 는 `ERROR: CLICKEYE_SERVICE_KEY 환경변수가 필요합니다`(exit 2)
-> 로 종료합니다. DB `intake_service_keys` 의 기존 키는 sha256 해시만 저장되어 평문을
-> 복구할 수 없고, 신규 발급 경로는 `POST /api/v1/intake/service-keys`(`require_superadmin`)
-> 뿐이라 **웹 로그인 + superadmin 계정**이 필요합니다.
+**선행 조건: 머신 서비스 키 발급** (최초 1회, CE-350)
+
+아래 폴링은 `CLICKEYE_SERVICE_KEY`(머신 서비스 키 평문)를 요구합니다. 없으면
+`scripts/workspace_map.py` 가 `ERROR: CLICKEYE_SERVICE_KEY 환경변수가 필요합니다`(exit 2)로
+끝납니다. 웹 로그인 없이 CLI 로 발급합니다:
+
+```bash
+cd /mnt/c/workspace/ClickEye/clickeye-api
+
+# 발급 + .env 등재 (평문은 stdout 한 줄만 — 안내는 stderr 로 분리되어 있어 캡처가 안전하다)
+( umask 077; uv run python -m scripts.service_key issue --name "로컬 러너" --print-env >> ../.env )
+grep -c '^CLICKEYE_SERVICE_KEY=' ../.env      # 1 이어야 정상(중복 등재 확인)
+
+# 등재한 키가 실제로 인증되는지 확인 (평문을 인자로 넘기지 않는다 — ps·히스토리 노출 방지)
+CLICKEYE_SERVICE_KEY="$(grep '^CLICKEYE_SERVICE_KEY=' ../.env | tail -1 | cut -d= -f2-)" \
+  uv run python -m scripts.service_key verify
+
+# 목록 / 회수
+uv run python -m scripts.service_key list
+uv run python -m scripts.service_key deactivate --id <uuid>
+```
+
+> **평문은 발급 시점 1회만 노출**되고 DB 에는 sha256 해시만 남습니다 — 잃으면 복구가 아니라
+> 재발급입니다. 이 키는 인테이크 접수·거버넌스 evaluate·머신 조회 **세 면의 공용 인증 채널**
+> 이므로 발급은 곧 그 세 면의 접근 권한을 만드는 일입니다.
 >
-> 발급 후 `.env` 에 `CLICKEYE_SERVICE_KEY=<평문>` 을 등재하세요(권한 600, 히스토리 미기록 —
-> 1단계 토큰 취급과 같은 규약). 운영자용 발급 CLI 는 **CE-350** 에서 제공합니다.
+> **로테이션 순서**: 새 키 발급 → `.env` 교체 → 그 다음에 옛 키 `deactivate`. 먼저 내리면
+> 그 사이 배치가 401 로 실패합니다.
+
+> **⚠ 컨테이너 이미지 신선도** — 머신 조회 라우트(`/api/v1/intake/machine/projects`)는
+> 소스에 있어도 **낡은 `api` 이미지에는 없습니다**(실측 2026-08-04: HTTP 404. `migrate`
+> 이미지도 같은 이유로 리비전을 몰라 실패했다). compose 경로로 API 를 띄운다면 pull 후
+> 한 번은 재빌드하세요:
+> ```bash
+> (cd clickeye-infra/docker && docker compose --profile full build migrate api)
+> ```
 
 고객 프로젝트 목록을 머신 API에서 폴링하여 `.ralph/workspaces.json` 원장을 갱신합니다:
 

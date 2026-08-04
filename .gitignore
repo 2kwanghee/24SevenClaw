@@ -22,6 +22,10 @@ logs/metrics/
 # 시트 풀 원장/자격증명 (CE-345 — 계정 배정과 OAuth 토큰은 절대 추적하지 않는다)
 .ralph/seats.json
 .ralph/seats/
+# 워크스페이스 매핑 원장 — 머신마다 자기 머신 API 를 폴링해 만드는 호스트 로컬 상태이며
+# 고객 repo URL 이 담긴다. seats.json 과 같은 취급(docs/multiproject-delivery.md §5-3).
+# 추적하면 자율 파이프라인의 자동커밋이 고객 repo 주소를 커밋한다.
+.ralph/workspaces.json
 .ralph/.seat_lock.*
 # 디스패처 런타임(러너 PID 마커·틱 락) — 호스트 로컬 상태 (CE-346)
 .ralph/dispatch/
