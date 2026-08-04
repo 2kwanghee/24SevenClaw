@@ -207,6 +207,15 @@ export function CostCard({
           </div>
         )}
 
+        {/* 과소계상 명시(CE-353) — 구현 스텝만 집계, 정제·분해 단계 토큰 미반영 */}
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          <AlertTriangle
+            className="mt-0.5 h-3.5 w-3.5 shrink-0"
+            aria-hidden="true"
+          />
+          <span>{t("cost.scopeNote")}</span>
+        </div>
+
         <p className="border-t border-[var(--border-subtle)] pt-3 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
           {t.rich("cost.footer", {
             b: (chunks) => (

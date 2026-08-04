@@ -723,7 +723,8 @@
       "keySource": {
         "subscription_seat": "Kursi langganan",
         "org_api_key": "Kunci API organisasi"
-      }
+      },
+      "scopeNote": "Hanya langkah implementasi yang dihitung — tahap penyempurnaan/dekomposisi belum termasuk (CE-353)."
     },
     "issues": {
       "empty": "Belum ada isu",
@@ -827,6 +828,83 @@
       "subtitle": "Tanyakan tentang delivery aktif di seluruh organisasi Anda",
       "placeholder": "mis., Layanan apa yang sedang kita produksi sekarang?",
       "hint": "Jawaban didasarkan pada delivery aktif organisasi Anda. Enter untuk kirim · Shift+Enter untuk baris baru."
+    },
+    "pipeline": {
+      "title": "Jalur Eksekusi Pipeline",
+      "runCount": "{count} run",
+      "runSelectLabel": "Pilih run eksekusi",
+      "outcomeLabel": "Hasil",
+      "modelMismatch": "Peringatan ketidakcocokan model",
+      "durationSec": "{seconds}d",
+      "durationDerived": "~{seconds}d",
+      "inferredHint": "Tidak ada event awal, sehingga tahap ini diperkirakan sedang berjalan berdasarkan penyelesaian tahap sebelumnya.",
+      "derivedHint": "Durasi selain langkah implementasi diturunkan dari selisih waktu antar-event berurutan (ditandai ~).",
+      "error": "Gagal memuat riwayat eksekusi pipeline.",
+      "stages": {
+        "refine": "Penyempurnaan",
+        "impl": "Implementasi",
+        "qa": "QA",
+        "gate": "Gate",
+        "done": "Selesai"
+      },
+      "status": {
+        "done": "Selesai",
+        "failed": "Gagal",
+        "inferred": "Perkiraan berjalan",
+        "pending": "Menunggu",
+        "skipped": "Tanpa catatan"
+      },
+      "outcome": {
+        "pushed": "Dikirim",
+        "merged": "Digabung",
+        "pr": "PR dibuat",
+        "demoted": "Diturunkan",
+        "failed": "Gagal",
+        "unknown": "Tidak diketahui"
+      },
+      "eventName": {
+        "refine_done": "Penyempurnaan selesai",
+        "impl_done": "Implementasi selesai",
+        "qa_done": "QA selesai",
+        "gate_done": "Gate selesai",
+        "run_done": "Run selesai",
+        "model_mismatch": "Ketidakcocokan model"
+      },
+      "dataKey": {
+        "refined": "disempurnakan",
+        "fallback": "fallback",
+        "domain_section": "bagian domain",
+        "workdir": "direktori kerja",
+        "duration_s": "durasi (dtk)",
+        "ran": "dijalankan",
+        "exit": "kode keluar",
+        "demoted": "diturunkan",
+        "verdict": "putusan",
+        "outcome": "hasil",
+        "expected": "diharapkan",
+        "actual": "aktual"
+      },
+      "thread": {
+        "title": "Linimasa event",
+        "empty": "Run ini tidak memiliki event tercatat."
+      },
+      "empty": {
+        "title": "Belum ada riwayat eksekusi pipeline",
+        "desc": "Setelah rantai tanpa pengawasan menjalankan tiket, tahap dan durasi akan muncul di sini."
+      },
+      "restricted": {
+        "desc": "Melihat riwayat eksekusi pipeline memerlukan izin settings:manage."
+      },
+      "usage": {
+        "title": "Penggunaan token tiket",
+        "input": "Input",
+        "output": "Output",
+        "cacheRead": "Baca cache",
+        "ticketCount": "{count} tiket",
+        "dedupeNote": "Diagregasi per tiket. Beberapa run dari tiket yang sama dideduplikasi dan dihitung sekali.",
+        "models": "Model"
+      },
+      "skippedHint": "Run selesai tetapi tidak ada event tercatat untuk tahap ini (mis. gate pada jalur tanpa tata kelola). Apakah dijalankan tidak dapat dipastikan."
     }
   },
   "aiTeam": {

@@ -1783,6 +1783,69 @@ export const llmLedger = {
   },
 };
 
+// --- 파이프라인 실행 이력 (무인 체인 실행 축, CE-363/364) ---
+// 원장 엔드포인트와 동일하게 settings:manage(admin/superadmin) 권한 전용이다.
+// 노드별 토큰은 존재하지 않는다 — usage 는 issue_key(티켓) 단위 집계다.
+
+/** pipeline_run_events 의 단일 이벤트. data 는 이벤트별로 임의 키를 가질 수 있다. */
+export interface PipelineRunEvent {
+  event: string;
+  data: Record<string, unknown>;
+  occurred_at: string | null;
+  created_at: string;
+}
+
+/** 런 usage — 티켓 단위 집계. cache_read_tokens 는 출력의 수백 배에 달할 수 있다. */
+export interface PipelineRunUsage {
+  models: string[];
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  ref_cost_usd: number | null;
+}
+
+/** GET /api/v1/pipeline-runs 의 단일 런. */
+export interface PipelineRun {
+  run_id: string;
+  issue_key: string;
+  project_id: string | null;
+  workspace_key: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  duration_s: number | null;
+  outcome: string | null;
+  events: PipelineRunEvent[];
+  usage: PipelineRunUsage;
+}
+
+export interface PipelineRunListResponse {
+  items: PipelineRun[];
+  total: number;
+}
+
+export const pipelineRuns = {
+  list: (
+    token: string,
+    params: {
+      issueKey?: string;
+      projectId?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.issueKey) query.set("issue_key", params.issueKey);
+    if (params.projectId) query.set("project_id", params.projectId);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+    const qs = query.toString();
+    return authRequest<PipelineRunListResponse>(
+      `/api/v1/pipeline-runs${qs ? `?${qs}` : ""}`,
+      token,
+    );
+  },
+};
+
 // --- LLM Assistant (지식축적형 sLLM 프록시, clickeye-llm) ---
 
 /** RAG 답변의 근거 출처 청크. */
