@@ -32,6 +32,18 @@ fi
 LOCK_FILE=".ralph/.pipeline_lock"
 TASK_MAPPING=".ralph/.task_mapping.json"
 
+# ── [CE-367] 모델 티어 고정 — **별칭 금지, 정식 모델명만** ────────────────────
+# 실측(2026-08-04, CLI 2.1.221): `--model sonnet` 별칭이 `claude-opus-4-8` 로 해석됐다.
+# 별칭은 `--help` 가 "alias for the **latest** model" 이라 설명하는데 그 해석이 어긋난 것이며,
+# 정식 모델명(`claude-sonnet-5`)은 정확히 해석된다. 다음 수단은 전부 별칭을 못 이겼다:
+# ANTHROPIC_MODEL env · --settings(JSON/파일) · 프로젝트 .claude/settings.json ·
+# CLAUDE_CONFIG_DIR 격리 · 전역 model 핀 제거(→ 전역 설정은 원인이 아니었다).
+# 영향: 구현 1건이 의도(sonnet) 대비 캐시 읽기 2.5배·환산액 2.5배로 실행됐다(CE-366 vs CE-355).
+# 모델 교체 시 갱신 지점을 한 곳으로 모으고 env 오버라이드를 허용한다. 티어 배정의 SSOT 는
+# .claude/MODEL-ROUTING.md 다.
+PIPELINE_MODEL_REFINE="${PIPELINE_MODEL_REFINE:-claude-sonnet-5}"
+PIPELINE_MODEL_IMPL="${PIPELINE_MODEL_IMPL:-claude-sonnet-5}"
+
 # ── [파생형 하네스] 워크스페이스 락 분리 + automap 초기 상태 (CE-339) ──
 # 프로세스 시작 시점의 WORKSPACE_KEY(전용 러너가 env 로 지정)를 보존한다. automap 은
 # 이 값이 비어 있을 때만(= self-repo/단일 러너) 이슈별로 WORKSPACE_KEY 를 채운다.
@@ -721,7 +733,7 @@ $(cat .ralph/fix_plan.md 2>/dev/null || echo '(없음)')
         # [시트 풀] 이 서브셸의 stdout 은 정제 산출물 전용 → 시트 로그는 stderr(REFINE_LOG)로.
         apply_seat_env >&2 || exit 97
         timeout "${REFINE_TIMEOUT:-600}" claude -p "$REFINE_PROMPT" \
-          --model sonnet \
+          --model "$PIPELINE_MODEL_REFINE" \
           --dangerously-skip-permissions \
           </dev/null ) > "$REFINED_FILE" 2>>"$REFINE_LOG" || REFINE_RC=$?
       # 97 = 시트 STRICT 스킵(정제 미실행) → 티켓 무작업 소진 대신 실패 경로로 되돌린다.
@@ -820,7 +832,7 @@ PY
   IMPL_RC=0
   exec 9>&1
   ( cd "$IMPL_WORKDIR" && { apply_seat_env >&9 || exit 97; } && claude -p "$IMPL_PROMPT" \
-    --model sonnet \
+    --model "$PIPELINE_MODEL_IMPL" \
     --dangerously-skip-permissions \
     --verbose \
     --output-format stream-json \
@@ -836,6 +848,29 @@ PY
   fi
 
   log "Claude 구현 완료: $TITLE"
+
+  # ── [CE-367] 실행 모델 검증 — 의도한 티어로 돌았는지 확인한다 ──
+  # 별칭 오해석(sonnet→opus-4-8)은 **조용히** 일어났다. 원가가 배로 뛰는데 로그에 흔적이
+  # 없었다. 이제 세션 init 이벤트의 실제 model 을 읽어 의도와 다르면 남긴다(비차단 — 관측만).
+  ACTUAL_MODEL="$(python3 - "$CLAUDE_LOG" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if '"subtype":"init"' in line:
+                print(json.loads(line).get("model") or "")
+                break
+except OSError:
+    pass
+PY
+)"
+  if [ -n "$ACTUAL_MODEL" ] && [ "$ACTUAL_MODEL" != "$PIPELINE_MODEL_IMPL" ]; then
+    log "WARN: 실행 모델 불일치 — 의도=${PIPELINE_MODEL_IMPL} 실제=${ACTUAL_MODEL} (원가·한도 소진에 직접 영향, CE-367)"
+    record_metric "$METRIC_RUN_ID" "model_mismatch" \
+      "{\"intended\": \"$PIPELINE_MODEL_IMPL\", \"actual\": \"$ACTUAL_MODEL\"}"
+  elif [ -n "$ACTUAL_MODEL" ]; then
+    log "실행 모델 확인: ${ACTUAL_MODEL}"
+  fi
 
   # ── [Tier 3a 메트릭] impl_done — 구현 소요(초)·워크디렉터리 종류 관측(비차단) ──
   M_IMPL_DUR=$(( $(date +%s) - M_IMPL_START ))

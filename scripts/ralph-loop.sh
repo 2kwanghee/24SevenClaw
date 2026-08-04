@@ -97,7 +97,7 @@ echo ""
 unset ANTHROPIC_API_KEY
 
 claude -p "$(cat .ralph/PROMPT.md)" \
-  --model sonnet \
+  --model "${PIPELINE_MODEL_IMPL:-claude-sonnet-5}" \
   --dangerously-skip-permissions
 
 # ── 5. 사후 검증 ──

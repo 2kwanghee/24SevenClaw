@@ -5,6 +5,42 @@
 
 ---
 
+## ⚠ 무인 배치는 별칭을 쓰지 않는다 — 정식 모델명만 (CE-367)
+
+`claude -p --model sonnet` 처럼 **별칭을 넘기면 티어 배정이 집행되지 않는다.**
+실측(2026-08-04, CLI 2.1.221):
+
+| 지정 | 실제 실행 모델 |
+|---|---|
+| `--model sonnet` (별칭) | **`claude-opus-4-8`** ❌ |
+| `--model claude-sonnet-5` (정식명) | `claude-sonnet-5` ✅ |
+
+`--help` 는 별칭을 "alias for the **latest** model" 이라 설명하는데, 그 해석이 sonnet →
+opus-4-8 로 어긋났다. 아래 수단은 **전부 별칭을 이기지 못했다**(실증):
+
+- `ANTHROPIC_MODEL` env · `--settings`(JSON 문자열/파일) · 프로젝트 `.claude/settings.json`
+- `CLAUDE_CONFIG_DIR` 격리
+- 전역 `~/.claude/settings.json` 의 `model` 핀 제거 → **전역 설정은 원인이 아니었다**
+
+**영향**: 문서 2파일 티켓 하나가 의도(sonnet) 대비 캐시 읽기 2.5배·환산액 2.5배로 실행됐다
+(CE-366 `claude-opus-4-8` vs CE-355 `claude-sonnet-5`). 구독형이라 청구는 없지만 **한도 소진
+속도**가 그만큼 빨라진다. 그리고 이 일은 **조용히** 일어났다 — 관측 원장(CE-362)을 켜기
+전까지 아무도 몰랐다.
+
+**규약**
+1. 배치 스크립트의 `--model` 인자는 **정식 모델명**만 쓴다(`claude-sonnet-5` 등).
+2. 티어 값은 `scripts/auto_dev_pipeline.sh` 상단의 `PIPELINE_MODEL_REFINE` /
+   `PIPELINE_MODEL_IMPL` 한 곳에 모으고, env 로 덮을 수 있게 둔다. 모델 교체 시 갱신 지점은
+   그 두 변수와 이 문서다.
+3. 실행 후 세션 init 이벤트의 실제 모델을 의도와 대조해 다르면 `WARN` + 메트릭
+   (`model_mismatch`)을 남긴다 — 조용한 재발을 막는 것이 규약의 절반이다.
+4. 회귀 고정: `scripts/tests/test_model_pinning.sh`(별칭 0건 · 변수 배선 · 관측 배선).
+
+> 아래 표의 `opus`/`sonnet`/`haiku` 표기는 **티어 이름**이다. 실제 인자로 넘길 때는 정식
+> 모델명으로 바꿔 쓴다.
+
+---
+
 ## 모델 티어 정의
 
 | 티어 | 모델 | 토큰 비용 | 적합한 작업 |
