@@ -47,6 +47,14 @@ NGROK_DOMAIN=understandingly-unforecasted-raymundo.ngrok-free.dev
 #   이 env 를 직접 읽으므로 cron 라인만 고치면 된다. 예(전용 러너 2개를 제외):
 #     */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:aaa11111] \t[수주:bbb22222] ')" bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
 #   설정 후 검증: python3 scripts/linear_watcher.py --dry-run 출력에 제외 대상이 없어야 한다.
+# [활성 2026-08-04] 현재는 제외 없음 — 단일 러너가 워크스페이스 티켓까지 automap 으로 처리한다.
+#   **제외는 디스패처를 켤 때만 필요하다.** 그런데 디스패처는 워크스페이스마다 배정 시트를
+#   요구한다(`runner_dispatcher.sh:186` — seats.json 에 배정이 없으면 `no_seat` 로 영구 스킵,
+#   FLOWOPS_SEAT_POOL 과 무관하게 무조건). 시트 없이 제외만 걸면 그 티켓은 단일 러너에서
+#   빠지고 디스패처도 스킵해 **아무도 처리하지 않는 죽은 조합**이 된다(실측 2026-08-04).
+#   → 시트를 등록(`claude setup-token` → seat_map.py register-seat/assign)한 뒤에
+#     아래 줄에 `WATCHER_EXCLUDE_PREFIXES="$(printf '[수주:<key>] ')"` 를 붙이고
+#     FLOWOPS_RUNNER_DISPATCH=true 로 켠다. 순서를 바꾸면 티켓이 멈춘다.
 */5 9-18 * * 1-5 cd /mnt/c/workspace/ClickEye && bash scripts/auto_dev_pipeline.sh --once >> logs/pipeline-cron.log 2>&1
 # 러너 디스패처(P5/CE-346): 워크스페이스별 전용 러너를 clone 안에서 스폰/감시/회수.
 #   FLOWOPS_RUNNER_DISPATCH 미설정이면 SKIP 후 exit 0 이므로 등록해도 무해하다(회귀 0).
