@@ -100,5 +100,52 @@ def test_empty_data_defaults_to_empty_dict(tmp_path):
     assert rows[0]["data"] == {}
 
 
+# ── ⑤ 서버 전송(CE-363): 미설정 시 생략 · 실패해도 exit 0 · jsonl 은 항상 유지 ──
+
+
+def _spy_urlopen(calls):
+    def _fake(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("urlopen 이 호출되면 안 된다(전송 생략 조건)")
+    return _fake
+
+
+def test_server_send_skipped_when_url_unset(tmp_path, monkeypatch):
+    """URL 미설정이면 서버 전송을 생략한다(회귀 0) — jsonl 은 그대로 기록."""
+    monkeypatch.delenv("FLOWOPS_GOVERNANCE_SERVICE_URL", raising=False)
+    calls = []
+    monkeypatch.setattr(pm, "urlopen", _spy_urlopen(calls))
+    ledger = tmp_path / "runs.jsonl"
+    rc = pm.main(["--run-id", "R1", "--event", "run_done",
+                  "--issue-key", "CE-1", "--ledger", str(ledger)])
+    assert rc == 0
+    assert calls == []  # 네트워크 호출 없음
+    assert len(_read_jsonl(ledger)) == 1  # jsonl 기록은 유지
+
+
+def test_server_send_skipped_when_issue_key_absent(tmp_path, monkeypatch):
+    """URL 이 있어도 issue_key(서버 필수 축)가 없으면 전송 생략."""
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_SERVICE_URL", "http://server.local")
+    calls = []
+    monkeypatch.setattr(pm, "urlopen", _spy_urlopen(calls))
+    ledger = tmp_path / "runs.jsonl"
+    rc = pm.main(["--run-id", "R1", "--event", "run_done", "--ledger", str(ledger)])
+    assert rc == 0
+    assert calls == []
+    assert len(_read_jsonl(ledger)) == 1
+
+
+def test_server_send_failure_is_nonblocking(tmp_path, monkeypatch, capsys):
+    """잘못된 URL(전송 실패)이어도 exit 0 + jsonl 유지(파이프라인 불사)."""
+    # 스킴 없는 URL → urlopen 이 ValueError(네트워크 호출 전) — 실패 경로를 네트워크 없이 검증.
+    monkeypatch.setenv("FLOWOPS_GOVERNANCE_SERVICE_URL", "not-a-url")
+    ledger = tmp_path / "runs.jsonl"
+    rc = pm.main(["--run-id", "R1", "--event", "run_done",
+                  "--issue-key", "CE-1", "--ledger", str(ledger)])
+    assert rc == 0
+    assert len(_read_jsonl(ledger)) == 1  # 서버 실패와 무관하게 jsonl 은 남는다
+    assert "실패" in capsys.readouterr().err
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

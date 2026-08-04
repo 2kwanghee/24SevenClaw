@@ -17,6 +17,7 @@ from app.models.managed_env_var import ManagedEnvVar  # noqa: F401
 from app.models.maturity_assessment import MaturityAssessment  # noqa: F401
 from app.models.orchestrator import OrchestratorSession, PhaseEvent, SubTask  # noqa: F401
 from app.models.organization import Organization  # noqa: F401
+from app.models.pipeline_run_event import PipelineRunEvent  # noqa: F401
 from app.models.pm_composition import PMComposition  # noqa: F401
 from app.models.pm_metrics import PMMetrics  # noqa: F401
 from app.models.pm_profile import PMProfile  # noqa: F401
@@ -32,6 +33,13 @@ from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
 from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
+
+# llm_usage_ledger.seat_id 가 이 테이블을 FK 로 참조하는데 등록이 빠져 있었다 —
+# 없으면 alembic autogenerate 가 NoReferencedTableError 로 죽는다(CE-363 작업 중 발견).
+# 등록 누락 전수 점검은 CE-370.
+from app.models.user_anthropic_credentials import (  # noqa: F401
+    UserAnthropicCredentials,
+)
 from app.models.user_linear_credentials import UserLinearCredentials  # noqa: F401
 
 __all__ = [
@@ -51,6 +59,8 @@ __all__ = [
     "IntakeServiceKey",
     "License",
     "LlmUsageLedger",
+    "PipelineRunEvent",
+    "UserAnthropicCredentials",
     "ManagedEnvVar",
     "MaturityAssessment",
     "MCPServer",

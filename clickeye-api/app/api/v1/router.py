@@ -23,6 +23,7 @@ from app.api.v1.ops_env import router as ops_env_router
 from app.api.v1.ops_infra import router as ops_infra_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
+from app.api.v1.pipeline_runs import router as pipeline_runs_router
 from app.api.v1.pm_profiles import router as pm_profiles_router
 from app.api.v1.presets import router as presets_router
 from app.api.v1.projects import router as projects_router
@@ -60,6 +61,7 @@ api_v1_router.include_router(quality_gate_router)
 api_v1_router.include_router(reports_router)
 api_v1_router.include_router(review_pipeline_router)
 api_v1_router.include_router(pm_profiles_router)
+api_v1_router.include_router(pipeline_runs_router)
 api_v1_router.include_router(contracts_router)
 api_v1_router.include_router(project_contracts_router)
 api_v1_router.include_router(contracts_sync_router)

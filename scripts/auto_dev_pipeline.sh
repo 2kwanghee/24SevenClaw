@@ -245,8 +245,13 @@ seat_strict_skip() {
 # 인자: <run_id> <event> <data_json>. 이 원장이 3b prompt-evolve 채점 입력이 된다.
 record_metric() {
   is_enabled "FLOWOPS_METRICS" 2>/dev/null && [ -n "${FLOWOPS_METRICS:-}" ] || return 0
+  # 상관 축(CE-363)을 함께 넘긴다 — 서버 원장이 티켓/프로젝트/워크스페이스로 묶을 수 있게.
+  # 값이 없으면 pipeline_metrics.py 가 서버 전송을 생략한다(jsonl 기록은 항상 유지).
   python3 "$PROJECT_DIR/scripts/pipeline_metrics.py" \
-    --run-id "$1" --event "$2" --data "$3" || true
+    --run-id "$1" --event "$2" --data "$3" \
+    --issue-key "${ISSUE_KEY:-}" \
+    --workspace-key "${WORKSPACE_KEY:-}" \
+    --project-id "${ITER_PROJECT_ID:-}" || true
 }
 
 # ── Git lock guard ──
@@ -453,6 +458,17 @@ for title, meta in m.items():
     else
       log "automap: ${ISSUE_KEY} 미매핑 — self-repo 진행"
     fi
+  fi
+
+  # ── [CE-363] 이터레이션 프로젝트 축 1회 해석 ──
+  # WORKSPACE_KEY 확정 지점에서 project_id 를 한 번만 해석해 재사용한다(메트릭 상관 축 +
+  # 사용량 인제스트 CE-362 가 같은 값을 두 번 해석하지 않도록). self-repo(WORKSPACE_KEY 없음)
+  # 는 프로젝트가 없으므로 빈 값 = 축 없이 진행(회귀 0).
+  ITER_PROJECT_ID=""
+  if [ -n "${WORKSPACE_KEY:-}" ]; then
+    ITER_PROJECT_ID="$(python3 "$PROJECT_DIR/scripts/workspace_map.py" \
+      --resolve-project "$WORKSPACE_KEY" \
+      --output "$PROJECT_DIR/.ralph/workspaces.json" 2>/dev/null || true)"
   fi
 
   # ── [CE-358] 수주 접두사 fail-closed — 미매핑 수주 티켓을 self-repo 로 흘리지 않는다 ──
@@ -915,12 +931,8 @@ PY
     # 집계할 수 없다. 수락 시 생성된 Project id 는 이미 워크스페이스 원장에 있으므로
     # (machine/projects 폴링 산출물) 서버를 다시 조회하지 않고 원장에서 읽는다.
     # self-repo 이슈는 프로젝트가 없으므로 빈 값 = 기존과 동일(축 없이 기록).
-    USAGE_PROJECT_ID=""
-    if [ -n "${WORKSPACE_KEY:-}" ]; then
-      USAGE_PROJECT_ID="$(python3 "$PROJECT_DIR/scripts/workspace_map.py" \
-        --resolve-project "$WORKSPACE_KEY" \
-        --output "$PROJECT_DIR/.ralph/workspaces.json" 2>/dev/null || true)"
-    fi
+    # [CE-363] 이미 이터레이션 시작에서 해석한 ITER_PROJECT_ID 를 재사용(중복 해석 제거).
+    USAGE_PROJECT_ID="${ITER_PROJECT_ID:-}"
     CLICKEYE_PROJECT_ID="$USAGE_PROJECT_ID" python3 scripts/usage_ingest.py \
       --log "$CLAUDE_LOG" \
       --request-kind local_batch_implement \
