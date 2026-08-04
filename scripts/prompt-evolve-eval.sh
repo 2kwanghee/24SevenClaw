@@ -117,7 +117,7 @@ cd "$WT"
 unset ANTHROPIC_API_KEY
 set +e
 timeout "${EVAL_TIMEOUT:-3600}" claude -p "$(cat .ralph/PROMPT.md)" \
-  --model sonnet --dangerously-skip-permissions </dev/null >/dev/null 2>&1
+  --model "${PIPELINE_MODEL_IMPL:-claude-sonnet-5}" --dangerously-skip-permissions </dev/null >/dev/null 2>&1
 set -e
 
 # fitness: ralph-stop-hook 으로 PASS/FAIL + iteration_count
