@@ -4,6 +4,7 @@ category: guide
 status: current
 last_updated: 2026-08-04
 related:
+  - scripts/fullstack_run.sh
   - scripts/webhook_server.py
   - scripts/webhook_worker.py
   - scripts/webhook-doctor.sh
@@ -25,6 +26,36 @@ related:
 ---
 
 # 서비스 실행 가이드
+
+## 0단계: 한 방에 기동 (권장 시작점)
+
+아래 1~3단계를 순서대로 하는 것과 같은 일을 한 줄로 한다. **멱등**이므로 이미 떠 있는 것은
+건드리지 않고, 마지막에 요소별 상태표를 출력한다.
+
+```bash
+cd /mnt/c/workspace/ClickEye
+bash scripts/fullstack_run.sh          # 전체 기동 (실측 콜드스타트 ~19초)
+
+bash scripts/fullstack_run.sh --check  # 진단만 (아무것도 바꾸지 않음)
+bash scripts/fullstack_run.sh --stop   # 이 스크립트가 띄운 것만 정지
+```
+
+기동 범위: `db`·`redis`·`migrate`(= `alembic upgrade head`)·`webhook` 컨테이너 → API(:8000)
+→ 웹 dev 서버(:3000) → 호스트 워커 + ngrok(`webhook-doctor.sh` 위임) → cron 정본 대조(보고만).
+
+알아둘 동작:
+
+- **API 는 두 경로를 모두 지원한다.** :8000 을 이미 누가 서비스하면(호스트 uvicorn) 그대로
+  인정하고 compose `api` 를 띄우지 않는다(포트 중복 바인딩 방지). 아무도 없으면 컨테이너로 띄운다.
+- **마이그레이션은 compose `migrate` 게이트가 담당**한다. 이미지에 구운 `alembic/versions` 가
+  DB 리비전보다 낡으면 `Can't locate revision` 으로 실패하므로(실측), 그때는 스크립트가
+  `docker compose --profile full build migrate api` 를 안내한다.
+- **남의 것은 건드리지 않는다.** `--stop` 은 이 레포 소유(compose 프로젝트 + cwd 가 레포 하위)만
+  정지한다. 타 프로젝트 컨테이너·ngrok, 그리고 직접 띄운 호스트 uvicorn 은 대상이 아니다.
+- 한 요소가 실패해도 나머지는 계속 올린다. 종료 코드는 `0`(전부 정상)/`1`(부분 기동)/`2`(전제 미충족).
+- `--no-web` / `--no-webhook` / `--no-ngrok` 으로 부분 기동·부분 정지가 가능하다.
+
+세부 단계를 개별로 다루려면 아래 1~3단계를 그대로 따르면 된다(이 스크립트가 하는 일과 동일).
 
 ## 전제 조건
 
@@ -359,7 +390,13 @@ WSL·도커를 재시작하면 **cron watchdog 만으로는 체인이 돌아오�
 | 호스트 API(uvicorn :8000) | ❌ | 수동 기동만 |
 | 호스트 워커 · ngrok | ⚠️ | cron watchdog 10분 — Redis 부재 시 접속 실패 경로 |
 
-재시작 후에는 아래 2줄로 복구합니다(순서 중요 — db·redis 가 healthy 여야 워커가 큐를 잡습니다):
+재시작 후 복구는 **0단계의 런처 한 줄**로 끝냅니다(기동 순서·healthy 대기·종단 검증 포함):
+
+```bash
+cd /mnt/c/workspace/ClickEye && bash scripts/fullstack_run.sh
+```
+
+런처를 쓰지 않고 손으로 할 때는 순서가 중요합니다(db·redis 가 healthy 여야 워커가 큐를 잡습니다):
 
 ```bash
 cd /mnt/c/workspace/ClickEye/clickeye-infra/docker && docker compose --profile full up -d db redis webhook
