@@ -1,7 +1,7 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: needs-revision
+status: current
 last_updated: 2026-08-04
 related:
   - scripts/fullstack_run.sh
@@ -662,6 +662,45 @@ git -C workspaces/3be49b62 ls-remote --heads origin "ralph/*"
 ---
 
 ## 5단계: DB 직접 접속 및 확인
+
+### 소비 토큰 관측 (CE-362)
+
+**"이 프로젝트에 토큰을 얼마나 썼나"** — 프로젝트별 합계:
+
+```bash
+docker exec clickeye-db psql -U clickeye -d clickeye -c "
+select left(project_id::text,8) as project, count(*) as runs,
+       sum(input_tokens) as in_tok, sum(output_tokens) as out_tok,
+       sum((meta->>'cache_read_input_tokens')::bigint) as cache_read,
+       round(sum((meta->>'total_cost_usd')::numeric),4) as ref_usd
+from llm_usage_ledger where project_id is not null group by project_id;"
+```
+
+티켓 단위로 보려면 `task_id` 로 묶는다(`where task_id = 'CE-366'`).
+
+실행 이력(단계별 소요·판정)은 호스트 로컬 파일에 쌓인다:
+
+```bash
+python3 -c "
+import json
+for l in open('logs/metrics/pipeline_runs.jsonl'):
+    d=json.loads(l); print(d.get('event'), d.get('data'))"
+```
+
+읽는 법 — 반드시 알아둘 것:
+
+- **소비량이다. 잔여 한도가 아니다.** 실행면은 구독형 전용이라 잔량·청구 개념이 없다.
+  `total_cost_usd` 는 **참고 환산값**이며 청구액이 아니다. `key_source` 는 `subscription_seat`
+  로 기록된다.
+- **캐시 읽기가 대부분을 차지한다.** 실측(CE-366): 입력 15 / 출력 2,836 인데 캐시 읽기가
+  294,037 이다. 입출력만 보면 소비 규모를 크게 과소평가한다.
+- **지금 집계는 구현 스텝만이다.** 정제·분해 지점 토큰은 아직 미배선(CE-353)이므로
+  **총량이 아니다.** 정제가 40초 돌아도 그 소비량은 원장에 없다.
+- 원장이 비어 있으면 토글 4개를 확인한다 — `FLOWOPS_METRICS` · `FLOWOPS_USAGE_INGEST` ·
+  `FLOWOPS_GOVERNANCE_SERVICE_URL`(`.env`) + **서버 `FEATURE_LLM_USAGE_INGEST`**(compose api).
+  마지막 것이 꺼져 있으면 엔드포인트가 `{status: disabled}` 로 **조용히 무시한다**.
+- `project_id` 가 NULL 이면 워크스페이스 원장에 `project_id` 가 없다는 뜻이다
+  (`python3 scripts/workspace_map.py --resolve-project <key>` 로 확인).
 
 ### PostgreSQL 접속
 
