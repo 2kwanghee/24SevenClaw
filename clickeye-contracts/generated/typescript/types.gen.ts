@@ -1418,6 +1418,38 @@ export type OAuthLoginRequest = {
     avatar_url?: string | null;
 };
 
+/**
+ * 대시보드 최근 딜리버리 이벤트 피드 1건.
+ */
+export type ObservabilityDeliveryEventItem = {
+    id: string;
+    intake_id: string;
+    project_id: string | null;
+    event_type: string;
+    actor_type: string;
+    detail: string | null;
+    created_at: string;
+};
+
+/**
+ * 대시보드 위젯 — 프로덕트 상태·인테이크 깔때기·파이프라인 성공률·딜리버리 피드.
+ */
+export type ObservabilitySummaryResponse = {
+    projects_by_status?: {
+        [key: string]: number;
+    };
+    intake_by_status?: {
+        [key: string]: number;
+    };
+    intake_by_tickets_status?: {
+        [key: string]: number;
+    };
+    pipeline_run_success_count?: number;
+    pipeline_run_failure_count?: number;
+    pipeline_run_success_rate?: number | null;
+    recent_delivery_events?: Array<ObservabilityDeliveryEventItem>;
+};
+
 export type OrchestratorBootstrapRequest = {
     subtasks: Array<BootstrapSubtask>;
     decompose_method?: 'claude-cli' | 'manual';
@@ -1787,6 +1819,7 @@ export type PipelineRunResponse = {
     ended_at: string | null;
     duration_s: number | null;
     outcome: string | null;
+    model_mismatch?: boolean;
     events: Array<PipelineEventResponse>;
     usage: PipelineRunUsage;
 };
@@ -2547,6 +2580,22 @@ export type RoleUpdateRequest = {
     system_role: 'superadmin' | 'admin' | 'member' | 'viewer';
 };
 
+/**
+ * 계정 1개 — 최신 window 스냅샷들 + 시트 상태 + 최근 24h 소비.
+ */
+export type SeatObservabilityEntry = {
+    account_email: string;
+    seat_id: string | null;
+    seat_status: string | null;
+    windows?: Array<SeatQuotaLatestEntry>;
+    usage_24h_input_tokens?: number;
+    usage_24h_output_tokens?: number;
+};
+
+export type SeatObservabilityResponse = {
+    items?: Array<SeatObservabilityEntry>;
+};
+
 export type SeatQuotaFiveHourIn = {
     pct: number | string;
     resetsAt?: string | null;
@@ -3019,6 +3068,29 @@ export type TokenResponse = {
     access_token: string;
     refresh_token: string;
     token_type?: string;
+};
+
+/**
+ * usage 피벗 1축 값에 대한 집계 1행.
+ */
+export type UsagePivotBucket = {
+    key: string | null;
+    input_tokens?: number;
+    output_tokens?: number;
+    cost?: string | null;
+    request_count?: number;
+};
+
+/**
+ * 사용량 피벗 — 기간 × 축(project_id/seat_id/model/request_kind) 집계.
+ */
+export type UsagePivotResponse = {
+    group_by: 'project_id' | 'seat_id' | 'model' | 'request_kind';
+    buckets?: Array<UsagePivotBucket>;
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+    total_cost?: string | null;
+    total_request_count?: number;
 };
 
 export type UserAdminResponse = {
@@ -9074,6 +9146,128 @@ export type GetLatestApiV1OpsSeatQuotaLatestGetResponses = {
 };
 
 export type GetLatestApiV1OpsSeatQuotaLatestGetResponse = GetLatestApiV1OpsSeatQuotaLatestGetResponses[keyof GetLatestApiV1OpsSeatQuotaLatestGetResponses];
+
+export type GetSummaryApiV1ObservabilitySummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/observability/summary';
+};
+
+export type GetSummaryApiV1ObservabilitySummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ObservabilitySummaryResponse;
+};
+
+export type GetSummaryApiV1ObservabilitySummaryGetResponse = GetSummaryApiV1ObservabilitySummaryGetResponses[keyof GetSummaryApiV1ObservabilitySummaryGetResponses];
+
+export type GetUsageApiV1ObservabilityUsageGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        group_by?: 'project_id' | 'seat_id' | 'model' | 'request_kind';
+        from?: string | null;
+        to?: string | null;
+        task_id?: string | null;
+    };
+    url: '/api/v1/observability/usage';
+};
+
+export type GetUsageApiV1ObservabilityUsageGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUsageApiV1ObservabilityUsageGetError = GetUsageApiV1ObservabilityUsageGetErrors[keyof GetUsageApiV1ObservabilityUsageGetErrors];
+
+export type GetUsageApiV1ObservabilityUsageGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: UsagePivotResponse;
+};
+
+export type GetUsageApiV1ObservabilityUsageGetResponse = GetUsageApiV1ObservabilityUsageGetResponses[keyof GetUsageApiV1ObservabilityUsageGetResponses];
+
+export type ListObservabilityRunsApiV1ObservabilityRunsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        issue_key?: string | null;
+        project_id?: string | null;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/v1/observability/runs';
+};
+
+export type ListObservabilityRunsApiV1ObservabilityRunsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListObservabilityRunsApiV1ObservabilityRunsGetError = ListObservabilityRunsApiV1ObservabilityRunsGetErrors[keyof ListObservabilityRunsApiV1ObservabilityRunsGetErrors];
+
+export type ListObservabilityRunsApiV1ObservabilityRunsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PipelineRunListResponse;
+};
+
+export type ListObservabilityRunsApiV1ObservabilityRunsGetResponse = ListObservabilityRunsApiV1ObservabilityRunsGetResponses[keyof ListObservabilityRunsApiV1ObservabilityRunsGetResponses];
+
+export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetData = {
+    body?: never;
+    path: {
+        issue_key: string;
+    };
+    query?: {
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/v1/observability/runs/{issue_key}';
+};
+
+export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetError = GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetErrors[keyof GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetErrors];
+
+export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PipelineRunListResponse;
+};
+
+export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponse = GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses[keyof GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses];
+
+export type GetSeatsApiV1ObservabilitySeatsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/observability/seats';
+};
+
+export type GetSeatsApiV1ObservabilitySeatsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatObservabilityResponse;
+};
+
+export type GetSeatsApiV1ObservabilitySeatsGetResponse = GetSeatsApiV1ObservabilitySeatsGetResponses[keyof GetSeatsApiV1ObservabilitySeatsGetResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});

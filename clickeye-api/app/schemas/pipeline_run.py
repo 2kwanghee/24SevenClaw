@@ -63,6 +63,8 @@ class PipelineRunResponse(BaseModel):
     ended_at: datetime | None
     duration_s: int | None
     outcome: str | None
+    # intended != actual 실행 모델 불일치 — "model_mismatch" 이벤트 존재 여부로 파생(CE-388).
+    model_mismatch: bool = False
     events: list[PipelineEventResponse]
     usage: PipelineRunUsage
 

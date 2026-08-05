@@ -18,6 +18,7 @@ from app.api.v1.linear_credentials import router as linear_credentials_router
 from app.api.v1.llm import router as llm_router
 from app.api.v1.llm_ledger import router as llm_ledger_router
 from app.api.v1.maturity import router as maturity_router
+from app.api.v1.observability import router as observability_router
 from app.api.v1.ops_db import router as ops_db_router
 from app.api.v1.ops_env import router as ops_env_router
 from app.api.v1.ops_infra import router as ops_infra_router
@@ -80,3 +81,4 @@ api_v1_router.include_router(ops_infra_router)
 api_v1_router.include_router(ops_env_router)
 api_v1_router.include_router(ops_db_router)
 api_v1_router.include_router(seat_quota_router)
+api_v1_router.include_router(observability_router)
