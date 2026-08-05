@@ -33,6 +33,10 @@ jobs:
               - 'clickeye-web/**'
             api:
               - 'clickeye-api/**'
+              # governance/ 는 api 테스트가 검증한다(clickeye-api/tests/test_governance_*.py
+              # 가 정책 값을 단정). 필터에 없으면 정책만 바꾼 PR 이 api 잡을 스킵해 테스트
+              # 기대값 드리프트가 그대로 main 에 들어간다 — CE-375 에서 실제로 발생했다.
+              - 'governance/**'
             contracts:
               - 'clickeye-contracts/**'
             scripts:

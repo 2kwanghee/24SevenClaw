@@ -27,11 +27,11 @@ check() {   # check <설명> <기대> <실제>
     fi
 }
 
-echo "[1/4] 스크립트 자체"
+echo "[1/5] 스크립트 자체"
 bash -n "$TARGET" && check "bash -n 구문 통과" "0" "0" || check "bash -n 구문 통과" "0" "1"
 [[ -x "$TARGET" ]] && check "실행 권한" "yes" "yes" || check "실행 권한" "yes" "no"
 
-echo "[2/4] 인자 파싱"
+echo "[2/5] 인자 파싱"
 out="$(bash "$TARGET" --help 2>&1)"; rc=$?
 check "--help exit 0" "0" "$rc"
 [[ "$out" == *"풀스택 런처"* ]] && check "--help 본문 출력" "yes" "yes" || check "--help 본문 출력" "yes" "no"
@@ -77,12 +77,12 @@ eval "$(extract http_code)"
 eval "$(extract trim1)"
 eval "$(extract pad)"
 
-echo "[3/4] http_code 정규화 (결함 ①)"
+echo "[3/5] http_code 정규화 (결함 ①)"
 dead_code="$(http_code http://127.0.0.1:59999/)"
 check "죽은 포트 → 000 (000000 아님)" "000" "$dead_code"
 check "출력이 정확히 3자리" "3" "${#dead_code}"
 
-echo "[4/4] trim1 · pad (결함 ②③④)"
+echo "[4/5] trim1 · pad (결함 ②③④)"
 check "trim1: 빈 줄+토큰 → 첫 토큰" "absent" "$(printf '\nabsent\n' | trim1)"
 check "trim1: 정상 단일 토큰" "running" "$(printf 'running\n' | trim1)"
 check "trim1: pgrep -c 형태(0 두 줄)" "0" "$(printf '0\n0\n' | trim1)"
@@ -90,6 +90,22 @@ check "trim1: pgrep -c 형태(0 두 줄)" "0" "$(printf '0\n0\n' | trim1)"
 check "pad: ASCII 라벨 폭" "14" "$(printf '%s' "$(pad db 14)" | wc -c | tr -d ' ')"
 # '워커'(2자·4칸) → 공백 10개 = 6바이트+10 = 16바이트
 check "pad: 한글 라벨은 표시폭 기준" "16" "$(printf '%s' "$(pad 워커 14)" | wc -c | tr -d ' ')"
+
+# dockerproxy 는 운영 패널 컨테이너 모니터링의 전제(read-only docker 소켓 프록시). profiles:[ops]
+# 라 --profile full 기동에서 빠지므로 start_cloud 가 --profile ops 로 별도 기동해야 한다.
+# 실측 결함: 기동 목록에서 누락되어 운영 패널이 컨테이너를 조회하지 못했다. 회귀 고정.
+echo "[5/5] dockerproxy 기동 (운영 패널, --profile ops)"
+cloud_block="$(sed -n '/^start_cloud()/,/^}/p' "$TARGET")"
+[[ "$cloud_block" == *"--profile ops up -d dockerproxy"* ]] \
+    && check "start_cloud 가 --profile ops 로 dockerproxy 기동" "yes" "yes" \
+    || check "start_cloud 가 --profile ops 로 dockerproxy 기동" "yes" "no"
+[[ "$cloud_block" == *'record "dockerproxy"'* ]] \
+    && check "요약표에 dockerproxy 행 기록" "yes" "yes" \
+    || check "요약표에 dockerproxy 행 기록" "yes" "no"
+# 실패 격리: dockerproxy 가 안 떠도 딜리버리는 무관하므로 fail-fast 하지 않는다(주석에 명시).
+[[ "$cloud_block" == *dockerproxy*"딜리버리 무관"* || "$cloud_block" == *"딜리버리 무관"*dockerproxy* ]] \
+    && check "dockerproxy 실패가 딜리버리와 무관함을 명시" "yes" "yes" \
+    || check "dockerproxy 실패가 딜리버리와 무관함을 명시" "yes" "no"
 
 echo
 if (( FAIL == 0 )); then
