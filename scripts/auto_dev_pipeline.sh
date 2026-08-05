@@ -43,6 +43,7 @@ TASK_MAPPING=".ralph/.task_mapping.json"
 # .claude/MODEL-ROUTING.md 다.
 PIPELINE_MODEL_REFINE="${PIPELINE_MODEL_REFINE:-claude-sonnet-5}"
 PIPELINE_MODEL_IMPL="${PIPELINE_MODEL_IMPL:-claude-sonnet-5}"
+PIPELINE_MODEL_REVIEW="${PIPELINE_MODEL_REVIEW:-claude-sonnet-5}"
 
 # ── [파생형 하네스] 워크스페이스 락 분리 + automap 초기 상태 (CE-339) ──
 # 프로세스 시작 시점의 WORKSPACE_KEY(전용 러너가 env 로 지정)를 보존한다. automap 은
@@ -357,6 +358,102 @@ PY
       log "WARN: ${issue_key} 하위 태스크 생성 실패(파이프라인 계속): ${sub_out}"
     fi
   fi
+  return 0
+}
+
+# ── [CE-390] 구현↔리뷰 분리 QA 게이트 — claude -p 읽기전용 리뷰 세션 ──
+# STEP B 구현 세션과 별개의 claude 프로세스로 diff+구현 스펙을 리뷰한다. 리뷰 세션의
+# session_id 가 구현 세션과 같으면(자기검증) 실패 처리한다. 리뷰 프로세스가 비정상
+# 종료(exit≠0)하면 1회 재시도하고, 재실패해도 위조 REVIEW.md 를 만들지 않는다(SIP-1 재발 방지).
+# 인자: <impl_session_id> <spec_file> <diff_text>. 성공 시 .ralph/REVIEW.md 를 생성하고 0 반환,
+# 실패 시(재시도 소진) 아무 파일도 만들지 않고 1 반환.
+run_claude_review() {
+  local impl_sid="$1" spec_file="$2" diff_file="$3"
+  local spec_content="" diff_content=""
+  [ -r "$spec_file" ] && spec_content="$(cat "$spec_file")"
+  [ -r "$diff_file" ] && diff_content="$(cat "$diff_file")"
+
+  local review_prompt_tpl
+  review_prompt_tpl="$(cat "$PROJECT_DIR/templates/harness-core/PROMPT.review.md")"
+  local review_prompt="${review_prompt_tpl/\{\{SPEC\}\}/$spec_content}"
+  review_prompt="${review_prompt/\{\{DIFF\}\}/$diff_content}"
+
+  local review_log=".ralph/review.stream.jsonl"
+  local attempt review_rc review_sid review_model
+  for attempt in 1 2; do
+    review_rc=0
+    claude -p "$review_prompt" \
+      --model "$PIPELINE_MODEL_REVIEW" \
+      --disallowedTools "Edit,Write,NotebookEdit" \
+      --verbose \
+      --output-format stream-json \
+      > "$review_log" 2>&1 || review_rc=$?
+    if [ "$review_rc" = "0" ]; then
+      break
+    fi
+    log "WARN: 리뷰 세션 비정상 종료(시도 ${attempt}/2, exit=${review_rc})"
+  done
+  if [ "$review_rc" != "0" ]; then
+    log "WARN: 리뷰 세션 재시도 소진 — REVIEW.md 생성하지 않음"
+    return 1
+  fi
+
+  review_sid="$(python3 - "$review_log" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if '"subtype":"init"' in line:
+                d = json.loads(line)
+                print(d.get("session_id") or "")
+                break
+except OSError:
+    pass
+PY
+)"
+  review_model="$(python3 - "$review_log" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if '"subtype":"init"' in line:
+                print(json.loads(line).get("model") or "")
+                break
+except OSError:
+    pass
+PY
+)"
+  log "구현 세션=${impl_sid:-미상} 리뷰 세션=${review_sid:-미상} (분리 확인)"
+  if [ -n "$impl_sid" ] && [ -n "$review_sid" ] && [ "$impl_sid" = "$review_sid" ]; then
+    log "WARN: 리뷰 세션이 구현 세션과 동일 — 자기검증 위반"
+    return 1
+  fi
+
+  local review_text
+  review_text="$(python3 - "$review_log" <<'PY' 2>/dev/null || true
+import json, sys
+text = ""
+try:
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if d.get("type") == "result" and "result" in d:
+                text = d["result"]
+except OSError:
+    pass
+print(text)
+PY
+)"
+  if [ -z "$review_text" ]; then
+    log "WARN: 리뷰 결과 텍스트 추출 실패 — REVIEW.md 생성하지 않음"
+    return 1
+  fi
+  printf '%s\n' "$review_text" > .ralph/REVIEW.md
+  REVIEW_SESSION_ID="$review_sid"
+  REVIEW_MODEL="$review_model"
   return 0
 }
 
@@ -947,6 +1044,20 @@ PY
     log "실행 모델 확인: ${ACTUAL_MODEL}"
   fi
 
+  # ── [CE-390] 구현 세션 session_id — STEP C 리뷰 세션과의 동일성 비교에 사용 ──
+  IMPL_SESSION_ID="$(python3 - "$CLAUDE_LOG" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if '"subtype":"init"' in line:
+                print(json.loads(line).get("session_id") or "")
+                break
+except OSError:
+    pass
+PY
+)"
+
   # ── [Tier 3a 메트릭] impl_done — 구현 소요(초)·워크디렉터리 종류 관측(비차단) ──
   M_IMPL_DUR=$(( $(date +%s) - M_IMPL_START ))
   M_IMPL_WD="self"; [ "$IMPL_WORKDIR" != "$PROJECT_DIR" ] && M_IMPL_WD="workspace"
@@ -1071,17 +1182,36 @@ PY
     } > .ralph/TASK.md
   fi
 
-  # ── [STEP C] Codex QA 리뷰 → REVIEW.md ──
+  # ── [STEP C][CE-390] 구현↔리뷰 분리 QA 게이트 → REVIEW.md ──
+  # 리뷰 세션은 STEP B 구현 세션과 별개의 claude 프로세스다(자기검증 금지). 실행 불능/
+  # 자기검증 위반 시 위조 REVIEW.md 를 만들지 않고 기존 실패 처리 경로로 넘긴다(SIP-1 재발 방지).
   if is_enabled "FLOWOPS_CODEX_REVIEW" 2>/dev/null; then
-    log "── Codex QA 리뷰 시작 ──"
+    log "── 구현↔리뷰 분리 QA 리뷰 시작 ──"
+    QA_SPEC="$( { [ -f .ralph/PLAN.md ] && cat .ralph/PLAN.md; echo; [ -f .ralph/TASK.md ] && cat .ralph/TASK.md; } )"
+    if [ "$WS_DELIVERY" = true ]; then
+      QA_DIFF="$(impl_git diff "$CUST_BASE" 2>/dev/null || true)"
+    else
+      QA_DIFF="$(safe_git diff main 2>/dev/null || true)"
+    fi
     QA_EXIT=0
-    bash scripts/run_codex_review.sh 2>&1 || QA_EXIT=$?
-    [ "$QA_EXIT" -ne 0 ] && log "WARN: Codex QA 리뷰 실패"
-    log "Codex QA 리뷰 완료"
-    # [Tier 3a 메트릭] qa_done — 리뷰 실행 여부·exit 관측(비차단)
-    record_metric "$METRIC_RUN_ID" "qa_done" "{\"ran\": true, \"exit\": $QA_EXIT}"
+    if run_claude_review "$IMPL_SESSION_ID" <(printf '%s' "$QA_SPEC") <(printf '%s' "$QA_DIFF"); then
+      log "QA 리뷰 완료 (구현 세션=${IMPL_SESSION_ID:-미상} 리뷰 세션=${REVIEW_SESSION_ID:-미상})"
+      record_metric "$METRIC_RUN_ID" "qa_done" \
+        "{\"ran\": true, \"reviewer\": \"claude\", \"review_session_id\": \"${REVIEW_SESSION_ID:-}\", \"impl_session_id\": \"${IMPL_SESSION_ID:-}\"}"
+    else
+      QA_EXIT=1
+      log "WARN: QA 리뷰 실패 — REVIEW.md 미생성"
+      record_metric "$METRIC_RUN_ID" "qa_done" \
+        "{\"ran\": false, \"reviewer\": \"claude\", \"impl_session_id\": \"${IMPL_SESSION_ID:-}\"}"
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "QA 리뷰 실행 불능 또는 구현/리뷰 세션 분리 위반"; then
+        safe_git checkout main 2>/dev/null || true
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+        log "Linear 상태: Backlog (QA 리뷰 실패)"
+      fi
+      continue
+    fi
   else
-    log "SKIP: Codex QA 리뷰 비활성화 (FLOWOPS_CODEX_REVIEW=false)"
+    log "SKIP: QA 리뷰 비활성화 (FLOWOPS_CODEX_REVIEW=false)"
     record_metric "$METRIC_RUN_ID" "qa_done" "{\"ran\": false}"
   fi
 

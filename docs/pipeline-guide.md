@@ -62,8 +62,8 @@ related:
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
-              │ [Codex] QA 리뷰       │  REVIEW.md 생성
-              │ run_codex_review.sh   │  (요구충족/리스크/테스트)
+              │ [Claude] QA 리뷰      │  REVIEW.md 생성
+              │ run_claude_review()   │  (구현과 분리된 세션·요구충족/리스크)
               └───────────┬───────────┘
                           ↓
               ┌───────────────────────┐
@@ -281,17 +281,15 @@ python3 scripts/linear_watcher.py --per-task --limit 1
 tail -f logs/claude_24S-XX_*.log
 ```
 
-### Step 4: Codex QA 리뷰 — `run_codex_review.sh`
+### Step 4: QA 리뷰 — `run_claude_review()` (CE-390)
 
-`FLOWOPS_CODEX_REVIEW=true` 시 실행:
-- `.ralph/PLAN.md` + `.ralph/TASK.md` + git diff를 Codex에 전달
-- `.ralph/REVIEW.md` 생성 (주요 발견, 요구사항 충족 여부, 리스크, 테스트 부족, PR 코멘트 제안)
-- Codex 실패 시 기본 REVIEW.md 생성 (수동 리뷰 권고)
-
-```bash
-# 수동 실행
-bash scripts/run_codex_review.sh
-```
+`FLOWOPS_CODEX_REVIEW=true` 시 실행. STEP B 구현 세션과 **별개의 `claude -p` 프로세스**로
+읽기전용 리뷰를 수행한다(Edit/Write/NotebookEdit 비활성화):
+- `.ralph/PLAN.md` + `.ralph/TASK.md` + git diff를 리뷰 세션에 전달
+- 구현 세션과 리뷰 세션의 `session_id`를 비교해 동일하면 자기검증 위반으로 실패 처리
+- 정상 종료 시에만 `.ralph/REVIEW.md` 생성(판정: 통과/실패/판정불가)
+- 리뷰 프로세스 비정상 종료 시 1회 재시도, 재실패해도 **위조 REVIEW.md를 만들지 않고**
+  기존 실패 처리 경로(`handle_task_failure`)로 넘긴다(SIP-1 재발 방지)
 
 ### Step 5: 결과 보고 — `linear_reporter.py`
 
@@ -472,7 +470,7 @@ python3 scripts/linear_tracker.py task \
 [4단계: Worker] 역할 분리
     ├─ WRITE_CODE:      fullstack + 모듈별 agent.md
     ├─ TEST_WRITER:     tdd-smart-coding
-    ├─ CODE_REVIEW:     run_codex_review.sh + code-reviewer 서브에이전트
+    ├─ CODE_REVIEW:     run_claude_review() + code-reviewer 서브에이전트
     └─ SECURITY_REVIEW: OWASP Top 10
     v
 [Hook: Stop] ─── ralph-stop-hook.sh
@@ -523,7 +521,7 @@ python3 scripts/linear_tracker.py task \
 FLOWOPS_LINEAR_WATCHER=true     # Linear 이슈 감지
 FLOWOPS_METAPROMPT=true         # Claude 메타프롬프트 기획(관측형 사전 정제) → PLAN.md/refined
 FLOWOPS_GEMINI_PLAN=false       # 레거시 Gemini 기획(METAPROMPT=false일 때 폴백)
-FLOWOPS_CODEX_REVIEW=true       # Codex QA → REVIEW.md 생성
+FLOWOPS_CODEX_REVIEW=true       # QA 리뷰(구현과 분리된 claude -p 세션) → REVIEW.md 생성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # Telegram 알림
 FLOWOPS_FAILURE_SUBTASK=        # 막힘을 원 티켓 하위 태스크로 축적 (CE-379, opt-in·기본 off).
@@ -650,7 +648,7 @@ Backlog ──(수동)──→ Wait ──(수동)──→ Queued
 | `webhook_server.py` | Linear Webhook 수신 서버 | 상시 실행 데몬 |
 | `linear_watcher.py` | Queued 이슈 감지 → fix_plan 생성 | 파이프라인 Step 1 |
 | `generate_plan_with_gemini.sh` | Gemini CLI로 PLAN.md 기획서 생성 | 파이프라인 Step 2 |
-| `run_codex_review.sh` | Codex CLI로 REVIEW.md QA 리뷰 생성 | 파이프라인 Step 4 |
+| `run_claude_review()`(auto_dev_pipeline.sh 내부 함수) | 구현과 분리된 claude -p 세션으로 REVIEW.md QA 리뷰 생성 | 파이프라인 Step 4 |
 | `linear_reporter.py` | 결과 → Linear 보고 | 파이프라인 Step 3 |
 | `auto_pr_creator.py` | 자동 PR 생성 + auto-merge 설정 | 파이프라인 Step 4 |
 | `linear_confirmer.py` | Confirm → PR merge 또는 로컬 merge | 수동 / Cron |
