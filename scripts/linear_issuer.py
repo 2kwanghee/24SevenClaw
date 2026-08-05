@@ -168,7 +168,10 @@ def issue_all(
 
     실패 메시지에는 그때까지 생성된 이슈 식별자를 포함한다(수동 정리 힌트).
     """
-    api_key, team_id = get_env()
+    # 인테이크가 만드는 티켓 = 딜리버리 축 → SI-Project 팀에 발급.
+    # get_env("delivery") 는 LINEAR_TEAM_ID_DELIVERY 를 먼저 보고 없으면
+    # LINEAR_TEAM_ID(CE) 로 폴백한다(기존 규약, 시그니처 무변경).
+    api_key, team_id = get_env("delivery")
 
     inert_id = find_state_id(api_key, team_id, INERT_STATE)
     target_id = find_state_id(api_key, team_id, target_state)
