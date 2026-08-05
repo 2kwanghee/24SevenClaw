@@ -200,6 +200,15 @@ CANDIDATES=0
 SPAWNED=0
 SKIPPED=0
 
+# 딜리버리 팀 ID(SI-Project) — 디스패처가 스폰하는 러너는 **항상 딜리버리**다(워크스페이스
+# 모드 전용). 인테이크가 만든 티켓을 SIP 팀으로 발급/조회하도록 러너에 LINEAR_TEAM_ID 로
+# 주입한다. 자체 개발 파이프라인은 디스패처를 거치지 않으므로 CE 팀(.env LINEAR_TEAM_ID)을
+# 그대로 쓴다. .env 에 값이 없으면 주입하지 않는다(기존 동작 유지 = 회귀 0).
+DELIVERY_TEAM_ID=""
+if [ -f "$PROJECT_DIR/.env" ]; then
+  DELIVERY_TEAM_ID="$(grep -E '^LINEAR_TEAM_ID_DELIVERY=' "$PROJECT_DIR/.env" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]')" || DELIVERY_TEAM_ID=""
+fi
+
 # ── ⑤ 스폰 루프 ─────────────────────────────────────────────────────────────
 while IFS=$'\t' read -r c_key c_prefix c_state c_seat; do
   [ -n "$c_key" ] || continue
@@ -285,9 +294,13 @@ while IFS=$'\t' read -r c_key c_prefix c_state c_seat; do
   # `exec` 로 서브셸을 파이프라인으로 **치환**한다: 기록되는 PID 의 /proc cmdline 이 실제
   # 파이프라인이 되어 마커 신원 확인(is_our_runner)이 성립하고, 중간 셸도 하나 줄어든다.
   # FLOWOPS_ENV_KEEP_EXISTING: 공유 .env 가 아래 세 토글을 덮어쓰지 못하게 한다(권위 확보).
+  # 딜리버리 팀 주입 — 값이 있을 때만. 파이프라인은 `[ -z LINEAR_TEAM_ID ]` 가드라 env 가 이긴다.
+  team_env=()
+  [ -n "$DELIVERY_TEAM_ID" ] && team_env=(LINEAR_TEAM_ID="$DELIVERY_TEAM_ID")
   ( cd "$CLONE_DIR" && exec env WORKSPACE_KEY="$c_key" WATCHER_TITLE_PREFIX="$c_prefix" \
       FLOWOPS_WORKSPACE=true FLOWOPS_SEAT_POOL=true FLOWOPS_SEAT_POOL_STRICT=true \
       FLOWOPS_ENV_KEEP_EXISTING=true \
+      "${team_env[@]}" \
       bash scripts/auto_dev_pipeline.sh --once ) >> "$RUNNER_LOG" 2>&1 < /dev/null 9>&- &
   spawn_pid=$!
   printf '%s %s %s\n' "$spawn_pid" "$(date +%s)" "$c_seat" > "$DISPATCH_DIR/$c_key.pid"

@@ -569,6 +569,20 @@ FLOWOPS_SEAT_POOL_STRICT=            # 시트 미배정/점유 시 해당 단계
 - 미설정 변수는 기본 `true`
 - `false`, `0`, `off`, `no` → 비활성화
 
+### Linear 팀 분리 (자체 개발 vs 딜리버리)
+
+티켓을 두 축으로 분리한다 — 코드가 팀을 판단하지 않고 실행 경로가 `LINEAR_TEAM_ID` 를 주입한다.
+`.env` 에 `LINEAR_TEAM_ID`(CE) 와 `LINEAR_TEAM_ID_DELIVERY`(SI-Project) 를 둔다.
+
+| 경로 | 팀 | 팀 해석 |
+|------|-----|---------|
+| ClickEye 자체 개발 (`/log-work`·`/prd-to-linear`·post-merge.yml) | ClickEye (CE) | `LINEAR_TEAM_ID` |
+| 딜리버리 발급 (`intake_issue.sh` → `linear_issuer.py`) | SI-Project | `get_env("delivery")` → `LINEAR_TEAM_ID_DELIVERY`, 없으면 `LINEAR_TEAM_ID` 폴백 |
+| 딜리버리 러너 (`runner_dispatcher.sh` 스폰) | SI-Project | 디스패처가 `.env` 의 `LINEAR_TEAM_ID_DELIVERY` 를 러너 env 에 주입(없으면 미주입=CE 유지) |
+
+디스패처가 스폰하는 러너는 워크스페이스 모드 전용 = 항상 딜리버리다. 자체 개발 파이프라인은
+디스패처를 거치지 않으므로 CE 팀을 그대로 쓴다.
+
 ---
 
 ## 로컬 검증 vs CI 검증
