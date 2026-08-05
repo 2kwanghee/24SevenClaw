@@ -2,7 +2,7 @@
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
 status: current
-last_updated: 2026-08-03
+last_updated: 2026-08-05
 related:
   - scripts/auto_dev_pipeline.sh
   - scripts/pre_merge_gate.py
@@ -524,6 +524,13 @@ FLOWOPS_GEMINI_PLAN=false       # 레거시 Gemini 기획(METAPROMPT=false일 �
 FLOWOPS_CODEX_REVIEW=true       # Codex QA → REVIEW.md 생성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # Telegram 알림
+FLOWOPS_FAILURE_SUBTASK=        # 막힘을 원 티켓 하위 태스크로 축적 (CE-379, opt-in·기본 off).
+                                # **재시도 한도 소진(터미널)에서만** 만든다 — 재시도마다 만들면
+                                # 노이즈가 쌓인다. 상태는 Wait 고정: Queued 계열로 만들면
+                                # webhook 이 재수거해 **무한 루프**가 된다.
+                                # 본문에 사유·재시도 N/한도·브랜치·실행ID·로그 경로를 담아
+                                # 하위 태스크만 보고 재현 지점을 찾을 수 있게 한다.
+                                # off 면 기존 동작(Backlog + 정지 코멘트) 그대로 — 회귀 0
 # 거버넌스 게이트(머지 직전 SSOT) — 상세: 위 "Step 5.5"
 FLOWOPS_GOVERNANCE=true         # 마스터(off면 게이트 전체 우회·회귀 0)
 FLOWOPS_GOVERNANCE_CONTRACT=true     # contract-drift 차단

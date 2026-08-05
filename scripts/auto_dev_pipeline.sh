@@ -296,7 +296,12 @@ handle_task_failure() {
   local issue_key="$1" issue_id="$2" task_mode="$3" reason="$4"
   is_completion_enabled || return 1
   FAILED_THIS_RUN="${FAILED_THIS_RUN} ${issue_key}"
-  if python3 scripts/retry_ledger.py record-failure --issue "$issue_key" --reason "$reason"; then
+  # record-failure 출력을 캡처(재시도 N/한도 문자열 포함) — 터미널 시 하위 태스크 본문에 재사용.
+  # set -e 하에서 비정상 종료가 스크립트를 죽이지 않게 rc 를 분리 캡처한다.
+  local rl_out rl_rc=0
+  rl_out="$(python3 scripts/retry_ledger.py record-failure --issue "$issue_key" --reason "$reason" 2>&1)" || rl_rc=$?
+  echo "$rl_out"
+  if [ "$rl_rc" -eq 0 ]; then
     # exit 0 = 재시도 가능 → 원래 Queued 상태로 복귀. webhook _check_and_retrigger 가
     # Queued 계열만 조회하므로 이 복귀만으로 재수거된다(webhook 무변경).
     local back_state="DayQueued"
@@ -324,6 +329,29 @@ linear_request(
 )
 PY
   log "완주 오케스트레이터: ${issue_key} 터미널 — Backlog + 정지 코멘트 (HALT 보고 대상)"
+  # 막힘 지점을 원 티켓의 하위 태스크로 축적한다(CE-376 4b). 토글 off(미설정)면 회귀 0.
+  # 재시도 가능 경로가 아니라 터미널(한도 소진)에서만 만든다 — 재시도마다 쌓이면 노이즈.
+  if is_enabled "FLOWOPS_FAILURE_SUBTASK" 2>/dev/null; then
+    local sub_title sub_body sub_out sub_rc=0
+    sub_title="[막힘] ${issue_key} — ${reason:0:60}"
+    sub_body="자동 파이프라인이 재시도 한도를 소진하여 정지했습니다. 사람의 판단이 필요합니다.
+
+- 원 티켓: ${issue_key}
+- 실패 사유: ${reason}
+- 재시도: ${rl_out:-(미상)}
+- 브랜치: ${BRANCH:-(미상)}
+- 실행 ID: ${METRIC_RUN_ID:-(미상)}
+- 로그: ${CLAUDE_LOG:-(미상)}"
+    # 상태는 Wait — 사람이 보고 판단. Queued 계열로 만들면 재수거되어 무한 루프.
+    sub_out="$(python3 scripts/linear_tracker.py task \
+      --title "$sub_title" --summary "$sub_body" \
+      --status Wait --parent "$issue_id" 2>&1)" || sub_rc=$?
+    if [ "$sub_rc" -eq 0 ]; then
+      log "완주 오케스트레이터: ${issue_key} 하위 태스크(막힘) 생성 — ${sub_out}"
+    else
+      log "WARN: ${issue_key} 하위 태스크 생성 실패(파이프라인 계속): ${sub_out}"
+    fi
+  fi
   return 0
 }
 

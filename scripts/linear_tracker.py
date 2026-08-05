@@ -93,6 +93,10 @@ def cmd_task(args, api_key, team_id):
     }
     if label_ids:
         input_data["labelIds"] = label_ids
+    # 하위 태스크: 부모 이슈 UUID 가 주어지면 parentId 로 연결한다. 값이 없으면
+    # 키 자체를 넣지 않는다(None 을 넣으면 Linear 가 거부).
+    if getattr(args, "parent", None):
+        input_data["parentId"] = args.parent
 
     data = linear_request(api_key, mutation, {"input": input_data})
     if data and data.get("issueCreate"):
@@ -253,6 +257,8 @@ def main():
     p_task.add_argument("--status", default="Wait",
                         choices=["Wait", "Todo", "In Progress", "Backlog", "DayQueued", "NightQueued"])
     p_task.add_argument("--date", default=str(date.today()))
+    p_task.add_argument("--parent", default="",
+                        help="부모 이슈 UUID (하위 태스크로 생성). 생략 시 최상위 이슈")
 
     # list
     p_list = sub.add_parser("list", help="Query issues")
