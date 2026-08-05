@@ -12282,6 +12282,37 @@
         "summary": "Get Summary",
         "description": "대시보드 위젯 — 프로젝트/인테이크 상태 카운트, 최근 파이프라인 성공률, 딜리버리 피드.",
         "operationId": "get_summary_api_v1_observability_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "default": 7,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "trend_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 14,
+              "minimum": 1,
+              "default": 3,
+              "title": "Trend Days"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12292,13 +12323,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/observability/usage": {
@@ -12307,7 +12343,7 @@
           "observability"
         ],
         "summary": "Get Usage",
-        "description": "사용량 피벗 — 기간 × 축 그룹핑, task_id 지정 시 프로젝트 상세 드릴다운.",
+        "description": "사용량 피벗 — 기간 × 축 그룹핑, task_id/project_id 지정 시 프로젝트 상세 드릴다운.",
         "operationId": "get_usage_api_v1_observability_usage_get",
         "security": [
           {
@@ -12380,6 +12416,22 @@
               ],
               "title": "Task Id"
             }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
           }
         ],
         "responses": {
@@ -12389,6 +12441,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UsagePivotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/projects/{project_id}/summary": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Project Summary",
+        "description": "프로젝트 상세 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각.",
+        "operationId": "get_project_summary_api_v1_observability_projects__project_id__summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectSummaryResponse"
                 }
               }
             }
@@ -14972,6 +15072,31 @@
           "created_at"
         ],
         "title": "CustomerSummary"
+      },
+      "DailyOutcome": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "success": {
+            "type": "integer",
+            "title": "Success",
+            "default": 0
+          },
+          "failure": {
+            "type": "integer",
+            "title": "Failure",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "date"
+        ],
+        "title": "DailyOutcome",
+        "description": "일자(UTC) 1개에 대한 파이프라인 실행 성공/실패 카운트."
       },
       "DecomposeRequest": {
         "properties": {
@@ -18997,6 +19122,13 @@
             ],
             "title": "Pipeline Run Success Rate"
           },
+          "daily_outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/DailyOutcome"
+            },
+            "type": "array",
+            "title": "Daily Outcomes"
+          },
           "recent_delivery_events": {
             "items": {
               "$ref": "#/components/schemas/ObservabilityDeliveryEventItem"
@@ -22203,6 +22335,121 @@
           "project_id"
         ],
         "title": "ProjectSeatAssignResponse"
+      },
+      "ProjectSeatUsage": {
+        "properties": {
+          "seat_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Id"
+          },
+          "account_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Email"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seat_id",
+          "account_email"
+        ],
+        "title": "ProjectSeatUsage",
+        "description": "프로젝트 상세 — seat 1개(또는 seat_id NULL 그룹)에 대한 토큰/비용 합계."
+      },
+      "ProjectSummaryResponse": {
+        "properties": {
+          "total_input_tokens": {
+            "type": "integer",
+            "title": "Total Input Tokens",
+            "default": 0
+          },
+          "total_output_tokens": {
+            "type": "integer",
+            "title": "Total Output Tokens",
+            "default": 0
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          },
+          "first_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Activity At"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectSeatUsage"
+            },
+            "type": "array",
+            "title": "Seats"
+          }
+        },
+        "type": "object",
+        "title": "ProjectSummaryResponse",
+        "description": "프로젝트 상세 드릴다운 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각."
       },
       "ProjectTransferRequest": {
         "properties": {

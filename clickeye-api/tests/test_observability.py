@@ -21,6 +21,7 @@ from app.models.llm_usage_ledger import LlmKeySource, LlmProvider, LlmUsageLedge
 from app.models.pipeline_run_event import PipelineRunEvent
 from app.models.project import Project
 from app.models.user import User
+from app.models.user_anthropic_credentials import UserAnthropicCredentials
 
 _BASE = "/api/v1/observability"
 
@@ -290,3 +291,169 @@ async def test_seats_empty_returns_empty_list(
 async def test_seats_requires_auth(client: AsyncClient) -> None:
     resp = await client.get(f"{_BASE}/seats")
     assert resp.status_code in (401, 403)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CE-402 신규 테스트용 헬퍼
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def _seed_pipeline_run_event(
+    db_session: AsyncSession,
+    *,
+    project_id: uuid.UUID | None = None,
+    outcome: str,
+    created_at: datetime,
+) -> PipelineRunEvent:
+    event = PipelineRunEvent(
+        id=uuid.uuid4(),
+        run_id=f"RUN-{uuid.uuid4().hex[:8]}",
+        issue_key="CE-402",
+        project_id=project_id,
+        event="run_done",
+        data={"outcome": outcome},
+        created_at=created_at,
+    )
+    db_session.add(event)
+    await db_session.commit()
+    return event
+
+
+async def _seed_ledger_row(
+    db_session: AsyncSession,
+    *,
+    project_id: uuid.UUID | None = None,
+    seat_id: uuid.UUID | None = None,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cost: object = None,
+    created_at: datetime | None = None,
+) -> LlmUsageLedger:
+    row = LlmUsageLedger(
+        id=uuid.uuid4(),
+        project_id=project_id,
+        seat_id=seat_id,
+        provider=LlmProvider.anthropic,
+        key_source=LlmKeySource.subscription_seat,
+        model="claude-opus-4-8",
+        request_kind="wizard_preview",
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost=cost,
+        created_at=created_at if created_at is not None else datetime.now(UTC),
+    )
+    db_session.add(row)
+    await db_session.commit()
+    return row
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# summary — CE-402 (days/trend_days, daily_outcomes)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def test_summary_with_days_query_returns_200(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(
+        f"{_BASE}/summary", params={"days": 30}, headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+
+
+async def test_summary_empty_daily_outcomes_fills_trend_day_slots(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(f"{_BASE}/summary", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["daily_outcomes"]) == 3
+    for slot in body["daily_outcomes"]:
+        assert slot["success"] == 0
+        assert slot["failure"] == 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# usage — CE-402 (project_id 필터)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def test_usage_filters_by_project_id(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    p1 = await _seed_project(db_session)
+    p2 = await _seed_project(db_session)
+    await _seed_ledger_row(db_session, project_id=p1.id, input_tokens=100, output_tokens=10)
+    await _seed_ledger_row(db_session, project_id=p2.id, input_tokens=999, output_tokens=999)
+
+    resp = await client.get(
+        f"{_BASE}/usage",
+        params={"project_id": str(p1.id)},
+        headers=admin_auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_input_tokens"] == 100
+    assert body["total_output_tokens"] == 10
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# projects/{project_id}/summary — CE-402
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def test_project_summary_aggregates_tokens_and_seats(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    owner = User(
+        id=uuid.uuid4(),
+        email=f"seat-{uuid.uuid4().hex[:8]}@test.io",
+        password_hash="x",
+        display_name="시트오너",
+        is_active=True,
+    )
+    db_session.add(owner)
+    await db_session.flush()
+    seat = UserAnthropicCredentials(
+        id=uuid.uuid4(),
+        user_id=owner.id,
+        credential_type="oauth_token",
+        encrypted_api_key="enc",
+    )
+    db_session.add(seat)
+    await db_session.commit()
+
+    await _seed_ledger_row(
+        db_session, project_id=project.id, seat_id=seat.id, input_tokens=50, output_tokens=20
+    )
+    await _seed_ledger_row(
+        db_session, project_id=project.id, seat_id=None, input_tokens=30, output_tokens=5
+    )
+
+    resp = await client.get(
+        f"{_BASE}/projects/{project.id}/summary", headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_input_tokens"] == 80
+    assert body["total_output_tokens"] == 25
+
+    seats_by_seat_id = {s["seat_id"]: s for s in body["seats"]}
+    assert seats_by_seat_id[str(seat.id)]["input_tokens"] == 50
+    assert seats_by_seat_id[str(seat.id)]["account_email"] == owner.email
+    assert seats_by_seat_id[None]["input_tokens"] == 30
+    assert seats_by_seat_id[None]["account_email"] is None
+
+
+async def test_project_summary_unknown_project_returns_empty_200(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(
+        f"{_BASE}/projects/{uuid.uuid4()}/summary", headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_input_tokens"] == 0
+    assert body["seats"] == []
+    assert body["first_activity_at"] is None
