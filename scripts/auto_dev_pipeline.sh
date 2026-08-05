@@ -67,7 +67,12 @@ log() {
 resolve_impl_workdir() {
   if is_enabled "FLOWOPS_WORKSPACE" 2>/dev/null && [ -n "${FLOWOPS_WORKSPACE:-}" ] \
     && [ -n "${WORKSPACE_KEY:-}" ] && [ -d "$PROJECT_DIR/workspaces/$WORKSPACE_KEY" ]; then
-    printf '%s\n' "$PROJECT_DIR/workspaces/$WORKSPACE_KEY"
+    # [CE-384] 물리 경로로 해석해 echo — 러너 clone 의 workspaces 심링크를 논리 경로($PWD)로
+    # 통과시키면 집행면 게이트의 문자열 경계 판정(containment)이 claude 세션 cwd(물리)와
+    # 어긋나 자기 워크스페이스 안의 cd 를 G-02 로 오탐한다(SIP-1 실측). 발원지에서 형태를
+    # 통일하면 이후 cd·$PWD·CLAUDE_PROJECT_DIR·게이트 cwd 가 전부 같은 물리 경로가 된다.
+    readlink -f "$PROJECT_DIR/workspaces/$WORKSPACE_KEY" 2>/dev/null \
+      || printf '%s\n' "$PROJECT_DIR/workspaces/$WORKSPACE_KEY"
   else
     printf '%s\n' "$PROJECT_DIR"
   fi

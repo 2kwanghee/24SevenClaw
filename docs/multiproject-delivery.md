@@ -394,7 +394,10 @@ CE-339(키별 락)·CE-345(시트 원장)가 만든 것은 병행의 **허용 �
 **발동 조건(3중 게이트, 하나라도 불충족이면 기존 경로 그대로)**
 
 1. `FLOWOPS_WORKSPACE_DELIVERY` 이중 opt-in(`is_enabled` + 비어있지 않음) — 미설정 = off
-2. `FLOWOPS_WORKSPACE` + `WORKSPACE_KEY` + `workspaces/<key>` 존재 (`resolve_impl_workdir` 내포)
+2. `FLOWOPS_WORKSPACE` + `WORKSPACE_KEY` + `workspaces/<key>` 존재 (`resolve_impl_workdir` 내포).
+   반환 경로는 `readlink -f` **물리 경로**다(CE-384) — 러너 clone 의 `workspaces` 심링크를
+   논리 경로로 넘기면 집행면 게이트 containment 가 claude 세션 cwd(물리)와 어긋나
+   자기 워크스페이스 안의 `cd` 를 G-02 로 오탐한다
 3. `IMPL_WORKDIR != PROJECT_DIR` — 자기레포 이슈는 켜져 있어도 기존 머지 경로
 
 **리다이렉트 지점** — 전부 `git -C "$IMPL_WORKDIR"`(헬퍼 `impl_git`) 경유.
