@@ -1739,6 +1739,72 @@ export type PhaseTransitionRequest = {
     message?: string | null;
 };
 
+/**
+ * 이벤트 1건. 이름·페이로드는 `pipeline_metrics.py` 값을 그대로 받는다.
+ */
+export type PipelineEventIn = {
+    run_id: string;
+    issue_key: string;
+    event: string;
+    project_id?: string | null;
+    workspace_key?: string | null;
+    data?: {
+        [key: string]: unknown;
+    };
+    occurred_at?: string | null;
+};
+
+export type PipelineEventResponse = {
+    event: string;
+    data: {
+        [key: string]: unknown;
+    };
+    occurred_at: string | null;
+    created_at: string;
+};
+
+/**
+ * 배치 인제스트 — 한 번에 여러 이벤트.
+ */
+export type PipelineEventsIngestRequest = {
+    events: Array<PipelineEventIn>;
+};
+
+export type PipelineRunListResponse = {
+    items: Array<PipelineRunResponse>;
+    total: number;
+};
+
+/**
+ * 실행 1건(run) = 티켓 처리 1회. 단계 이벤트 + 그 티켓의 소비 토큰.
+ */
+export type PipelineRunResponse = {
+    run_id: string;
+    issue_key: string;
+    project_id: string | null;
+    workspace_key: string | null;
+    started_at: string | null;
+    ended_at: string | null;
+    duration_s: number | null;
+    outcome: string | null;
+    events: Array<PipelineEventResponse>;
+    usage: PipelineRunUsage;
+};
+
+/**
+ * 그 티켓이 소비한 토큰 — `llm_usage_ledger` 에서 조인해 채운다.
+ *
+ * 구독형이므로 **소비량**이며 잔여 한도가 아니다. `ref_cost_usd` 는 청구액이 아닌
+ * 참고 환산값이다(CE-362 규약).
+ */
+export type PipelineRunUsage = {
+    models?: Array<string>;
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_tokens?: number;
+    ref_cost_usd?: number | null;
+};
+
 export type PlatformSummaryResponse = {
     total_projects: number;
     total_sessions: number;
@@ -2479,6 +2545,90 @@ export type RoiStandardUpdate = {
 
 export type RoleUpdateRequest = {
     system_role: 'superadmin' | 'admin' | 'member' | 'viewer';
+};
+
+export type SeatQuotaFiveHourIn = {
+    pct: number | string;
+    resetsAt?: string | null;
+};
+
+export type SeatQuotaLatestEntry = {
+    id: string;
+    captured_at: string | null;
+    usage_fetched_at: string | null;
+    account_email: string;
+    organization_uuid: string | null;
+    seat_id: string | null;
+    window: string;
+    scope_name: string | null;
+    pct: string;
+    resets_at: string | null;
+    expected_pct: string | null;
+    ahead_of_pace: boolean | null;
+    projected_exhaustion_at: string | null;
+    will_last_to_reset: boolean | null;
+    raw?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+export type SeatQuotaLatestResponse = {
+    items: Array<SeatQuotaLatestEntry>;
+};
+
+export type SeatQuotaScopedIn = {
+    name: string;
+    pct: number | string;
+    resetsAt?: string | null;
+    expectedPct?: number | string | null;
+    aheadOfPace?: boolean | null;
+    projectedExhaustionAt?: string | null;
+    willLastToReset?: boolean | null;
+};
+
+export type SeatQuotaSevenDayIn = {
+    pct: number | string;
+    resetsAt?: string | null;
+    expectedPct?: number | string | null;
+    aheadOfPace?: boolean | null;
+    projectedExhaustionAt?: string | null;
+    willLastToReset?: boolean | null;
+};
+
+/**
+ * cswap `--list --json` 배치 수신 요청 (POST /ops/seat-quota/snapshots).
+ */
+export type SeatQuotaSnapshotBatchRequest = {
+    accounts?: Array<SeatQuotaSnapshotIn>;
+};
+
+/**
+ * cswap `accounts[]` 원소 1개(계정 1개) 원문 그대로.
+ */
+export type SeatQuotaSnapshotIn = {
+    number?: number | null;
+    email: string;
+    organizationName?: string | null;
+    organizationUuid?: string | null;
+    active?: boolean | null;
+    usageStatus?: string | null;
+    usageFetchedAt?: string | null;
+    usage: SeatQuotaUsageIn;
+};
+
+/**
+ * 배치 수신 결과 — 생성된 행 수 + 부분 실패(skip) 계정 수.
+ */
+export type SeatQuotaSnapshotResponse = {
+    rows_created: number;
+    accounts_processed: number;
+    accounts_skipped: number;
+};
+
+export type SeatQuotaUsageIn = {
+    fiveHour: SeatQuotaFiveHourIn;
+    sevenDay: SeatQuotaSevenDayIn;
+    scoped?: Array<SeatQuotaScopedIn>;
 };
 
 export type SeatRegisterRequest = {
@@ -6830,6 +6980,66 @@ export type UpdateProfileFromMarkdownApiV1PmProfilesProfileIdMarkdownPutResponse
 
 export type UpdateProfileFromMarkdownApiV1PmProfilesProfileIdMarkdownPutResponse = UpdateProfileFromMarkdownApiV1PmProfilesProfileIdMarkdownPutResponses[keyof UpdateProfileFromMarkdownApiV1PmProfilesProfileIdMarkdownPutResponses];
 
+export type IngestEventsApiV1PipelineRunsEventsPostData = {
+    body: PipelineEventsIngestRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/pipeline-runs/events';
+};
+
+export type IngestEventsApiV1PipelineRunsEventsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type IngestEventsApiV1PipelineRunsEventsPostError = IngestEventsApiV1PipelineRunsEventsPostErrors[keyof IngestEventsApiV1PipelineRunsEventsPostErrors];
+
+export type IngestEventsApiV1PipelineRunsEventsPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: {
+        [key: string]: unknown;
+    };
+};
+
+export type IngestEventsApiV1PipelineRunsEventsPostResponse = IngestEventsApiV1PipelineRunsEventsPostResponses[keyof IngestEventsApiV1PipelineRunsEventsPostResponses];
+
+export type ListRunsApiV1PipelineRunsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        issue_key?: string | null;
+        project_id?: string | null;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/v1/pipeline-runs';
+};
+
+export type ListRunsApiV1PipelineRunsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListRunsApiV1PipelineRunsGetError = ListRunsApiV1PipelineRunsGetErrors[keyof ListRunsApiV1PipelineRunsGetErrors];
+
+export type ListRunsApiV1PipelineRunsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PipelineRunListResponse;
+};
+
+export type ListRunsApiV1PipelineRunsGetResponse = ListRunsApiV1PipelineRunsGetResponses[keyof ListRunsApiV1PipelineRunsGetResponses];
+
 export type ListContractsApiV1ContractsGetData = {
     body?: never;
     path?: never;
@@ -8808,6 +9018,62 @@ export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses = {
 };
 
 export type UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponse = UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses[keyof UpdateRowApiV1AdminOpsTablesTableKeyRowsPkPutResponses];
+
+export type CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostData = {
+    body: SeatQuotaSnapshotBatchRequest;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/ops/seat-quota/snapshots';
+};
+
+export type CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostError = CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostErrors[keyof CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostErrors];
+
+export type CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatQuotaSnapshotResponse;
+};
+
+export type CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostResponse = CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostResponses[keyof CreateSnapshotsApiV1OpsSeatQuotaSnapshotsPostResponses];
+
+export type GetLatestApiV1OpsSeatQuotaLatestGetData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/ops/seat-quota/latest';
+};
+
+export type GetLatestApiV1OpsSeatQuotaLatestGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLatestApiV1OpsSeatQuotaLatestGetError = GetLatestApiV1OpsSeatQuotaLatestGetErrors[keyof GetLatestApiV1OpsSeatQuotaLatestGetErrors];
+
+export type GetLatestApiV1OpsSeatQuotaLatestGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatQuotaLatestResponse;
+};
+
+export type GetLatestApiV1OpsSeatQuotaLatestGetResponse = GetLatestApiV1OpsSeatQuotaLatestGetResponses[keyof GetLatestApiV1OpsSeatQuotaLatestGetResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://openapi` | (string & {});

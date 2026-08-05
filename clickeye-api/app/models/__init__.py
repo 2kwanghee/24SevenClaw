@@ -33,6 +33,7 @@ from app.models.rbac import OrganizationMembership, RoleAuditLog  # noqa: F401
 from app.models.registry import Agent, MCPServer, Skill  # noqa: F401
 from app.models.review_pipeline import ReviewEvent, ReviewRound  # noqa: F401
 from app.models.roi_standard import RoiStandard  # noqa: F401
+from app.models.seat_quota_snapshot import SeatQuotaSnapshot  # noqa: F401
 from app.models.ticket import Ticket, TicketEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
 
@@ -86,6 +87,7 @@ __all__ = [
     "ReviewRound",
     "RoiStandard",
     "RoleAuditLog",
+    "SeatQuotaSnapshot",
     "Skill",
     "SubTask",
     "Ticket",
