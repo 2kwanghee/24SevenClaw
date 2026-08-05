@@ -1213,9 +1213,11 @@ PY
       echo "# TASK — ${TITLE}"
       echo ""
       echo "## 변경 파일"
-      # [R5] 워크스페이스 경로는 고객 clone 의 기본 브랜치 기준 diff 로 채운다.
+      # [R5→CE-398] 워크스페이스 경로는 **이번 런 델타**(WS_TIP_BEFORE..HEAD)로 채운다 —
+      # CUST_BASE 누적 목록은 체인 인테이크에서 앞선 티켓 파일이 섞여, QA diff(동일 기준)와
+      # 모순된 메타데이터를 리뷰어에게 주고 판정불가를 유발했다(SIP-2 재실행 실측).
       if [ "$WS_DELIVERY" = true ]; then
-        impl_git diff --name-only "$CUST_BASE" 2>/dev/null | while read -r f; do echo "- $f"; done
+        impl_git diff --name-only "${WS_TIP_BEFORE}..HEAD" 2>/dev/null | while read -r f; do echo "- $f"; done
       else
         safe_git diff --name-only main 2>/dev/null | while read -r f; do echo "- $f"; done
       fi
