@@ -812,7 +812,26 @@ for title, meta in m.items():
       log "WARN: 머지 완료된 브랜치 $BRANCH 삭제 후 재생성"
       safe_git branch -d "$BRANCH" 2>/dev/null || true
     fi
-    safe_git checkout -b "$BRANCH" 2>/dev/null || safe_git checkout "$BRANCH" 2>/dev/null || {
+    # ── [CE-394] 미머지 동명 브랜치는 낡은 기저일 수 있다 — 기저 갱신 없이 재사용 금지 ──
+    # 첫 고장 런이 남긴 브랜치를 그대로 checkout 하면 구판 프롬프트·템플릿으로 실행된다
+    # (CE-387 재실행 실측: 낡은 트리에 PROMPT.review.md 부재 → 리뷰 프롬프트가 빈 문자열
+    # → 리뷰어 즉사). 실구현 커밋(.ralph/ 외 변경)은 rescue 로 보존하고(유실 0), 보존에
+    # 실패하면 기존 브랜치를 덮지 않기 위해 태스크를 실패 처리한다. 항상 main 기저로 재생성.
+    BR_PREP_OK=true
+    if safe_git rev-parse --verify --quiet "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+      BR_BASE="$(safe_git merge-base main "$BRANCH" 2>/dev/null || echo main)"
+      if safe_git log "${BR_BASE}..${BRANCH}" --name-only --pretty=format: 2>/dev/null \
+        | grep -qvE '^$|^\.ralph/'; then
+        BR_RESCUE="rescue/${BRANCH##*/}-$(date '+%Y%m%d_%H%M%S')"
+        if safe_git branch "$BR_RESCUE" "$BRANCH" 2>/dev/null; then
+          log "기존 ${BRANCH} 에 실구현 커밋 존재 → ${BR_RESCUE} 로 보존 후 main 기저 재생성"
+        else
+          log "ERROR: rescue 보존 실패 — 기존 ${BRANCH} 를 덮지 않기 위해 태스크 중단"
+          BR_PREP_OK=false
+        fi
+      fi
+    fi
+    [ "$BR_PREP_OK" = true ] && safe_git checkout -B "$BRANCH" main 2>/dev/null || {
       log "ERROR: 브랜치 생성 실패: $BRANCH"
       if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "브랜치 생성 실패: $BRANCH"; then
         python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true

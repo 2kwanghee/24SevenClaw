@@ -269,7 +269,10 @@ python3 scripts/linear_watcher.py --per-task --limit 1
 ### Step 3: Claude 구현 — 브랜치 + 동기 실행
 
 각 태스크마다 (1개씩 순차):
-1. `git checkout -b ralph/{24S-XX}` → 작업 브랜치 생성
+1. `git checkout -B ralph/{24S-XX} main` → 작업 브랜치를 **항상 현재 main 기저로** 생성
+   (CE-394 — 실패 런이 남긴 미머지 동명 브랜치는 낡은 기저라 구판 프롬프트·템플릿으로
+   실행된다. 실구현 커밋이 있으면 `rescue/<key>-<ts>` 로 보존 후 재생성, 보존 실패 시
+   기존 브랜치를 덮지 않고 태스크 실패 처리)
 2. `.ralph/tasks/{ISSUE_KEY}.md` → `.ralph/fix_plan.md`로 복사
 3. Linear 상태 → **In Progress**
 4. UI/UX 작업 감지 시 `RALPH_UIUX_MODE=true` 자동 활성화
