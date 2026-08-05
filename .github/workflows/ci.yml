@@ -200,7 +200,13 @@ jobs:
   scripts:
     name: Scripts Validation
     needs: changes
-    if: needs.changes.outputs.scripts == 'true'
+    # fail-closed. 이 잡에 워크플로 셸 주입 검사(CE-375)가 들어 있어서, `changes` 가
+    # 실패해 출력이 비면 잡이 통째로 스킵되고 **스킵은 CI 에서 초록색**이다 — 즉
+    # `changes` 를 죽이는 것만으로 보안 검사를 우회할 수 있었다(CE-376).
+    # 필터를 믿을 수 없으면 믿지 말고 실행한다. 취소 시에는 돌지 않는다.
+    if: |
+      !cancelled() &&
+      (needs.changes.result != 'success' || needs.changes.outputs.scripts == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

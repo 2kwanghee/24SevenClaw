@@ -43,24 +43,50 @@ def get_env():
     return token, chat_id
 
 
-def send_message(token: str, chat_id: str, text: str) -> dict:
-    """Send a message via Telegram Bot API."""
+def _post(token: str, chat_id: str, text: str, parse_mode: str | None) -> dict:
+    """sendMessage 1회 호출. HTTP 오류는 HTTPError 로 올린다."""
     url = f"{TELEGRAM_API}/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown",
-    }
+    payload: dict = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     data = json.dumps(payload).encode("utf-8")
     req = Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
+    with urlopen(req) as resp:
+        return json.loads(resp.read())
 
+
+def send_message(token: str, chat_id: str, text: str) -> dict:
+    """Telegram 으로 메시지를 보낸다. Markdown 파싱 실패면 plain text 로 1회 재시도.
+
+    왜 재시도하는가: 메시지에 PR 제목 같은 **임의 텍스트**가 들어간다. 거기에 `_` 나
+    불균형 `*`·`[` 가 있으면 Telegram 이 400(can't parse entities)을 낸다. 그런데
+    호출부(`post-merge.yml`)가 `2>/dev/null || true` 로 감싸고 있어 **알림이 안 왔는데
+    워크플로는 초록색**이었다 — 추적할 단서가 0이었다(CE-376).
+
+    포맷을 잃더라도 알림이 도착하는 쪽이 낫다. 그리고 사유를 **stdout 에도** 남긴다 —
+    stderr 만 쓰면 `2>/dev/null` 에 지워진다.
+    """
     try:
-        with urlopen(req) as resp:
-            return json.loads(resp.read())
+        return _post(token, chat_id, text, "Markdown")
     except HTTPError as e:
         err_body = e.read().decode()
-        print(f"Telegram API Error ({e.code}): {err_body}", file=sys.stderr)
+        if e.code != 400:
+            # 400 이 아니면 포맷 문제가 아니다(토큰·chat_id·네트워크) — 재시도해도 같다.
+            print(f"Telegram API Error ({e.code}): {err_body}", file=sys.stderr)
+            sys.exit(1)
+        # stdout 으로도 남긴다: 호출부의 `2>/dev/null` 이 stderr 를 지운다.
+        print(f"[telegram] Markdown 파싱 실패(400) → plain text 재시도: {err_body}")
+        print(f"Telegram Markdown parse failed, retrying as plain: {err_body}", file=sys.stderr)
+
+    try:
+        result = _post(token, chat_id, text, None)
+        print("[telegram] plain text 재시도 성공 — 서식 없이 발송됨")
+        return result
+    except HTTPError as e2:
+        err_body = e2.read().decode()
+        print(f"[telegram] plain text 재시도도 실패({e2.code}): {err_body}")
+        print(f"Telegram API Error ({e2.code}): {err_body}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -120,11 +146,13 @@ def parse_fix_plan_detailed() -> dict:
             marker = match.group(1)
             title = match.group(2).strip()
             status = "done" if marker == "x" else ("skipped" if marker == "!" else "incomplete")
-            items.append({
-                "priority": current_priority,
-                "title": title,
-                "status": status,
-            })
+            items.append(
+                {
+                    "priority": current_priority,
+                    "title": title,
+                    "status": status,
+                }
+            )
 
     return {"items": items}
 
@@ -135,7 +163,9 @@ def get_changed_files_summary() -> str:
     try:
         result = subprocess.run(
             ["git", "diff", "--stat", "HEAD~5", "HEAD"],
-            capture_output=True, text=True, cwd=project_dir,
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
         )
         if result.returncode == 0 and result.stdout.strip():
             lines = result.stdout.strip().split("\n")
@@ -152,7 +182,9 @@ def get_recent_commits(n: int = 5) -> list[str]:
     try:
         result = subprocess.run(
             ["git", "log", f"--oneline", f"-{n}"],
-            capture_output=True, text=True, cwd=project_dir,
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
         )
         if result.returncode == 0:
             return [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
@@ -349,7 +381,9 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
         result_text = "실패"
 
     # 이슈 번호 목록 수집
-    issue_ids = [meta.get("identifier", "") for meta in task_mapping.values() if meta.get("identifier")]
+    issue_ids = [
+        meta.get("identifier", "") for meta in task_mapping.values() if meta.get("identifier")
+    ]
 
     lines = []
     lines.append(f"{result_emoji} *자동 개발 파이프라인 — {result_text}*")
@@ -395,8 +429,11 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
     lines.append("")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     if fail_count > 0:
-        failed_ids = [meta.get("identifier", "") for title, meta in task_mapping.items()
-                      if meta.get("identifier")]
+        failed_ids = [
+            meta.get("identifier", "")
+            for title, meta in task_mapping.items()
+            if meta.get("identifier")
+        ]
         backlog_ref = f" ({', '.join(failed_ids)})" if failed_ids else ""
         lines.append(f"⏳ 실패 {fail_count}건 → Backlog 이동{backlog_ref}")
     elif total > 0:
@@ -429,8 +466,12 @@ def main():
     parser = argparse.ArgumentParser(description="Telegram notification for Ralph Loop")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--message", help="Send a simple text message")
-    group.add_argument("--ralph-report", action="store_true", help="Send Ralph Loop completion report")
-    group.add_argument("--pipeline-report", action="store_true", help="Send pipeline completion report (detailed)")
+    group.add_argument(
+        "--ralph-report", action="store_true", help="Send Ralph Loop completion report"
+    )
+    group.add_argument(
+        "--pipeline-report", action="store_true", help="Send pipeline completion report (detailed)"
+    )
 
     parser.add_argument("--iterations", help="Number of iterations completed")
     parser.add_argument("--test-result", help="Test result summary")
