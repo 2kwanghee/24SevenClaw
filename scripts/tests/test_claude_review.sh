@@ -32,8 +32,8 @@ grep -q "^run_claude_review() {" "$PIPELINE" && ok "run_claude_review 정의 존
 grep -q 'PIPELINE_MODEL_REVIEW="\${PIPELINE_MODEL_REVIEW:-claude-sonnet-5}"' "$PIPELINE" \
   && ok "리뷰 티어 변수 + 기본 정식명" || bad "리뷰 티어 변수 없음/별칭" "-"
 grep -q -- '--model "\$PIPELINE_MODEL_REVIEW"' "$PIPELINE" && ok "리뷰 호출이 변수 사용" || bad "리뷰 호출 하드코딩" "-"
-grep -q -- '--disallowedTools "Edit,Write,NotebookEdit"' "$PIPELINE" \
-  && ok "Edit/Write/NotebookEdit 비활성화" || bad "쓰기 툴 차단 배선 없음" "-"
+grep -q -- '--disallowedTools "Edit,Write,NotebookEdit,MultiEdit,Bash"' "$PIPELINE" \
+  && ok "Edit/Write/NotebookEdit/MultiEdit/Bash 비활성화" || bad "쓰기 툴 차단 배선 없음" "-"
 REVIEW_FN_BODY="$(sed -n '/^run_claude_review() {/,/^}/p' "$PIPELINE")"
 if printf '%s' "$REVIEW_FN_BODY" | grep -q -- '--dangerously-skip-permissions'; then
   bad "리뷰 함수에 --dangerously-skip-permissions 존재" "-"
