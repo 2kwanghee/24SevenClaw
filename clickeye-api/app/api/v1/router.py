@@ -36,6 +36,7 @@ from app.api.v1.reports import router as reports_router
 from app.api.v1.review_pipeline import router as review_pipeline_router
 from app.api.v1.roi import router as roi_router
 from app.api.v1.roi_admin import router as roi_admin_router
+from app.api.v1.seat_quota import router as seat_quota_router
 from app.api.v1.setup_bootstrap import router as setup_bootstrap_router
 from app.api.v1.system_features import router as system_features_router
 
@@ -78,3 +79,4 @@ api_v1_router.include_router(system_features_router)
 api_v1_router.include_router(ops_infra_router)
 api_v1_router.include_router(ops_env_router)
 api_v1_router.include_router(ops_db_router)
+api_v1_router.include_router(seat_quota_router)

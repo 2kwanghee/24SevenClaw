@@ -12163,6 +12163,116 @@
           }
         }
       }
+    },
+    "/api/v1/ops/seat-quota/snapshots": {
+      "post": {
+        "tags": [
+          "ops-seat-quota"
+        ],
+        "summary": "Create Snapshots",
+        "description": "cswap 배치 수신 — 계정 1개당 window 행(five_hour 1 + seven_day 1 + scoped N).\n\n개별 계정 파싱/DB 오류는 해당 계정만 skip 하고 나머지는 정상 처리한다.",
+        "operationId": "create_snapshots_api_v1_ops_seat_quota_snapshots_post",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatQuotaSnapshotBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatQuotaSnapshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/seat-quota/latest": {
+      "get": {
+        "tags": [
+          "ops-seat-quota"
+        ],
+        "summary": "Get Latest",
+        "description": "계정+window+scope_name 조합별 최신 스냅샷 1건씩 조회.",
+        "operationId": "get_latest_api_v1_ops_seat_quota_latest_get",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatQuotaLatestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -24501,6 +24611,538 @@
           "system_role"
         ],
         "title": "RoleUpdateRequest"
+      },
+      "SeatQuotaFiveHourIn": {
+        "properties": {
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Pct"
+          },
+          "resetsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resetsat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pct"
+        ],
+        "title": "SeatQuotaFiveHourIn"
+      },
+      "SeatQuotaLatestEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "usage_fetched_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Fetched At"
+          },
+          "account_email": {
+            "type": "string",
+            "title": "Account Email"
+          },
+          "organization_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Uuid"
+          },
+          "seat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Id"
+          },
+          "window": {
+            "type": "string",
+            "title": "Window"
+          },
+          "scope_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Name"
+          },
+          "pct": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Pct"
+          },
+          "resets_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resets At"
+          },
+          "expected_pct": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Pct"
+          },
+          "ahead_of_pace": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ahead Of Pace"
+          },
+          "projected_exhaustion_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Exhaustion At"
+          },
+          "will_last_to_reset": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Will Last To Reset"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "captured_at",
+          "usage_fetched_at",
+          "account_email",
+          "organization_uuid",
+          "seat_id",
+          "window",
+          "scope_name",
+          "pct",
+          "resets_at",
+          "expected_pct",
+          "ahead_of_pace",
+          "projected_exhaustion_at",
+          "will_last_to_reset"
+        ],
+        "title": "SeatQuotaLatestEntry"
+      },
+      "SeatQuotaLatestResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SeatQuotaLatestEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SeatQuotaLatestResponse"
+      },
+      "SeatQuotaScopedIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Pct"
+          },
+          "resetsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resetsat"
+          },
+          "expectedPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedpct"
+          },
+          "aheadOfPace": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aheadofpace"
+          },
+          "projectedExhaustionAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projectedexhaustionat"
+          },
+          "willLastToReset": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Willlasttoreset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "pct"
+        ],
+        "title": "SeatQuotaScopedIn"
+      },
+      "SeatQuotaSevenDayIn": {
+        "properties": {
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Pct"
+          },
+          "resetsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resetsat"
+          },
+          "expectedPct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedpct"
+          },
+          "aheadOfPace": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aheadofpace"
+          },
+          "projectedExhaustionAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projectedexhaustionat"
+          },
+          "willLastToReset": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Willlasttoreset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pct"
+        ],
+        "title": "SeatQuotaSevenDayIn"
+      },
+      "SeatQuotaSnapshotBatchRequest": {
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/SeatQuotaSnapshotIn"
+            },
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "title": "SeatQuotaSnapshotBatchRequest",
+        "description": "cswap `--list --json` 배치 수신 요청 (POST /ops/seat-quota/snapshots)."
+      },
+      "SeatQuotaSnapshotIn": {
+        "properties": {
+          "number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "organizationName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organizationname"
+          },
+          "organizationUuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organizationuuid"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "usageStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usagestatus"
+          },
+          "usageFetchedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usagefetchedat"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/SeatQuotaUsageIn"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "usage"
+        ],
+        "title": "SeatQuotaSnapshotIn",
+        "description": "cswap `accounts[]` 원소 1개(계정 1개) 원문 그대로."
+      },
+      "SeatQuotaSnapshotResponse": {
+        "properties": {
+          "rows_created": {
+            "type": "integer",
+            "title": "Rows Created"
+          },
+          "accounts_processed": {
+            "type": "integer",
+            "title": "Accounts Processed"
+          },
+          "accounts_skipped": {
+            "type": "integer",
+            "title": "Accounts Skipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows_created",
+          "accounts_processed",
+          "accounts_skipped"
+        ],
+        "title": "SeatQuotaSnapshotResponse",
+        "description": "배치 수신 결과 — 생성된 행 수 + 부분 실패(skip) 계정 수."
+      },
+      "SeatQuotaUsageIn": {
+        "properties": {
+          "fiveHour": {
+            "$ref": "#/components/schemas/SeatQuotaFiveHourIn"
+          },
+          "sevenDay": {
+            "$ref": "#/components/schemas/SeatQuotaSevenDayIn"
+          },
+          "scoped": {
+            "items": {
+              "$ref": "#/components/schemas/SeatQuotaScopedIn"
+            },
+            "type": "array",
+            "title": "Scoped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fiveHour",
+          "sevenDay"
+        ],
+        "title": "SeatQuotaUsageIn"
       },
       "SeatRegisterRequest": {
         "properties": {
