@@ -222,12 +222,15 @@ run_pipeline() {   # run_pipeline <primary> [KEY=VAL ...]
   return 0
 }
 
-echo "── ① 토글 off + 워크스페이스 모드 → 원본 경로(허상 재현) ──"
+echo "── ① 토글 off + 워크스페이스 모드 → self-repo 경로, 무산출 가드가 허상 차단(CE-393) ──"
 P1="$TMP/p1"; build_primary "$P1"
 build_customer "$TMP/c1.git" "$P1/workspaces/proj1" main
 run_pipeline "$P1" FLOWOPS_WORKSPACE=true WORKSPACE_KEY=proj1
 deny_log "$P1/run.log" "워크스페이스 딜리버리" "리다이렉트 미발동(로그 무출현)"
-want_log "$P1/run.log" "AUTO_MERGE 활성화" "원본 자기레포 머지 경로 진입"
+# [CE-393] 리다이렉트 off → 구현이 workspace clone 으로 가고 PRIMARY main..HEAD 가 비어
+# 예전엔 빈 머지가 "성공"으로 소진됐다(허상). 이제 self-repo 무산출 가드가 실패로 끊는다.
+want_log "$P1/run.log" "무산출 런 — 변경 없음" "self-repo 무산출(허상) 가드가 빈 머지를 차단"
+deny_log "$P1/run.log" "AUTO_MERGE 활성화" "허상 머지 경로 미진입(무산출 차단)"
 deny_ref "$TMP/c1.git" "refs/heads/clickeye/intake-proj1" "고객 bare 에 태스크 브랜치 없음(허상 = 현행 버그 재현)"
 want_eq "$(git -C "$P1/workspaces/proj1" rev-parse --abbrev-ref HEAD)" "main" \
   "고객 clone 이 기본 브랜치에 머묾(태스크 브랜치 미생성)"
@@ -236,7 +239,10 @@ echo "── ② 토글 on + 자기레포 → 리다이렉트 미발동 ──"
 P2="$TMP/p2"; build_primary "$P2"
 run_pipeline "$P2" FLOWOPS_WORKSPACE_DELIVERY=true
 deny_log "$P2/run.log" "워크스페이스 딜리버리" "IMPL_WORKDIR==PROJECT_DIR → WS_DELIVERY=false"
-want_log "$P2/run.log" "머지 성공" "자기레포 머지 경로 정상 수행"
+# [CE-393] run_pipeline 은 FLOWOPS_CODEX_REVIEW=false(리뷰 생략)로 돈다 → 사람 게이트 없이
+# 직접 머지하지 않고 PR 경로로 강등한다. 자기레포 경로 진입 자체는 강등 로그로 확인한다.
+want_log "$P2/run.log" "PR 경로로 강등" "리뷰 생략(CODEX_REVIEW=off) → 직접 머지 금지·PR 강등"
+deny_log "$P2/run.log" "머지 성공" "리뷰 생략 런은 직접 머지하지 않음"
 want_ref "$P2" "main" "PRIMARY main 유지"
 
 echo "── ③ 고객 기본 브랜치 감지 3단 ──"

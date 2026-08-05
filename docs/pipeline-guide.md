@@ -284,12 +284,18 @@ tail -f logs/claude_24S-XX_*.log
 ### Step 4: QA 리뷰 — `run_claude_review()` (CE-390)
 
 `FLOWOPS_CODEX_REVIEW=true` 시 실행. STEP B 구현 세션과 **별개의 `claude -p` 프로세스**로
-읽기전용 리뷰를 수행한다(Edit/Write/NotebookEdit 비활성화):
+읽기전용 리뷰를 수행한다(Edit/Write/NotebookEdit/MultiEdit/Bash 비활성화 — CE-393):
 - `.ralph/PLAN.md` + `.ralph/TASK.md` + git diff를 리뷰 세션에 전달
 - 구현 세션과 리뷰 세션의 `session_id`를 비교해 동일하면 자기검증 위반으로 실패 처리
 - 정상 종료 시에만 `.ralph/REVIEW.md` 생성(판정: 통과/실패/판정불가)
 - 리뷰 프로세스 비정상 종료 시 1회 재시도, 재실패해도 **위조 REVIEW.md를 만들지 않고**
   기존 실패 처리 경로(`handle_task_failure`)로 넘긴다(SIP-1 재발 방지)
+- **판정 연동(CE-393)**: `parse_review_verdict.py`(한글 `## 판정` 1차, 영문 폴백)로 판정을
+  파싱해 통과(rc=0)가 아니면 — 실패(rc=1)·판정불가(rc=2) 모두 — 머지/PR/고객 push 를
+  진행하지 않고 실패 경로로 보낸다(fail-closed). 리뷰는 장식이 아니라 게이트다
+- **리뷰 생략 시 직접 머지 금지(CE-393)**: `FLOWOPS_CODEX_REVIEW=off` 로 리뷰가 생략된 런은
+  `AUTO_MERGE=on` 이어도 직접 머지 대신 PR 경로로 강등된다(사람 리뷰로 대체 —
+  "구현≠리뷰 필수" 불변식)
 
 ### Step 5: 결과 보고 — `linear_reporter.py`
 
@@ -346,11 +352,16 @@ API 서버 `GET /api/v1/governance/policy` 엔드포인트로 노출된다(인�
 
 #### A. AUTO_MERGE ON (직접 머지 — LOW-tier 한정)
 `FLOWOPS_AUTO_MERGE=true` 설정 시:
-1. `git merge --no-ff` → main에 직접 머지
-2. `git push origin main`
-3. 머지 로그 생성 (`logs/merge_*.log`)
-4. 머지된 브랜치 자동 삭제
-5. 머지 실패 시 → PR 생성으로 폴백
+1. `checkout main` 후 **현재 HEAD 가 main 인지 확인**(CE-393 — 종전엔 checkout 실패가
+   삼켜져 자기 브랜치 위 no-op self-merge 가 "머지 성공"으로 위장됐다. CE-387 사고)
+2. `git merge --no-ff` → main에 직접 머지 + **`merge-base --is-ancestor` 실증**(머지가
+   실제로 main 에 반영됐는지 확인, 실패 시 성공 처리 금지 → PR 폴백)
+3. `git push origin main`
+4. 머지 로그 생성 (`logs/merge_*.log`)
+5. 머지된 브랜치 자동 삭제
+6. 머지·검증 실패 시 → PR 생성으로 폴백
+7. **무산출 런 차단(CE-393)**: 이번 런 델타(main..HEAD)가 비었거나 전부 `.ralph/` 하위면
+   실구현 0 으로 보고 완료 소진 대신 실패 경로로 보낸다
 6. **추적성 승격**(`FLOWOPS_GOVERNANCE_PROMOTE`): 고복잡도(변경파일 ≥`FLOWOPS_PROMOTE_MIN_FILES`
    또는 diff 라인 ≥`FLOWOPS_PROMOTE_MIN_LINES`) 직접머지는 cleanup 전 `REVIEW.md`·`refined`·머지로그 경로를
    `logs/governance/<KEY>/`로 아카이브(재생성 없이 승격만 — refined 원본은 Linear 코멘트, diff는 머지로그에 이미 존재).

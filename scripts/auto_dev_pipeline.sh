@@ -6,7 +6,7 @@
 #   2. [Claude] 메타프롬프트 정제(관측형 사전 정제, 기획+정제 일체) → PLAN.md 생성
 #      (FLOWOPS_METAPROMPT=false 시 레거시 Gemini 기획으로 폴백)
 #   3. 브랜치 생성 → [Claude] 구현(정제 스펙 prepend) → TASK.md 생성
-#   4. [Codex] QA 리뷰 → REVIEW.md 생성
+#   4. [QA 리뷰(구현과 분리된 세션)] → REVIEW.md 생성 + 판정 파싱
 #   5. Linear 결과 보고 + PR 생성
 #   6. 다음 Queued 이슈로 반복
 #
@@ -384,7 +384,7 @@ run_claude_review() {
     review_rc=0
     claude -p "$review_prompt" \
       --model "$PIPELINE_MODEL_REVIEW" \
-      --disallowedTools "Edit,Write,NotebookEdit" \
+      --disallowedTools "Edit,Write,NotebookEdit,MultiEdit,Bash" \
       --verbose \
       --output-format stream-json \
       > "$review_log" 2>&1 || review_rc=$?
@@ -509,7 +509,7 @@ trap cleanup EXIT
 
 log "======================================="
 log "  자동 개발 파이프라인 v6 (멀티 Agent)"
-log "  Gemini(기획) → Claude(구현) → Codex(QA)"
+log "  기획/정제 → Claude(구현) → QA 리뷰(분리 세션)"
 log "======================================="
 
 # ── Linear Watcher 활성화 확인 ──
@@ -870,7 +870,8 @@ for title, meta in m.items():
   if is_enabled "FLOWOPS_METAPROMPT" 2>/dev/null && [ -f "$METAPROMPT_SKILL" ]; then
     log "── 메타프롬프트 정제 시작 ──"
     # 멱등성: 이미 정제된 스펙이 있으면 정제 콜 생략 (중복 토큰 방지)
-    if [ ! -s "$REFINED_FILE" ]; then
+    # [CE-393] 공백뿐인 재사용 파일은 실패로 취급해 재정제(0바이트 허위 완료 방지).
+    if ! { [ -s "$REFINED_FILE" ] && grep -q '[^[:space:]]' "$REFINED_FILE" 2>/dev/null; }; then
       # SKILL.md 는 `---` YAML 프론트매터로 시작한다. 그 문자열이 claude 의 첫 인자 맨 앞에
       # 오면 CLI 가 옵션으로 파싱해 `error: unknown option '---…'` 로 즉시 죽는다 — 실측
       # (2026-08-04, logs/refine_CE-355_*.log): 정제가 **전 티켓에서 조용히 실패**하고
@@ -918,7 +919,9 @@ $(cat .ralph/fix_plan.md 2>/dev/null || echo '(없음)')
       log "기존 정제 스펙 재사용: $REFINED_FILE"
     fi
 
-    if [ -s "$REFINED_FILE" ]; then
+    # [CE-393] fail-closed: 파일이 비었거나 공백뿐이면 "정제 완료" 로 처리하지 않고
+    # 기존 fix_plan→PLAN 폴백 경로로 넘긴다(0바이트 refined 를 완료로 소진하는 허위 성공 차단).
+    if [ -s "$REFINED_FILE" ] && grep -q '[^[:space:]]' "$REFINED_FILE" 2>/dev/null; then
       cp "$REFINED_FILE" .ralph/PLAN.md
       log "메타프롬프트 정제 완료 → $REFINED_FILE (PLAN.md 동기화)"
       # 정제 스펙을 Linear 코멘트로 기록 (실패 무시)
@@ -1155,6 +1158,30 @@ PY
       continue
     fi
     log "워크스페이스 딜리버리: 이번 런 구현 커밋 ${WS_COMMITS}건 확인 (${WS_BRANCH})"
+  else
+    # ── [CE-393] self-repo 무산출 런 완료 방지 ──
+    # 이번 런 델타(main..HEAD)의 변경 파일이 하나도 없거나 전부 `.ralph/` 하위(하네스 WIP)면
+    # 실구현 0 → "머지 성공" 으로 소진하지 않고 기존 실패 경로(handle_task_failure)로 되돌린다.
+    # (CE-387: 유일 커밋이 `.ralph/refined` WIP 였는데 완료로 소진된 사고). WS 경로는 위 분기가
+    # 별도 판정(CE-347/CE-362)하므로 여기 self-repo 만 대상.
+    SR_DELTA_FILES="$(safe_git diff --name-only main..HEAD 2>/dev/null || true)"
+    if [ -z "$SR_DELTA_FILES" ]; then
+      safe_git checkout main 2>/dev/null || true
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "이번 런 변경 없음 (main..HEAD 비어 있음, 브랜치 ${BRANCH})"; then
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+        log "Linear 상태: Backlog (무산출 런 — 변경 없음)"
+      fi
+      FAILED=$((FAILED + 1))
+      continue
+    elif ! printf '%s\n' "$SR_DELTA_FILES" | grep -qvE '^\.ralph/'; then
+      safe_git checkout main 2>/dev/null || true
+      if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "실구현 0 — 변경이 전부 .ralph/ 하위(하네스 WIP, 브랜치 ${BRANCH}): $(printf '%s' "$SR_DELTA_FILES" | head -n5 | tr '\n' ' ')"; then
+        python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+        log "Linear 상태: Backlog (무산출 런 — .ralph 전용 변경)"
+      fi
+      FAILED=$((FAILED + 1))
+      continue
+    fi
   fi
 
   # Claude 실행 후 TASK.md 자동 생성 (없으면)
@@ -1185,6 +1212,7 @@ PY
   # ── [STEP C][CE-390] 구현↔리뷰 분리 QA 게이트 → REVIEW.md ──
   # 리뷰 세션은 STEP B 구현 세션과 별개의 claude 프로세스다(자기검증 금지). 실행 불능/
   # 자기검증 위반 시 위조 REVIEW.md 를 만들지 않고 기존 실패 처리 경로로 넘긴다(SIP-1 재발 방지).
+  REVIEW_SKIPPED=false
   if is_enabled "FLOWOPS_CODEX_REVIEW" 2>/dev/null; then
     log "── 구현↔리뷰 분리 QA 리뷰 시작 ──"
     QA_SPEC="$( { [ -f .ralph/PLAN.md ] && cat .ralph/PLAN.md; echo; [ -f .ralph/TASK.md ] && cat .ralph/TASK.md; } )"
@@ -1198,6 +1226,23 @@ PY
       log "QA 리뷰 완료 (구현 세션=${IMPL_SESSION_ID:-미상} 리뷰 세션=${REVIEW_SESSION_ID:-미상})"
       record_metric "$METRIC_RUN_ID" "qa_done" \
         "{\"ran\": true, \"reviewer\": \"claude\", \"review_session_id\": \"${REVIEW_SESSION_ID:-}\", \"impl_session_id\": \"${IMPL_SESSION_ID:-}\"}"
+
+      # ── [CE-390/CE-393] 리뷰 판정 연동 — parse_review_verdict.py 로 REVIEW.md 판정 획득 ──
+      # 판정이 통과(rc=0)가 아니면(실패 rc=1 / 판정불가 rc=2) 머지·PR 진행을 막고 기존 실패 경로로.
+      VERDICT_RC=0
+      VERDICT_OUT="$(python3 scripts/parse_review_verdict.py --file .ralph/REVIEW.md 2>/dev/null)" || VERDICT_RC=$?
+      record_metric "$METRIC_RUN_ID" "qa_verdict" \
+        "{\"rc\": ${VERDICT_RC}, \"detail\": $(printf '%s' "${VERDICT_OUT:-{}}" | python3 -c 'import sys,json;print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')}"
+      if [ "$VERDICT_RC" != "0" ]; then
+        log "QA 판정: 통과 아님(rc=${VERDICT_RC}) — 머지/PR 진행 금지: ${VERDICT_OUT}"
+        if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "QA 리뷰 판정 실패/판정불가(rc=${VERDICT_RC}): ${VERDICT_OUT}"; then
+          safe_git checkout main 2>/dev/null || true
+          python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
+          log "Linear 상태: Backlog (QA 판정 실패/판정불가)"
+        fi
+        continue
+      fi
+      log "QA 판정: 통과 — 진행"
     else
       QA_EXIT=1
       log "WARN: QA 리뷰 실패 — REVIEW.md 미생성"
@@ -1213,6 +1258,8 @@ PY
   else
     log "SKIP: QA 리뷰 비활성화 (FLOWOPS_CODEX_REVIEW=false)"
     record_metric "$METRIC_RUN_ID" "qa_done" "{\"ran\": false}"
+    # [CE-393] 리뷰가 생략된 런은 직접 머지 금지 대상 — 아래 머지 분기에서 PR 로 강등한다.
+    REVIEW_SKIPPED=true
   fi
 
   # Linear 결과 보고
@@ -1327,6 +1374,14 @@ PY
     fi
   fi
 
+  # [CE-393] QA 리뷰가 생략된 런은 사람 게이트 없이 main 에 직접 머지하지 않는다.
+  # 거버넌스 HIGH 강등과 동일한 방식(GATE_DECISION=pr)으로 PR 경로로 내린다. WS 딜리버리는
+  # 애초에 고객 origin push 라 여기 영향 없음(첫 분기에서 갈라짐).
+  if [ "${REVIEW_SKIPPED:-false}" = true ] && [ "$GATE_DECISION" = "direct" ]; then
+    GATE_DECISION="pr"
+    log "QA 리뷰 생략(FLOWOPS_CODEX_REVIEW=off) → 직접 머지 금지, PR 경로로 강등(사람 머지 게이트)"
+  fi
+
   # PR 생성 또는 직접 머지 (거버넌스 위험강등 우선)
   # [R9~R11/R14] 워크스페이스 딜리버리는 이 체인의 **첫 분기**로 갈라진다: 머지 없음,
   # 태스크 브랜치만 고객 origin 으로 push, ClickEye GitHub 을 겨냥하는 auto_pr_creator 미호출.
@@ -1431,9 +1486,20 @@ PY
     MERGE_DIFF_DETAIL=$(safe_git diff "main..${BRANCH}" 2>/dev/null || echo "")
 
     # 메인으로 전환 후 머지
-    safe_git checkout main 2>/dev/null || true
-    if safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null; then
-      log "머지 성공: ${BRANCH} → main"
+    # [CE-393] 허위 성공 근본원인: checkout main 실패를 `|| true` 로 삼키면 현재 브랜치(=$BRANCH)
+    # 위에 머무른 채 `git merge $BRANCH` 가 "Already up to date"(rc=0) no-op 으로 성공해
+    # main 이 전진하지 않았는데 "머지 성공" 이 찍혔다(reflog show main 에 이력 없음).
+    # → (a) checkout 이 실제로 main 에 안착했는지 확인, (b) 머지 후 브랜치가 main 조상인지 실증.
+    if ! safe_git checkout main 2>/dev/null || [ "$(safe_git rev-parse --abbrev-ref HEAD 2>/dev/null)" != "main" ]; then
+      log "ERROR: main 체크아웃 실패 — 직접 머지 취소, PR 생성으로 대체"
+      RUN_OUTCOME="pr"
+      python3 scripts/auto_pr_creator.py --branch "$BRANCH" 2>&1 || {
+        log "WARN: PR 생성 실패"
+      }
+      safe_git checkout main 2>/dev/null || true
+    elif safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null \
+      && safe_git merge-base --is-ancestor "$BRANCH" main 2>/dev/null; then
+      log "머지 성공: ${BRANCH} → main (merge-base 실증)"
       MERGED_DIRECT=true
       RUN_OUTCOME="merged"
 

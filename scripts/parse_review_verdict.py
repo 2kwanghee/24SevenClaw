@@ -22,7 +22,23 @@ import sys
 
 
 def parse_verdict(content: str) -> dict:
-    """REVIEW.md 내용에서 VERDICT 라인을 파싱."""
+    """REVIEW.md 내용에서 판정을 파싱.
+
+    1차: 한글 포맷(PROMPT.review.md 고정 출력 — `## 판정` 섹션의 통과/실패/판정불가).
+    폴백: 기존 영문 `VERDICT:` / `## Verdict`.
+    """
+
+    # 패턴 0 (1차): 한글 "## 판정" 섹션. 섹션 본문에서 판정 토큰만 본다.
+    # 보수적 우선순위 — 판정불가 > 실패 > 통과 (모호하면 사람 게이트로 넘어가도록 UNKNOWN/FAIL 우선).
+    m = re.search(r"##\s*판정\s*[\r\n]+(.+?)(?=\n##|\Z)", content, re.DOTALL)
+    if m:
+        section = m.group(1)
+        if "판정불가" in section:
+            return {"verdict": "UNKNOWN", "reason": "리뷰 판정: 판정불가"}
+        if "실패" in section:
+            return {"verdict": "FAIL", "reason": "리뷰 판정: 실패"}
+        if "통과" in section:
+            return {"verdict": "PASS", "reason": ""}
 
     # 패턴 1: "VERDICT: PASS" 또는 "VERDICT: FAIL (reason)" — 라인 시작 앵커
     m = re.search(
