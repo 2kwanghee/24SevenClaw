@@ -11,6 +11,7 @@ import type {
   LlmProjectUsageSummary,
   OrchestratorSessionListResponse,
   OrchestratorSessionResponse,
+  PipelineRun,
   ProjectResponse,
   ReviewRoundResponse,
   SessionSummaryResponse,
@@ -236,6 +237,235 @@ export const mockLedgerSummary: LlmProjectUsageSummary = {
     },
   ],
 };
+
+// --- 파이프라인 실행 이력 (실행 축, CE-364) ---
+// 실런이 1건뿐이라 목업이 상태 검증 수단이다. 성공/실패/데모션/진행중을 모두 담는다.
+// usage 는 티켓 단위 집계이며 cache_read_tokens 가 출력의 수백 배임을 반영한다.
+// CE-402 는 실패 런 + 재시도(진행중) 런 2건으로 "같은 티켓 다중 런" 선택을 검증한다.
+
+export const mockPipelineRuns: PipelineRun[] = [
+  {
+    // 성공(pushed) — 5 이벤트 전부
+    run_id: "CE-411_20260804_101500",
+    issue_key: "CE-411",
+    project_id: mockProject.id,
+    workspace_key: "workspace",
+    started_at: "2026-08-04T10:15:00Z",
+    ended_at: "2026-08-04T10:16:20Z",
+    duration_s: 80,
+    outcome: "pushed",
+    events: [
+      {
+        event: "refine_done",
+        data: { refined: true, fallback: false, domain_section: true },
+        occurred_at: "2026-08-04T10:15:03Z",
+        created_at: "2026-08-04T10:15:03Z",
+      },
+      {
+        event: "impl_done",
+        data: { workdir: "workspace", duration_s: 42 },
+        occurred_at: "2026-08-04T10:15:48Z",
+        created_at: "2026-08-04T10:15:48Z",
+      },
+      {
+        event: "qa_done",
+        data: { ran: true, exit: 0 },
+        occurred_at: "2026-08-04T10:16:05Z",
+        created_at: "2026-08-04T10:16:05Z",
+      },
+      {
+        event: "gate_done",
+        data: { demoted: false, verdict: "direct" },
+        occurred_at: "2026-08-04T10:16:15Z",
+        created_at: "2026-08-04T10:16:15Z",
+      },
+      {
+        event: "run_done",
+        data: { outcome: "pushed" },
+        occurred_at: "2026-08-04T10:16:20Z",
+        created_at: "2026-08-04T10:16:20Z",
+      },
+    ],
+    usage: {
+      models: ["claude-sonnet-5", "claude-haiku-4-5"],
+      input_tokens: 128_400,
+      output_tokens: 5_350,
+      cache_read_tokens: 846_426,
+      ref_cost_usd: 0.62,
+    },
+  },
+  {
+    // 실패(qa_done.exit != 0) — gate/done 미도달
+    run_id: "CE-402_20260804_094000",
+    issue_key: "CE-402",
+    project_id: mockProject.id,
+    workspace_key: "workspace",
+    started_at: "2026-08-04T09:40:00Z",
+    ended_at: "2026-08-04T09:41:10Z",
+    duration_s: 70,
+    outcome: "failed",
+    events: [
+      {
+        event: "refine_done",
+        data: { refined: true, fallback: false, domain_section: false },
+        occurred_at: "2026-08-04T09:40:04Z",
+        created_at: "2026-08-04T09:40:04Z",
+      },
+      {
+        event: "impl_done",
+        data: { workdir: "workspace", duration_s: 51 },
+        occurred_at: "2026-08-04T09:40:58Z",
+        created_at: "2026-08-04T09:40:58Z",
+      },
+      {
+        event: "qa_done",
+        data: { ran: true, exit: 1 },
+        occurred_at: "2026-08-04T09:41:10Z",
+        created_at: "2026-08-04T09:41:10Z",
+      },
+      {
+        event: "model_mismatch",
+        data: { expected: "sonnet", actual: "opus" },
+        occurred_at: "2026-08-04T09:41:11Z",
+        created_at: "2026-08-04T09:41:11Z",
+      },
+    ],
+    usage: {
+      models: ["claude-opus-5"],
+      input_tokens: 96_200,
+      output_tokens: 4_120,
+      cache_read_tokens: 512_880,
+      ref_cost_usd: 1.44,
+    },
+  },
+  {
+    // 데모션(demoted) — 게이트가 직접머지 강등
+    run_id: "CE-408_20260804_083000",
+    issue_key: "CE-408",
+    project_id: mockProject.id,
+    workspace_key: "workspace",
+    started_at: "2026-08-04T08:30:00Z",
+    ended_at: "2026-08-04T08:31:30Z",
+    duration_s: 90,
+    outcome: "demoted",
+    events: [
+      {
+        event: "refine_done",
+        data: { refined: true, fallback: false, domain_section: true },
+        occurred_at: "2026-08-04T08:30:05Z",
+        created_at: "2026-08-04T08:30:05Z",
+      },
+      {
+        event: "impl_done",
+        data: { workdir: "workspace", duration_s: 63 },
+        occurred_at: "2026-08-04T08:31:12Z",
+        created_at: "2026-08-04T08:31:12Z",
+      },
+      {
+        event: "qa_done",
+        data: { ran: true, exit: 0 },
+        occurred_at: "2026-08-04T08:31:22Z",
+        created_at: "2026-08-04T08:31:22Z",
+      },
+      {
+        event: "gate_done",
+        data: { demoted: true, verdict: "demoted" },
+        occurred_at: "2026-08-04T08:31:28Z",
+        created_at: "2026-08-04T08:31:28Z",
+      },
+      {
+        event: "run_done",
+        data: { outcome: "demoted" },
+        occurred_at: "2026-08-04T08:31:30Z",
+        created_at: "2026-08-04T08:31:30Z",
+      },
+    ],
+    usage: {
+      models: ["claude-sonnet-5"],
+      input_tokens: 74_800,
+      output_tokens: 3_900,
+      cache_read_tokens: 401_500,
+      ref_cost_usd: 0.51,
+    },
+  },
+  {
+    // 진행 중(run_done 없음) — CE-402 재시도. qa 단계가 "진행 추정"으로 렌더돼야 한다.
+    run_id: "CE-402_20260804_100000",
+    issue_key: "CE-402",
+    project_id: mockProject.id,
+    workspace_key: "workspace",
+    started_at: "2026-08-04T10:00:00Z",
+    ended_at: null,
+    duration_s: null,
+    outcome: null,
+    events: [
+      {
+        event: "refine_done",
+        data: { refined: true, fallback: false, domain_section: false },
+        occurred_at: "2026-08-04T10:00:05Z",
+        created_at: "2026-08-04T10:00:05Z",
+      },
+      {
+        event: "impl_done",
+        data: { workdir: "workspace", duration_s: 38 },
+        occurred_at: "2026-08-04T10:00:47Z",
+        created_at: "2026-08-04T10:00:47Z",
+      },
+    ],
+    usage: {
+      models: ["claude-sonnet-5"],
+      input_tokens: 41_300,
+      output_tokens: 1_820,
+      cache_read_tokens: 233_100,
+      ref_cost_usd: null,
+    },
+  },
+  {
+    // 거버넌스 비활성 경로 — gate_done 이 없다. 완료(pushed)됐어도 게이트 노드는
+    // "대기"가 아니라 "기록 없음(skipped)"으로 표시돼야 한다.
+    run_id: "CE-415_20260804_073000",
+    issue_key: "CE-415",
+    project_id: mockProject.id,
+    workspace_key: "workspace",
+    started_at: "2026-08-04T07:30:00Z",
+    ended_at: "2026-08-04T07:31:00Z",
+    duration_s: 60,
+    outcome: "pushed",
+    events: [
+      {
+        event: "refine_done",
+        data: { refined: true, fallback: false, domain_section: true },
+        occurred_at: "2026-08-04T07:30:04Z",
+        created_at: "2026-08-04T07:30:04Z",
+      },
+      {
+        event: "impl_done",
+        data: { workdir: "workspace", duration_s: 40 },
+        occurred_at: "2026-08-04T07:30:48Z",
+        created_at: "2026-08-04T07:30:48Z",
+      },
+      {
+        event: "qa_done",
+        data: { ran: true, exit: 0 },
+        occurred_at: "2026-08-04T07:30:56Z",
+        created_at: "2026-08-04T07:30:56Z",
+      },
+      {
+        event: "run_done",
+        data: { outcome: "pushed" },
+        occurred_at: "2026-08-04T07:31:00Z",
+        created_at: "2026-08-04T07:31:00Z",
+      },
+    ],
+    usage: {
+      models: ["claude-sonnet-5"],
+      input_tokens: 63_100,
+      output_tokens: 3_100,
+      cache_read_tokens: 388_200,
+      ref_cost_usd: 0.44,
+    },
+  },
+];
 
 // --- 리뷰 라운드 ---
 

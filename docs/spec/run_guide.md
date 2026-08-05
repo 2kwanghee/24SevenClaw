@@ -2,7 +2,7 @@
 title: 서비스 실행 가이드 (운영자용)
 category: guide
 status: current
-last_updated: 2026-08-04
+last_updated: 2026-08-05
 related:
   - scripts/fullstack_run.sh
   - clickeye-api/scripts/service_key.py
@@ -656,10 +656,18 @@ git -C workspaces/3be49b62 ls-remote --heads origin "clickeye/intake-*"
 | 프로젝트(인게이지먼트) 상세 | GET | `/api/v1/projects/{id}` |
 | 산출물 프리뷰 | POST | `/api/v1/projects/{id}/preview` |
 | 거버넌스 정책 조회 | GET | `/api/v1/governance/policy` |
+| 파이프라인 실행 이력 | GET | `/api/v1/pipeline-runs` |
 
 ### 웹 UI (http://localhost:3000)
 
 - **딜리버리 콘솔** — 인게이지먼트 설계·실행·추적 (/delivery/[engagementId])
+  - **파이프라인 실행 축**(CE-364) — 무인 체인이 통과한 5단계(정제·구현·QA·게이트·종료)와
+    런 이벤트 타임라인, 그 티켓의 소비 토큰. 세션이 없는 프로젝트에서도 이 패널이 채워진다.
+    읽는 법: **소요시간에 `~` 가 붙으면 유도값**(연속 이벤트 시각 차 — 실측은 구현 단계뿐),
+    **"진행 추정"** 은 시작 이벤트가 없어 추론한 상태, **"기록 없음"** 은 런이 끝났는데 그
+    단계 이벤트만 없는 경우(예: 거버넌스 비활성 경로의 게이트)로 **실행 여부를 뜻하지 않는다.**
+    토큰은 **캐시읽기를 함께** 본다 — 실측에서 출력의 150배 이상이라 입출력만 보면 크게
+    과소평가한다. 집계는 구현 스텝만이므로 총량이 아니다(CE-353).
 - **AI Team** — 프로필 추천·구성·평가
 - **Ops 패널** — 컨테이너·환경·테이블 모니터링
 - **Settings** — Linear, Anthropic, 멤버 관리

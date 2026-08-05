@@ -52,3 +52,9 @@ obsidian/
 # 2026-08-04: `WIP(root): ngrok PID 파일 추가` 커밋이 로컬 main 을 분기시켜 PR 머지 후
 # fast-forward 가 불가능해졌다).
 .run/
+
+# === Next.js 빌드 산출물 (레포 루트에 새는 경우) ===
+# clickeye-web/.gitignore 가 자기 디렉토리의 .next/ 는 막지만, `npx next build` 를 레포
+# 루트 cwd 에서 돌리면 텔레메트리 trace 가 루트에 .next/ 를 만든다. Stop 훅 자동커밋이
+# 이걸 집어가므로 루트에서도 막는다.
+.next/

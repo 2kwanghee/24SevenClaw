@@ -14,6 +14,11 @@ import { DeliveryStepper } from "@/components/delivery/delivery-stepper";
 import { IssueBoard } from "@/components/delivery/issue-board";
 import { ReviewList } from "@/components/delivery/review-list";
 import { CostCard } from "@/components/delivery/cost-card";
+import {
+  PipelineRunFlow,
+  PipelineUsageBar,
+} from "@/components/delivery/pipeline-run-flow";
+import { PipelineRunThread } from "@/components/delivery/pipeline-run-thread";
 import { GovernancePolicyPanel } from "@/components/delivery/governance-policy-panel";
 import { LlmChatPanel } from "@/components/delivery/llm-chat-panel";
 import { MockModeToggle } from "@/components/delivery/mock-mode-toggle";
@@ -28,6 +33,7 @@ import { useProject, useDeleteProject } from "@/hooks/use-projects";
 import { useProjectIntake } from "@/hooks/use-intake";
 import { ChainStageBadge, IntakeTimeline } from "@/components/admin/intake-chain";
 import { useLlmLedgerSummary } from "@/hooks/use-llm-ledger";
+import { usePipelineRuns } from "@/hooks/use-pipeline-runs";
 import { useGovernancePolicy } from "@/hooks/use-governance";
 import { useProjectOverrides } from "@/hooks/use-contracts";
 import { useMockMode } from "@/stores/mock-mode-store";
@@ -35,6 +41,7 @@ import { useRBACStore } from "@/stores/rbac-store";
 import {
   mockGovernancePolicy,
   mockLedgerSummary,
+  mockPipelineRuns,
   mockProject,
   mockProjectIntake,
   mockProjectIntakeTimeline,
@@ -78,6 +85,7 @@ export default function DeliveryEngagementPage() {
   const { engagementId } = useParams<{ engagementId: string }>();
   const projectId = engagementId;
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [selectedRunId, setSelectedRunId] = useState<string>("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteProject = useDeleteProject();
 
@@ -150,6 +158,29 @@ export default function DeliveryEngagementPage() {
       : !rbacLoaded || ledgerFetchingRaw;
   const ledgerError = mock ? false : ledgerErrorRaw;
 
+  // D2. 파이프라인 실행 축 — 원장과 동일 권한(settings:manage). 무인 체인이 통과한
+  // 단계·소요시간을 실데이터로 비춘다(세션이 없어도 이 축이 콘솔을 채운다).
+  const {
+    data: pipelineRunsData,
+    isLoading: pipelineRunsFetchingRaw,
+    isError: pipelineRunsErrorRaw,
+  } = usePipelineRuns(
+    { projectId: mock ? undefined : projectId },
+    ledgerEnabled,
+  );
+
+  const pipelineRuns = mock ? mockPipelineRuns : (pipelineRunsData?.items ?? []);
+  const pipelineRestricted = ledgerRestricted;
+  const pipelineLoading = mock
+    ? false
+    : pipelineRestricted
+      ? false
+      : !rbacLoaded || pipelineRunsFetchingRaw;
+  const pipelineError = mock ? false : pipelineRunsErrorRaw;
+  const activeRunId = selectedRunId || pipelineRuns[0]?.run_id || "";
+  const activeRun =
+    pipelineRuns.find((r) => r.run_id === activeRunId) ?? pipelineRuns[0] ?? null;
+
   // F. 거버넌스 정책 — 목업 ON일 때는 실 API 호출을 비활성화하고 픽스처로 대체한다.
   const {
     data: policyData,
@@ -217,6 +248,88 @@ export default function DeliveryEngagementPage() {
           {t("console.projectError")}
         </div>
       )}
+
+      {/* ===== D2. 파이프라인 실행 축 (무인 체인) — 추가형, 세션 없이도 항상 렌더 ===== */}
+      <CardShell
+        title={t("pipeline.title")}
+        count={
+          pipelineRuns.length > 0
+            ? t("pipeline.runCount", { count: pipelineRuns.length })
+            : undefined
+        }
+      >
+        {pipelineRestricted ? (
+          <div className="p-4 text-xs text-[var(--text-muted)]">
+            {t("pipeline.restricted.desc")}
+          </div>
+        ) : pipelineLoading ? (
+          <div className="flex animate-pulse flex-col gap-3 p-4">
+            <div className="h-6 w-40 rounded bg-[var(--bg-hover)]" />
+            <div className="h-16 rounded bg-[var(--bg-hover)]" />
+          </div>
+        ) : pipelineError ? (
+          <div className="m-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {t("pipeline.error")}
+          </div>
+        ) : !activeRun ? (
+          <div className="p-6 text-center">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
+              {t("pipeline.empty.title")}
+            </p>
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+              {t("pipeline.empty.desc")}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 p-4">
+            {/* 티켓 소비 토큰(캐시읽기 포함) — issue_key 중복 제거한 프로젝트 합산 */}
+            <PipelineUsageBar runs={pipelineRuns} />
+
+            {/* 런 선택 — 같은 티켓 재시도 포함 여러 런에서 고른다 */}
+            {pipelineRuns.length > 1 && (
+              <div
+                className="flex gap-2 overflow-x-auto pb-1"
+                role="tablist"
+                aria-label={t("pipeline.runSelectLabel")}
+              >
+                {pipelineRuns.map((r) => (
+                  <button
+                    key={r.run_id}
+                    type="button"
+                    role="tab"
+                    aria-selected={r.run_id === activeRunId}
+                    onClick={() => setSelectedRunId(r.run_id)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                      r.run_id === activeRunId
+                        ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                        : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    <span className="font-mono">{r.issue_key}</span>
+                    {r.outcome && (
+                      <span className="rounded bg-black/10 px-1 py-0.5 text-[10px] dark:bg-white/15">
+                        {t.has(`pipeline.outcome.${r.outcome}`)
+                          ? t(`pipeline.outcome.${r.outcome}`)
+                          : r.outcome}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <PipelineRunFlow run={activeRun} />
+
+            <div className="border-t border-[var(--border-subtle)] pt-4">
+              <h3 className="mb-3 text-[12px] font-semibold text-[var(--text-secondary)]">
+                {t("pipeline.thread.title")}
+              </h3>
+              <PipelineRunThread run={activeRun} />
+            </div>
+          </div>
+        )}
+      </CardShell>
 
       {/* 세션 선택 탭 */}
       {sessions && sessions.items.length > 0 && (

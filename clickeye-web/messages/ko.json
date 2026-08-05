@@ -723,7 +723,8 @@
       "keySource": {
         "subscription_seat": "구독 시트",
         "org_api_key": "조직 API 키"
-      }
+      },
+      "scopeNote": "구현 스텝만 집계 — 정제·분해 단계는 미반영입니다 (CE-353)."
     },
     "issues": {
       "empty": "아직 이슈가 없습니다",
@@ -827,6 +828,83 @@
       "subtitle": "조직 전체의 활성 딜리버리 현황을 물어보세요",
       "placeholder": "예: 지금 어떤 서비스를 생산 중이야?",
       "hint": "조직의 활성 딜리버리 현황을 기반으로 답합니다. Enter 전송 · Shift+Enter 줄바꿈."
+    },
+    "pipeline": {
+      "title": "파이프라인 실행 축",
+      "runCount": "런 {count}건",
+      "runSelectLabel": "실행 런 선택",
+      "outcomeLabel": "결과",
+      "modelMismatch": "모델 불일치 경고",
+      "durationSec": "{seconds}초",
+      "durationDerived": "~{seconds}초",
+      "inferredHint": "시작 이벤트가 없어 직전 단계 완료 시점을 기준으로 진행 중으로 추정한 상태입니다.",
+      "derivedHint": "구현 단계 외 소요시간은 연속 이벤트 시각의 차이로 유도한 값입니다(~ 표기).",
+      "error": "파이프라인 실행 이력을 불러오지 못했습니다.",
+      "stages": {
+        "refine": "정제",
+        "impl": "구현",
+        "qa": "QA",
+        "gate": "게이트",
+        "done": "종료"
+      },
+      "status": {
+        "done": "완료",
+        "failed": "실패",
+        "inferred": "진행 추정",
+        "pending": "대기",
+        "skipped": "기록 없음"
+      },
+      "outcome": {
+        "pushed": "푸시됨",
+        "merged": "머지됨",
+        "pr": "PR 생성",
+        "demoted": "강등됨",
+        "failed": "실패",
+        "unknown": "알 수 없음"
+      },
+      "eventName": {
+        "refine_done": "정제 완료",
+        "impl_done": "구현 완료",
+        "qa_done": "QA 완료",
+        "gate_done": "게이트 완료",
+        "run_done": "런 종료",
+        "model_mismatch": "모델 불일치"
+      },
+      "dataKey": {
+        "refined": "정제됨",
+        "fallback": "폴백",
+        "domain_section": "도메인 섹션",
+        "workdir": "작업 디렉토리",
+        "duration_s": "소요(초)",
+        "ran": "실행됨",
+        "exit": "종료 코드",
+        "demoted": "강등",
+        "verdict": "판정",
+        "outcome": "결과",
+        "expected": "기대",
+        "actual": "실제"
+      },
+      "thread": {
+        "title": "이벤트 타임라인",
+        "empty": "이 런에는 기록된 이벤트가 없습니다."
+      },
+      "empty": {
+        "title": "아직 파이프라인 실행 이력이 없습니다",
+        "desc": "무인 체인이 티켓을 실행하면 단계·소요시간이 여기에 집계됩니다."
+      },
+      "restricted": {
+        "desc": "파이프라인 실행 이력 조회에는 settings:manage 권한이 필요합니다."
+      },
+      "usage": {
+        "title": "티켓 소비 토큰",
+        "input": "입력",
+        "output": "출력",
+        "cacheRead": "캐시 읽기",
+        "ticketCount": "{count}개 티켓",
+        "dedupeNote": "티켓 단위 집계입니다. 같은 티켓의 여러 런은 중복 제거해 1회만 합산합니다.",
+        "models": "모델"
+      },
+      "skippedHint": "런은 종료됐지만 이 단계 이벤트가 기록되지 않았습니다(예: 거버넌스 비활성 경로의 게이트). 실행 여부는 단정할 수 없습니다."
     }
   },
   "aiTeam": {
