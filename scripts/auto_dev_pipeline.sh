@@ -382,7 +382,9 @@ run_claude_review() {
   local attempt review_rc review_sid review_model
   for attempt in 1 2; do
     review_rc=0
-    claude -p "$review_prompt" \
+    # [CE-396] 프롬프트는 stdin 으로 — argv 는 인자당 128KiB 한계라 대형 diff(실측 266KB)에서
+    # "Argument list too long"(exit 126)으로 리뷰가 영구 불능이 된다.
+    printf '%s' "$review_prompt" | claude -p \
       --model "$PIPELINE_MODEL_REVIEW" \
       --disallowedTools "Edit,Write,NotebookEdit,MultiEdit,Bash" \
       --verbose \
@@ -1025,7 +1027,8 @@ PY
   # stream-json 을 오염시키지 않는다(usage_ingest 등 후속 파서가 이 로그를 읽는다).
   IMPL_RC=0
   exec 9>&1
-  ( cd "$IMPL_WORKDIR" && { apply_seat_env >&9 || exit 97; } && claude -p "$IMPL_PROMPT" \
+  # [CE-396] 구현 프롬프트도 stdin 으로 — 정제 스펙이 커지면 argv 128KiB 한계에 걸린다(리뷰와 동일).
+  ( cd "$IMPL_WORKDIR" && { apply_seat_env >&9 || exit 97; } && printf '%s' "$IMPL_PROMPT" | claude -p \
     --model "$PIPELINE_MODEL_IMPL" \
     --dangerously-skip-permissions \
     --verbose \
