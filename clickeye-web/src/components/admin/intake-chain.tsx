@@ -264,6 +264,8 @@ function TicketChips({ tickets }: { tickets: IntakeTicketItem[] }) {
         {t("title", { count: tickets.length })}
       </p>
       <div className="flex flex-wrap gap-1.5">
+        {/* Linear 정식 URL 은 /{workspace}/issue/{id} 인데 워크스페이스 슬러그 설정이 없어
+            링크를 만들 수 없다 — 잘못된 링크(linear.app/issue/…) 대신 원래의 칩 표시로 유지(CE-389 리뷰). */}
         {tickets.map((ticket) => (
           <span
             key={ticket.issue_id || ticket.identifier}

@@ -28,6 +28,10 @@ import {
   KeyRound,
   Database,
   Inbox,
+  LayoutDashboard,
+  Coins,
+  ListOrdered,
+  Activity,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -53,8 +57,17 @@ type NavItem = {
 // 중복 노출하고 있었다(engagementId === projectId). 라우트와 페이지는 유지하므로
 // 기존 URL·북마크·딜리버리 콘솔의 하위 탭 링크는 그대로 동작한다.
 const navItems: NavItem[] = [
+  { href: "/dashboard", labelKey: "items.dashboard", icon: LayoutDashboard },
   { href: "/delivery", labelKey: "items.delivery", icon: Boxes, activePrefix: "/delivery", dataTour: "projects-link" },
   { href: "/guide", labelKey: "items.guide", icon: BookOpen },
+];
+
+// 관측(CE-388 관측 API 소비) — 백엔드 require_permission("settings:manage") 와 동일한
+// 권한으로 게이팅한다(admin+superadmin 둘 다 보유, showOps 는 superadmin 전용이라 부적합).
+const observabilityItems: NavItem[] = [
+  { href: "/observability/seats", labelKey: "observability.seats", icon: Coins },
+  { href: "/observability/usage", labelKey: "observability.usage", icon: ListOrdered },
+  { href: "/observability/runs", labelKey: "observability.runs", icon: Activity },
 ];
 
 // 딜리버리 체인이 실제로 쓰는 관리 화면만 남긴다.
@@ -171,6 +184,7 @@ export default function DashboardLayout({
   const showAdmin = useRBACStore((s) => s.isAdmin());
   const showOps = useRBACStore((s) => s.isSuperadmin());
   const showOrgManage = useRBACStore((s) => s.hasPermission("org:manage"));
+  const showObservability = useRBACStore((s) => s.hasPermission("settings:manage"));
 
   // 스토어에 권한 동기화 (이미 RoleGuard에서도 하지만, 사이드바 렌더링용)
   useEffect(() => {
@@ -206,7 +220,11 @@ export default function DashboardLayout({
         {/* 네비게이션 */}
         <nav className="flex-1 overflow-y-auto p-3" data-tour="sidebar-nav">
           <div className="space-y-1">
-            {navItems.map((item) => (
+            {/* 대시보드 홈은 페이지 가드(RoleGuard admin/superadmin)와 동일 조건으로만 노출 —
+                무게이트 노출 시 member/viewer 가 클릭하면 AccessDenied 로 착지한다(CE-389 리뷰). */}
+            {navItems
+              .filter((item) => item.href !== "/dashboard" || showAdmin)
+              .map((item) => (
               <NavLink
                 key={item.href}
                 href={item.href}
@@ -218,6 +236,29 @@ export default function DashboardLayout({
               />
             ))}
           </div>
+
+          {/* 관측 섹션 — 대시보드 홈은 top-level navItems, 나머지 3화면은 여기 */}
+          {showObservability && (
+            <div className="mt-6">
+              {!collapsed && (
+                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                  {t("sections.observability")}
+                </p>
+              )}
+              <div className="space-y-1">
+                {observabilityItems.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    href={item.href}
+                    label={t(item.labelKey)}
+                    icon={item.icon}
+                    collapsed={collapsed}
+                    isActive={pathname.startsWith(item.href)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 설정 섹션 */}
           {showOrgManage && (

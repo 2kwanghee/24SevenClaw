@@ -1814,6 +1814,7 @@ export interface PipelineRun {
   ended_at: string | null;
   duration_s: number | null;
   outcome: string | null;
+  model_mismatch: boolean;
   events: PipelineRunEvent[];
   usage: PipelineRunUsage;
 }
@@ -2776,6 +2777,153 @@ export const intakeServiceKeys = {
       token,
       { method: "DELETE" },
     ),
+};
+
+// --- Observability (관측 화면, CE-388 API 소비) ---
+// prefix: /api/v1/observability — require_permission("settings:manage") (admin+superadmin).
+// 필드명은 clickeye-api app/schemas/observability.py·seat_quota.py·pipeline_run.py 그대로(snake_case).
+
+export interface ObservabilityDeliveryEventItem {
+  id: string;
+  intake_id: string;
+  project_id: string | null;
+  event_type: string;
+  actor_type: string;
+  detail: string | null;
+  created_at: string;
+}
+
+export interface ObservabilitySummaryResponse {
+  projects_by_status: Record<string, number>;
+  intake_by_status: Record<string, number>;
+  intake_by_tickets_status: Record<string, number>;
+  pipeline_run_success_count: number;
+  pipeline_run_failure_count: number;
+  pipeline_run_success_rate: number | null;
+  recent_delivery_events: ObservabilityDeliveryEventItem[];
+}
+
+export type UsageGroupBy = "project_id" | "seat_id" | "model" | "request_kind";
+
+export interface UsagePivotBucket {
+  key: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost: string | null;
+  request_count: number;
+}
+
+export interface UsagePivotResponse {
+  group_by: UsageGroupBy;
+  buckets: UsagePivotBucket[];
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: string | null;
+  total_request_count: number;
+}
+
+export interface UsagePivotParams {
+  groupBy?: UsageGroupBy;
+  from?: string;
+  to?: string;
+  taskId?: string;
+}
+
+/** 시트 잔량 window 1개(5h/7d/scoped) 스냅샷 — clickeye-api SeatQuotaLatestEntry */
+export interface SeatQuotaLatestEntry {
+  id: string;
+  captured_at: string | null;
+  usage_fetched_at: string | null;
+  account_email: string;
+  organization_uuid: string | null;
+  seat_id: string | null;
+  window: string;
+  scope_name: string | null;
+  pct: string;
+  resets_at: string | null;
+  expected_pct: string | null;
+  ahead_of_pace: boolean | null;
+  projected_exhaustion_at: string | null;
+  will_last_to_reset: boolean | null;
+}
+
+export interface SeatObservabilityEntry {
+  account_email: string;
+  seat_id: string | null;
+  seat_status: string | null;
+  windows: SeatQuotaLatestEntry[];
+  usage_24h_input_tokens: number;
+  usage_24h_output_tokens: number;
+}
+
+export interface SeatObservabilityResponse {
+  items: SeatObservabilityEntry[];
+}
+
+export interface PipelineRunListParams {
+  issueKey?: string;
+  projectId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== "",
+  ) as [string, string | number][];
+  if (entries.length === 0) return "";
+  const qs = new URLSearchParams(
+    entries.map(([k, v]) => [k, String(v)]),
+  ).toString();
+  return `?${qs}`;
+}
+
+export const observability = {
+  /** 대시보드 위젯 집계 */
+  getSummary: (token: string) =>
+    authRequest<ObservabilitySummaryResponse>(
+      "/api/v1/observability/summary",
+      token,
+    ),
+
+  /** 사용량 피벗 — 기간 × 축(project_id/seat_id/model/request_kind) */
+  getUsage: (token: string, params: UsagePivotParams = {}) => {
+    const qs = buildQuery({
+      group_by: params.groupBy,
+      from: params.from,
+      to: params.to,
+      task_id: params.taskId,
+    });
+    return authRequest<UsagePivotResponse>(
+      `/api/v1/observability/usage${qs}`,
+      token,
+    );
+  },
+
+  /** 실행 이력 목록(run 단위, 최신순) */
+  getRuns: (token: string, params: PipelineRunListParams = {}) => {
+    const qs = buildQuery({
+      issue_key: params.issueKey,
+      project_id: params.projectId,
+      limit: params.limit,
+      offset: params.offset,
+    });
+    return authRequest<PipelineRunListResponse>(
+      `/api/v1/observability/runs${qs}`,
+      token,
+    );
+  },
+
+  /** issue_key 단위 실행 스레드 — run 상세 패널용 */
+  getRunDetail: (token: string, issueKey: string) =>
+    authRequest<PipelineRunListResponse>(
+      `/api/v1/observability/runs/${encodeURIComponent(issueKey)}`,
+      token,
+    ),
+
+  /** 시트 잔량 — 계정별 최신 스냅샷 + 시트 상태 + 최근 24h 소비 */
+  getSeats: (token: string) =>
+    authRequest<SeatObservabilityResponse>("/api/v1/observability/seats", token),
 };
 
 export { ApiClientError, NetworkError };
