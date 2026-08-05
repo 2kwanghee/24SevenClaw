@@ -229,7 +229,7 @@ PM 이 복잡도가 매우 높은 결정 (예: "기존 코드 무영향 보장 �
 |---|---|---|
 | WRITE_CODE | 코드 작성 | `fullstack` + 모듈별 agent.md |
 | TEST_WRITER | 테스트 작성 | `tdd-smart-coding` |
-| CODE_REVIEW | 리뷰 | `run_codex_review.sh` (codex CLI) + `code-reviewer` 서브에이전트 |
+| CODE_REVIEW | 리뷰 | `run_claude_review()`(구현과 분리된 claude -p 세션, CE-390) + `code-reviewer` 서브에이전트 |
 | SECURITY_REVIEW | 보안 검토 | OWASP Top 10 |
 
 > **컨텍스트 분리 이유**: 같은 AI 가 코드를 쓰고 리뷰하면 자기 작품에 관대해진다.
@@ -331,7 +331,7 @@ Backlog ──(수동)──→ Wait ──(수동)──→ DayQueued / NightQu
 FLOWOPS_LINEAR_WATCHER=true     # Linear 이슈 감지
 FLOWOPS_METAPROMPT=true         # Claude 메타프롬프트 기획(관측형 사전 정제) — 기본
 FLOWOPS_GEMINI_PLAN=false       # 레거시 Gemini 기획 (METAPROMPT=false일 때만 폴백)
-FLOWOPS_CODEX_REVIEW=true       # Codex QA 활성
+FLOWOPS_CODEX_REVIEW=true       # QA 리뷰(구현과 분리된 claude -p 세션) 활성
 FLOWOPS_AUTO_MERGE=true         # 직접 머지 (false: PR 생성)
 FLOWOPS_TELEGRAM=true           # 텔레그램 알림
 FLOWOPS_GOVERNANCE=true         # 거버넌스 게이트 마스터 (+_CONTRACT/_TICKET/_TRACE/_RISK_DEMOTE/_PROMOTE)
@@ -366,7 +366,7 @@ FLOWOPS_GOVERNANCE=true         # 거버넌스 게이트 마스터 (+_CONTRACT/_
        ├─ harness-gate.sh 매 커밋 검증
        └─ .ralph/TASK.md 생성 (변경 파일 / 구현 / 테스트 / 남은 이슈)
        ↓
-[STEP 5] Codex QA 리뷰 (run_codex_review.sh)
+[STEP 5] QA 리뷰 — 구현과 분리된 claude -p 세션 (run_claude_review())
        └─ .ralph/REVIEW.md (요구충족 / 리스크 / 테스트 부족 / PR 코멘트)
        ↓
 [STEP 6] linear_reporter.py — Linear 이슈에 결과 코멘트
@@ -579,7 +579,7 @@ ClickCode 의 `prd-to-linear` 스킬이 PRD 마크다운을 분석 → 태스크
 | `scripts/pre_merge_gate.py` | 거버넌스 게이트 SSOT (검증+위험분류, 머지 직전) |
 | `.claude/skills/metaprompt/SKILL.md` | 메타프롬프트 기획(관측형 사전 정제) |
 | `scripts/generate_plan_with_gemini.sh` | 레거시 Gemini 기획 (METAPROMPT=false 폴백) |
-| `scripts/run_codex_review.sh` | Codex QA 단계 |
+| `run_claude_review()`(auto_dev_pipeline.sh 내부 함수) | QA 리뷰 단계(구현과 분리된 claude -p 세션) |
 | `scripts/pipeline_config.sh` | FLOWOPS_* 모듈 토글 |
 | `docs/pipeline-guide.md` | 본 파이프라인 사용자 가이드 |
 | `docs/regression-checklist.md` | 비침습성 회귀 검증 R-1~R-5 체크리스트 |

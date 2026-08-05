@@ -1007,23 +1007,21 @@ echo "안녕" | timeout 10 gemini 2>&1 | head -5
 
 ---
 
-#### Codex CLI 실행 실패 (`WARN: Codex CLI 실행 실패`)
+#### QA 리뷰 세션 실패 (`WARN: QA 리뷰 실패`) — CE-390
+
+STEP C는 더 이상 Codex CLI를 호출하지 않는다. `auto_dev_pipeline.sh`의
+`run_claude_review()`가 구현 세션과 별개의 `claude -p` 프로세스로 리뷰를 실행한다.
 
 ```bash
-# 1. 바이너리 확인
-which codex || echo "설치 안 됨"
-
-# 2. 버전 확인 (0.112.0 이상 — exec 서브커맨드 필수)
-codex --version 2>/dev/null
-
-# 3. 수동 테스트
-timeout 30 codex exec "테스트 프롬프트" 2>&1 | head -10
+# 리뷰 세션 원본 로그 확인
+cat .ralph/review.stream.jsonl
 ```
 
 **해결**:
-- `command not found` → `npm install -g @openai/codex` 재설치
-- `stdin is not a terminal` 오류가 났다면 `codex -p` 방식 사용 금지 — `codex exec "..."` 형식으로만 호출
-- 인증 만료 → `codex login`
+- 리뷰 프로세스가 비정상 종료하면 파이프라인이 1회 자동 재시도한다 — 재실패 시 위조
+  REVIEW.md를 만들지 않고 기존 실패 처리 경로(`handle_task_failure`)로 넘어간다
+- 구현 세션과 리뷰 세션의 `session_id`가 같게 관측되면(자기검증 위반) 실패 처리된다 —
+  `claude -p` 실행 환경이 세션을 재사용하고 있지 않은지 확인한다
 - 실패가 지속되면 `FLOWOPS_CODEX_REVIEW=false`로 일시 비활성화
 
 ---
@@ -1039,7 +1037,7 @@ grep ^FLOWOPS /mnt/c/workspace/ClickEye/.env
 # FLOWOPS_LINEAR_WATCHER=true   — Linear 이슈 감지 활성화 (false면 파이프라인 전체 스킵)
 # FLOWOPS_METAPROMPT=true       — Claude 메타프롬프트 기획(관측형 사전 정제) — 기본
 # FLOWOPS_GEMINI_PLAN=false     — 레거시 Gemini 기획 (METAPROMPT=false일 때 폴백)
-# FLOWOPS_CODEX_REVIEW=true     — Codex QA 리뷰 단계
+# FLOWOPS_CODEX_REVIEW=true     — QA 리뷰 단계(구현과 분리된 claude -p 세션, CE-390)
 # FLOWOPS_AUTO_MERGE=true       — PR 없이 main 직접 머지 (HIGH-tier는 거버넌스 게이트가 PR 강등)
 # FLOWOPS_GOVERNANCE=true       — 머지 직전 거버넌스 게이트 (+_CONTRACT/_TICKET/_TRACE/_RISK_DEMOTE/_PROMOTE)
 # FLOWOPS_TELEGRAM=true         — Telegram 완료 알림
