@@ -1,7 +1,20 @@
 "use client";
 
+import { Fragment } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, Check, Loader2, Minus, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Code2,
+  FlaskConical,
+  Flag,
+  Loader2,
+  type LucideIcon,
+  Minus,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import type {
   PipelineRun,
@@ -276,23 +289,112 @@ interface PipelineRunFlowProps {
   run: PipelineRun;
 }
 
-/** 노드 원(circle) 색 — DeliveryStepper 규약(done=emerald/current=accent/todo=muted) 이식. */
-function nodeCircleClass(status: StageStatus): string {
-  switch (status) {
+/** 단계별 고유 아이콘 — 노드의 정체성(상태와 무관). */
+const STAGE_ICON: Record<StageKey, LucideIcon> = {
+  refine: Sparkles,
+  impl: Code2,
+  qa: FlaskConical,
+  gate: ShieldCheck,
+  done: Flag,
+};
+
+/**
+ * 단계 고유색 — 정상 흐름(done/inferred/pending)에서 노드를 구분한다.
+ * 상태색(실패=red/기록없음=muted)은 아래 statusChrome 이 별도 채널로 덮어쓴다.
+ */
+const STAGE_TONE: Record<StageKey, { card: string; circle: string; icon: string }> = {
+  refine: {
+    card: "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40",
+    circle: "bg-blue-100 dark:bg-blue-900/50",
+    icon: "text-blue-600 dark:text-blue-300",
+  },
+  impl: {
+    card: "border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40",
+    circle: "bg-violet-100 dark:bg-violet-900/50",
+    icon: "text-violet-600 dark:text-violet-300",
+  },
+  qa: {
+    card: "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40",
+    circle: "bg-amber-100 dark:bg-amber-900/50",
+    icon: "text-amber-600 dark:text-amber-300",
+  },
+  gate: {
+    card: "border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-950/40",
+    circle: "bg-teal-100 dark:bg-teal-900/50",
+    icon: "text-teal-600 dark:text-teal-300",
+  },
+  done: {
+    card: "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40",
+    circle: "bg-emerald-100 dark:bg-emerald-900/50",
+    icon: "text-emerald-600 dark:text-emerald-300",
+  },
+};
+
+/**
+ * 상태 채널 — 단계색과 분리해 카드 테두리·아이콘 원·오버레이 배지를 결정한다.
+ * done/inferred 는 단계색 유지, failed 는 red 로 덮고, skipped 는 단계색을 죽인다.
+ */
+function statusChrome(stage: StageState): {
+  card: string;
+  circle: string;
+  icon: string;
+  overlay: { Icon: LucideIcon; cls: string; spin?: boolean } | null;
+} {
+  const tone = STAGE_TONE[stage.key];
+  switch (stage.status) {
     case "done":
-      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300";
-    case "failed":
-      return "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300";
+      return {
+        card: `border-solid ${tone.card}`,
+        circle: tone.circle,
+        icon: tone.icon,
+        overlay: {
+          Icon: Check,
+          cls: "bg-emerald-500 text-white dark:bg-emerald-600",
+        },
+      };
     case "inferred":
-      return "bg-[var(--accent)] text-[var(--accent-fg)] ring-4 ring-[var(--accent-soft)]";
+      // 단계색 유지 + 진행 추정 스핀 오버레이.
+      return {
+        card: `border-solid ${tone.card}`,
+        circle: tone.circle,
+        icon: tone.icon,
+        overlay: {
+          Icon: Loader2,
+          cls: "bg-[var(--accent)] text-[var(--accent-fg)]",
+          spin: true,
+        },
+      };
+    case "failed":
+      // 실패는 단계색보다 우선해 눈에 들어와야 한다 — red 로 덮는다.
+      return {
+        card: "border-solid border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40",
+        circle: "bg-red-100 dark:bg-red-900/50",
+        icon: "text-red-600 dark:text-red-300",
+        overlay: { Icon: X, cls: "bg-red-500 text-white dark:bg-red-600" },
+      };
     case "skipped":
-      // 기록 없음 — 점선 테두리로 대기(실선)와 구분한다.
-      return "border border-dashed border-[var(--border-medium)] bg-transparent text-[var(--text-muted)]";
+      // 기록 없음 — 점선 테두리 + muted 채움으로 단계색을 죽인다.
+      return {
+        card: "border-dashed border-[var(--border-medium)] bg-[var(--bg-hover)]",
+        circle: "bg-[var(--bg-base)]",
+        icon: "text-[var(--text-muted)]",
+        overlay: {
+          Icon: Minus,
+          cls: "border border-[var(--border-medium)] bg-[var(--bg-base)] text-[var(--text-muted)]",
+        },
+      };
     default:
-      return "border border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]";
+      // pending — 미도달. muted 로 두어 도달한 단계가 돋보이게 한다.
+      return {
+        card: "border-solid border-[var(--border-subtle)] bg-[var(--bg-base)]",
+        circle: "bg-[var(--bg-hover)]",
+        icon: "text-[var(--text-muted)] opacity-70",
+        overlay: null,
+      };
   }
 }
 
+/** 커넥터 선 — 진행이 이 지점을 통과했으면(완료/실패/추정) 강조, 아니면 muted. */
 function connectorClass(status: StageStatus): string {
   return status === "done" || status === "failed" || status === "inferred"
     ? "bg-emerald-400 dark:bg-emerald-600"
@@ -331,23 +433,34 @@ export function PipelineRunFlow({ run }: PipelineRunFlowProps) {
         )}
       </div>
 
-      {/* 단계 노드 흐름 */}
-      <ol className="flex items-start overflow-x-auto pb-1" aria-label={t("title")}>
+      {/* 단계 노드 흐름 — 카드형 노드를 커넥터로 잇고 폭을 고르게 편다. */}
+      <ol
+        className="flex items-stretch overflow-x-auto pb-1"
+        aria-label={t("title")}
+      >
         {stages.map((s, i) => {
           const isFirst = i === 0;
           const label = t(`stages.${s.key}`);
           const statusLabel = t(`status.${s.status}`);
           const dur = durationLabel(s);
+          const StageIcon = STAGE_ICON[s.key];
+          const chrome = statusChrome(s);
+          const overlay = chrome.overlay;
           return (
-            <li key={s.key} className="flex flex-none items-start">
+            <Fragment key={s.key}>
+              {/* 커넥터 — flex-1 로 늘어나 노드 사이 폭을 채운다(아이콘 원 중심 정렬). */}
               {!isFirst && (
-                <span
-                  className={`mt-3 h-0.5 w-7 sm:w-8 ${connectorClass(s.status)}`}
+                <li
                   aria-hidden="true"
-                />
+                  className="flex min-w-[24px] flex-1 items-start"
+                >
+                  <span
+                    className={`mt-[30px] h-0.5 w-full ${connectorClass(s.status)}`}
+                  />
+                </li>
               )}
-              <div
-                className="flex flex-col items-center gap-1 px-1"
+              <li
+                className={`flex w-[76px] flex-none flex-col items-center gap-1.5 rounded-xl border px-1.5 py-2.5 ${chrome.card}`}
                 title={
                   s.status === "inferred"
                     ? t("inferredHint")
@@ -356,56 +469,52 @@ export function PipelineRunFlow({ run }: PipelineRunFlowProps) {
                       : `${label} · ${statusLabel}`
                 }
               >
+                {/* 아이콘 원(40px) — 단계 정체성. 우상단 오버레이 배지가 상태를 나타낸다. */}
                 <span
-                  className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-bold ${nodeCircleClass(
-                    s.status,
-                  )}`}
+                  className={`relative flex h-10 w-10 flex-none items-center justify-center rounded-full ${chrome.circle}`}
                   aria-hidden="true"
                 >
-                  {s.status === "done" ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : s.status === "failed" ? (
-                    <X className="h-3.5 w-3.5" />
-                  ) : s.status === "inferred" ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : s.status === "skipped" ? (
-                    <Minus className="h-3.5 w-3.5" />
-                  ) : (
-                    i + 1
+                  <StageIcon className={`h-5 w-5 ${chrome.icon}`} />
+                  {overlay && (
+                    <span
+                      className={`absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-[var(--bg-base)] ${overlay.cls}`}
+                    >
+                      <overlay.Icon
+                        className={`h-2.5 w-2.5 ${overlay.spin ? "animate-spin" : ""}`}
+                      />
+                    </span>
                   )}
                 </span>
                 <span
-                  className={`whitespace-nowrap text-[12px] font-semibold ${
-                    s.status === "inferred"
-                      ? "text-[var(--accent)]"
-                      : s.status === "failed"
-                        ? "text-red-600 dark:text-red-400"
-                        : s.status === "done"
-                          ? "text-[var(--text-primary)]"
-                          : "text-[var(--text-muted)]"
+                  className={`whitespace-nowrap text-[13px] font-semibold ${
+                    s.status === "failed"
+                      ? "text-red-600 dark:text-red-400"
+                      : s.status === "skipped" || s.status === "pending"
+                        ? "text-[var(--text-muted)]"
+                        : "text-[var(--text-primary)]"
                   }`}
                 >
                   {label}
                 </span>
                 {/* 추정 진행임을 화면에 명시 — 시작 이벤트가 없어 추론한 상태다. */}
                 {s.status === "inferred" && (
-                  <span className="whitespace-nowrap text-[10px] font-medium text-[var(--accent)]">
+                  <span className="whitespace-nowrap text-[11px] font-medium text-[var(--accent)]">
                     {t("status.inferred")}
                   </span>
                 )}
                 {/* 기록 없음 — 실행 여부를 단정하지 않는다(이벤트만 없음). */}
                 {s.status === "skipped" && (
-                  <span className="whitespace-nowrap text-[10px] font-medium text-[var(--text-muted)]">
+                  <span className="whitespace-nowrap text-[11px] font-medium text-[var(--text-muted)]">
                     {t("status.skipped")}
                   </span>
                 )}
                 {dur && (
-                  <span className="whitespace-nowrap font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
+                  <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-[var(--text-muted)]">
                     {dur}
                   </span>
                 )}
-              </div>
-            </li>
+              </li>
+            </Fragment>
           );
         })}
       </ol>
