@@ -11,16 +11,20 @@ scoped N)으로 전개해 원장에 적재하고, 계정+window+scope_name 조�
 from __future__ import annotations
 
 import contextlib
-from datetime import UTC, datetime
+from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.llm_usage_ledger import LlmUsageLedger
 from app.models.seat_quota_snapshot import SeatQuotaSnapshot, SeatQuotaWindow
 from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
+from app.schemas.observability import SeatObservabilityEntry, SeatObservabilityResponse
 from app.schemas.seat_quota import (
     SeatQuotaLatestEntry,
     SeatQuotaSnapshotBatchRequest,
@@ -199,3 +203,63 @@ class SeatQuotaService(BaseService):
         result = await self.db.execute(stmt)
         rows = result.scalars().all()
         return [SeatQuotaLatestEntry.model_validate(row) for row in rows]
+
+    async def screen_view(self) -> SeatObservabilityResponse:
+        """관측 화면 계약 (CE-388) — `latest()` 결과를 계정 단위로 묶어 시트 상태와
+        최근 24h 소비(ledger 합)를 얹는다. `latest()` 자체의 쿼리는 건드리지 않는다.
+        """
+        entries = await self.latest()
+
+        seat_ids = {e.seat_id for e in entries if e.seat_id is not None}
+        seat_status_by_id = await self._seat_status_by_id(seat_ids)
+        usage_24h_by_seat = await self._usage_24h_by_seat(seat_ids)
+
+        by_account: dict[str, list[SeatQuotaLatestEntry]] = defaultdict(list)
+        seat_id_by_account: dict[str, UUID | None] = {}
+        for e in entries:
+            by_account[e.account_email].append(e)
+            seat_id_by_account[e.account_email] = e.seat_id
+
+        items = [
+            SeatObservabilityEntry(
+                account_email=email,
+                seat_id=seat_id_by_account[email],
+                seat_status=(
+                    seat_status_by_id.get(seat_id_by_account[email])
+                    if seat_id_by_account[email] is not None
+                    else None
+                ),
+                windows=windows,
+                usage_24h_input_tokens=usage_24h_by_seat.get(seat_id_by_account[email], (0, 0))[0],
+                usage_24h_output_tokens=usage_24h_by_seat.get(seat_id_by_account[email], (0, 0))[1],
+            )
+            for email, windows in sorted(by_account.items())
+        ]
+        return SeatObservabilityResponse(items=items)
+
+    async def _seat_status_by_id(self, seat_ids: set[UUID]) -> dict[UUID, str]:
+        if not seat_ids:
+            return {}
+        rows = await self.db.execute(
+            select(UserAnthropicCredentials.id, UserAnthropicCredentials.seat_status).where(
+                UserAnthropicCredentials.id.in_(seat_ids)
+            )
+        )
+        return {r.id: r.seat_status for r in rows}
+
+    async def _usage_24h_by_seat(self, seat_ids: set[UUID]) -> dict[UUID, tuple[int, int]]:
+        if not seat_ids:
+            return {}
+        since = datetime.now(UTC) - timedelta(hours=24)
+        rows = await self.db.execute(
+            select(
+                LlmUsageLedger.seat_id,
+                func.sum(LlmUsageLedger.input_tokens).label("input_tokens"),
+                func.sum(LlmUsageLedger.output_tokens).label("output_tokens"),
+            )
+            .where(LlmUsageLedger.seat_id.in_(seat_ids), LlmUsageLedger.created_at >= since)
+            .group_by(LlmUsageLedger.seat_id)
+        )
+        return {
+            r.seat_id: (int(r.input_tokens or 0), int(r.output_tokens or 0)) for r in rows
+        }
