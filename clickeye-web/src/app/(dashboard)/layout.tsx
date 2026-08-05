@@ -220,7 +220,11 @@ export default function DashboardLayout({
         {/* 네비게이션 */}
         <nav className="flex-1 overflow-y-auto p-3" data-tour="sidebar-nav">
           <div className="space-y-1">
-            {navItems.map((item) => (
+            {/* 대시보드 홈은 페이지 가드(RoleGuard admin/superadmin)와 동일 조건으로만 노출 —
+                무게이트 노출 시 member/viewer 가 클릭하면 AccessDenied 로 착지한다(CE-389 리뷰). */}
+            {navItems
+              .filter((item) => item.href !== "/dashboard" || showAdmin)
+              .map((item) => (
               <NavLink
                 key={item.href}
                 href={item.href}

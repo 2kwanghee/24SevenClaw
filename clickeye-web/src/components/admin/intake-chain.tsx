@@ -264,18 +264,16 @@ function TicketChips({ tickets }: { tickets: IntakeTicketItem[] }) {
         {t("title", { count: tickets.length })}
       </p>
       <div className="flex flex-wrap gap-1.5">
+        {/* Linear 정식 URL 은 /{workspace}/issue/{id} 인데 워크스페이스 슬러그 설정이 없어
+            링크를 만들 수 없다 — 잘못된 링크(linear.app/issue/…) 대신 원래의 칩 표시로 유지(CE-389 리뷰). */}
         {tickets.map((ticket) => (
-          <a
+          <span
             key={ticket.issue_id || ticket.identifier}
-            href={`https://linear.app/issue/${ticket.identifier}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
             title={ticket.title}
-            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)] hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] hover:underline"
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)]"
           >
             {ticket.identifier}
-          </a>
+          </span>
         ))}
       </div>
     </div>
