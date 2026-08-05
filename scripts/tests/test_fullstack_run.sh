@@ -41,6 +41,36 @@ check "알 수 없는 옵션 → exit 2" "2" "$rc"
 [[ "$out" == *"알 수 없는 옵션"* ]] && check "알 수 없는 옵션 메시지" "yes" "yes" \
                                     || check "알 수 없는 옵션 메시지" "yes" "no"
 
+# --restart-web (CE-374) — 모순 조합은 **조용히 무시하지 않는다**. 재기동을 기대한 사용자가
+# 낡은 서버를 계속 보게 되는 것이 이 플래그가 없애려는 바로 그 증상이므로, 무시 대신 exit 2.
+[[ "$(bash "$TARGET" --help 2>&1)" == *"--restart-web"* ]] \
+    && check "--help 에 --restart-web 문서화" "yes" "yes" \
+    || check "--help 에 --restart-web 문서화" "yes" "no"
+
+out="$(bash "$TARGET" --restart-web --check 2>&1)"; rc=$?
+check "--restart-web --check → exit 2" "2" "$rc"
+[[ "$out" == *"함께 쓸 수 없습니다"* ]] && check "--check 조합 거부 메시지" "yes" "yes" \
+                                        || check "--check 조합 거부 메시지" "yes" "no"
+
+out="$(bash "$TARGET" --restart-web --stop 2>&1)"; rc=$?
+check "--restart-web --stop → exit 2" "2" "$rc"
+
+out="$(bash "$TARGET" --restart-web --no-web 2>&1)"; rc=$?
+check "--restart-web --no-web → exit 2" "2" "$rc"
+[[ "$out" == *"모순"* ]] && check "--no-web 조합 거부 메시지" "yes" "yes" \
+                          || check "--no-web 조합 거부 메시지" "yes" "no"
+
+# 재기동은 프로세스가 **사라질 때까지** 기다려야 한다. 포트 해제만 보면 SIGTERM 직후 자식이
+# 잠깐 생존해 멱등 생략이 낡은 서버를 "이미 실행 중"으로 잡는다(실측: HTTP 000).
+restart_block="$(sed -n '/if \$RESTART_WEB; then/,/^    fi$/p' "$TARGET")"
+[[ "$restart_block" == *"filter_ours"* ]] && check "재기동이 filter_ours 로 남의 것 보호" "yes" "yes" \
+                                          || check "재기동이 filter_ours 로 남의 것 보호" "yes" "no"
+[[ "$restart_block" == *"web_pids | filter_ours | head -1"* ]] \
+    && check "재기동 대기가 프로세스 소멸을 확인" "yes" "yes" \
+    || check "재기동 대기가 프로세스 소멸을 확인" "yes" "no"
+[[ "$restart_block" == *"kill -9"* ]] && check "생존 프로세스 SIGKILL 에스컬레이션" "yes" "yes" \
+                                      || check "생존 프로세스 SIGKILL 에스컬레이션" "yes" "no"
+
 # 헬퍼만 떼어 로드(본체 실행 금지 — source 하면 기동이 시작된다).
 extract() { sed -n "/^$1()/,/^}/p" "$TARGET"; }
 eval "$(extract http_code)"
