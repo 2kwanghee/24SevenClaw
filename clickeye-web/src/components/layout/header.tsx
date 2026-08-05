@@ -7,7 +7,8 @@ import { LogOut, Bell, HelpCircle, BookOpen, RotateCcw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { LocaleToggle } from "@/components/common/locale-toggle";
-import { ThemeSwitcher } from "@/components/common/theme-switcher";
+// CE-373: ThemeSwitcher 는 라이트 고정으로 비활성화됐다. 컴포넌트 파일은 남아 있으니
+// 다크를 되살릴 때 이 import 와 아래 렌더 한 줄, providers.tsx 의 두 줄을 복구하면 된다.
 
 function HelpDropdown() {
   const router = useRouter();
@@ -91,8 +92,8 @@ export function Header() {
         {/* 언어 토글 (사용자 향 페이지 한정 — /admin/* 내부에서 자체 미노출) */}
         <LocaleToggle />
 
-        {/* 테마 토글 (라이트/다크) */}
-        <ThemeSwitcher />
+        {/* 테마 토글 — CE-373 으로 비활성화(라이트 고정). 컴포넌트 파일은 남겨 두었으니
+            다크를 되살릴 때 이 한 줄과 providers.tsx 의 두 줄만 복구하면 된다. */}
 
         {/* 알림 */}
         <button

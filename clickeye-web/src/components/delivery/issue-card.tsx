@@ -8,13 +8,15 @@ import { SubTaskDetailModal } from "@/components/ai-team/subtask-detail-modal";
 import { useMockMode } from "@/stores/mock-mode-store";
 import type { SubTaskResponse, SubTaskRole } from "@/lib/api-client";
 
+// 역할별 색 — 전에는 architect/frontend/backend/devops 가 동일 muted 라 배지가 정체성을
+// 못 실었다. 기존 팔레트 관례 안에서 역할축에 하나씩 배정한다(qa=성공톤, security=주의톤은 유지).
 const ROLE_CLS: Record<SubTaskRole, string> = {
-  architect: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  frontend: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
-  backend: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  architect: "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300",
+  frontend: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+  backend: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
   qa: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
   security: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  devops: "bg-[var(--bg-hover)] text-[var(--text-secondary)]",
+  devops: "bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
   reviewer: "bg-[var(--accent-soft)] text-[var(--accent)]",
 };
 
