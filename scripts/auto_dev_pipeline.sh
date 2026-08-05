@@ -575,6 +575,11 @@ for title, meta in m.items():
 
   IFS='|' read -r ISSUE_KEY ISSUE_ID BRANCH TASK_MODE TITLE <<< "$TASK_INFO"
 
+  # ── [CE-399] 이전(실패) 런 잔재 정리 — 태스크 픽업 직후, 성공 경로 cleanup(1396/1637행)과 무관하게
+  # 이번 이터레이션 시작 시 무조건 제거한다. 실패 런이 남긴 TASK.md 를 [ ! -f ] 가드가 재사용해
+  # 낡은 누적 변경 파일 목록을 QA 리뷰어에게 전달 → 델타 diff 와 모순 → 판정불가 반복(CE-398 후속).
+  rm -f .ralph/TASK.md .ralph/REVIEW.md .ralph/review.stream.jsonl
+
   # ── [파생형 하네스] 워크스페이스 automap (CE-339, opt-in — 미설정=off, 회귀 0) ──
   # 전용 러너(시작 시 WORKSPACE_KEY 존재)가 아닌 단일 러너에서만, 이슈 제목 접두사로
   # 매핑 원장(.ralph/workspaces.json)을 조회해 WORKSPACE_KEY 를 이슈별로 설정한다.
