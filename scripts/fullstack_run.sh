@@ -14,6 +14,7 @@
 #   bash scripts/fullstack_run.sh              # 전체 기동 (멱등 — 이미 떠 있으면 SKIP)
 #   bash scripts/fullstack_run.sh --check      # 진단만, 아무것도 바꾸지 않음
 #   bash scripts/fullstack_run.sh --stop       # 이 스크립트가 띄운 것만 정지
+#   bash scripts/fullstack_run.sh --restart-web # 웹 dev 서버만 강제 재기동(멱등 생략 무시)
 #   bash scripts/fullstack_run.sh --no-web     # 웹 dev 서버 제외
 #   bash scripts/fullstack_run.sh --no-webhook # 실행면 전체 제외(워커·ngrok)
 #   bash scripts/fullstack_run.sh --no-ngrok   # 터널만 제외
@@ -82,10 +83,12 @@ MODE="run"        # run | check | stop
 NO_WEB=false
 NO_WEBHOOK=false
 NO_NGROK=false
+RESTART_WEB=false
 for arg in "$@"; do
     case "$arg" in
         --check)      MODE="check" ;;
         --stop)       MODE="stop" ;;
+        --restart-web) RESTART_WEB=true ;;
         --no-web)     NO_WEB=true ;;
         --no-webhook) NO_WEBHOOK=true ;;
         --no-ngrok)   NO_NGROK=true ;;
@@ -93,6 +96,22 @@ for arg in "$@"; do
         *)            err "알 수 없는 옵션: $arg"; sub "사용법: --help"; exit 2 ;;
     esac
 done
+
+# --restart-web 은 "정지 후 기동" 행위다. 아무것도 바꾸지 않는 --check 나 웹을 아예 빼는
+# --no-web 과 함께 오면 **조용히 무시하지 않는다** — 재기동을 기대한 사용자가 낡은 서버를
+# 계속 보게 되는 것이 이 플래그가 없애려는 바로 그 증상이기 때문이다(CE-374).
+if $RESTART_WEB; then
+    if [[ "$MODE" != "run" ]]; then
+        err "--restart-web 은 --${MODE} 와 함께 쓸 수 없습니다"
+        sub "--${MODE} 는 기동하지 않습니다. 재기동만 원하면 --restart-web 단독으로 실행하세요."
+        exit 2
+    fi
+    if $NO_WEB; then
+        err "--restart-web 과 --no-web 은 모순입니다(재기동 vs 제외)"
+        sub "웹만 재기동: bash scripts/fullstack_run.sh --restart-web"
+        exit 2
+    fi
+fi
 
 # ── 공용 헬퍼 ────────────────────────────────────────────────────────────────
 
@@ -332,6 +351,43 @@ start_web() {
     fi
     if ! command -v npm >/dev/null 2>&1; then
         warn "npm 없음 — 생략"; record "웹" skip "npm 미설치"; return 0
+    fi
+
+    # --restart-web: 멱등 생략 앞에서 우리 것만 내린다. dev 서버는 오래 살아 있는 동안
+    # 워킹트리가 바뀌면(브랜치 전환·cron 의 checkout) 컴파일 캐시가 어긋난 채 계속
+    # 서비스한다 — 실측 2026-08-05 에 9시간 32분 된 서버가 낡은 코드를 내려주고 있었고,
+    # 재실행·브라우저 강제 새로고침 둘 다 듣지 않았다(CE-374).
+    # filter_ours 를 반드시 거친다 — 타 프로젝트의 `next dev` 를 죽이지 않는다.
+    if $RESTART_WEB; then
+        local killed=0 rpid
+        while IFS= read -r rpid; do
+            [[ -z "$rpid" ]] && continue
+            ok "kill PID $rpid (--restart-web)"
+            kill "$rpid" 2>/dev/null && killed=$((killed+1))
+        done < <(web_pids | filter_ours)
+        rm -f "$WEB_PID_FILE"
+        if (( killed )); then
+            # 프로세스가 **사라질 때까지** 기다린다. 포트 해제만 보면 안 된다 — SIGTERM 직후
+            # 부모가 죽어 포트는 즉시 풀리지만 자식(node)이 잠깐 생존하고, 그걸 아래 멱등
+            # 생략이 "이미 실행 중"으로 잡아 새 서버를 띄우지 않는다(실측 2026-08-05:
+            # HTTP 000 — 이 플래그가 없애려던 증상이 그대로 재현됐다).
+            local w=0
+            while (( w < 15 )); do
+                [[ -z "$(web_pids | filter_ours | head -1)" && -z "$(port_pid "$WEB_PORT")" ]] && break
+                sleep 1; w=$((w+1))
+            done
+            # 유예 후에도 남으면 SIGKILL. 남긴 채 진행하면 멱등 생략이 낡은 서버를 정상으로
+            # 보고해 플래그가 무력화된다.
+            local lp
+            while IFS= read -r lp; do
+                [[ -z "$lp" ]] && continue
+                warn "PID $lp 가 SIGTERM 후에도 생존 — SIGKILL"
+                kill -9 "$lp" 2>/dev/null && sleep 1
+            done < <(web_pids | filter_ours)
+            sub "기존 서버 ${killed}개 정지 (대기 ${w}초)"
+        else
+            sub "정지할 기존 서버 없음 — 새로 기동합니다"
+        fi
     fi
 
     local existing; existing="$(web_pids | filter_ours | head -1)"

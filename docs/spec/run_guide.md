@@ -39,7 +39,16 @@ bash scripts/fullstack_run.sh          # 전체 기동 (실측 콜드스타트 ~
 
 bash scripts/fullstack_run.sh --check  # 진단만 (아무것도 바꾸지 않음)
 bash scripts/fullstack_run.sh --stop   # 이 스크립트가 띄운 것만 정지
+
+bash scripts/fullstack_run.sh --restart-web  # 웹 dev 서버만 강제 재기동
 ```
+
+> **웹 코드를 바꿨는데 화면이 그대로면 `--restart-web` 을 쓴다**(CE-374). 이 스크립트는
+> 멱등이라 :3000 이 이미 서비스 중이면 **그대로 인정하고 재시작하지 않는다** — 그냥 재실행하거나
+> 브라우저를 강제 새로고침해도 낡은 서버가 계속 응답한다. dev 서버가 오래 살아 있는 동안
+> 워킹트리가 바뀌면(브랜치 전환·파이프라인의 `checkout main`) 컴파일 캐시가 어긋난다
+> (실측 2026-08-05: 9시간 32분 된 서버가 낡은 코드를 내려주고 있었다).
+> `--stop` 은 db 까지 내리므로 이 경우엔 과하다.
 
 기동 범위: `db`·`redis`·`migrate`(= `alembic upgrade head`)·`webhook` 컨테이너 → API(:8000)
 → 웹 dev 서버(:3000) → 호스트 워커 + ngrok(`webhook-doctor.sh` 위임) → cron 정본 대조(보고만).
@@ -55,6 +64,9 @@ bash scripts/fullstack_run.sh --stop   # 이 스크립트가 띄운 것만 정�
   정지한다. 타 프로젝트 컨테이너·ngrok, 그리고 직접 띄운 호스트 uvicorn 은 대상이 아니다.
 - 한 요소가 실패해도 나머지는 계속 올린다. 종료 코드는 `0`(전부 정상)/`1`(부분 기동)/`2`(전제 미충족).
 - `--no-web` / `--no-webhook` / `--no-ngrok` 으로 부분 기동·부분 정지가 가능하다.
+- `--restart-web` 은 멱등 생략을 무시하고 웹만 재기동한다. `--check`·`--stop`·`--no-web` 과
+  함께 쓰면 **조용히 무시하지 않고 exit 2** 로 거부한다(재기동을 기대한 채 낡은 서버를 보는
+  것이 이 플래그가 없애려는 증상이므로).
 
 세부 단계를 개별로 다루려면 아래 1~3단계를 그대로 따르면 된다(이 스크립트가 하는 일과 동일).
 
