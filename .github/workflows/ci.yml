@@ -212,7 +212,12 @@ jobs:
       # 워크플로 셸 주입 차단 — run 블록에서 신뢰불가 입력을 `${{ }}` 로 치환하면 그 값이
       # 셸 소스가 되어 임의 명령이 실행된다(CE-375, 실측 PR #106). 되돌아오면 여기서 막는다.
       - name: Check workflow shell injection
-        run: python3 scripts/check_workflow_injection.py
+        run: |
+          pip install --quiet pyyaml
+          python3 scripts/check_workflow_injection.py
+          # 검사기 자신의 테스트 — 첫 구현이 주입 7건 중 1건만 잡은 채 통과한 직접 원인이
+          # 테스트 부재였다. 가드가 잡지 못하면 없는 것보다 나쁘다(거짓 안심).
+          python3 scripts/tests/test_check_workflow_injection.py
 
       - name: Check shell scripts syntax
         run: |

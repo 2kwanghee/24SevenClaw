@@ -96,6 +96,12 @@ DEFAULT_CONTRACTS_PREFIX = "clickeye-contracts/"
 DEFAULT_HIGH_PREFIXES = (
     "clickeye-contracts/",
     "clickeye-infra/",
+    # 워크플로는 CI 자체의 실행 권한을 정의한다 — 여기에 셸 주입이 들어가면 러너에서
+    # 임의 명령이 돌고 시크릿이 노출된다(CE-375, 실측 PR #106). 주입 검사는 PR CI 의
+    # `Scripts Validation` 에 있으므로, 자율 파이프라인이 main 에 직접머지하면 검사를
+    # 전면 우회한다. HIGH 로 두어 직접머지를 금지하고 PR 경로로 강등한다.
+    ".github/workflows/",
+    ".github/actions/",
 )
 DEFAULT_HIGH_PATH_PATTERN_SOURCES = (
     r"auth",
