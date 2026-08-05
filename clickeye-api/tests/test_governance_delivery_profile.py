@@ -329,7 +329,13 @@ async def test_get_policy_without_project_id_unchanged(client, auth_headers):
     body = resp.json()
     # 기존 키셋 불변(신규 키가 null 로 새지 않음).
     assert "policy_source" not in body
-    assert body["high_risk"]["prefixes"] == ["clickeye-contracts/", "clickeye-infra/"]
+    # `.github/**` 는 CE-375 에서 HIGH 로 추가됐다(워크플로 셸 주입 → PR 경로 강등).
+    assert body["high_risk"]["prefixes"] == [
+        "clickeye-contracts/",
+        "clickeye-infra/",
+        ".github/workflows/",
+        ".github/actions/",
+    ]
     assert "API 서버 env" in body["source_note"]
 
 

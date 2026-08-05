@@ -17,8 +17,15 @@
                 사용자 제공 natural PK(app_settings.key) 는 editable=False 여도 True.
                 프론트 생성 폼은 이 플래그로 전송 컬럼을 결정한다.
 - update 시 설정 가능한 컬럼 = `editable` 인 컬럼. 그 외 컬럼을 payload 에 담으면 거부.
-- `sensitive` : 조회(list/get) 및 감사 로그에서 값을 마스킹(***). 초기 3개 테이블엔 민감
-                컬럼이 없으나(설정성 데이터), 마스킹 경로는 제네릭하게 지원한다.
+- `sensitive` : 조회(list/get) 및 감사 로그에서 값을 마스킹(***). 설정성 3개 테이블엔 민감
+                컬럼이 없으나, 마스킹 경로는 제네릭하게 지원한다.
+
+딜리버리 데이터 테이블(projects·intake_requests·pipeline_run_events·llm_usage_ledger)은
+운영자가 "프로젝트를 구현하면서 발생한 데이터"를 진단·관측하기 위한 **읽기 전용** 등재다
+(`allowed_ops={"read"}`, 전 컬럼 editable=False·creatable=False). 원장을 편집·삭제하면
+안 되므로 create/update/delete 를 열지 않는다. 민감 테이블(users·*_credentials·RBAC·
+managed_env_vars·central_contracts)은 여전히 미등재이며, 이 테이블들의 민감 컬럼(예:
+setup_token_hash·requirements_text)도 등재에서 제외한다.
 """
 
 from __future__ import annotations
@@ -29,7 +36,11 @@ from typing import Literal
 
 from app.database import Base
 from app.models.app_setting import AppSetting
+from app.models.intake import IntakeRequest
+from app.models.llm_usage_ledger import LlmUsageLedger
+from app.models.pipeline_run_event import PipelineRunEvent
 from app.models.preset import Preset
+from app.models.project import Project
 from app.models.roi_standard import RoiStandard
 
 # 컬럼 논리 타입. 검증/직렬화 분기에 사용.
@@ -171,8 +182,132 @@ _PRESETS = TableDescriptor(
 )
 
 
+# ---------------------------------------------------------------------------
+# 딜리버리 데이터 테이블 (읽기 전용 — 운영자 진단/관측용, CE-376)
+# ---------------------------------------------------------------------------
+# 원장/이력 테이블은 편집·삭제하면 안 된다. 아래 4개는 allowed_ops={"read"} 로만 열고,
+# 전 컬럼을 editable=False·creatable=False 로 고정한다. 이 헬퍼가 그 규약을 강제한다.
+
+
+def _ro(
+    name: str,
+    type: ColumnType,
+    *,
+    sensitive: bool = False,
+    enum: tuple[str, ...] | None = None,
+) -> ColumnSpec:
+    """읽기 전용 컬럼 스펙(편집·생성 금지)."""
+    return ColumnSpec(name, type, editable=False, creatable=False, sensitive=sensitive, enum=enum)
+
+
+# projects — 딜리버리 프로젝트 식별·상태·상관축. settings JSONB 는 설정 blob 이라 목록
+# 가독성을 위해 제외, requirements_text·setup_token_hash 는 고객 원문/토큰이라 제외.
+_PROJECTS = TableDescriptor(
+    key="projects",
+    label="프로젝트",
+    model=Project,
+    pk_column="id",
+    columns=(
+        _ro("id", "uuid"),
+        _ro("name", "str"),
+        _ro("status", "str"),
+        _ro("project_type", "str"),
+        _ro("bootstrap_status", "str"),
+        _ro("organization_id", "uuid"),
+        _ro("created_at", "datetime"),
+        _ro("updated_at", "datetime"),
+    ),
+    allowed_ops=frozenset({"read"}),
+)
+
+# intake_requests — 외부 요구사항 접수 원장. payload·normalized_text·refined_text 는
+# 고객 요구사항 원문이지만 운영자가 내용을 봐야 진단이 되므로 마스킹하지 않는다(팀리드 판단).
+# service_key_id 는 FK(값은 해시가 아님), callback_url 은 외부 엔드포인트라 등재 가능.
+_INTAKE_REQUESTS = TableDescriptor(
+    key="intake_requests",
+    label="인테이크 요청",
+    model=IntakeRequest,
+    pk_column="id",
+    columns=(
+        _ro("id", "uuid"),
+        _ro("service_key_id", "uuid"),
+        _ro("input_type", "str"),
+        _ro("title", "str"),
+        _ro("status", "str"),
+        _ro("refine_status", "str"),
+        _ro("tickets_status", "str"),
+        _ro("normalized_text", "str"),
+        _ro("refined_text", "str"),
+        _ro("payload", "json"),
+        _ro("callback_url", "str"),
+        _ro("project_id", "uuid"),
+        _ro("created_at", "datetime"),
+        _ro("updated_at", "datetime"),
+    ),
+    allowed_ops=frozenset({"read"}),
+)
+
+# pipeline_run_events — 파이프라인 단계 이벤트 이력. data JSONB 는 단계 결과(duration/
+# outcome/verdict 등) 원형이라 진단에 유용. 토큰은 이 테이블이 갖지 않는다(llm_usage_ledger).
+_PIPELINE_RUN_EVENTS = TableDescriptor(
+    key="pipeline_run_events",
+    label="파이프라인 실행 이벤트",
+    model=PipelineRunEvent,
+    pk_column="id",
+    columns=(
+        _ro("id", "uuid"),
+        _ro("run_id", "str"),
+        _ro("issue_key", "str"),
+        _ro("event", "str"),
+        _ro("project_id", "uuid"),
+        _ro("workspace_key", "str"),
+        _ro("data", "json"),
+        _ro("occurred_at", "datetime"),
+        _ro("created_at", "datetime"),
+    ),
+    allowed_ops=frozenset({"read"}),
+)
+
+# llm_usage_ledger — 토큰/비용 원장. project_id·task_id·seat_id·model 축과 토큰/비용 수치만
+# 등재한다. meta JSONB 는 세션 정보를 담을 수 있어 제외(관측에 불필요), session_id(멱등 키)도
+# 제외. seat_id 는 시트 FK(값은 크레덴셜이 아닌 UUID) — 계정별 소비 모니터링 축(D-8).
+_LLM_USAGE_LEDGER = TableDescriptor(
+    key="llm_usage_ledger",
+    label="LLM 사용량 원장",
+    model=LlmUsageLedger,
+    pk_column="id",
+    columns=(
+        _ro("id", "uuid"),
+        _ro("created_at", "datetime"),
+        _ro("project_id", "uuid"),
+        _ro("task_id", "str"),
+        _ro("seat_id", "uuid"),
+        _ro("provider", "str"),
+        _ro("key_source", "str"),
+        _ro("model", "str"),
+        _ro("request_kind", "str"),
+        _ro("input_tokens", "int"),
+        _ro("output_tokens", "int"),
+        _ro("cost", "float"),
+        _ro("status", "str"),
+    ),
+    allowed_ops=frozenset({"read"}),
+)
+
+
 REGISTRY: MappingProxyType[str, TableDescriptor] = MappingProxyType(
-    {d.key: d for d in (_APP_SETTINGS, _ROI_STANDARDS, _PRESETS)}
+    {
+        d.key: d
+        for d in (
+            _APP_SETTINGS,
+            _ROI_STANDARDS,
+            _PRESETS,
+            _PROJECTS,
+            _INTAKE_REQUESTS,
+            _PIPELINE_RUN_EVENTS,
+            _LLM_USAGE_LEDGER,
+        )
+    }
 )
 
 

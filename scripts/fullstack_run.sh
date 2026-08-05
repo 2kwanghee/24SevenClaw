@@ -339,6 +339,25 @@ start_cloud() {
 
     local code; code="$(http_code "$API_HEALTH")"
     [[ "$code" == "200" ]] && ok "API $API_HEALTH → 200" || err "API $API_HEALTH → $code"
+
+    # ── dockerproxy (운영 패널 전용, --profile ops) ──────────────────────────────
+    # api 는 raw docker.sock 을 쥐지 않고 이 read-only 프록시(POST=0)를 경유해 컨테이너를
+    # 조회한다(app/services/ops/docker_client.py). profiles:[ops] 라 위 --profile full
+    # 기동에서 빠지므로 여기서 명시적으로 올린다. 없으면 운영 패널의 컨테이너 모니터링만
+    # 안 되고 딜리버리(무인 체인·API·웹)에는 영향이 없다 — 따라서 실패해도 fail-fast 하지
+    # 않고 요약에 fail 로만 표시한다(부분 기동 우선 규칙).
+    log "docker compose --profile ops up -d dockerproxy"
+    if ! (cd "$COMPOSE_DIR" && docker compose --profile ops up -d dockerproxy 2>&1 | sed 's/^/    /'); then
+        err "dockerproxy compose up 실패 — 운영 패널 컨테이너 모니터링만 영향(딜리버리 무관)"
+    fi
+    # dockerproxy 는 healthcheck 가 없어 running 이면 정상(container_up 이 health none 을 통과).
+    if wait_container clickeye-dockerproxy "$HEALTH_WAIT"; then
+        ok "clickeye-dockerproxy $(container_desc clickeye-dockerproxy)"
+        record "dockerproxy" ok "$(container_desc clickeye-dockerproxy)"
+    else
+        err "clickeye-dockerproxy $(container_desc clickeye-dockerproxy) — 운영 패널 컨테이너 조회 불가(딜리버리 무관)"
+        record "dockerproxy" fail "$(container_desc clickeye-dockerproxy)"
+    fi
 }
 
 # ── 2. 웹 dev 서버 ───────────────────────────────────────────────────────────

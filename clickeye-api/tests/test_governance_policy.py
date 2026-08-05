@@ -53,7 +53,15 @@ async def test_policy_authenticated_ok(client, auth_headers):
         assert isinstance(r["enabled"], bool) and isinstance(r["label"], str)
 
     # high_risk: 커널 상수 노출.
-    assert body["high_risk"]["prefixes"] == ["clickeye-contracts/", "clickeye-infra/"]
+    # `.github/workflows/`·`.github/actions/` 는 CE-375 에서 추가됐다 — 워크플로는 CI 자체의
+    # 실행 권한을 정의하므로 셸 주입이 들어가면 러너에서 임의 명령이 돈다. 주입 검사는 PR CI 에
+    # 있어서 자율 파이프라인의 main 직접머지가 우회하므로, HIGH 로 두어 PR 경로로 강등한다.
+    assert body["high_risk"]["prefixes"] == [
+        "clickeye-contracts/",
+        "clickeye-infra/",
+        ".github/workflows/",
+        ".github/actions/",
+    ]
     assert body["high_risk"]["patterns"]  # 정규식 문자열 목록(비어있지 않음)
 
     # toggles: 마스터 포함, 값은 전부 bool.
