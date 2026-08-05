@@ -494,13 +494,20 @@
     "items": {
       "newSolution": "New solution",
       "projects": "Projects",
+      "dashboard": "Dashboard",
       "delivery": "Delivery",
       "guide": "Guide"
     },
     "sections": {
       "settings": "Settings",
       "admin": "Admin",
-      "ops": "Ops"
+      "ops": "Ops",
+      "observability": "Observability"
+    },
+    "observability": {
+      "seats": "Tokens & Seats",
+      "usage": "Usage Ledger",
+      "runs": "Run History"
     },
     "settings": {
       "members": "Organization members",
@@ -943,7 +950,8 @@
       "sourceUrl": "Source URL",
       "target": "Target",
       "project": "Created project",
-      "openProject": "Open project"
+      "openProject": "Open project",
+      "payload": "Raw payload"
     },
     "refine": {
       "title": "Refined spec",
@@ -1139,6 +1147,99 @@
       "deleteDescription": "Delete row {pk}. This action cannot be undone.",
       "backToList": "Back to tables",
       "sensitiveKeepHint": "Enter only to change (leave blank to keep)"
+    }
+  },
+  "observability": {
+    "dashboard": {
+      "pageTitle": "Dashboard",
+      "pageDescription": "Overview of projects, intake, and pipeline run status at a glance",
+      "loading": "Loading...",
+      "featureDisabled": "You don't have permission to view observability data, or the feature is disabled.",
+      "error": "Failed to load summary data.",
+      "empty": "No data to display.",
+      "projectsByStatus": "Projects by status",
+      "intakeFunnel": "Intake funnel",
+      "pipelineSuccessRate": "Pipeline success rate (last 7 days)",
+      "recentDeliveryEvents": "Recent delivery events",
+      "noRuns": "No pipeline runs completed in the last 7 days.",
+      "success": "Success",
+      "failure": "Failure",
+      "successRateAria": "Pipeline success rate {pct}%"
+    },
+    "seats": {
+      "pageTitle": "Tokens · Seats",
+      "pageDescription": "Check per-account remaining balance, resets, projected exhaustion, and seat status",
+      "loading": "Loading...",
+      "featureDisabled": "You don't have permission to view observability data, or the feature is disabled.",
+      "error": "Failed to load seat balances.",
+      "empty": "No accounts to display.",
+      "noWindows": "No balance snapshots yet.",
+      "usage24h": "Last 24h usage — input {input} · output {output}",
+      "aheadOfPace": "Ahead of pace",
+      "onPace": "On pace",
+      "projectedExhaustion": "Projected exhaustion {at}",
+      "resetsAt": "Resets {at}",
+      "status": {
+        "active": "Active",
+        "pending_login": "Pending login",
+        "disabled": "Disabled"
+      },
+      "freshness": {
+        "unknown": "Refresh time unknown",
+        "justNow": "Just refreshed",
+        "minutesAgo": "Refreshed {count}m ago",
+        "hoursAgo": "Refreshed {count}h ago"
+      }
+    },
+    "usage": {
+      "pageTitle": "Usage ledger",
+      "pageDescription": "Aggregate tokens/cost by project · seat · model axis",
+      "loading": "Loading...",
+      "featureDisabled": "You don't have permission to view observability data, or the feature is disabled.",
+      "error": "Failed to load usage data.",
+      "empty": "No usage to display.",
+      "unknownKey": "(Unknown)",
+      "total": "Total",
+      "filter": {
+        "groupBy": "Group by",
+        "from": "From",
+        "to": "To",
+        "groupByOption": {
+          "project_id": "Project",
+          "seat_id": "Seat",
+          "model": "Model",
+          "request_kind": "Request kind"
+        }
+      },
+      "col": {
+        "inputTokens": "Input tokens",
+        "outputTokens": "Output tokens",
+        "cost": "Cost",
+        "requestCount": "Request count"
+      }
+    },
+    "runs": {
+      "pageTitle": "Run history",
+      "pageDescription": "Look up unattended chain run results and durations",
+      "loading": "Loading...",
+      "featureDisabled": "You don't have permission to view observability data, or the feature is disabled.",
+      "error": "Failed to load run history.",
+      "empty": "No run history to display.",
+      "filter": {
+        "issueKey": "Issue key",
+        "projectId": "Project ID"
+      },
+      "col": {
+        "issueKey": "Issue key",
+        "outcome": "Outcome",
+        "duration": "Duration",
+        "startedAt": "Started at",
+        "modelMismatch": "Model mismatch"
+      },
+      "detail": {
+        "title": "Event timeline for the selected run",
+        "empty": "Select a run to view its event timeline."
+      }
     }
   }
 }

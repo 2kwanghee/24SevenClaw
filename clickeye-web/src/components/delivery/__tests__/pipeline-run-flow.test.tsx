@@ -164,6 +164,7 @@ function run(
     ended_at: null,
     duration_s: null,
     outcome: null,
+    model_mismatch: false,
     events: [],
     usage: {
       models: usage.models ?? [],

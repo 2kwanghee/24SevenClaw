@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Check,
+  ChevronDown,
+  ChevronRight,
   Copy,
   ExternalLink,
   Inbox,
@@ -98,6 +100,37 @@ function InputTypeBadge({ inputType }: { inputType: string }) {
     <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${color}`}>
       {inputType}
     </span>
+  );
+}
+
+/** 원본 payload JSON 뷰어 — 인테이크 원천 데이터 드릴다운 (접기/펼치기) */
+function PayloadViewer({ payload }: { payload: Record<string, unknown> }) {
+  const t = useTranslations("intake");
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+        }}
+        className="mb-1 flex items-center gap-1 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+      >
+        {open ? (
+          <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5" />
+        )}
+        {t("detail.payload")}
+      </button>
+      {open && (
+        <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      )}
+    </div>
   );
 }
 
@@ -275,6 +308,11 @@ function IntakeRow({ item, onAccept, onReject }: IntakeRowProps) {
                     {JSON.stringify(item.target, null, 2)}
                   </pre>
                 </div>
+              )}
+
+              {/* 원본 payload — 인테이크 원천 데이터 드릴다운 */}
+              {item.payload && Object.keys(item.payload).length > 0 && (
+                <PayloadViewer payload={item.payload} />
               )}
 
               {/* 생성된 프로젝트 링크 */}

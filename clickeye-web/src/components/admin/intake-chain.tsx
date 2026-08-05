@@ -265,13 +265,17 @@ function TicketChips({ tickets }: { tickets: IntakeTicketItem[] }) {
       </p>
       <div className="flex flex-wrap gap-1.5">
         {tickets.map((ticket) => (
-          <span
+          <a
             key={ticket.issue_id || ticket.identifier}
+            href={`https://linear.app/issue/${ticket.identifier}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             title={ticket.title}
-            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)]"
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)] hover:border-[var(--border-medium)] hover:text-[var(--text-primary)] hover:underline"
           >
             {ticket.identifier}
-          </span>
+          </a>
         ))}
       </div>
     </div>

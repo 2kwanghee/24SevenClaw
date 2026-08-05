@@ -254,6 +254,7 @@ export const mockPipelineRuns: PipelineRun[] = [
     ended_at: "2026-08-04T10:16:20Z",
     duration_s: 80,
     outcome: "pushed",
+    model_mismatch: false,
     events: [
       {
         event: "refine_done",
@@ -304,6 +305,7 @@ export const mockPipelineRuns: PipelineRun[] = [
     ended_at: "2026-08-04T09:41:10Z",
     duration_s: 70,
     outcome: "failed",
+    model_mismatch: false,
     events: [
       {
         event: "refine_done",
@@ -348,6 +350,7 @@ export const mockPipelineRuns: PipelineRun[] = [
     ended_at: "2026-08-04T08:31:30Z",
     duration_s: 90,
     outcome: "demoted",
+    model_mismatch: false,
     events: [
       {
         event: "refine_done",
@@ -398,6 +401,7 @@ export const mockPipelineRuns: PipelineRun[] = [
     ended_at: null,
     duration_s: null,
     outcome: null,
+    model_mismatch: false,
     events: [
       {
         event: "refine_done",
@@ -431,6 +435,7 @@ export const mockPipelineRuns: PipelineRun[] = [
     ended_at: "2026-08-04T07:31:00Z",
     duration_s: 60,
     outcome: "pushed",
+    model_mismatch: false,
     events: [
       {
         event: "refine_done",
