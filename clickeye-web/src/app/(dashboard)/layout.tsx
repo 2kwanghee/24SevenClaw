@@ -57,14 +57,12 @@ const navItems: NavItem[] = [
   { href: "/guide", labelKey: "items.guide", icon: BookOpen },
 ];
 
+// 딜리버리 체인이 실제로 쓰는 관리 화면만 남긴다.
+//   · intake — 수신된 수주를 검토·승인한다(체인 1단계의 사람 개입 지점)
+//   · users  — 계정·권한 관리(실운영 필수)
 const adminItems: NavItem[] = [
-  { href: "/admin/control-tower", labelKey: "admin.controlTower", icon: Building2 },
   { href: "/admin/intake", labelKey: "admin.intake", icon: Inbox },
   { href: "/admin/users", labelKey: "admin.users", icon: Shield },
-  { href: "/admin/contracts", labelKey: "admin.contracts", icon: FileText },
-  { href: "/admin/roi-standards", labelKey: "admin.roiStandards", icon: Calculator },
-  { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
-  { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
 ];
 
 // ── 네비에서 숨긴 관리 메뉴 (2026-08-04) ─────────────────────────────────────
@@ -84,7 +82,20 @@ const adminItems: NavItem[] = [
 //
 // 삭제하지 않는 이유: 되돌리기가 비싸고 PM 구성 매칭(CE-273)처럼 마이그레이션까지 들어간
 // 자산이 섞여 있다. 폐기 판단은 별도 티켓에서 데이터 이관·아카이브와 함께 다룬다.
+// 2026-08-05 추가로 숨긴 5개 — 사용자가 화면에서 "쓰이는 기능인지 불명확하다" 고 지목했고
+// 확인 결과 딜리버리 체인과 무관했다:
+//   · /admin/settings  — 페이지 본문에 "**위저드 동작에** 영향을 주는 전역 설정" 이라고
+//     적혀 있다. 위저드 잔재 확정
+//   · /admin/roi-standards — 위 주석의 실측대로 체인 참조 0건(수주→수락·실행면·콘솔 전부)
+//   · /admin/control-tower · /admin/contracts · /admin/audit — 체인 8단계
+//     (수신→승인→분해→구현→검증→알림→모니터링)의 어느 지점도 이 화면들을 읽지 않는다
+// 라우트·API·데이터는 그대로 살아 있다. URL 직접 접근 가능하고, 되살리려면 adminItems 로 옮긴다.
 const hiddenAdminItems: NavItem[] = [
+  { href: "/admin/control-tower", labelKey: "admin.controlTower", icon: Building2 },
+  { href: "/admin/contracts", labelKey: "admin.contracts", icon: FileText },
+  { href: "/admin/roi-standards", labelKey: "admin.roiStandards", icon: Calculator },
+  { href: "/admin/settings", labelKey: "admin.globalSettings", icon: Blocks },
+  { href: "/admin/audit", labelKey: "admin.audit", icon: ScrollText },
   { href: "/admin/pm", labelKey: "admin.pm", icon: Users },
   { href: "/admin/registry/agents", labelKey: "admin.agentsRegistry", icon: Bot },
   { href: "/admin/registry/skills", labelKey: "admin.skillsRegistry", icon: Puzzle },
