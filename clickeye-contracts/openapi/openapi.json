@@ -12273,6 +12273,331 @@
           }
         }
       }
+    },
+    "/api/v1/observability/summary": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Summary",
+        "description": "대시보드 위젯 — 프로젝트/인테이크 상태 카운트, 최근 파이프라인 성공률, 딜리버리 피드.",
+        "operationId": "get_summary_api_v1_observability_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservabilitySummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/observability/usage": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Usage",
+        "description": "사용량 피벗 — 기간 × 축 그룹핑, task_id 지정 시 프로젝트 상세 드릴다운.",
+        "operationId": "get_usage_api_v1_observability_usage_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "project_id",
+                "seat_id",
+                "model",
+                "request_kind"
+              ],
+              "type": "string",
+              "default": "model",
+              "title": "Group By"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsagePivotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/runs": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "List Observability Runs",
+        "description": "실행 이력 — run 단위(최신순), 기존 PipelineRunService 그대로 재사용.",
+        "operationId": "list_observability_runs_api_v1_observability_runs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "issue_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Key"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRunListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/runs/{issue_key}": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Observability Run Thread",
+        "description": "issue_key 스레드 뷰 — 해당 티켓의 run 들만.",
+        "operationId": "get_observability_run_thread_api_v1_observability_runs__issue_key__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "issue_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Issue Key"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRunListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/observability/seats": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Seats",
+        "description": "시트 잔량 — 계정별 최신 스냅샷 + 시트 상태 + 최근 24h 소비.",
+        "operationId": "get_seats_api_v1_observability_seats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatObservabilityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -18566,6 +18891,124 @@
         ],
         "title": "OAuthLoginRequest"
       },
+      "ObservabilityDeliveryEventItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "intake_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Intake Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "actor_type": {
+            "type": "string",
+            "title": "Actor Type"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "intake_id",
+          "project_id",
+          "event_type",
+          "actor_type",
+          "detail",
+          "created_at"
+        ],
+        "title": "ObservabilityDeliveryEventItem",
+        "description": "대시보드 최근 딜리버리 이벤트 피드 1건."
+      },
+      "ObservabilitySummaryResponse": {
+        "properties": {
+          "projects_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Projects By Status"
+          },
+          "intake_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Intake By Status"
+          },
+          "intake_by_tickets_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Intake By Tickets Status"
+          },
+          "pipeline_run_success_count": {
+            "type": "integer",
+            "title": "Pipeline Run Success Count",
+            "default": 0
+          },
+          "pipeline_run_failure_count": {
+            "type": "integer",
+            "title": "Pipeline Run Failure Count",
+            "default": 0
+          },
+          "pipeline_run_success_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipeline Run Success Rate"
+          },
+          "recent_delivery_events": {
+            "items": {
+              "$ref": "#/components/schemas/ObservabilityDeliveryEventItem"
+            },
+            "type": "array",
+            "title": "Recent Delivery Events"
+          }
+        },
+        "type": "object",
+        "title": "ObservabilitySummaryResponse",
+        "description": "대시보드 위젯 — 프로덕트 상태·인테이크 깔때기·파이프라인 성공률·딜리버리 피드."
+      },
       "OrchestratorBootstrapRequest": {
         "properties": {
           "subtasks": {
@@ -20798,6 +21241,11 @@
               }
             ],
             "title": "Outcome"
+          },
+          "model_mismatch": {
+            "type": "boolean",
+            "title": "Model Mismatch",
+            "default": false
           },
           "events": {
             "items": {
@@ -24612,6 +25060,75 @@
         ],
         "title": "RoleUpdateRequest"
       },
+      "SeatObservabilityEntry": {
+        "properties": {
+          "account_email": {
+            "type": "string",
+            "title": "Account Email"
+          },
+          "seat_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Id"
+          },
+          "seat_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seat Status"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/SeatQuotaLatestEntry"
+            },
+            "type": "array",
+            "title": "Windows"
+          },
+          "usage_24h_input_tokens": {
+            "type": "integer",
+            "title": "Usage 24H Input Tokens",
+            "default": 0
+          },
+          "usage_24h_output_tokens": {
+            "type": "integer",
+            "title": "Usage 24H Output Tokens",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_email",
+          "seat_id",
+          "seat_status"
+        ],
+        "title": "SeatObservabilityEntry",
+        "description": "계정 1개 — 최신 window 스냅샷들 + 시트 상태 + 최근 24h 소비."
+      },
+      "SeatObservabilityResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SeatObservabilityEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "SeatObservabilityResponse"
+      },
       "SeatQuotaFiveHourIn": {
         "properties": {
           "pct": {
@@ -26789,6 +27306,108 @@
           "refresh_token"
         ],
         "title": "TokenResponse"
+      },
+      "UsagePivotBucket": {
+        "properties": {
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "request_count": {
+            "type": "integer",
+            "title": "Request Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "title": "UsagePivotBucket",
+        "description": "usage 피벗 1축 값에 대한 집계 1행."
+      },
+      "UsagePivotResponse": {
+        "properties": {
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "project_id",
+              "seat_id",
+              "model",
+              "request_kind"
+            ],
+            "title": "Group By"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/UsagePivotBucket"
+            },
+            "type": "array",
+            "title": "Buckets"
+          },
+          "total_input_tokens": {
+            "type": "integer",
+            "title": "Total Input Tokens",
+            "default": 0
+          },
+          "total_output_tokens": {
+            "type": "integer",
+            "title": "Total Output Tokens",
+            "default": 0
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          },
+          "total_request_count": {
+            "type": "integer",
+            "title": "Total Request Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_by"
+        ],
+        "title": "UsagePivotResponse",
+        "description": "사용량 피벗 — 기간 × 축(project_id/seat_id/model/request_kind) 집계."
       },
       "UserAdminResponse": {
         "properties": {

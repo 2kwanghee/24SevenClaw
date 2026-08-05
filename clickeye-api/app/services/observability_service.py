@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import ColumnElement, func, select
 
@@ -37,7 +38,7 @@ _RECENT_DELIVERY_EVENTS_LIMIT = 20
 _SUCCESS_OUTCOMES = {"merged", "pr", "pushed"}
 _FAILURE_OUTCOMES = {"failed"}
 
-_USAGE_GROUP_COLUMNS: dict[UsageGroupBy, ColumnElement] = {
+_USAGE_GROUP_COLUMNS: dict[UsageGroupBy, ColumnElement[Any]] = {
     "project_id": LlmUsageLedger.project_id,
     "seat_id": LlmUsageLedger.seat_id,
     "model": LlmUsageLedger.model,
@@ -126,7 +127,7 @@ class ObservabilityService(BaseService):
 
     # ── 내부 헬퍼 ────────────────────────────────────────────────────────────
 
-    async def _count_group_by(self, column: ColumnElement) -> dict[str, int]:
+    async def _count_group_by(self, column: ColumnElement[Any]) -> dict[str, int]:
         stmt = select(column.label("key"), func.count().label("n")).group_by(column)
         rows = (await self.db.execute(stmt)).all()
         return {str(r.key): int(r.n) for r in rows if r.key is not None}

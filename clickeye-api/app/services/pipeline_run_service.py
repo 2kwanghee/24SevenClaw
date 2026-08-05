@@ -197,6 +197,7 @@ class PipelineRunService(BaseService):
             ended_at=ended_at,
             duration_s=duration_s,
             outcome=outcome,
+            model_mismatch="model_mismatch" in by_event,
             events=[PipelineEventResponse.model_validate(e) for e in ordered],
             usage=usage_by_issue.get(issue_key, PipelineRunUsage()),
         )

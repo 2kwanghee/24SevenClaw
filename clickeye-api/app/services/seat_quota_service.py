@@ -220,21 +220,20 @@ class SeatQuotaService(BaseService):
             by_account[e.account_email].append(e)
             seat_id_by_account[e.account_email] = e.seat_id
 
-        items = [
-            SeatObservabilityEntry(
-                account_email=email,
-                seat_id=seat_id_by_account[email],
-                seat_status=(
-                    seat_status_by_id.get(seat_id_by_account[email])
-                    if seat_id_by_account[email] is not None
-                    else None
-                ),
-                windows=windows,
-                usage_24h_input_tokens=usage_24h_by_seat.get(seat_id_by_account[email], (0, 0))[0],
-                usage_24h_output_tokens=usage_24h_by_seat.get(seat_id_by_account[email], (0, 0))[1],
+        items = []
+        for email, windows in sorted(by_account.items()):
+            seat_id = seat_id_by_account[email]
+            usage_24h = usage_24h_by_seat.get(seat_id, (0, 0)) if seat_id is not None else (0, 0)
+            items.append(
+                SeatObservabilityEntry(
+                    account_email=email,
+                    seat_id=seat_id,
+                    seat_status=seat_status_by_id.get(seat_id) if seat_id is not None else None,
+                    windows=windows,
+                    usage_24h_input_tokens=usage_24h[0],
+                    usage_24h_output_tokens=usage_24h[1],
+                )
             )
-            for email, windows in sorted(by_account.items())
-        ]
         return SeatObservabilityResponse(items=items)
 
     async def _seat_status_by_id(self, seat_ids: set[UUID]) -> dict[UUID, str]:
@@ -260,6 +259,4 @@ class SeatQuotaService(BaseService):
             .where(LlmUsageLedger.seat_id.in_(seat_ids), LlmUsageLedger.created_at >= since)
             .group_by(LlmUsageLedger.seat_id)
         )
-        return {
-            r.seat_id: (int(r.input_tokens or 0), int(r.output_tokens or 0)) for r in rows
-        }
+        return {r.seat_id: (int(r.input_tokens or 0), int(r.output_tokens or 0)) for r in rows}
