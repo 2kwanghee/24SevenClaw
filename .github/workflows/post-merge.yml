@@ -22,12 +22,19 @@ jobs:
 
       - name: Extract Linear issue ID
         id: linear
+        # PR 본문은 신뢰할 수 없는 입력이다. `${{ }}` 는 bash 가 파싱하기 전에 스크립트
+        # 텍스트로 치환되므로 run 안에서 쓰면 본문이 곧 셸 소스가 된다(큰따옴표로 감싸도
+        # 백틱·$(...)·" 가 그대로 동작). 실측 2026-08-05 PR #106: 본문의 백틱 코드 스팬이
+        # 실행돼 `npm test`·`npx next build` 가 CI 에서 돌고 스텝이 죽었다(CE-375).
+        # env: 로 넘긴 값은 스크립트에 스플라이스되지 않고 환경변수로 주입된다 — 셸이 파싱하지 않는다.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           # PR body에서 Linear 이슈 식별자 추출 (CE-123 / 24S-7 / OPS-123 패턴)
           # [A-Z0-9]+ : 앞에 숫자가 붙는 24S- 같은 키도 정확히 추출(과거 [A-Z]+ 는 24S-→S- 오추출)
-          BODY="${{ github.event.pull_request.body }}"
-          ISSUE_ID=$(echo "$BODY" | grep -oP '[A-Z0-9]+-\d+' | head -1 || echo "")
-          echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
+          # printf '%s' : echo 는 -n·-e 로 시작하는 본문을 옵션으로 삼킬 수 있다.
+          ISSUE_ID=$(printf '%s' "$PR_BODY" | grep -oP '[A-Z0-9]+-\d+' | head -1 || echo "")
+          echo "issue_id=$ISSUE_ID" >> "$GITHUB_OUTPUT"
           echo "Extracted Linear issue: $ISSUE_ID"
 
       - name: Update Linear issue to Done
@@ -35,6 +42,7 @@ jobs:
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+          ISSUE_ID: ${{ steps.linear.outputs.issue_id }}
         run: |
           # Linear 이슈를 Done 상태로 업데이트
           python3 -c "
@@ -45,8 +53,9 @@ jobs:
           api_key = os.environ['LINEAR_API_KEY']
           team_id = os.environ['LINEAR_TEAM_ID']
 
-          # identifier로 이슈 ID 조회
-          identifier = '${{ steps.linear.outputs.issue_id }}'
+          # identifier로 이슈 ID 조회. 치환 대신 환경변수로 읽는다 — 값이 grep 으로
+          # [A-Z0-9]+-\d+ 에 한정돼 위험은 낮지만 같은 원칙을 예외 없이 적용한다(CE-375).
+          identifier = os.environ['ISSUE_ID']
           query = '''
           query(\$filter: IssueFilter!) {
               issues(filter: \$filter, first: 1) {
@@ -95,10 +104,15 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # PR 제목과 브랜치명도 신뢰할 수 없는 입력이다 — git 레퍼런스는 백틱·$·괄호를
+          # 허용하므로 브랜치명만으로도 명령 치환이 성립한다(CE-375).
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          ISSUE_ID: ${{ steps.linear.outputs.issue_id }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           python3 scripts/telegram_notify.py \
             --message "✅ *머지 완료*
-          PR: ${{ github.event.pull_request.title }}
-          이슈: ${{ steps.linear.outputs.issue_id }}
-          브랜치: ${{ github.head_ref }} → main" \
+          PR: ${PR_TITLE}
+          이슈: ${ISSUE_ID}
+          브랜치: ${HEAD_REF} → main" \
             2>/dev/null || true
