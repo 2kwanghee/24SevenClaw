@@ -1239,7 +1239,11 @@ PY
     log "── 구현↔리뷰 분리 QA 리뷰 시작 ──"
     QA_SPEC="$( { [ -f .ralph/PLAN.md ] && cat .ralph/PLAN.md; echo; [ -f .ralph/TASK.md ] && cat .ralph/TASK.md; } )"
     if [ "$WS_DELIVERY" = true ]; then
-      QA_DIFF="$(impl_git diff "$CUST_BASE" 2>/dev/null || true)"
+      # [CE-398] 이번 런 델타만 리뷰한다 — CUST_BASE 대비 누적 diff 는 CE-369 체인 인테이크
+      # 브랜치에서 앞선 티켓 산출물을 이번 런 것으로 오판시킨다(SIP-2 오탐 실측: SIP-1 의
+      # DELIVERY-CHAIN.md 를 범위 위반으로 FAIL). 기준은 커밋 유무 판정(G1)과 동일한
+      # WS_TIP_BEFORE..HEAD.
+      QA_DIFF="$(impl_git diff "${WS_TIP_BEFORE}..HEAD" 2>/dev/null || true)"
     else
       QA_DIFF="$(safe_git diff main 2>/dev/null || true)"
     fi
