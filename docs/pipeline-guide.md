@@ -342,7 +342,9 @@ API 서버 `GET /api/v1/governance/policy` 엔드포인트로 노출된다(인�
 > **워크스페이스 딜리버리 예외**(`FLOWOPS_WORKSPACE_DELIVERY`, CE-347): 구현 대상이 고객
 > clone일 때는 아래 두 경로 대신 **태스크 브랜치만 고객 origin으로 push**한다(머지·PR 없음,
 > 브랜치 삭제 없음). 브랜치 생성·구현 커밋 확인·거버넌스도 고객 clone 기준으로 수행된다.
-> 상세: `docs/multiproject-delivery.md` §5-5.
+> 워크스페이스 경로는 `resolve_impl_workdir`가 **물리 경로로 해석**해 넘긴다(CE-384 — 러너
+> clone 의 `workspaces` 심링크를 논리 경로로 통과시키면 집행면 게이트가 자기 워크스페이스
+> `cd` 를 G-02 로 오탐한다). 상세: `docs/multiproject-delivery.md` §5-5.
 
 #### A. AUTO_MERGE ON (직접 머지 — LOW-tier 한정)
 `FLOWOPS_AUTO_MERGE=true` 설정 시:
