@@ -72,8 +72,12 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      // 라이트 고정(CE-373). 다크 테마 품질을 아직 보증하지 못해 기본을 라이트로 못박고
+      // 시스템 추종을 끈다. `.dark` CSS 변수와 `theme-switcher.tsx` 는 **삭제하지 않았다** —
+      // 되살릴 때 이 두 줄과 헤더 한 줄만 되돌리면 된다.
+      defaultTheme="light"
+      enableSystem={false}
+      forcedTheme="light"
       disableTransitionOnChange
     >
       <SessionProvider refetchInterval={4 * 60} refetchOnWindowFocus={true}>

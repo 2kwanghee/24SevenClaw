@@ -78,6 +78,21 @@ const STAGE_COLORS: Record<ChainStage, string> = {
     "border-[var(--border-subtle)] bg-[var(--bg-hover)] text-[var(--text-muted)]",
 };
 
+/**
+ * 집계 타일의 수치 색 — verified/gate_failed 는 full-tint 로 강조하고, 나머지 단계는
+ * 배경 대신 수치만 단계색으로 물들여 무채색 그리드를 단계별로 스캔 가능하게 한다.
+ * text-X-700/300 수준을 유지해 대비(WCAG AA)를 지킨다.
+ */
+const STAGE_NUM_TONE: Record<ChainStage, string> = {
+  pending: "text-amber-700 dark:text-amber-300",
+  refined: "text-blue-700 dark:text-blue-300",
+  issued: "text-violet-700 dark:text-violet-300",
+  verified: "text-[var(--accent-text)]",
+  gate_failed: "text-red-700 dark:text-red-300",
+  refine_skipped: "text-[var(--text-muted)]",
+  rejected: "text-[var(--text-muted)]",
+};
+
 /** 인테이크 행에 붙는 체인 단계 배지 1개 */
 export function ChainStageBadge({ item }: { item: IntakeResponse }) {
   const t = useTranslations("intake.chain.stage");
@@ -169,7 +184,7 @@ export function ChainOverviewHeader() {
               </p>
               <p
                 className={`mt-0.5 text-xl font-semibold tabular-nums ${
-                  emphasized ? "" : "text-[var(--text-primary)]"
+                  emphasized ? "" : STAGE_NUM_TONE[stage]
                 }`}
               >
                 {count}
@@ -211,11 +226,28 @@ const ACTOR_ICONS: Record<string, typeof User> = {
   system: Settings2,
 };
 
+/**
+ * 주체별 색 — 기계/사람/시스템을 색으로 구분한다(CE-373).
+ * 전에는 actorType 과 무관하게 muted 단색이었다: 실측 `#a1a1aa` on `#fafafa` 로 대비가
+ * 낮아 아이콘을 봐야 주체를 알 수 있었다. 팔레트는 기존 관례를 따른다(violet=기계 계열).
+ */
+const ACTOR_TONES: Record<string, string> = {
+  human:
+    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
+  machine:
+    "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
+  system:
+    "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
+};
+
 function ActorBadge({ actorType }: { actorType: string }) {
   const t = useTranslations("intake.chain.timeline.actor");
   const Icon = ACTOR_ICONS[actorType] ?? Settings2;
+  const tone = ACTOR_TONES[actorType] ?? ACTOR_TONES.system;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${tone}`}
+    >
       <Icon className="h-3 w-3 shrink-0" />
       {t.has(actorType) ? t(actorType) : actorType}
     </span>
