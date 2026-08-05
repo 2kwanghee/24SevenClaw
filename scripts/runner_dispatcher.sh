@@ -263,8 +263,18 @@ while IFS=$'\t' read -r c_key c_prefix c_state c_seat; do
 
   # ⑤ Queued 사전확인 — 파일을 쓰지 않는 --check-only. 디스패처는 비차단이므로
   #    watcher 자체 오류(0/2 외 종료)는 경고 후 스킵한다.
+  #
+  #    **딜리버리 팀을 여기서도 주입해야 한다.** 스폰되는 파이프라인에만 주입하면
+  #    사전확인은 디스패처 환경(=.env 의 자체 개발 팀)으로 조회해 **발급된 티켓을 영원히
+  #    찾지 못한다** — 발급은 딜리버리 팀, 조회는 자체 개발 팀이 되어 매 틱 "Queued 이슈
+  #    없음" 으로 스킵된다(실측 2026-08-05 E2E, CE-383).
   wrc=0
-  "${WATCHER_CMD[@]}" --check-only --title-prefix "$c_prefix" >/dev/null 2>&1 || wrc=$?
+  if [ -n "$DELIVERY_TEAM_ID" ]; then
+    LINEAR_TEAM_ID="$DELIVERY_TEAM_ID" "${WATCHER_CMD[@]}" \
+      --check-only --title-prefix "$c_prefix" >/dev/null 2>&1 || wrc=$?
+  else
+    "${WATCHER_CMD[@]}" --check-only --title-prefix "$c_prefix" >/dev/null 2>&1 || wrc=$?
+  fi
   if [ "$wrc" -eq 2 ]; then
     log "스킵: $c_key — Queued 이슈 없음"
     SKIPPED=$((SKIPPED + 1)); continue

@@ -18,30 +18,44 @@ sys.path.insert(0, os.path.dirname(__file__))
 from env_loader import load_env as _load_env_file
 
 
+def _resolve(key: str, env_vars: dict[str, str]) -> str | None:
+    """설정값 1개 해석 — **프로세스 환경이 `.env` 를 이긴다**(CE-383).
+
+    전에는 `env_vars.get(key) or os.getenv(key)` 로 `.env` 가 이겼다. 그래서 호출부가
+    `LINEAR_TEAM_ID=<팀>` 을 주입해도 **조용히 무시됐다.** 실측(2026-08-05 E2E):
+    `runner_dispatcher.sh` 가 딜리버리 팀을 주입했는데 `linear_watcher.py` 는 `.env` 의
+    자체 개발 팀을 조회해 발급된 티켓을 찾지 못했다 — 발급은 SIP, 조회는 CE.
+
+    셸 쪽은 이미 반대였다: `auto_dev_pipeline.sh` 가 `[ -z "${LINEAR_TEAM_ID:-}" ]` 가드로
+    **환경을 우선**한다. 같은 레포에서 셸과 파이썬이 반대로 동작하는 것이 함정이었다.
+    명시적 주입이 파일 기본값을 이기는 쪽으로 통일한다(12-factor 관례와도 일치).
+    """
+    return os.getenv(key) or env_vars.get(key)
+
+
 def get_env(team: str | None = None):
-    """Load LINEAR_API_KEY and team ID from .env or env vars.
+    """Load LINEAR_API_KEY and team ID. **환경변수 > `.env`** (CE-383).
 
     Args:
-        team: 팀 이름 (dev, docs). None이면 LINEAR_TEAM_ID 환경변수 폴백.
+        team: 팀 이름 (dev, docs, delivery). None이면 LINEAR_TEAM_ID 폴백.
     Returns:
         (api_key, team_id) 튜플
     """
     env_vars = _load_env_file()
 
-    api_key = env_vars.get("LINEAR_API_KEY") or os.getenv("LINEAR_API_KEY")
+    api_key = _resolve("LINEAR_API_KEY", env_vars)
 
     team_id = None
     if team:
-        env_key = f"LINEAR_TEAM_ID_{team.upper()}"
-        team_id = env_vars.get(env_key) or os.getenv(env_key)
+        team_id = _resolve(f"LINEAR_TEAM_ID_{team.upper()}", env_vars)
 
     if not team_id:
-        # 폴백 1: LINEAR_TEAM_ID (하위 호환 — 단일팀 프로젝트)
-        team_id = env_vars.get("LINEAR_TEAM_ID") or os.getenv("LINEAR_TEAM_ID")
+        # 폴백 1: LINEAR_TEAM_ID (하위 호환 — 단일팀 프로젝트 · 호출부 주입 지점)
+        team_id = _resolve("LINEAR_TEAM_ID", env_vars)
 
     if not team_id:
         # 폴백 2: LINEAR_TEAM_ID_DEV (멀티팀에서 기본 팀으로 사용)
-        team_id = env_vars.get("LINEAR_TEAM_ID_DEV") or os.getenv("LINEAR_TEAM_ID_DEV")
+        team_id = _resolve("LINEAR_TEAM_ID_DEV", env_vars)
 
     if not api_key or not team_id:
         print("Error: LINEAR_API_KEY and LINEAR_TEAM_ID required.", file=sys.stderr)
