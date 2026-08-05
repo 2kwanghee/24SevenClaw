@@ -12274,6 +12274,56 @@
         }
       }
     },
+    "/api/v1/ops/seats/provision": {
+      "get": {
+        "tags": [
+          "ops-seats"
+        ],
+        "summary": "Get Provision Seats",
+        "description": "전체 등록 시트(active/exhausted/blocked 모두 포함, seat_status로 구분) + 평문 토큰을 반환.\n\nscripts/seat_sync.py 가 이 응답을 받아 active는 등재, active가 아니면 이미 로컬에\n등재된 시트만 disabled로 반영한다(응답 자체는 필터링하지 않고 전체를 내려준다 —\n스크립트가 분기).",
+        "operationId": "get_provision_seats_api_v1_ops_seats_provision_get",
+        "parameters": [
+          {
+            "name": "x-governance-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Governance-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeatProvisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/observability/summary": {
       "get": {
         "tags": [
@@ -25128,6 +25178,59 @@
         },
         "type": "object",
         "title": "SeatObservabilityResponse"
+      },
+      "SeatProvisionItem": {
+        "properties": {
+          "seat_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Seat Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "seat_status": {
+            "type": "string",
+            "title": "Seat Status",
+            "description": "active | exhausted | blocked"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seat_id",
+          "user_id",
+          "email",
+          "seat_status",
+          "token"
+        ],
+        "title": "SeatProvisionItem",
+        "description": "DB→로컬 원장 동기화용 항목 — 평문 토큰을 담는 두 번째(유일) 경로."
+      },
+      "SeatProvisionResponse": {
+        "properties": {
+          "seats": {
+            "items": {
+              "$ref": "#/components/schemas/SeatProvisionItem"
+            },
+            "type": "array",
+            "title": "Seats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seats"
+        ],
+        "title": "SeatProvisionResponse"
       },
       "SeatQuotaFiveHourIn": {
         "properties": {

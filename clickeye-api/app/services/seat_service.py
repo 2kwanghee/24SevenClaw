@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.crypto import decrypt, encrypt
 from app.core.exceptions import AppError
 from app.models.project import Project
+from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,24 @@ class SeatService:
         await self.db.delete(seat)
         await self.db.commit()
         logger.info("seat_deleted", extra={"seat_id": seat_id, "user_id": str(user_id)})
+
+    # ── 러너 프로비저닝(전체 시트 동기화) ───────────────────────────────────
+    async def list_all_for_provision(self) -> list[tuple[UserAnthropicCredentials, str, str]]:
+        """전체 oauth_token 시트를 (seat, email, plain_token) 튜플 목록으로 반환한다(러너 프로비저닝
+        전용).
+
+        복호화 평문은 이 메서드가 반환하는 목적(SeatProvisionResponse)으로만 흘러가야 한다 —
+        로그/예외 메시지에 노출 금지.
+        """
+        result = await self.db.execute(
+            select(UserAnthropicCredentials, User.email)
+            .join(User, User.id == UserAnthropicCredentials.user_id)
+            .where(UserAnthropicCredentials.credential_type == SEAT_CREDENTIAL_TYPE)
+        )
+        rows = result.all()
+        items = [(seat, email, decrypt(str(seat.encrypted_api_key))) for seat, email in rows]
+        logger.info("seat_provision_pulled", extra={"count": len(items)})
+        return items
 
     # ── 프로젝트 배정 ──────────────────────────────────────────────────────
     async def assign_to_project(self, project: Project, seat_user_id: UUID | None) -> UUID | None:

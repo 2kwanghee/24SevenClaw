@@ -530,6 +530,11 @@ fi
 # ── 이전 실행 결과 정리 ──
 rm -f ".ralph/.pipeline_result.json"
 
+# ── [시트 풀] DB 구독 시트 → 로컬 원장 동기화 (CE-400, 비차단, 파이프라인 런당 1회) ──
+# apply_seat_env 가 참조하는 .ralph/seats.json 을 DB(user_anthropic_credentials) 최신 상태로
+# 맞춘다 — seat_id 를 UUID 전체 문자열로 등재해 usage_ingest.py 의 _uuid_or_none 이 버리지 않게 한다.
+python3 "$(dirname "${BASH_SOURCE[0]}")/seat_sync.py" || true
+
 # ── 순차 실행 루프 ──
 COMPLETED=0
 FAILED=0

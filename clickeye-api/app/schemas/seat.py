@@ -53,3 +53,17 @@ class ProjectSeatAssignRequest(BaseModel):
 class ProjectSeatAssignResponse(BaseModel):
     project_id: UUID
     seat_user_id: UUID | None = None
+
+
+class SeatProvisionItem(BaseModel):
+    """DB→로컬 원장 동기화용 항목 — 평문 토큰을 담는 두 번째(유일) 경로."""
+
+    seat_id: UUID
+    user_id: UUID
+    email: str
+    seat_status: str = Field(description="active | exhausted | blocked")
+    token: str
+
+
+class SeatProvisionResponse(BaseModel):
+    seats: list[SeatProvisionItem]
