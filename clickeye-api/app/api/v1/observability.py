@@ -19,6 +19,7 @@ from app.dependencies import get_current_user, require_permission
 from app.models.user import User
 from app.schemas.observability import (
     ObservabilitySummaryResponse,
+    ProjectSummaryResponse,
     SeatObservabilityResponse,
     UsagePivotResponse,
 )
@@ -36,11 +37,13 @@ router = APIRouter(
 
 @router.get("/summary", response_model=ObservabilitySummaryResponse)
 async def get_summary(
+    days: int = Query(default=7, ge=1, le=90),
+    trend_days: int = Query(default=3, ge=1, le=14),
     _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ObservabilitySummaryResponse:
     """대시보드 위젯 — 프로젝트/인테이크 상태 카운트, 최근 파이프라인 성공률, 딜리버리 피드."""
-    return await ObservabilityService(db).summary()
+    return await ObservabilityService(db).summary(days=days, trend_days=trend_days)
 
 
 @router.get("/usage", response_model=UsagePivotResponse)
@@ -49,13 +52,24 @@ async def get_usage(
     from_: datetime | None = Query(default=None, alias="from"),
     to: datetime | None = Query(default=None),
     task_id: str | None = Query(default=None),
+    project_id: str | None = Query(default=None),
     _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UsagePivotResponse:
-    """사용량 피벗 — 기간 × 축 그룹핑, task_id 지정 시 프로젝트 상세 드릴다운."""
+    """사용량 피벗 — 기간 × 축 그룹핑, task_id/project_id 지정 시 프로젝트 상세 드릴다운."""
     return await ObservabilityService(db).usage(
-        from_=from_, to=to, group_by=group_by, task_id=task_id
+        from_=from_, to=to, group_by=group_by, task_id=task_id, project_id=project_id
     )
+
+
+@router.get("/projects/{project_id}/summary", response_model=ProjectSummaryResponse)
+async def get_project_summary(
+    project_id: str,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectSummaryResponse:
+    """프로젝트 상세 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각."""
+    return await ObservabilityService(db).project_summary(project_id)
 
 
 @router.get("/runs", response_model=PipelineRunListResponse)

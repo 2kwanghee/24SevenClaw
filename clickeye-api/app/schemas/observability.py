@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -15,6 +15,14 @@ from pydantic import BaseModel, Field
 from app.schemas.seat_quota import SeatQuotaLatestEntry
 
 UsageGroupBy = Literal["project_id", "seat_id", "model", "request_kind"]
+
+
+class DailyOutcome(BaseModel):
+    """일자(UTC) 1개에 대한 파이프라인 실행 성공/실패 카운트."""
+
+    date: date
+    success: int = 0
+    failure: int = 0
 
 
 class ObservabilityDeliveryEventItem(BaseModel):
@@ -40,6 +48,7 @@ class ObservabilitySummaryResponse(BaseModel):
     pipeline_run_success_count: int = 0
     pipeline_run_failure_count: int = 0
     pipeline_run_success_rate: float | None = None
+    daily_outcomes: list[DailyOutcome] = Field(default_factory=list)
     recent_delivery_events: list[ObservabilityDeliveryEventItem] = Field(default_factory=list)
 
 
@@ -77,3 +86,24 @@ class SeatObservabilityEntry(BaseModel):
 
 class SeatObservabilityResponse(BaseModel):
     items: list[SeatObservabilityEntry] = Field(default_factory=list)
+
+
+class ProjectSeatUsage(BaseModel):
+    """프로젝트 상세 — seat 1개(또는 seat_id NULL 그룹)에 대한 토큰/비용 합계."""
+
+    seat_id: str | None
+    account_email: str | None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost: Decimal | None = None
+
+
+class ProjectSummaryResponse(BaseModel):
+    """프로젝트 상세 드릴다운 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각."""
+
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_cost: Decimal | None = None
+    first_activity_at: datetime | None = None
+    last_activity_at: datetime | None = None
+    seats: list[ProjectSeatUsage] = Field(default_factory=list)

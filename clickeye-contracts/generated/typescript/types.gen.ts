@@ -462,6 +462,15 @@ export type CustomerSummary = {
     created_at: string | null;
 };
 
+/**
+ * 일자(UTC) 1개에 대한 파이프라인 실행 성공/실패 카운트.
+ */
+export type DailyOutcome = {
+    date: string;
+    success?: number;
+    failure?: number;
+};
+
 export type DecomposeRequest = {
     hints?: Array<string> | null;
 };
@@ -1447,6 +1456,7 @@ export type ObservabilitySummaryResponse = {
     pipeline_run_success_count?: number;
     pipeline_run_failure_count?: number;
     pipeline_run_success_rate?: number | null;
+    daily_outcomes?: Array<DailyOutcome>;
     recent_delivery_events?: Array<ObservabilityDeliveryEventItem>;
 };
 
@@ -2045,6 +2055,29 @@ export type ProjectSeatAssignRequest = {
 export type ProjectSeatAssignResponse = {
     project_id: string;
     seat_user_id?: string | null;
+};
+
+/**
+ * 프로젝트 상세 — seat 1개(또는 seat_id NULL 그룹)에 대한 토큰/비용 합계.
+ */
+export type ProjectSeatUsage = {
+    seat_id: string | null;
+    account_email: string | null;
+    input_tokens?: number;
+    output_tokens?: number;
+    cost?: string | null;
+};
+
+/**
+ * 프로젝트 상세 드릴다운 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각.
+ */
+export type ProjectSummaryResponse = {
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+    total_cost?: string | null;
+    first_activity_at?: string | null;
+    last_activity_at?: string | null;
+    seats?: Array<ProjectSeatUsage>;
 };
 
 export type ProjectTransferRequest = {
@@ -9150,9 +9183,21 @@ export type GetLatestApiV1OpsSeatQuotaLatestGetResponse = GetLatestApiV1OpsSeatQ
 export type GetSummaryApiV1ObservabilitySummaryGetData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        days?: number;
+        trend_days?: number;
+    };
     url: '/api/v1/observability/summary';
 };
+
+export type GetSummaryApiV1ObservabilitySummaryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSummaryApiV1ObservabilitySummaryGetError = GetSummaryApiV1ObservabilitySummaryGetErrors[keyof GetSummaryApiV1ObservabilitySummaryGetErrors];
 
 export type GetSummaryApiV1ObservabilitySummaryGetResponses = {
     /**
@@ -9171,6 +9216,7 @@ export type GetUsageApiV1ObservabilityUsageGetData = {
         from?: string | null;
         to?: string | null;
         task_id?: string | null;
+        project_id?: string | null;
     };
     url: '/api/v1/observability/usage';
 };
@@ -9192,6 +9238,33 @@ export type GetUsageApiV1ObservabilityUsageGetResponses = {
 };
 
 export type GetUsageApiV1ObservabilityUsageGetResponse = GetUsageApiV1ObservabilityUsageGetResponses[keyof GetUsageApiV1ObservabilityUsageGetResponses];
+
+export type GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/observability/projects/{project_id}/summary';
+};
+
+export type GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetError = GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetErrors[keyof GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetErrors];
+
+export type GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectSummaryResponse;
+};
+
+export type GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetResponse = GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetResponses[keyof GetProjectSummaryApiV1ObservabilityProjectsProjectIdSummaryGetResponses];
 
 export type ListObservabilityRunsApiV1ObservabilityRunsGetData = {
     body?: never;

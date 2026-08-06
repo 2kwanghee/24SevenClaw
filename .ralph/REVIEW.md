@@ -3,14 +3,20 @@
 
 ## 근거
 
-- **엔드포인트 4종 구현**: `summary`/`usage`/`runs`/`runs/{issue_key}`/`seats` 모두 존재, 라우터 등록도 정상 (`router.py:21,84`) — 충족.
-- **인증 가드**: `require_permission("settings:manage")` 라우터 레벨 적용, 형제 패턴과 일치 — 충족.
-- **재사용 원칙**: `runs`는 `PipelineRunService.list_runs` 그대로 위임, `seats`는 `SeatQuotaService.latest()` 위에 `screen_view()`만 추가 — `latest()` 내부 쿼리 불변, 도메인 제약 충족.
-- **model_mismatch 파생**: `scripts/auto_dev_pipeline.sh:1063`에서 실제로 `record_metric ... "model_mismatch" "{intended, actual}"` 이벤트를 남기는 것을 확인 — `"model_mismatch" in by_event`로 판정하는 구현이 실제 파이프라인 이벤트 스키마와 일치함(허구 아님). 충족.
-- **빈 데이터 방어**: 4개 엔드포인트 모두 기본값(0/빈 리스트) 반환, 테스트에도 각 1개 이상 포함 — 충족.
-- **Contract 우선 원칙 (미충족)**: 구현 스펙 8번 단계와 "준수할 컨벤션"에 "엔드포인트 구현 완료 후 반드시 `openapi.json` + 생성 TS 타입 동기화까지 포함"이 완료조건으로 명시되어 있으나, diff에 `clickeye-contracts/openapi/openapi.json`, `clickeye-contracts/generated/typescript/{types.gen.ts,sdk.gen.ts}` 변경이 전혀 없다. 신규 엔드포인트 4개 + `PipelineRunResponse.model_mismatch` 필드 추가가 있었음에도 contracts 미동기화 — 이 항목이 실패로 판정되는 핵심 근거.
+구현 자체(로직)는 스펙의 각 항목을 대체로 충족한다 — `summary()`/`usage()` 파라미터화, `daily_outcomes` 날짜 슬롯 채우기, `project_summary()` 집계, contract 동반 갱신까지 모두 diff에서 확인된다. 그러나 **테스트 계획**은 스펙에 명시된 수용 기준을 명백히 충족하지 못한다.
+
+- 스펙 "대상 파일" 및 "테스트" 절에 "각 신규/변경 동작당 ≥3 테스트 추가", "신규/변경 엔드포인트별 ≥3 케이스(정상/빈 데이터/검증실패 또는 무회귀)"가 명시적 수용 기준으로 걸려 있다.
+- `/usage` (project_id 필터): 신규 테스트가 `test_usage_filters_by_project_id` **1건**뿐. 스펙이 명시한 "기존 `task_id` 필터 회귀 없음" 테스트, "잘못된 값 422" 테스트가 **누락**됨(`test_observability.py:454` 부근).
+- `/summary` (days/trend_days): `test_summary_with_days_query_returns_200`, `test_summary_empty_daily_outcomes_fills_trend_day_slots` **2건**뿐. "days 생략 시 기존과 동일 응답(무회귀)"을 직접 비교하는 테스트, 검증실패(`days=91` 등 422) 테스트가 **누락**됨.
+- `/projects/{project_id}/summary`: 2개 테스트 함수로 정상/빈 데이터 케이스는 커버하나, seat NULL 그룹·검증실패 케이스가 별도 테스트로 분리되지 않음(정성적으로는 충족 근접하나 개수 기준 미달).
+- Assumptions에 명시된 `trend_days > days`일 때 `min(trend_days, days)` 캡핑 로직이 **테스트로 검증되지 않음** — 이 케이스에 대한 회귀 방지책이 없다.
+
+측정 가능한 수용 기준(테스트 개수)이 명시되어 있고 diff상 명백히 미달이므로 판정불가가 아니라 실패로 판정한다.
 
 ## 발견 사항
-- [심각도: 상] [확신도: 상] Contract 우선 원칙 위반 — 신규 라우터 4종 및 `PipelineRunResponse.model_mismatch` 필드 추가에도 `clickeye-contracts/openapi/openapi.json`, `generated/typescript/types.gen.ts`, `generated/typescript/sdk.gen.ts` 갱신이 diff에 없음 (스펙 "구현 단계 8", "준수할 컨벤션" 항목 직접 위반)
-- [심각도: 하] [확신도: 상] 라우터 레벨 `dependencies=[Depends(require_permission(...))]`가 이미 내부에서 `get_current_user`를 의존하는데, 각 엔드포인트 함수 시그니처에서 다시 `_user: User = Depends(get_current_user)`를 선언해 요청당 인증 조회(JWT 디코드/DB 조회)가 중복 실행됨 (clickeye-api/app/api/v1/observability.py:29, 38, 55, 70, 85) — 기능상 오류는 아니고 형제 라우터(`llm_ledger.py`)도 동일 패턴을 쓸 가능성이 있어 컨벤션 일치일 수 있음, 참고용
-- [심각도: 하] [확신도: 중] `ObservabilityService._count_group_by`가 `key is not None`인 행만 집계에 포함해 NULL 상태값이 있으면 집계에서 조용히 누락됨(clickeye-api/app/services/observability_service.py:126) — `projects.status`/`intake_requests.status`가 NOT NULL 기본값을 가져 실질적으로 발생 가능성은 낮음
+- [심각도: 중] [확신도: 상] `/usage` project_id 필터 회귀 테스트(기존 `task_id` 필터 정상 동작 유지 확인) 및 검증실패(422) 테스트 누락 — 스펙의 구현단계 10 요구사항 미충족 (clickeye-api/tests/test_observability.py:~440-460)
+- [심각도: 중] [확신도: 상] `days`/`trend_days` 422 검증실패 테스트 부재 — `Query(ge=1, le=90)` 등 경계값이 실제로 422를 반환하는지 미검증 (clickeye-api/tests/test_observability.py)
+- [심각도: 하] [확신도: 상] `trend_days > days` 캡핑(`effective_trend_days = min(trend_days, days)`) 동작에 대한 테스트 없음 — Assumptions에 명시된 보수적 설계 결정이 회귀 방지 없이 방치됨 (clickeye-api/app/services/observability_service.py:88, tests 미포함)
+- [심각도: 하] [확신도: 중] `days` 생략 시 기존(하드코딩 7일) 응답과 동일함을 직접 비교하는 무회귀 테스트가 없음 — 기본값 상수가 우연히 동일한 것과 응답 내용이 실제로 무회귀인지 검증하는 것은 다름 (clickeye-api/tests/test_observability.py)
+- [심각도: 하] [확신도: 하] `project_summary()`의 `seat_rows` 조회가 `LlmUsageLedger.seat_id`와 `UserAnthropicCredentials.id`를 outer join하는데, 두 컬럼의 타입(UUID vs 문자열 등) 일치 여부는 diff만으로 확인 불가 — 모델 정의를 직접 봐야 판단 가능 (clickeye-api/app/services/observability_service.py:206-213)
+- [심각도: 하] [확신도: 하] `_daily_run_outcomes`가 `since`(days 기준) 전체 기간의 `PipelineRunEvent`를 조회한 뒤 `trend_days` 슬롯만 사용 — 기능상 버그는 아니나 `days=90, trend_days=1`처럼 큰 days 값일 때 불필요하게 넓은 범위를 스캔하는 비효율 (clickeye-api/app/services/observability_service.py:244-251)
