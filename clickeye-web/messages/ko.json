@@ -1182,6 +1182,22 @@
         "error": "상세를 불러오지 못했습니다.",
         "noList": "이 상태의 프로젝트 목록은 현재 데이터로 표시할 수 없습니다. 프로젝트 화면에서 개별 상세를 확인하세요.",
         "hint": "막대를 클릭하면 프로젝트 목록이 열리고, 항목에 마우스를 올리면 상세가 표시됩니다."
+      },
+      "seatBalance": {
+        "title": "계정 잔량",
+        "empty": "표시할 계정이 없습니다.",
+        "resetsIn": "리셋까지 {value}",
+        "exhaustionRisk": "리셋 전 소진 위험",
+        "unitDay": "일",
+        "unitHour": "시간"
+      },
+      "seatRanking": {
+        "title": "계정 사용 순위 (24h)",
+        "empty": "표시할 계정이 없습니다.",
+        "rank": "순위",
+        "account": "계정",
+        "usage24h": "24h 소비",
+        "balance": "잔량(7d)"
       }
     },
     "seats": {
