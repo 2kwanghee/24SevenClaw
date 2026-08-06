@@ -2607,7 +2607,7 @@ export type SeatProvisionItem = {
      * active | exhausted | blocked
      */
     seat_status: string;
-    token: string;
+    token: string | null;
 };
 
 export type SeatProvisionResponse = {

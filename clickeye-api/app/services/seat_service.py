@@ -87,12 +87,16 @@ class SeatService:
         logger.info("seat_deleted", extra={"seat_id": seat_id, "user_id": str(user_id)})
 
     # ── 러너 프로비저닝(전체 시트 동기화) ───────────────────────────────────
-    async def list_all_for_provision(self) -> list[tuple[UserAnthropicCredentials, str, str]]:
+    async def list_all_for_provision(
+        self,
+    ) -> list[tuple[UserAnthropicCredentials, str, str | None]]:
         """전체 oauth_token 시트를 (seat, email, plain_token) 튜플 목록으로 반환한다(러너 프로비저닝
         전용).
 
         복호화 평문은 이 메서드가 반환하는 목적(SeatProvisionResponse)으로만 흘러가야 한다 —
-        로그/예외 메시지에 노출 금지.
+        로그/예외 메시지에 노출 금지. **active 시트만 복호화한다** — 비-active 시트는 로컬
+        disabled 처리에 seat_id/status 만 필요하고 seat_sync 가 토큰을 쓰지 않으므로,
+        평문 노출 표면을 불필요하게 넓히지 않는다(사후 리뷰 발견물 반영).
         """
         result = await self.db.execute(
             select(UserAnthropicCredentials, User.email)
@@ -100,7 +104,14 @@ class SeatService:
             .where(UserAnthropicCredentials.credential_type == SEAT_CREDENTIAL_TYPE)
         )
         rows = result.all()
-        items = [(seat, email, decrypt(str(seat.encrypted_api_key))) for seat, email in rows]
+        items = [
+            (
+                seat,
+                email,
+                decrypt(str(seat.encrypted_api_key)) if seat.seat_status == "active" else None,
+            )
+            for seat, email in rows
+        ]
         logger.info("seat_provision_pulled", extra={"count": len(items)})
         return items
 

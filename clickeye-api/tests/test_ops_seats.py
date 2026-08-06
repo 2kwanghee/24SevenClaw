@@ -74,7 +74,9 @@ async def test_provision_returns_active_and_non_active_seats(
     blocked = by_id[str(blocked_seat_id)]
     assert blocked["email"] == "b@example.com"
     assert blocked["seat_status"] == "blocked"
-    assert blocked["token"] == "tok-blocked"
+    # 비-active 시트는 평문 토큰을 내리지 않는다(사후 리뷰 발견물 — 노출 표면 최소화).
+    # seat_sync 는 비-active 를 disabled 처리만 하므로 토큰이 필요 없다.
+    assert blocked["token"] is None
 
 
 @pytest.mark.asyncio

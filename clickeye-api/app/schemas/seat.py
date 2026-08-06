@@ -62,7 +62,9 @@ class SeatProvisionItem(BaseModel):
     user_id: UUID
     email: str
     seat_status: str = Field(description="active | exhausted | blocked")
-    token: str
+    # active 시트에만 평문이 실린다 — 비-active 는 로컬 disabled 처리용 메타만 필요해
+    # 복호화하지 않는다(None). 평문 노출 표면 최소화(사후 리뷰 발견물 반영).
+    token: str | None
 
 
 class SeatProvisionResponse(BaseModel):

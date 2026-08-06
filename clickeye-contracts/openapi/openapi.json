@@ -25201,7 +25201,14 @@
             "description": "active | exhausted | blocked"
           },
           "token": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Token"
           }
         },
