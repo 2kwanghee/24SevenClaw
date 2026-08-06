@@ -21,6 +21,7 @@ import {
 } from "recharts";
 
 import { RoleGuard } from "@/components/common/role-guard";
+import { DeliveryBoard } from "@/components/dashboard/delivery-board";
 import { BentoCard, BentoGrid } from "@/components/ui/bento";
 import {
   useObservabilitySummary,
@@ -691,6 +692,8 @@ function DashboardContent() {
         </div>
       </div>
 
+      <DeliveryBoard />
+
       {isLoading && (
         <div className="py-12 text-center text-sm text-[var(--text-muted)]">
           {t("loading")}
@@ -711,7 +714,7 @@ function DashboardContent() {
       )}
 
       {data && (
-        <BentoGrid>
+        <BentoGrid className="lg:grid-cols-2">
           <BentoCard title={t("projectsByStatus")}>
             <StatusBarChart
               data={data.projects_by_status}

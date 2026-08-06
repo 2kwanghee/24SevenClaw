@@ -1204,6 +1204,36 @@
         "account": "Account",
         "usage24h": "24h usage",
         "balance": "Balance (7d)"
+      },
+      "deliveryBoard": {
+        "title": "Delivery progress board",
+        "featureDisabled": "You don't have permission to view the delivery board, or the feature is disabled.",
+        "error": "Failed to load the delivery progress board.",
+        "empty": "No projects to display.",
+        "laneEmpty": "No tickets issued for this project.",
+        "failedBadge": "Failed",
+        "columns": {
+          "received": "Received",
+          "refined": "Refined",
+          "accepted": "Accepted",
+          "issued": "Issued",
+          "implementing": "Implementing",
+          "qa": "QA",
+          "gate": "Gate",
+          "done": "Done"
+        },
+        "checkpoint": {
+          "received_at": "Received",
+          "refined_at": "Refined",
+          "accepted_at": "Accepted",
+          "issued_at": "Issued"
+        },
+        "duration": {
+          "seconds": "{value}s",
+          "minutes": "{value}m",
+          "hours": "{hours}h",
+          "hoursMinutes": "{hours}h {minutes}m"
+        }
       }
     },
     "seats": {
