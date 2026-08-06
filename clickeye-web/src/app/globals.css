@@ -118,6 +118,11 @@
   --accent-hover: #38c9de;
   --accent-soft: #0c2a30;
   --accent-fg: #06171b;
+
+  /* Chart semantic — 다크 배경 대비용 밝은 변형 (CE-403 리뷰 반영) */
+  --chart-danger: #f87171;
+  --chart-warning: #fbbf24;
+  --chart-info: #60a5fa;
 }
 
 body {

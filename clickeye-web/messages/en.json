@@ -1158,7 +1158,7 @@
       "error": "Failed to load summary data.",
       "empty": "No data to display.",
       "projectsByStatus": "Projects by status",
-      "intakeFunnel": "Intake funnel",
+      "intakeFunnel": "Intake",
       "pipelineSuccessRate": "Pipeline success rate (last 7 days)",
       "recentDeliveryEvents": "Recent delivery events",
       "noRuns": "No pipeline runs completed in the last 7 days.",

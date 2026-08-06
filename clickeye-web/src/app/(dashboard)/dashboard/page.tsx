@@ -33,9 +33,9 @@ function isFeatureDisabled(error: unknown): boolean {
 const STATUS_COLORS: Record<string, string> = {
   active: "var(--accent)",
   archived: "var(--text-muted)",
-  deleted: "#ef4444",
-  pending_review: "#f59e0b",
-  accepted: "#3b82f6",
+  deleted: "var(--chart-danger)",
+  pending_review: "var(--chart-warning)",
+  accepted: "var(--chart-info)",
   rejected: "var(--text-muted)",
 };
 
