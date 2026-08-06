@@ -68,6 +68,11 @@
   --accent-hover: #0c6579;
   --accent-soft: #d7eef2;
   --accent-fg: #ffffff;
+
+  /* Chart semantic (관측 위젯 상태색 — 다크 변형은 .dark 에서 밝게, CE-403 리뷰 반영) */
+  --chart-danger: #dc2626;
+  --chart-warning: #d97706;
+  --chart-info: #2563eb;
 }
 
 :root {
