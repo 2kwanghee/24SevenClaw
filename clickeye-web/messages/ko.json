@@ -1187,7 +1187,9 @@
         "title": "계정 잔량",
         "empty": "표시할 계정이 없습니다.",
         "resetsIn": "리셋까지 {value}",
-        "exhaustionRisk": "리셋 전 소진 위험"
+        "exhaustionRisk": "리셋 전 소진 위험",
+        "unitDay": "일",
+        "unitHour": "시간"
       },
       "seatRanking": {
         "title": "계정 사용 순위 (24h)",

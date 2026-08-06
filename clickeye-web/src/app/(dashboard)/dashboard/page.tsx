@@ -327,14 +327,12 @@ function SuccessRateDonut({
   );
 }
 
-/** 리셋까지 남은 시간 — 일/시간 단위 조각(초 단위 실시간 갱신 없음). */
-function formatRemaining(resetsAt: string): string {
+/** 리셋까지 남은 시간 — 일/시간 단위 조각(초 단위 실시간 갱신 없음). resets_at 파싱 실패 시 null. */
+function formatRemaining(resetsAt: string): { days: number; hours: number } | null {
   const diffMs = new Date(resetsAt).getTime() - Date.now();
-  if (diffMs <= 0) return "0h";
+  if (Number.isNaN(diffMs) || diffMs <= 0) return { days: 0, hours: 0 };
   const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+  return { days: Math.floor(totalHours / 24), hours: totalHours % 24 };
 }
 
 /** 계정별 잔량 게이지 — 5h/7d 비스코프 윈도우는 라디얼 게이지, 모델 스코프 윈도우는 선형 바.
@@ -441,11 +439,19 @@ export function SeatBalanceGauges({ items }: { items: SeatObservabilityEntry[] }
               </div>
             )}
 
-            {resetWindow?.resets_at && (
-              <p className="mt-2 text-[10px] text-[var(--text-muted)]">
-                {t("seatBalance.resetsIn", { value: formatRemaining(resetWindow.resets_at) })}
-              </p>
-            )}
+            {resetWindow?.resets_at &&
+              (() => {
+                const remaining = formatRemaining(resetWindow.resets_at);
+                const value =
+                  remaining.days > 0
+                    ? `${remaining.days}${t("seatBalance.unitDay")} ${remaining.hours}${t("seatBalance.unitHour")}`
+                    : `${remaining.hours}${t("seatBalance.unitHour")}`;
+                return (
+                  <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+                    {t("seatBalance.resetsIn", { value })}
+                  </p>
+                );
+              })()}
           </div>
         );
       })}

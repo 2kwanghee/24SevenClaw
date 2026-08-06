@@ -1187,7 +1187,9 @@
         "title": "Seat balance",
         "empty": "No accounts to display.",
         "resetsIn": "Resets in {value}",
-        "exhaustionRisk": "Exhaustion risk before reset"
+        "exhaustionRisk": "Exhaustion risk before reset",
+        "unitDay": "d",
+        "unitHour": "h"
       },
       "seatRanking": {
         "title": "Seat usage ranking (24h)",
