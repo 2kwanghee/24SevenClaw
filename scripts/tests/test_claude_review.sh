@@ -60,6 +60,11 @@ grep -q "되묻기는 그 자체가 실패다" "$PROMPT_REVIEW" && ok "무인 �
 grep -q "통과 | 실패 | 판정불가" "$PROMPT_REVIEW" && ok "3값 판정 포맷 고정" || bad "판정 포맷 없음" "-"
 grep -q "파일을 고치거나 새로 만들지" "$PROMPT_REVIEW" && ok "읽기전용 역할 명시" || bad "읽기전용 명시 없음" "-"
 
+echo "[6/6] QA 실패 시 REVIEW.md/review.stream.jsonl 승격 (CE-408)"
+grep -c 'QA_FAIL_DIR="logs/qa_failed/\${ISSUE_KEY}_\$(date' "$PIPELINE" | grep -q '^2$' \
+  && ok "두 실패 분기 모두 승격 블록 존재" || bad "승격 블록이 2곳에 없음" "-"
+grep -q '"QA 실패 산출물 보존: \$QA_FAIL_DIR"' "$PIPELINE" && ok "보존 로그 출력" || bad "보존 로그 없음" "-"
+
 echo
 echo "구문 검사"
 bash -n "$PIPELINE" && ok "auto_dev_pipeline.sh" || bad "구문 오류" "-"
