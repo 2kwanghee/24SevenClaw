@@ -1273,6 +1273,13 @@ PY
         "{\"rc\": ${VERDICT_RC}, \"detail\": $(printf '%s' "${VERDICT_OUT:-{}}" | python3 -c 'import sys,json;print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')}"
       if [ "$VERDICT_RC" != "0" ]; then
         log "QA 판정: 통과 아님(rc=${VERDICT_RC}) — 머지/PR 진행 금지: ${VERDICT_OUT}"
+        if [ -f .ralph/REVIEW.md ] || [ -f .ralph/review.stream.jsonl ]; then
+          QA_FAIL_DIR="logs/qa_failed/${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S')"
+          mkdir -p "$QA_FAIL_DIR"
+          [ -f .ralph/REVIEW.md ] && cp .ralph/REVIEW.md "$QA_FAIL_DIR/REVIEW.md"
+          [ -f .ralph/review.stream.jsonl ] && cp .ralph/review.stream.jsonl "$QA_FAIL_DIR/review.stream.jsonl"
+          log "QA 실패 산출물 보존: $QA_FAIL_DIR"
+        fi
         if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "QA 리뷰 판정 실패/판정불가(rc=${VERDICT_RC}): ${VERDICT_OUT}"; then
           safe_git checkout main 2>/dev/null || true
           python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
@@ -1286,6 +1293,13 @@ PY
       log "WARN: QA 리뷰 실패 — REVIEW.md 미생성"
       record_metric "$METRIC_RUN_ID" "qa_done" \
         "{\"ran\": false, \"reviewer\": \"claude\", \"impl_session_id\": \"${IMPL_SESSION_ID:-}\"}"
+      if [ -f .ralph/REVIEW.md ] || [ -f .ralph/review.stream.jsonl ]; then
+        QA_FAIL_DIR="logs/qa_failed/${ISSUE_KEY}_$(date '+%Y%m%d_%H%M%S')"
+        mkdir -p "$QA_FAIL_DIR"
+        [ -f .ralph/REVIEW.md ] && cp .ralph/REVIEW.md "$QA_FAIL_DIR/REVIEW.md"
+        [ -f .ralph/review.stream.jsonl ] && cp .ralph/review.stream.jsonl "$QA_FAIL_DIR/review.stream.jsonl"
+        log "QA 실패 산출물 보존: $QA_FAIL_DIR"
+      fi
       if ! handle_task_failure "$ISSUE_KEY" "$ISSUE_ID" "$TASK_MODE" "QA 리뷰 실행 불능 또는 구현/리뷰 세션 분리 위반"; then
         safe_git checkout main 2>/dev/null || true
         python3 scripts/linear_tracker.py update --issue-id "$ISSUE_ID" --status "Backlog" 2>/dev/null || true
