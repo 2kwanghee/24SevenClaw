@@ -226,7 +226,8 @@ function StatusBarChart({
             isAnimationActive
             animationDuration={500}
             onClick={(entry: unknown) => {
-              const key = (entry as { key?: string } | undefined)?.key;
+              const key = (entry as { payload?: { key?: string } } | undefined)?.payload
+                ?.key;
               if (!interactive || !key) return;
               setSelectedStatus((cur) => (cur === key ? null : key));
             }}
@@ -324,7 +325,7 @@ function DashboardContent() {
   // projects_by_status 는 상태별 합계만 제공(project_id 미포함) → hover 상세 목록을 위해
   // 이미 존재하는 프로젝트 목록(id 포함) API 를 함께 조회해 클라이언트에서 상태로 매칭한다.
   const { data: projectsData, isLoading: projectsLoading } = useProjects({
-    limit: 200,
+    limit: 100,
   });
 
   return (
