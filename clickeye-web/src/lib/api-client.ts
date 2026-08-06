@@ -2898,6 +2898,45 @@ export interface PipelineRunListParams {
   offset?: number;
 }
 
+/** 딜리버리 진행 보드 — 티켓 1건의 단계 이력 항목 (CE-411 DeliveryBoardStageHistoryItem). */
+export interface DeliveryBoardStageHistoryItem {
+  stage: string;
+  at: string;
+}
+
+/** 인테이크 → 프로젝트 승격까지의 단계별 최초 도달 시각(없으면 미도달) (CE-411 DeliveryBoardStages). */
+export interface DeliveryBoardStages {
+  received_at?: string | null;
+  refined_at?: string | null;
+  accepted_at?: string | null;
+  issued_at?: string | null;
+}
+
+/** 발급 티켓 1건 — 정규화된 현재 단계(자유 문자열, 8단계 enum 계약 보장 없음) + 단계 이력 (CE-411 DeliveryBoardTicketItem). */
+export interface DeliveryBoardTicketItem {
+  key: string;
+  title: string;
+  stage: string;
+  stage_history?: DeliveryBoardStageHistoryItem[];
+  active?: boolean;
+  outcome?: string | null;
+  duration_s?: number | null;
+}
+
+/** 프로젝트 1건 — 인테이크 단계 타임라인 + 발급 티켓 목록 (CE-411 DeliveryBoardProjectItem). */
+export interface DeliveryBoardProjectItem {
+  project_id: string;
+  name: string;
+  intake_status?: string | null;
+  stages?: DeliveryBoardStages;
+  tickets?: DeliveryBoardTicketItem[];
+}
+
+/** 딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계 (CE-411 DeliveryBoardResponse). */
+export interface DeliveryBoardResponse {
+  projects?: DeliveryBoardProjectItem[];
+}
+
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const entries = Object.entries(params).filter(
     ([, v]) => v !== undefined && v !== "",
@@ -2964,6 +3003,10 @@ export const observability = {
       `/api/v1/observability/projects/${encodeURIComponent(projectId)}/summary`,
       token,
     ),
+
+  /** 딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계 (CE-411) */
+  deliveryBoard: (token: string) =>
+    authRequest<DeliveryBoardResponse>("/api/v1/observability/delivery-board", token),
 };
 
 export { ApiClientError, NetworkError };

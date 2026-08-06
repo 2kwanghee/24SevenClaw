@@ -83,3 +83,16 @@ export function useSeats() {
     retry: false,
   });
 }
+
+/** 딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 (CE-411). 30s 폴링으로 진행 상황을 갱신한다. */
+export function useDeliveryBoard() {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...OBSERVABILITY_KEY, "delivery-board"],
+    queryFn: () => observability.deliveryBoard(token),
+    enabled: !!token,
+    retry: false,
+    refetchInterval: 30_000,
+  });
+}

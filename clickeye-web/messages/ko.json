@@ -1204,6 +1204,36 @@
         "account": "계정",
         "usage24h": "24h 소비",
         "balance": "잔량(7d)"
+      },
+      "deliveryBoard": {
+        "title": "딜리버리 진행 보드",
+        "featureDisabled": "딜리버리 진행 보드를 표시할 권한이 없거나 기능이 비활성 상태입니다.",
+        "error": "딜리버리 진행 보드를 불러오지 못했습니다.",
+        "empty": "표시할 프로젝트가 없습니다.",
+        "laneEmpty": "이 프로젝트에 발급된 티켓이 없습니다.",
+        "failedBadge": "실패",
+        "columns": {
+          "received": "접수",
+          "refined": "정제",
+          "accepted": "승인",
+          "issued": "발급",
+          "implementing": "구현",
+          "qa": "QA",
+          "gate": "게이트",
+          "done": "완료"
+        },
+        "checkpoint": {
+          "received_at": "접수",
+          "refined_at": "정제",
+          "accepted_at": "승인",
+          "issued_at": "발급"
+        },
+        "duration": {
+          "seconds": "{value}초",
+          "minutes": "{value}분",
+          "hours": "{hours}시간",
+          "hoursMinutes": "{hours}시간 {minutes}분"
+        }
       }
     },
     "seats": {
