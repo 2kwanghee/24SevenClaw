@@ -1158,13 +1158,31 @@
       "error": "요약 데이터를 불러오지 못했습니다.",
       "empty": "표시할 데이터가 없습니다.",
       "projectsByStatus": "프로젝트 상태",
-      "intakeFunnel": "인테이크 깔때기",
+      "intakeFunnel": "인테이크",
       "pipelineSuccessRate": "파이프라인 성공률(최근 7일)",
       "recentDeliveryEvents": "최근 딜리버리 이벤트",
       "noRuns": "최근 7일간 완료된 파이프라인 실행이 없습니다.",
       "success": "성공",
       "failure": "실패",
-      "successRateAria": "파이프라인 성공률 {pct}%"
+      "successRateAria": "파이프라인 성공률 {pct}%",
+      "status": {
+        "active": "활성",
+        "archived": "보관됨",
+        "deleted": "삭제됨",
+        "pending_review": "검토 대기",
+        "accepted": "승인됨",
+        "rejected": "거부됨"
+      },
+      "projectDetail": {
+        "tokens": "토큰 사용량",
+        "period": "활동 기간",
+        "accounts": "사용 계정",
+        "accountsPending": "계정 동기화 대기",
+        "loading": "상세를 불러오는 중...",
+        "error": "상세를 불러오지 못했습니다.",
+        "noList": "이 상태의 프로젝트 목록은 현재 데이터로 표시할 수 없습니다. 프로젝트 화면에서 개별 상세를 확인하세요.",
+        "hint": "막대를 클릭하면 프로젝트 목록이 열리고, 항목에 마우스를 올리면 상세가 표시됩니다."
+      }
     },
     "seats": {
       "pageTitle": "토큰 · 시트",

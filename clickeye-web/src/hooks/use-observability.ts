@@ -60,6 +60,18 @@ export function useRunDetail(issueKey: string, enabled = true) {
   });
 }
 
+/** 프로젝트 상세 드릴다운(토큰/기간/계정) — 대시보드 hover 상세용, 선택된 프로젝트에 대해서만 enabled */
+export function useProjectSummary(projectId: string, enabled = true) {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...OBSERVABILITY_KEY, "projects", projectId, "summary"],
+    queryFn: () => observability.getProjectSummary(token, projectId),
+    enabled: !!token && !!projectId && enabled,
+    retry: false,
+  });
+}
+
 /** 시트 잔량 */
 export function useSeats() {
   const token = useAccessToken();
