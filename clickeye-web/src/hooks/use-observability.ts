@@ -12,13 +12,13 @@ import {
 /** 관측 화면 query key 루트 — admin/intake 캐시와 분리 */
 const OBSERVABILITY_KEY = ["observability"] as const;
 
-/** 대시보드 홈 위젯 집계 */
-export function useObservabilitySummary() {
+/** 대시보드 홈 위젯 집계 — days 로 기간 프리셋(7/14/30) 전환, 변경 시 캐시 분리 + 재조회 */
+export function useObservabilitySummary(days: number = 7) {
   const token = useAccessToken();
 
   return useQuery({
-    queryKey: [...OBSERVABILITY_KEY, "summary"],
-    queryFn: () => observability.getSummary(token),
+    queryKey: [...OBSERVABILITY_KEY, "summary", days],
+    queryFn: () => observability.getSummary(token, { days }),
     enabled: !!token,
     retry: false, // FEATURE off / 권한 없음 → 404 를 즉시 안내로 전환
   });

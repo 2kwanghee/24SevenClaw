@@ -9,6 +9,8 @@ import {
   BarChart,
   Cell,
   LabelList,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,7 +24,14 @@ import {
   useProjectSummary,
 } from "@/hooks/use-observability";
 import { useProjects } from "@/hooks/use-projects";
-import { ApiClientError, type ProjectResponse } from "@/lib/api-client";
+import {
+  ApiClientError,
+  type ObservabilityDailyOutcome,
+  type ProjectResponse,
+} from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+
+const PERIOD_PRESETS = [7, 14, 30] as const;
 
 function isFeatureDisabled(error: unknown): boolean {
   return error instanceof ApiClientError && error.status === 404;
@@ -267,35 +276,95 @@ function StatusBarChart({
   );
 }
 
-function SuccessRateDonut({
+function PeriodSelector({
+  days,
+  onChange,
+}: {
+  days: number;
+  onChange: (days: number) => void;
+}) {
+  const t = useTranslations("observability.dashboard");
+
+  return (
+    <div
+      role="group"
+      aria-label={t("periodLabel")}
+      className="flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-0.5"
+    >
+      {PERIOD_PRESETS.map((preset) => (
+        <button
+          key={preset}
+          type="button"
+          onClick={() => onChange(preset)}
+          aria-pressed={days === preset}
+          className={cn(
+            "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+            days === preset
+              ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]",
+          )}
+        >
+          {t(`days${preset}` as "days7" | "days14" | "days30")}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SuccessRatePie({
   rate,
   successCount,
   failureCount,
+  days,
 }: {
   rate: number | null;
   successCount: number;
   failureCount: number;
+  days: number;
 }) {
   const t = useTranslations("observability.dashboard");
   const pct = rate !== null ? Math.round(rate * 100) : null;
 
   if (pct === null && successCount === 0 && failureCount === 0) {
-    return <p className="text-xs text-[var(--text-muted)]">{t("noRuns")}</p>;
+    return (
+      <p className="text-xs text-[var(--text-muted)]">{t("noRuns", { days })}</p>
+    );
   }
 
   const displayPct = pct ?? 0;
+  const pieData = [
+    { key: "success", value: successCount, fill: "var(--accent)" },
+    { key: "failure", value: failureCount, fill: "var(--chart-danger)" },
+  ];
 
   return (
     <div className="mt-4 flex items-center gap-5">
       <div
-        className="relative h-24 w-24 shrink-0 rounded-full"
-        style={{
-          background: `conic-gradient(var(--accent) ${displayPct}%, var(--bg-hover) ${displayPct}% 100%)`,
-        }}
+        className="relative h-24 w-24 shrink-0"
         role="img"
         aria-label={t("successRateAria", { pct: displayPct })}
       >
-        <div className="absolute inset-2 flex items-center justify-center rounded-full bg-[var(--bg-surface)]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="value"
+              nameKey="key"
+              innerRadius="70%"
+              outerRadius="100%"
+              startAngle={90}
+              endAngle={-270}
+              isAnimationActive
+              animationDuration={500}
+              stroke="none"
+            >
+              {pieData.map((entry) => (
+                <Cell key={entry.key} fill={entry.fill} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="text-lg font-semibold tabular-nums text-[var(--text-primary)]">
             {pct !== null ? `${pct}%` : "—"}
           </span>
@@ -303,13 +372,13 @@ function SuccessRateDonut({
       </div>
       <div className="space-y-1 text-xs">
         <p className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
           <span className="text-[var(--text-secondary)]">
             {t("success")}: <span className="tabular-nums">{successCount}</span>
           </span>
         </p>
         <p className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-red-500" />
+          <span className="h-2 w-2 rounded-full bg-[var(--chart-danger)]" />
           <span className="text-[var(--text-secondary)]">
             {t("failure")}: <span className="tabular-nums">{failureCount}</span>
           </span>
@@ -319,9 +388,90 @@ function SuccessRateDonut({
   );
 }
 
+interface DailyTrendTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: { date: string; success: number; failure: number };
+  }>;
+}
+
+function DailyTrendTooltip({ active, payload }: DailyTrendTooltipProps) {
+  const t = useTranslations("observability.dashboard");
+  if (!active || !payload || payload.length === 0) return null;
+  const { date, success, failure } = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm shadow-lg">
+      <p className="font-semibold text-[var(--text-primary)]">
+        {new Date(date).toLocaleDateString("ko-KR", {
+          month: "numeric",
+          day: "numeric",
+        })}
+      </p>
+      <p className="tabular-nums text-[var(--text-secondary)]">
+        {t("success")}: {success} · {t("failure")}: {failure}
+      </p>
+    </div>
+  );
+}
+
+function DailyOutcomeTrend({ data }: { data: ObservabilityDailyOutcome[] }) {
+  const t = useTranslations("observability.dashboard");
+  const isEmpty = data.every((d) => d.success === 0 && d.failure === 0);
+
+  return (
+    <div className="mt-4 flex-1">
+      <p className="mb-2 text-xs font-medium text-[var(--text-secondary)]">
+        {t("recentTrend")}
+      </p>
+      {isEmpty ? (
+        <p className="text-xs text-[var(--text-muted)]">{t("trendEmpty")}</p>
+      ) : (
+        <ResponsiveContainer width="100%" height={120}>
+          <BarChart
+            data={data}
+            margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
+          >
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "var(--text-muted)" }}
+              tickFormatter={(d: string) =>
+                new Date(d).toLocaleDateString("ko-KR", {
+                  month: "numeric",
+                  day: "numeric",
+                })
+              }
+            />
+            <YAxis hide />
+            <Tooltip content={<DailyTrendTooltip />} cursor={{ fill: "var(--bg-hover)" }} />
+            <Bar
+              dataKey="success"
+              stackId="outcome"
+              fill="var(--accent)"
+              radius={[0, 0, 0, 0]}
+              isAnimationActive
+              animationDuration={500}
+            />
+            <Bar
+              dataKey="failure"
+              stackId="outcome"
+              fill="var(--chart-danger)"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive
+              animationDuration={500}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
 function DashboardContent() {
   const t = useTranslations("observability.dashboard");
-  const { data, isLoading, error } = useObservabilitySummary();
+  const [days, setDays] = useState(7);
+  const { data, isLoading, error } = useObservabilitySummary(days);
   // projects_by_status 는 상태별 합계만 제공(project_id 미포함) → hover 상세 목록을 위해
   // 이미 존재하는 프로젝트 목록(id 포함) API 를 함께 조회해 클라이언트에서 상태로 매칭한다.
   const { data: projectsData, isLoading: projectsLoading } = useProjects({
@@ -379,12 +529,20 @@ function DashboardContent() {
             <StatusBarChart data={data.intake_by_status} emptyLabel={t("empty")} />
           </BentoCard>
 
-          <BentoCard title={t("pipelineSuccessRate")}>
-            <SuccessRateDonut
-              rate={data.pipeline_run_success_rate}
-              successCount={data.pipeline_run_success_count}
-              failureCount={data.pipeline_run_failure_count}
-            />
+          <BentoCard
+            size="lg"
+            title={t("pipelineSuccessRate", { days })}
+            action={<PeriodSelector days={days} onChange={setDays} />}
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <SuccessRatePie
+                rate={data.pipeline_run_success_rate}
+                successCount={data.pipeline_run_success_count}
+                failureCount={data.pipeline_run_failure_count}
+                days={days}
+              />
+              <DailyOutcomeTrend data={data.daily_outcomes} />
+            </div>
           </BentoCard>
 
           <BentoCard size="wide" title={t("recentDeliveryEvents")}>

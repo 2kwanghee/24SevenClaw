@@ -2793,6 +2793,13 @@ export interface ObservabilityDeliveryEventItem {
   created_at: string;
 }
 
+/** 일자(UTC) 1개에 대한 파이프라인 실행 성공/실패 카운트 (CE-402 DailyOutcome) */
+export interface ObservabilityDailyOutcome {
+  date: string;
+  success: number;
+  failure: number;
+}
+
 export interface ObservabilitySummaryResponse {
   projects_by_status: Record<string, number>;
   intake_by_status: Record<string, number>;
@@ -2800,7 +2807,12 @@ export interface ObservabilitySummaryResponse {
   pipeline_run_success_count: number;
   pipeline_run_failure_count: number;
   pipeline_run_success_rate: number | null;
+  daily_outcomes: ObservabilityDailyOutcome[];
   recent_delivery_events: ObservabilityDeliveryEventItem[];
+}
+
+export interface ObservabilitySummaryParams {
+  days?: number;
 }
 
 /** 프로젝트 상세 — seat 1개(또는 seat_id NULL 그룹)에 대한 토큰/비용 합계 (CE-402 ProjectSeatUsage) */
@@ -2899,11 +2911,13 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 
 export const observability = {
   /** 대시보드 위젯 집계 */
-  getSummary: (token: string) =>
-    authRequest<ObservabilitySummaryResponse>(
-      "/api/v1/observability/summary",
+  getSummary: (token: string, params: ObservabilitySummaryParams = {}) => {
+    const qs = buildQuery({ days: params.days });
+    return authRequest<ObservabilitySummaryResponse>(
+      `/api/v1/observability/summary${qs}`,
       token,
-    ),
+    );
+  },
 
   /** 사용량 피벗 — 기간 × 축(project_id/seat_id/model/request_kind) */
   getUsage: (token: string, params: UsagePivotParams = {}) => {
