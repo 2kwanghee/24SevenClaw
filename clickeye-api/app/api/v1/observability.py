@@ -18,6 +18,7 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_permission
 from app.models.user import User
 from app.schemas.observability import (
+    DeliveryBoardResponse,
     ObservabilitySummaryResponse,
     ProjectSummaryResponse,
     SeatObservabilityResponse,
@@ -101,6 +102,15 @@ async def get_observability_run_thread(
         issue_key=issue_key, limit=limit, offset=offset
     )
     return PipelineRunListResponse(items=items, total=total)
+
+
+@router.get("/delivery-board", response_model=DeliveryBoardResponse)
+async def get_delivery_board(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeliveryBoardResponse:
+    """딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411, 웹 E2 소비용)."""
+    return await ObservabilityService(db).delivery_board()
 
 
 @router.get("/seats", response_model=SeatObservabilityResponse)

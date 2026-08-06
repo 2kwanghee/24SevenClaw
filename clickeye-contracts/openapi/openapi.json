@@ -12722,6 +12722,33 @@
         }
       }
     },
+    "/api/v1/observability/delivery-board": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Delivery Board",
+        "description": "딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411, 웹 E2 소비용).",
+        "operationId": "get_delivery_board_api_v1_observability_delivery_board_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryBoardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/observability/seats": {
       "get": {
         "tags": [
@@ -15196,6 +15223,193 @@
           "subtasks"
         ],
         "title": "DecomposeResponse"
+      },
+      "DeliveryBoardProjectItem": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "intake_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intake Status"
+          },
+          "stages": {
+            "$ref": "#/components/schemas/DeliveryBoardStages"
+          },
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryBoardTicketItem"
+            },
+            "type": "array",
+            "title": "Tickets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "name"
+        ],
+        "title": "DeliveryBoardProjectItem",
+        "description": "프로젝트 1건 — 인테이크 단계 타임라인 + 발급 티켓 목록."
+      },
+      "DeliveryBoardResponse": {
+        "properties": {
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryBoardProjectItem"
+            },
+            "type": "array",
+            "title": "Projects"
+          }
+        },
+        "type": "object",
+        "title": "DeliveryBoardResponse",
+        "description": "딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411)."
+      },
+      "DeliveryBoardStageHistoryItem": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "at"
+        ],
+        "title": "DeliveryBoardStageHistoryItem"
+      },
+      "DeliveryBoardStages": {
+        "properties": {
+          "received_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          },
+          "refined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refined At"
+          },
+          "accepted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted At"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          }
+        },
+        "type": "object",
+        "title": "DeliveryBoardStages",
+        "description": "인테이크 → 프로젝트 승격까지의 단계별 최초 도달 시각(없으면 미도달)."
+      },
+      "DeliveryBoardTicketItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "stage_history": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryBoardStageHistoryItem"
+            },
+            "type": "array",
+            "title": "Stage History"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active",
+            "default": false
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "stage"
+        ],
+        "title": "DeliveryBoardTicketItem",
+        "description": "발급 티켓 1건 — 정규화된 현재 단계 + 단계 이력."
       },
       "DeliveryEventItem": {
         "properties": {
