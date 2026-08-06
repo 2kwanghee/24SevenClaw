@@ -107,3 +107,45 @@ class ProjectSummaryResponse(BaseModel):
     first_activity_at: datetime | None = None
     last_activity_at: datetime | None = None
     seats: list[ProjectSeatUsage] = Field(default_factory=list)
+
+
+class DeliveryBoardStages(BaseModel):
+    """인테이크 → 프로젝트 승격까지의 단계별 최초 도달 시각(없으면 미도달)."""
+
+    received_at: datetime | None = None
+    refined_at: datetime | None = None
+    accepted_at: datetime | None = None
+    issued_at: datetime | None = None
+
+
+class DeliveryBoardStageHistoryItem(BaseModel):
+    stage: str
+    at: datetime
+
+
+class DeliveryBoardTicketItem(BaseModel):
+    """발급 티켓 1건 — 정규화된 현재 단계 + 단계 이력."""
+
+    key: str
+    title: str
+    stage: str
+    stage_history: list[DeliveryBoardStageHistoryItem] = Field(default_factory=list)
+    active: bool = False
+    outcome: str | None = None
+    duration_s: int | None = None
+
+
+class DeliveryBoardProjectItem(BaseModel):
+    """프로젝트 1건 — 인테이크 단계 타임라인 + 발급 티켓 목록."""
+
+    project_id: UUID
+    name: str
+    intake_status: str | None = None
+    stages: DeliveryBoardStages = Field(default_factory=DeliveryBoardStages)
+    tickets: list[DeliveryBoardTicketItem] = Field(default_factory=list)
+
+
+class DeliveryBoardResponse(BaseModel):
+    """딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411)."""
+
+    projects: list[DeliveryBoardProjectItem] = Field(default_factory=list)

@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, false, func, select
@@ -25,6 +25,11 @@ from app.models.user import User
 from app.models.user_anthropic_credentials import UserAnthropicCredentials
 from app.schemas.observability import (
     DailyOutcome,
+    DeliveryBoardProjectItem,
+    DeliveryBoardResponse,
+    DeliveryBoardStageHistoryItem,
+    DeliveryBoardStages,
+    DeliveryBoardTicketItem,
     ObservabilityDeliveryEventItem,
     ObservabilitySummaryResponse,
     ProjectSeatUsage,
@@ -44,6 +49,17 @@ _RECENT_DELIVERY_EVENTS_LIMIT = 20
 # 성공률 분모에서 제외한다(과대/과소 계상 방지 — 이 라우터 한정 판단).
 _SUCCESS_OUTCOMES = {"merged", "pr", "pushed"}
 _FAILURE_OUTCOMES = {"failed"}
+
+# 딜리버리 보드(CE-411): run_events 이벤트 이름 → 정규화 단계.
+# run_done 은 outcome 값으로 done/failed 를 별도 분기한다(_derive_ticket_progress).
+_BOARD_STAGE_BY_EVENT = {
+    "refine_done": "refining",
+    "impl_done": "implementing",
+    "qa_done": "qa",
+    "qa_verdict": "qa",
+    "gate_done": "gate",
+}
+_BOARD_ACTIVE_WINDOW_MINUTES = 15
 
 _USAGE_GROUP_COLUMNS: dict[UsageGroupBy, ColumnElement[Any]] = {
     "project_id": LlmUsageLedger.project_id,
@@ -221,6 +237,78 @@ class ObservabilityService(BaseService):
             ],
         )
 
+    async def delivery_board(self) -> DeliveryBoardResponse:
+        """딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계 (CE-411).
+
+        `intake.project_id` 가 있는 인테이크만 대상이다 — self-repo 실행(프로젝트 없음)은
+        수주 축 밖이라 제외한다. `IntakeService.record_issued_tickets` 가
+        `status=="accepted" AND project_id is not None` 을 전제조건으로 강제하므로
+        `tickets` 원장이 있는 인테이크는 항상 project_id 가 채워져 있다(추가 방어 불필요).
+        """
+        intake_stmt = select(IntakeRequest, Project).join(
+            Project, Project.id == IntakeRequest.project_id
+        )
+        rows = (await self.db.execute(intake_stmt)).all()
+        if not rows:
+            return DeliveryBoardResponse()
+
+        intake_ids = [intake.id for intake, _ in rows]
+        stage_at_by_intake = await self._delivery_stage_timestamps(intake_ids)
+
+        issue_keys: set[str] = set()
+        for intake, _ in rows:
+            for ticket in self._board_tickets_of(intake):
+                identifier = ticket.get("identifier")
+                if identifier:
+                    issue_keys.add(str(identifier))
+        events_by_issue = await self._board_run_events_by_issue(issue_keys)
+
+        now = datetime.now(UTC)
+        projects: list[DeliveryBoardProjectItem] = []
+        for intake, project in rows:
+            stage_at = stage_at_by_intake.get(intake.id, {})
+            stages = DeliveryBoardStages(
+                received_at=intake.created_at,
+                refined_at=stage_at.get("refined"),
+                accepted_at=stage_at.get("accepted") or stage_at.get("machine_accepted"),
+                issued_at=intake.tickets_issued_at,
+            )
+
+            tickets: list[DeliveryBoardTicketItem] = []
+            for ticket in self._board_tickets_of(intake):
+                identifier = ticket.get("identifier")
+                if not identifier:
+                    continue
+                issue_key = str(identifier)
+                events = events_by_issue.get(issue_key, [])
+                stage, history, outcome, duration_s = self._derive_ticket_progress(events)
+                active = bool(events) and (
+                    now - self._ev_time(events[-1])
+                ) <= timedelta(minutes=_BOARD_ACTIVE_WINDOW_MINUTES)
+                tickets.append(
+                    DeliveryBoardTicketItem(
+                        key=issue_key,
+                        title=str(ticket.get("title") or ""),
+                        stage=stage,
+                        stage_history=history,
+                        active=active,
+                        outcome=outcome,
+                        duration_s=duration_s,
+                    )
+                )
+
+            projects.append(
+                DeliveryBoardProjectItem(
+                    project_id=project.id,
+                    name=str(project.name),
+                    intake_status=str(intake.status) if intake.status is not None else None,
+                    stages=stages,
+                    tickets=tickets,
+                )
+            )
+
+        return DeliveryBoardResponse(projects=projects)
+
     # ── 내부 헬퍼 ────────────────────────────────────────────────────────────
 
     async def _count_group_by(self, column: ColumnElement[Any]) -> dict[str, int]:
@@ -276,3 +364,91 @@ class ObservabilityService(BaseService):
     async def _recent_delivery_events(self, limit: int) -> list[DeliveryEvent]:
         stmt = select(DeliveryEvent).order_by(DeliveryEvent.created_at.desc()).limit(limit)
         return list((await self.db.execute(stmt)).scalars().all())
+
+    # ── 딜리버리 보드 헬퍼 (CE-411) ──────────────────────────────────────────
+
+    @staticmethod
+    def _board_tickets_of(intake: IntakeRequest) -> list[dict[str, Any]]:
+        """`IntakeRequest.tickets`(JSON 원장)을 dict 리스트로 좁힌다(런타임 불변)."""
+        tickets = intake.tickets
+        return list(tickets) if isinstance(tickets, list) else []
+
+    @staticmethod
+    def _ev_time(ev: PipelineRunEvent) -> datetime:
+        """이벤트 관측 시각 — occurred_at 우선, 없으면 created_at (PipelineRunService 관례).
+
+        SQLite(테스트) 는 `DateTime(timezone=True)` 여도 naive 값을 그대로 돌려줄 수 있어
+        `now(UTC)` 와의 뺄셈이 깨진다 — naive 는 UTC 로 간주해 aware 로 맞춘다.
+        """
+        raw = cast(datetime, ev.occurred_at or ev.created_at)
+        return raw if raw.tzinfo is not None else raw.replace(tzinfo=UTC)
+
+    @staticmethod
+    def _ev_data(ev: PipelineRunEvent) -> dict[str, Any]:
+        return ev.data if isinstance(ev.data, dict) else {}
+
+    async def _delivery_stage_timestamps(
+        self, intake_ids: list[UUID]
+    ) -> dict[UUID, dict[str, datetime]]:
+        """인테이크별 `delivery_events` 최초 도달 시각을 event_type 별로 뽑는다."""
+        stmt = (
+            select(
+                DeliveryEvent.intake_id,
+                DeliveryEvent.event_type,
+                func.min(DeliveryEvent.created_at).label("at"),
+            )
+            .where(DeliveryEvent.intake_id.in_(intake_ids))
+            .group_by(DeliveryEvent.intake_id, DeliveryEvent.event_type)
+        )
+        rows = (await self.db.execute(stmt)).all()
+        result: dict[UUID, dict[str, datetime]] = defaultdict(dict)
+        for intake_id, event_type, at in rows:
+            result[intake_id][str(event_type)] = at
+        return result
+
+    async def _board_run_events_by_issue(
+        self, issue_keys: set[str]
+    ) -> dict[str, list[PipelineRunEvent]]:
+        if not issue_keys:
+            return {}
+        stmt = (
+            select(PipelineRunEvent)
+            .where(PipelineRunEvent.issue_key.in_(issue_keys))
+            .order_by(PipelineRunEvent.created_at.asc())
+        )
+        rows = list((await self.db.execute(stmt)).scalars().all())
+        by_issue: dict[str, list[PipelineRunEvent]] = defaultdict(list)
+        for ev in rows:
+            by_issue[str(ev.issue_key)].append(ev)
+        return by_issue
+
+    def _derive_ticket_progress(
+        self, events: list[PipelineRunEvent]
+    ) -> tuple[str, list[DeliveryBoardStageHistoryItem], str | None, int | None]:
+        """이벤트 시간열을 단계로 정규화한다. 이벤트가 없는 발급 티켓은 issued 로 고정.
+
+        `run_done` 은 outcome 이 성공 도메인(_SUCCESS_OUTCOMES)이면 done, 그 외
+        (failed/demoted/unknown 포함)는 이 보드 한정으로 failed 로 묶는다 — 보드는
+        진행중/완주/차단 3분류만 노출하면 되고, 판정 보류를 별도 단계로 늘리지 않는다.
+        """
+        if not events:
+            return "issued", [], None, None
+
+        ordered = sorted(events, key=self._ev_time)
+        history: list[DeliveryBoardStageHistoryItem] = []
+        stage = "issued"
+        outcome: str | None = None
+        for ev in ordered:
+            event_name = str(ev.event)
+            if event_name == "run_done":
+                raw_outcome = self._ev_data(ev).get("outcome")
+                outcome = str(raw_outcome) if raw_outcome is not None else None
+                stage = "done" if outcome in _SUCCESS_OUTCOMES else "failed"
+            elif event_name in _BOARD_STAGE_BY_EVENT:
+                stage = _BOARD_STAGE_BY_EVENT[event_name]
+            else:
+                continue
+            history.append(DeliveryBoardStageHistoryItem(stage=stage, at=self._ev_time(ev)))
+
+        duration_s = int((self._ev_time(ordered[-1]) - self._ev_time(ordered[0])).total_seconds())
+        return stage, history, outcome, duration_s

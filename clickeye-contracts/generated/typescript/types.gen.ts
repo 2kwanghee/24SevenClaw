@@ -482,6 +482,52 @@ export type DecomposeResponse = {
 };
 
 /**
+ * 프로젝트 1건 — 인테이크 단계 타임라인 + 발급 티켓 목록.
+ */
+export type DeliveryBoardProjectItem = {
+    project_id: string;
+    name: string;
+    intake_status?: string | null;
+    stages?: DeliveryBoardStages;
+    tickets?: Array<DeliveryBoardTicketItem>;
+};
+
+/**
+ * 딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411).
+ */
+export type DeliveryBoardResponse = {
+    projects?: Array<DeliveryBoardProjectItem>;
+};
+
+export type DeliveryBoardStageHistoryItem = {
+    stage: string;
+    at: string;
+};
+
+/**
+ * 인테이크 → 프로젝트 승격까지의 단계별 최초 도달 시각(없으면 미도달).
+ */
+export type DeliveryBoardStages = {
+    received_at?: string | null;
+    refined_at?: string | null;
+    accepted_at?: string | null;
+    issued_at?: string | null;
+};
+
+/**
+ * 발급 티켓 1건 — 정규화된 현재 단계 + 단계 이력.
+ */
+export type DeliveryBoardTicketItem = {
+    key: string;
+    title: string;
+    stage: string;
+    stage_history?: Array<DeliveryBoardStageHistoryItem>;
+    active?: boolean;
+    outcome?: string | null;
+    duration_s?: number | null;
+};
+
+/**
  * 딜리버리 이벤트 1건 — append-only 전이 이력의 조회 표현.
  *
  * intake_id/project_id 는 타임라인 응답이 이미 문맥으로 갖고 있어 생략한다.
@@ -9371,6 +9417,22 @@ export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses 
 };
 
 export type GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponse = GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses[keyof GetObservabilityRunThreadApiV1ObservabilityRunsIssueKeyGetResponses];
+
+export type GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/observability/delivery-board';
+};
+
+export type GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeliveryBoardResponse;
+};
+
+export type GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponse = GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses[keyof GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses];
 
 export type GetSeatsApiV1ObservabilitySeatsGetData = {
     body?: never;

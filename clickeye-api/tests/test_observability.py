@@ -398,6 +398,147 @@ async def test_usage_filters_by_project_id(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# delivery-board — CE-411
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def test_delivery_board_empty_returns_empty_projects(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(f"{_BASE}/delivery-board", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["projects"] == []
+
+
+async def test_delivery_board_requires_auth(client: AsyncClient) -> None:
+    resp = await client.get(f"{_BASE}/delivery-board")
+    assert resp.status_code in (401, 403)
+
+
+async def test_delivery_board_excludes_intake_without_project(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    await _seed_intake(db_session)  # project_id None — self-repo 성격, 제외 대상
+
+    resp = await client.get(f"{_BASE}/delivery-board", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["projects"] == []
+
+
+async def test_delivery_board_ticket_without_events_stays_issued(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    intake = await _seed_intake(db_session)
+    intake.project_id = project.id
+    intake.status = "accepted"
+    intake.tickets_status = "issued"
+    intake.tickets = [{"key": "T1", "identifier": "CE-500", "issue_id": "abc", "title": "티켓1"}]
+    db_session.add(intake)
+    await db_session.commit()
+
+    resp = await client.get(f"{_BASE}/delivery-board", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["projects"]) == 1
+    proj = body["projects"][0]
+    assert proj["project_id"] == str(project.id)
+    assert proj["intake_status"] == "accepted"
+    assert len(proj["tickets"]) == 1
+    ticket = proj["tickets"][0]
+    assert ticket["key"] == "CE-500"
+    assert ticket["title"] == "티켓1"
+    assert ticket["stage"] == "issued"
+    assert ticket["active"] is False
+    assert ticket["outcome"] is None
+    assert ticket["duration_s"] is None
+
+
+async def test_delivery_board_ticket_progress_derives_stage_and_outcome(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    intake = await _seed_intake(db_session)
+    intake.project_id = project.id
+    intake.tickets_status = "issued"
+    intake.tickets = [{"key": "T1", "identifier": "CE-501", "issue_id": "abc", "title": "티켓2"}]
+    db_session.add(intake)
+    await db_session.commit()
+
+    now = datetime.now(UTC)
+    db_session.add(
+        PipelineRunEvent(
+            id=uuid.uuid4(),
+            run_id="RUN-501",
+            issue_key="CE-501",
+            project_id=project.id,
+            event="refine_done",
+            data={},
+            created_at=now,
+        )
+    )
+    db_session.add(
+        PipelineRunEvent(
+            id=uuid.uuid4(),
+            run_id="RUN-501",
+            issue_key="CE-501",
+            project_id=project.id,
+            event="run_done",
+            data={"outcome": "merged"},
+            created_at=now,
+        )
+    )
+    await db_session.commit()
+
+    resp = await client.get(f"{_BASE}/delivery-board", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    ticket = resp.json()["projects"][0]["tickets"][0]
+    assert ticket["stage"] == "done"
+    assert ticket["outcome"] == "merged"
+    assert len(ticket["stage_history"]) == 2
+    assert ticket["stage_history"][0]["stage"] == "refining"
+    assert ticket["stage_history"][1]["stage"] == "done"
+
+
+async def test_delivery_board_stages_use_delivery_events_first_occurrence(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    intake = await _seed_intake(db_session)
+    intake.project_id = project.id
+    db_session.add(intake)
+    await db_session.commit()
+
+    db_session.add(
+        DeliveryEvent(
+            id=uuid.uuid4(),
+            intake_id=intake.id,
+            project_id=project.id,
+            event_type="refined",
+            actor_type="machine",
+        )
+    )
+    db_session.add(
+        DeliveryEvent(
+            id=uuid.uuid4(),
+            intake_id=intake.id,
+            project_id=project.id,
+            event_type="accepted",
+            actor_type="human",
+        )
+    )
+    await db_session.commit()
+
+    resp = await client.get(f"{_BASE}/delivery-board", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    stages = resp.json()["projects"][0]["stages"]
+    assert stages["received_at"] is not None
+    assert stages["refined_at"] is not None
+    assert stages["accepted_at"] is not None
+    assert stages["issued_at"] is None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # projects/{project_id}/summary — CE-402
 # ─────────────────────────────────────────────────────────────────────────────
 
