@@ -1188,6 +1188,22 @@
         "error": "Failed to load details.",
         "noList": "The project list for this status can't be shown with the current data. Check individual details on the project screen.",
         "hint": "Click a bar to open the project list; hover an item to see its details."
+      },
+      "seatBalance": {
+        "title": "Seat balance",
+        "empty": "No accounts to display.",
+        "resetsIn": "Resets in {value}",
+        "exhaustionRisk": "Exhaustion risk before reset",
+        "unitDay": "d",
+        "unitHour": "h"
+      },
+      "seatRanking": {
+        "title": "Seat usage ranking (24h)",
+        "empty": "No accounts to display.",
+        "rank": "Rank",
+        "account": "Account",
+        "usage24h": "24h usage",
+        "balance": "Balance (7d)"
       }
     },
     "seats": {
