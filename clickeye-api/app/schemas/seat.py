@@ -53,3 +53,19 @@ class ProjectSeatAssignRequest(BaseModel):
 class ProjectSeatAssignResponse(BaseModel):
     project_id: UUID
     seat_user_id: UUID | None = None
+
+
+class SeatProvisionItem(BaseModel):
+    """DB→로컬 원장 동기화용 항목 — 평문 토큰을 담는 두 번째(유일) 경로."""
+
+    seat_id: UUID
+    user_id: UUID
+    email: str
+    seat_status: str = Field(description="active | exhausted | blocked")
+    # active 시트에만 평문이 실린다 — 비-active 는 로컬 disabled 처리용 메타만 필요해
+    # 복호화하지 않는다(None). 평문 노출 표면 최소화(사후 리뷰 발견물 반영).
+    token: str | None
+
+
+class SeatProvisionResponse(BaseModel):
+    seats: list[SeatProvisionItem]

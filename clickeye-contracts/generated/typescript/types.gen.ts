@@ -2629,6 +2629,24 @@ export type SeatObservabilityResponse = {
     items?: Array<SeatObservabilityEntry>;
 };
 
+/**
+ * DB→로컬 원장 동기화용 항목 — 평문 토큰을 담는 두 번째(유일) 경로.
+ */
+export type SeatProvisionItem = {
+    seat_id: string;
+    user_id: string;
+    email: string;
+    /**
+     * active | exhausted | blocked
+     */
+    seat_status: string;
+    token: string | null;
+};
+
+export type SeatProvisionResponse = {
+    seats: Array<SeatProvisionItem>;
+};
+
 export type SeatQuotaFiveHourIn = {
     pct: number | string;
     resetsAt?: string | null;
@@ -9179,6 +9197,34 @@ export type GetLatestApiV1OpsSeatQuotaLatestGetResponses = {
 };
 
 export type GetLatestApiV1OpsSeatQuotaLatestGetResponse = GetLatestApiV1OpsSeatQuotaLatestGetResponses[keyof GetLatestApiV1OpsSeatQuotaLatestGetResponses];
+
+export type GetProvisionSeatsApiV1OpsSeatsProvisionGetData = {
+    body?: never;
+    headers?: {
+        'x-governance-token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/ops/seats/provision';
+};
+
+export type GetProvisionSeatsApiV1OpsSeatsProvisionGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProvisionSeatsApiV1OpsSeatsProvisionGetError = GetProvisionSeatsApiV1OpsSeatsProvisionGetErrors[keyof GetProvisionSeatsApiV1OpsSeatsProvisionGetErrors];
+
+export type GetProvisionSeatsApiV1OpsSeatsProvisionGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SeatProvisionResponse;
+};
+
+export type GetProvisionSeatsApiV1OpsSeatsProvisionGetResponse = GetProvisionSeatsApiV1OpsSeatsProvisionGetResponses[keyof GetProvisionSeatsApiV1OpsSeatsProvisionGetResponses];
 
 export type GetSummaryApiV1ObservabilitySummaryGetData = {
     body?: never;

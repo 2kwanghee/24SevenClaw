@@ -208,6 +208,14 @@ def test_build_payload_drops_non_uuid_axes(monkeypatch):
     assert len(payload["models"]) == 1  # 사용량은 살린다
 
 
+def test_uuid_or_none_passes_full_uuid_unchanged(monkeypatch):
+    """CE-400 회귀 가드 — DB 시트가 seat_id 로 전체 UUID 문자열을 등록하는 전제(seat_sync.py)가
+    깨지지 않으려면, 정규 UUID 문자열은 _uuid_or_none 을 그대로 통과해야 한다(NULL 로 버려지면
+    llm_usage_ledger.seat_id 가 다시 조용히 NULL 이 된다)."""
+    full_uuid = str(uuid.uuid4())
+    assert ui._uuid_or_none(full_uuid) == full_uuid
+
+
 def test_build_payload_null_axes_when_env_absent(monkeypatch):
     monkeypatch.delenv("CLICKEYE_SEAT_ID", raising=False)
     monkeypatch.delenv("CLICKEYE_PROJECT_ID", raising=False)

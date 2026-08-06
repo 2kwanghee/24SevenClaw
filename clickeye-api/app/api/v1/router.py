@@ -22,6 +22,7 @@ from app.api.v1.observability import router as observability_router
 from app.api.v1.ops_db import router as ops_db_router
 from app.api.v1.ops_env import router as ops_env_router
 from app.api.v1.ops_infra import router as ops_infra_router
+from app.api.v1.ops_seats import router as ops_seats_router
 from app.api.v1.orchestrator import router as orchestrator_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.pipeline_runs import router as pipeline_runs_router
@@ -81,4 +82,5 @@ api_v1_router.include_router(ops_infra_router)
 api_v1_router.include_router(ops_env_router)
 api_v1_router.include_router(ops_db_router)
 api_v1_router.include_router(seat_quota_router)
+api_v1_router.include_router(ops_seats_router)
 api_v1_router.include_router(observability_router)
