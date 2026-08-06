@@ -328,6 +328,7 @@ async def _seed_ledger_row(
     output_tokens: int = 0,
     cost: object = None,
     created_at: datetime | None = None,
+    task_id: str | None = None,
 ) -> LlmUsageLedger:
     row = LlmUsageLedger(
         id=uuid.uuid4(),
@@ -341,6 +342,7 @@ async def _seed_ledger_row(
         output_tokens=output_tokens,
         cost=cost,
         created_at=created_at if created_at is not None else datetime.now(UTC),
+        task_id=task_id,
     )
     db_session.add(row)
     await db_session.commit()
