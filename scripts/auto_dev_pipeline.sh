@@ -1551,9 +1551,7 @@ PY
       safe_git checkout main 2>/dev/null || true
     elif safe_git merge "$BRANCH" --no-ff -m "Merge branch '${BRANCH}': ${TITLE}" 2>/dev/null \
       && safe_git merge-base --is-ancestor "$BRANCH" main 2>/dev/null; then
-      log "머지 성공: ${BRANCH} → main (merge-base 실증)"
       MERGED_DIRECT=true
-      RUN_OUTCOME="merged"
 
       # 머지 로그 생성
       MERGE_LOG_FILE="$PROJECT_DIR/logs/merge_$(date '+%Y%m%d_%H%M%S').log"
@@ -1587,27 +1585,70 @@ PY
       } > "$MERGE_LOG_FILE"
       log "머지 로그: $MERGE_LOG_FILE"
 
-      # push
-      safe_git push origin main 2>/dev/null || log "WARN: push 실패"
+      # [CE-409] 근본원인: push 실패(비-FF 거부 포함)를 `|| log "WARN"` 으로 삼키면 로컬만
+      # 전진한 채 RUN_OUTCOME=merged 로 성공 처리됨(CE-405 실측: #128·#129 원격 선착으로
+      # push 거부, 산출물이 로컬에만 남음). merge-base 실증만으로는 원격 반영을 보장하지
+      # 못하므로, push 성공 + `git ls-remote` 로 원격 HEAD 가 머지 커밋을 포함함을 실증한
+      # 뒤에만 "머지 성공"/RUN_OUTCOME=merged 를 확정한다.
+      LOCAL_MERGE_SHA=$(safe_git rev-parse main 2>/dev/null)
+      PUSH_OK=false
+      if safe_git push origin main 2>/dev/null; then
+        REMOTE_SHA=$(safe_git ls-remote origin main 2>/dev/null | awk '{print $1}')
+        [ -n "$REMOTE_SHA" ] && [ "$REMOTE_SHA" = "$LOCAL_MERGE_SHA" ] && PUSH_OK=true
+      fi
 
-      # 머지된 브랜치 정리
-      safe_git branch -d "$BRANCH" 2>/dev/null || true
-      safe_git push origin --delete "$BRANCH" 2>/dev/null || true
-
-      # ── [P1.6] LLM 머신 인제스트: 머지 결과를 clickeye-llm KB 로 전송(비차단) ──
-      # 명시적 opt-in(FLOWOPS_TEMPORAL 패턴): 미설정=off. 서버가 team→project 역매핑.
-      # 실패해도 파이프라인 절대 안 죽음(|| true) — 202/skip/오류 모두 무시.
-      if is_enabled "FLOWOPS_LLM_INGEST" 2>/dev/null && [ -n "${FLOWOPS_LLM_INGEST:-}" ] \
-        && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
-        INGEST_URL="${FLOWOPS_GOVERNANCE_SERVICE_URL%/}/api/v1/llm/ingest/pipeline"
-        INGEST_PAYLOAD=$(INGEST_TEAM="${LINEAR_TEAM_ID:-}" INGEST_KEY="$ISSUE_KEY" INGEST_TITLE="$TITLE" INGEST_TIER="${GATE_TIER:-LOW}" INGEST_STAT="$MERGE_DIFF_STAT" python3 -c 'import os,json;print(json.dumps({"team_id":os.environ.get("INGEST_TEAM") or None,"source_id":"pipeline:"+os.environ["INGEST_KEY"],"text":"[파이프라인] "+os.environ["INGEST_KEY"]+" "+os.environ["INGEST_TITLE"]+" — 머지 성공(main 직접 머지, tier="+os.environ.get("INGEST_TIER","LOW")+")\n"+os.environ.get("INGEST_STAT",""),"metadata":{"kind":"pipeline","issue_key":os.environ["INGEST_KEY"]}}))' 2>>"$CLAUDE_LOG" || echo '')
-        if [ -n "$INGEST_PAYLOAD" ]; then
-          curl -sS -m "${FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT:-10}" -X POST "$INGEST_URL" \
-            -H "Content-Type: application/json" \
-            -H "X-Governance-Token: ${GOVERNANCE_SERVICE_TOKEN:-}" \
-            -d "$INGEST_PAYLOAD" >/dev/null 2>>"$CLAUDE_LOG" || true
-          log "LLM 머신 인제스트 전송(비차단): pipeline:${ISSUE_KEY}"
+      if [ "$PUSH_OK" != true ]; then
+        log "WARN: push 실패 또는 원격 미반영 — git pull --no-rebase 재시도(1회)"
+        if safe_git pull --no-rebase origin main 2>/dev/null && safe_git push origin main 2>/dev/null; then
+          LOCAL_MERGE_SHA=$(safe_git rev-parse main 2>/dev/null)
+          REMOTE_SHA=$(safe_git ls-remote origin main 2>/dev/null | awk '{print $1}')
+          [ -n "$REMOTE_SHA" ] && [ "$REMOTE_SHA" = "$LOCAL_MERGE_SHA" ] && PUSH_OK=true
+        else
+          safe_git merge --abort 2>/dev/null || true
         fi
+      fi
+
+      if [ "$PUSH_OK" = true ]; then
+        log "머지 성공: ${BRANCH} → main (원격 반영 실증)"
+        RUN_OUTCOME="merged"
+
+        # 머지된 브랜치 정리 (원격 push 성공 확정 이후에만)
+        safe_git branch -d "$BRANCH" 2>/dev/null || true
+        safe_git push origin --delete "$BRANCH" 2>/dev/null || true
+
+        # ── [P1.6] LLM 머신 인제스트: 머지 결과를 clickeye-llm KB 로 전송(비차단) ──
+        # 명시적 opt-in(FLOWOPS_TEMPORAL 패턴): 미설정=off. 서버가 team→project 역매핑.
+        # 실패해도 파이프라인 절대 안 죽음(|| true) — 202/skip/오류 모두 무시.
+        if is_enabled "FLOWOPS_LLM_INGEST" 2>/dev/null && [ -n "${FLOWOPS_LLM_INGEST:-}" ] \
+          && [ -n "${FLOWOPS_GOVERNANCE_SERVICE_URL:-}" ]; then
+          INGEST_URL="${FLOWOPS_GOVERNANCE_SERVICE_URL%/}/api/v1/llm/ingest/pipeline"
+          INGEST_PAYLOAD=$(INGEST_TEAM="${LINEAR_TEAM_ID:-}" INGEST_KEY="$ISSUE_KEY" INGEST_TITLE="$TITLE" INGEST_TIER="${GATE_TIER:-LOW}" INGEST_STAT="$MERGE_DIFF_STAT" python3 -c 'import os,json;print(json.dumps({"team_id":os.environ.get("INGEST_TEAM") or None,"source_id":"pipeline:"+os.environ["INGEST_KEY"],"text":"[파이프라인] "+os.environ["INGEST_KEY"]+" "+os.environ["INGEST_TITLE"]+" — 머지 성공(main 직접 머지, tier="+os.environ.get("INGEST_TIER","LOW")+")\n"+os.environ.get("INGEST_STAT",""),"metadata":{"kind":"pipeline","issue_key":os.environ["INGEST_KEY"]}}))' 2>>"$CLAUDE_LOG" || echo '')
+          if [ -n "$INGEST_PAYLOAD" ]; then
+            curl -sS -m "${FLOWOPS_GOVERNANCE_SERVICE_TIMEOUT:-10}" -X POST "$INGEST_URL" \
+              -H "Content-Type: application/json" \
+              -H "X-Governance-Token: ${GOVERNANCE_SERVICE_TOKEN:-}" \
+              -d "$INGEST_PAYLOAD" >/dev/null 2>>"$CLAUDE_LOG" || true
+            log "LLM 머신 인제스트 전송(비차단): pipeline:${ISSUE_KEY}"
+          fi
+        fi
+      else
+        # [CE-409] PR 폴백: 원격 미반영 상태로 완료 처리하지 않는다. 머지 커밋을 유지한
+        # 로컬 main 을 reconcile 브랜치로 push 해 산출물을 보존하고, 기존 PR 경로로 강등.
+        RECONCILE_BRANCH="fix/${ISSUE_KEY}-reconcile"
+        log "ERROR: push 재시도도 실패 — ${RECONCILE_BRANCH} 로 PR 폴백"
+        MERGED_DIRECT=false
+        if safe_git push origin "main:refs/heads/${RECONCILE_BRANCH}" 2>/dev/null; then
+          RUN_OUTCOME="pr"
+          python3 scripts/auto_pr_creator.py --branch "$RECONCILE_BRANCH" 2>&1 || {
+            log "WARN: PR 생성 실패"
+          }
+        else
+          log "ERROR: ${RECONCILE_BRANCH} push 도 실패 — 로컬 브랜치(${BRANCH}) 보존"
+          RUN_OUTCOME="pr"
+        fi
+        safe_git fetch origin 2>/dev/null || true
+        safe_git reset --hard origin/main 2>/dev/null || true
+        safe_git checkout main 2>/dev/null || true
       fi
     else
       log "ERROR: 머지 실패. PR 생성으로 대체합니다."
