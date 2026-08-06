@@ -1158,13 +1158,31 @@
       "error": "Failed to load summary data.",
       "empty": "No data to display.",
       "projectsByStatus": "Projects by status",
-      "intakeFunnel": "Intake funnel",
+      "intakeFunnel": "Intake",
       "pipelineSuccessRate": "Pipeline success rate (last 7 days)",
       "recentDeliveryEvents": "Recent delivery events",
       "noRuns": "No pipeline runs completed in the last 7 days.",
       "success": "Success",
       "failure": "Failure",
-      "successRateAria": "Pipeline success rate {pct}%"
+      "successRateAria": "Pipeline success rate {pct}%",
+      "status": {
+        "active": "Active",
+        "archived": "Archived",
+        "deleted": "Deleted",
+        "pending_review": "Pending review",
+        "accepted": "Accepted",
+        "rejected": "Rejected"
+      },
+      "projectDetail": {
+        "tokens": "Token usage",
+        "period": "Active period",
+        "accounts": "Accounts used",
+        "accountsPending": "Awaiting seat sync",
+        "loading": "Loading details...",
+        "error": "Failed to load details.",
+        "noList": "The project list for this status can't be shown with the current data. Check individual details on the project screen.",
+        "hint": "Click a bar to open the project list; hover an item to see its details."
+      }
     },
     "seats": {
       "pageTitle": "Tokens · Seats",

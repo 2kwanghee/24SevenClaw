@@ -2803,6 +2803,25 @@ export interface ObservabilitySummaryResponse {
   recent_delivery_events: ObservabilityDeliveryEventItem[];
 }
 
+/** 프로젝트 상세 — seat 1개(또는 seat_id NULL 그룹)에 대한 토큰/비용 합계 (CE-402 ProjectSeatUsage) */
+export interface ProjectSeatUsage {
+  seat_id: string | null;
+  account_email: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost: string | null;
+}
+
+/** 프로젝트 상세 드릴다운 — ledger 토큰/비용 총합 + seat 별 그룹 + 최초/최근 활동 시각 (CE-402 ProjectSummaryResponse) */
+export interface ProjectSummaryResponse {
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cost: string | null;
+  first_activity_at: string | null;
+  last_activity_at: string | null;
+  seats: ProjectSeatUsage[];
+}
+
 export type UsageGroupBy = "project_id" | "seat_id" | "model" | "request_kind";
 
 export interface UsagePivotBucket {
@@ -2924,6 +2943,13 @@ export const observability = {
   /** 시트 잔량 — 계정별 최신 스냅샷 + 시트 상태 + 최근 24h 소비 */
   getSeats: (token: string) =>
     authRequest<SeatObservabilityResponse>("/api/v1/observability/seats", token),
+
+  /** 프로젝트 상세 드릴다운 — 토큰/비용 합계 + seat 별 그룹 + 최초/최근 활동 시각 (CE-402) */
+  getProjectSummary: (token: string, projectId: string) =>
+    authRequest<ProjectSummaryResponse>(
+      `/api/v1/observability/projects/${encodeURIComponent(projectId)}/summary`,
+      token,
+    ),
 };
 
 export { ApiClientError, NetworkError };
