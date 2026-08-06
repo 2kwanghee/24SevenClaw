@@ -66,6 +66,10 @@ jobs:
           cache: "npm"
           cache-dependency-path: clickeye-web/package-lock.json
 
+      # [CE-404 후속] 락파일은 npm 11 로 생성·검증된다(로컬 개발 표준). node 22 번들
+      # npm 10 은 같은 락을 EUSAGE(ajv/next 해석 차)로 거부하므로 npm 버전을 정렬한다.
+      - run: npm install -g npm@11
+
       - run: npm ci
 
       - name: Lint
