@@ -357,9 +357,7 @@ async def _seed_ledger_row(
 async def test_summary_with_days_query_returns_200(
     client: AsyncClient, admin_auth_headers: dict
 ) -> None:
-    resp = await client.get(
-        f"{_BASE}/summary", params={"days": 30}, headers=admin_auth_headers
-    )
+    resp = await client.get(f"{_BASE}/summary", params={"days": 30}, headers=admin_auth_headers)
     assert resp.status_code == 200
 
 
@@ -433,9 +431,7 @@ async def test_project_summary_aggregates_tokens_and_seats(
         db_session, project_id=project.id, seat_id=None, input_tokens=30, output_tokens=5
     )
 
-    resp = await client.get(
-        f"{_BASE}/projects/{project.id}/summary", headers=admin_auth_headers
-    )
+    resp = await client.get(f"{_BASE}/projects/{project.id}/summary", headers=admin_auth_headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["total_input_tokens"] == 80
@@ -451,9 +447,129 @@ async def test_project_summary_aggregates_tokens_and_seats(
 async def test_project_summary_unknown_project_returns_empty_200(
     client: AsyncClient, admin_auth_headers: dict
 ) -> None:
-    resp = await client.get(
-        f"{_BASE}/projects/{uuid.uuid4()}/summary", headers=admin_auth_headers
+    resp = await client.get(f"{_BASE}/projects/{uuid.uuid4()}/summary", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_input_tokens"] == 0
+    assert body["seats"] == []
+    assert body["first_activity_at"] is None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CE-402 QA 보완 테스트 (리뷰어 지적 전수)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# usage — task_id 필터 무회귀 (project_id 파라미터 추가 후에도 기존 동작 유지)
+async def test_usage_task_id_filter_unaffected_by_project_id_param(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    await _seed_ledger_row(
+        db_session, project_id=project.id, task_id="CE-100", input_tokens=100, output_tokens=10
     )
+    await _seed_ledger_row(
+        db_session, project_id=project.id, task_id="CE-200", input_tokens=999, output_tokens=999
+    )
+
+    resp = await client.get(
+        f"{_BASE}/usage", params={"task_id": "CE-100"}, headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    # task_id 필터가 project_id 파라미터 추가와 무관하게 여전히 CE-100 만 집계해야 함
+    assert body["total_input_tokens"] == 100
+    assert body["total_output_tokens"] == 10
+    assert body["total_request_count"] == 1
+
+
+# usage — 비 UUID project_id 처리.
+# NOTE(CE-402): 리뷰어는 422 를 기대했으나, 서비스는 잘못된/미존재 project_id 에 대해
+# 500 대신 빈 집계(200)를 반환하는 것이 문서화된 관측 라우터 전역 컨벤션이다
+# (observability_service.py:56-63, 165-166). 따라서 실제 동작(200 빈 집계)을 검증한다.
+async def test_usage_invalid_project_id_returns_empty_200(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    await _seed_ledger_row(db_session, project_id=project.id, input_tokens=100, output_tokens=10)
+
+    resp = await client.get(
+        f"{_BASE}/usage", params={"project_id": "not-a-uuid"}, headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["buckets"] == []
+    assert body["total_input_tokens"] == 0
+    assert body["total_request_count"] == 0
+
+
+# summary — days 생략 시 응답이 days=7 명시 요청과 동일 (무회귀)
+async def test_summary_days_default_matches_explicit_seven(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp_default = await client.get(f"{_BASE}/summary", headers=admin_auth_headers)
+    resp_explicit = await client.get(
+        f"{_BASE}/summary", params={"days": 7}, headers=admin_auth_headers
+    )
+    assert resp_default.status_code == 200
+    assert resp_explicit.status_code == 200
+    assert resp_default.json() == resp_explicit.json()
+
+
+# summary — days 경계 검증 (Query ge=1, le=90)
+async def test_summary_days_out_of_range_returns_422(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp_high = await client.get(
+        f"{_BASE}/summary", params={"days": 91}, headers=admin_auth_headers
+    )
+    resp_low = await client.get(f"{_BASE}/summary", params={"days": 0}, headers=admin_auth_headers)
+    assert resp_high.status_code == 422
+    assert resp_low.status_code == 422
+
+
+# summary — trend_days > days 일 때 effective_trend_days = min(trend_days, days) 캡핑
+async def test_summary_trend_days_capped_to_days(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(
+        f"{_BASE}/summary",
+        params={"days": 2, "trend_days": 14},
+        headers=admin_auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    # trend_days=14 이지만 days=2 로 캡핑되어 daily_outcomes 슬롯은 2개여야 함
+    assert len(body["daily_outcomes"]) == 2
+
+
+# projects/{id}/summary — seat_id NULL 행이 seats 목록에 email NULL 로 포함 (별도 분리)
+async def test_project_summary_null_seat_row_included_with_null_email(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    project = await _seed_project(db_session)
+    await _seed_ledger_row(
+        db_session, project_id=project.id, seat_id=None, input_tokens=30, output_tokens=5
+    )
+
+    resp = await client.get(f"{_BASE}/projects/{project.id}/summary", headers=admin_auth_headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    seats_by_seat_id = {s["seat_id"]: s for s in body["seats"]}
+    assert None in seats_by_seat_id
+    assert seats_by_seat_id[None]["account_email"] is None
+    assert seats_by_seat_id[None]["input_tokens"] == 30
+    assert seats_by_seat_id[None]["output_tokens"] == 5
+
+
+# projects/{id}/summary — 비 UUID project_id 처리.
+# NOTE(CE-402): 리뷰어는 422 를 기대했으나, path project_id 는 str 이고 서비스가
+# 잘못된 형식에 500 대신 빈 집계(200)를 반환하는 것이 문서화된 컨벤션이다
+# (observability_service.py:161-169). 실제 동작(200 빈 집계)을 검증한다.
+async def test_project_summary_invalid_id_returns_empty_200(
+    client: AsyncClient, admin_auth_headers: dict
+) -> None:
+    resp = await client.get(f"{_BASE}/projects/not-a-uuid/summary", headers=admin_auth_headers)
     assert resp.status_code == 200
     body = resp.json()
     assert body["total_input_tokens"] == 0
