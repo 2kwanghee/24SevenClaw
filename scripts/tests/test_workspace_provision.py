@@ -68,12 +68,18 @@ def _make_source_repo(tmp_path, name="source_repo", custom_settings=None):
 
 
 def _run_provision(key, source, dest, enforcement=None):
-    """조달 실행. enforcement=None 이면 FLOWOPS_ENFORCEMENT 를 env 에서 제거해
-    토글 off(현행) 경로를 결정적으로 재현한다(CE-329).
+    """조달 실행. enforcement=None 이면 FLOWOPS_ENFORCEMENT="false" 를 명시해
+    토글 off 경로를 결정적으로 재현한다(CE-329).
+
+    변수를 env 에서 제거하는 방식은 격리가 아니다 — 조달 스크립트가 source 하는
+    pipeline_config.sh 의 .env 로더가 **미설정 변수를 레포 .env 값으로 채우므로**,
+    .env 에 FLOWOPS_ENFORCEMENT=true 가 있으면 off 재현이 on 으로 뒤집힌다(실측:
+    .env 배선 활성화 후 바이트 동일성 3건 일괄 실패). 명시적 "false" 는
+    FLOWOPS_ENV_KEEP_EXISTING(호출자 env 우선) 규칙을 타므로 .env 와 무관하게
+    결정적이다.
     """
-    env = {k: v for k, v in os.environ.items() if k != "FLOWOPS_ENFORCEMENT"}
-    if enforcement is not None:
-        env["FLOWOPS_ENFORCEMENT"] = enforcement
+    env = dict(os.environ)
+    env["FLOWOPS_ENFORCEMENT"] = enforcement if enforcement is not None else "false"
     result = subprocess.run(
         ["bash", _SCRIPT, "--key", key, "--source", str(source), "--dest", str(dest)],
         capture_output=True,
