@@ -216,6 +216,110 @@ async def test_render_skips_parser_breaking_values(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("label", "sep"),
+    [
+        ("vt", "\x0b"),
+        ("ff", "\x0c"),
+        ("fs", "\x1c"),
+        ("cr", "\r"),
+        ("nel", "\x85"),
+        ("ls", "\u2028"),
+        ("ps", "\u2029"),
+    ],
+)
+async def test_render_skips_unicode_line_separator_injection(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    webhook_env_enabled: Path,
+    label: str,
+    sep: str,
+) -> None:
+    """`\\n` 이 아니지만 splitlines 가 줄로 인정하는 문자로 임의 env 라인을 주입하는 시도.
+
+    렌더 1회차엔 물리 1라인이라 통과하지만, 2회차가 파일을 splitlines 로 재파싱하면서
+    `WEBHOOK_SECRET=attacker-owned` 이 독립 라인으로 분해·영구 잔존한다(팀 바인딩 무력화).
+    """
+    headers = await _superadmin(client, db_session, f"wh-inj-{label}@ops.com")
+    payload = f"good{sep}WEBHOOK_SECRET=attacker-owned"
+    await _add_credential(db_session, f"inj-{label}@ops.com", f"Inj {label}", "team-i", payload)
+
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(
+        "# 운영자 수기 주석\nWEBHOOK_SECRET=legit-original\n", encoding="utf-8"
+    )
+
+    for _ in range(2):
+        resp = await client.post(_RENDER_URL, headers=headers)
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["entry_count"] == 0
+        assert [item["project_name"] for item in body["skipped"]] == [f"Inj {label}"]
+        assert "attacker-owned" not in resp.text
+
+    content = webhook_env_enabled.read_text(encoding="utf-8")
+    assert "attacker-owned" not in content
+    assert sep not in content
+    # 운영자 라인은 그대로. 주입된 WEBHOOK_SECRET= 라인이 새로 생기지 않았다.
+    assert content.count("WEBHOOK_SECRET=") == 1
+    assert "WEBHOOK_SECRET=legit-original\n" in content
+
+
+@pytest.mark.asyncio
+async def test_render_skips_unicode_line_separator_in_team_id(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """team_id 에도 같은 검사가 걸린다 — MAP 좌변으로 렌더되므로 동일한 주입면."""
+    headers = await _superadmin(client, db_session, "wh-inj-team@ops.com")
+    await _add_credential(
+        db_session, "injteam@ops.com", "InjTeam", "team\x0bWEBHOOK_SECRET=x", "lin_wh_t"
+    )
+
+    resp = await client.post(_RENDER_URL, headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entry_count"] == 0
+    assert [item["project_name"] for item in body["skipped"]] == ["InjTeam"]
+
+    content = webhook_env_enabled.read_text(encoding="utf-8")
+    assert content.count("WEBHOOK_SECRET=") == 0
+    assert "WEBHOOK_SECRET_MAP=\n" in content
+
+
+@pytest.mark.asyncio
+async def test_render_purges_polluted_preserved_lines(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """이미 오염된 파일도 렌더 1회로 스스로 정화된다 — 보존 라인 재검증(2차 방어선)."""
+    headers = await _superadmin(client, db_session, "wh-purge@ops.com")
+    await _add_credential(db_session, "purge@ops.com", "Purge", "team-p", "lin_wh_p")
+
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(
+        "# 정상 주석\n"
+        "\n"
+        "WEBHOOK_SECRET=legit-original\n"
+        "WEBHOOK_SECRET=poll\x7futed\n"  # 제어문자 잔존 라인
+        "이건 KEY=VALUE 도 주석도 아님\n"  # 구조 위반 라인
+        "WEBHOOK_SECRET_MAP=stale=stale\n",
+        encoding="utf-8",
+    )
+
+    resp = await client.post(_RENDER_URL, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["entry_count"] == 1
+    assert resp.json()["dropped_line_count"] == 2
+
+    content = webhook_env_enabled.read_text(encoding="utf-8")
+    assert "polluted" not in content and "\x7f" not in content
+    assert "이건 KEY=VALUE" not in content
+    # 정상 라인은 살아 있다.
+    assert "# 정상 주석" in content
+    assert "WEBHOOK_SECRET=legit-original" in content
+    assert "WEBHOOK_SECRET_MAP=team-p=lin_wh_p\n" in content
+
+
+@pytest.mark.asyncio
 async def test_render_ignores_projects_without_secret(
     client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
 ) -> None:

@@ -541,3 +541,114 @@ async def test_delete_without_webhook_skips_unregister(
         headers=headers,
     )
     assert (await client.delete(_url(project_id), headers=headers)).status_code == 204
+
+
+# ---------------------------------------------------------------------------
+# 입력 검증 — env 라인 주입 심층방어 (CE-421 F-1)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "sep",
+    ["\n", "\r", "\x0b", "\x0c", "\x1c", "\x85", " ", " "],
+)
+async def test_put_rejects_line_separator_in_webhook_secret(
+    client: AsyncClient, owner_ctx: tuple[dict[str, str], str], sep: str
+) -> None:
+    """`\\n` 이 아닌 유니코드 개행도 거부 — 저장되면 webhook.env 렌더에서 라인이 쪼개진다."""
+    headers, project_id = owner_ctx
+    resp = await client.put(
+        _url(project_id),
+        json={
+            "api_key": API_KEY,
+            "team_id": TEAM_ID,
+            "webhook_secret": f"good{sep}WEBHOOK_SECRET=attacker-owned",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("secret", ["a,b", "a=b", "  padded  ", "with\x7fdel"])
+async def test_put_rejects_separator_chars_in_webhook_secret(
+    client: AsyncClient, owner_ctx: tuple[dict[str, str], str], secret: str
+) -> None:
+    """수신부 파서의 구분자(`,` `=`)·공백·제어문자도 거부."""
+    headers, project_id = owner_ctx
+    resp = await client.put(
+        _url(project_id),
+        json={"api_key": API_KEY, "team_id": TEAM_ID, "webhook_secret": secret},
+        headers=headers,
+    )
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "team_id", ["team\x0bWEBHOOK_SECRET=x", "team=eq", "team,c", "team id", ""]
+)
+async def test_put_rejects_malformed_team_id(
+    client: AsyncClient, owner_ctx: tuple[dict[str, str], str], team_id: str
+) -> None:
+    """team_id 는 MAP 좌변으로 렌더되므로 영숫자·'-'·'_' 화이트리스트."""
+    headers, project_id = owner_ctx
+    resp = await client.put(
+        _url(project_id),
+        json={"api_key": API_KEY, "team_id": team_id},
+        headers=headers,
+    )
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.asyncio
+async def test_put_accepts_uuid_and_key_style_team_ids(
+    client: AsyncClient, owner_ctx: tuple[dict[str, str], str]
+) -> None:
+    """Linear 가 실제로 내려주는 형태(UUID / 팀 키)는 계속 통과 — 과도 협소화 회귀 방지."""
+    headers, project_id = owner_ctx
+    for team_id in ("a1b2c3d4-1111-2222-3333-444455556666", "ENG", "team_24s"):
+        resp = await client.put(
+            _url(project_id),
+            json={"api_key": API_KEY, "team_id": team_id},
+            headers=headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["team_id"] == team_id
+
+
+@pytest.mark.asyncio
+async def test_get_and_delete_work_for_legacy_invalid_stored_values(
+    client: AsyncClient, owner_ctx: tuple[dict[str, str], str], db_session
+) -> None:
+    """새 검증을 위반하는 **기존 저장 값**도 조회/삭제는 계속 동작해야 한다.
+
+    응답 스키마에는 검증을 걸지 않았으므로, DB 를 직접 오염시킨 뒤 GET/DELETE 를 확인한다.
+    """
+    from uuid import UUID as _UUID
+
+    from sqlalchemy import update
+
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+
+    headers, project_id = owner_ctx
+    assert (
+        await client.put(
+            _url(project_id),
+            json={"api_key": API_KEY, "team_id": TEAM_ID},
+            headers=headers,
+        )
+    ).status_code == 200
+
+    await db_session.execute(
+        update(ProjectLinearCredentials)
+        .where(ProjectLinearCredentials.project_id == _UUID(project_id))
+        .values(team_id="legacy team=weird", webhook_secret="old,secret")
+    )
+    await db_session.commit()
+
+    got = await client.get(_url(project_id), headers=headers)
+    assert got.status_code == 200, got.text
+    assert got.json()["team_id"] == "legacy team=weird"
+    assert (await client.delete(_url(project_id), headers=headers)).status_code == 204

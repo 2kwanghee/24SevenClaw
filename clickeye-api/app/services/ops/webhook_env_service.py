@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
@@ -34,7 +36,6 @@ from app.schemas.ops import (
     WebhookEnvStatus,
 )
 from app.services.ops import ops_audit
-from app.services.ops.env_service import _secure_write
 
 _MAP_KEY = "WEBHOOK_SECRET_MAP"
 _LEGACY_KEYS = ("WEBHOOK_SECRET", "WEBHOOK_SECRETS")
@@ -102,15 +103,34 @@ def _has_legacy_secret(lines: list[str] | None) -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _is_single_physical_line(value: str) -> bool:
+    """`value` 가 env 파일에서 정확히 물리 1라인으로 남는지.
+
+    `"\\n" in value` 같은 블랙리스트는 `\\x0b`(VT) · `\\x85`(NEL) · `\\u2028`(LS) 처럼
+    **Python `splitlines()` 가 줄로 인정하지만 `\\n` 이 아닌** 문자를 통과시킨다. 그런 값이
+    한 번 파일에 들어가면 다음 렌더가 `read_text().splitlines()` 로 재파싱하며 독립 라인으로
+    분해되어(`WEBHOOK_SECRET=…` 주입) 영구 잔존한다. 그래서 "쓰는 쪽"이 아니라 "읽는 쪽"과
+    동일한 함수로 판정한다 — splitlines 가 줄로 인정하는 모든 문자를 자동으로 커버한다.
+    """
+    return value.splitlines() == [value]
+
+
+def _has_control_char(value: str) -> bool:
+    """C0 제어문자 / DEL 포함 여부(splitlines 검사와 일부 중복되나 의도적)."""
+    return any(ch < " " or ch == "\x7f" for ch in value)
+
+
 def _skip_reason(team_id: str, secret: str) -> str | None:
     """MAP 항목으로 안전한지 판정. 안전하면 None, 아니면 사유(시크릿 값 미포함)."""
     for label, value in (("team_id", team_id), ("시크릿", secret)):
         if not value:
             return f"{label} 가 비어 있음"
+        if not _is_single_physical_line(value):
+            return f"{label} 에 줄바꿈 문자 포함 — env 라인이 분리되어 임의 키가 주입됨"
+        if _has_control_char(value):
+            return f"{label} 에 제어문자 포함 — env 라인으로 안전하지 않음"
         if "," in value:
             return f"{label} 에 콤마(,) 포함 — 수신부 파서가 항목 경계로 분해함"
-        if "\n" in value or "\r" in value:
-            return f"{label} 에 개행 포함 — env 라인이 분리됨"
         if value != value.strip():
             return f"{label} 앞뒤에 공백 포함 — 수신부가 trim 하여 저장값과 달라짐"
     if "=" in team_id:
@@ -160,6 +180,32 @@ async def preview(db: AsyncSession) -> WebhookEnvStatus:
 # ---------------------------------------------------------------------------
 
 
+def _atomic_secure_write(path: Path, data: bytes) -> None:
+    """0o600 임시 파일에 쓴 뒤 `os.replace` 로 원자적 교체.
+
+    수신부는 기동 시 이 파일을 1회 읽으므로, 렌더와 기동이 겹치면 `O_TRUNC` 방식은 반쯤
+    쓰인 파일(= MAP 항목 일부 누락)을 읽히는 창이 있다. 교체는 원자적이라 그 창이 없다.
+
+    보안 성질은 `env_service._secure_write` 와 동일하게 유지한다 — 임시 파일은
+    `O_EXCL | O_NOFOLLOW` 로 같은 디렉터리(0o700)에 만들고 `fchmod(0o600)` 를 강제한다.
+    `os.replace` 는 심링크를 **따라가지 않고 교체**하므로 심링크 스왑으로 임의 경로를
+    덮어쓸 수 없다.
+    """
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    try:
+        os.fchmod(fd, 0o600)
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    try:
+        os.replace(tmp, path)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
 def _restart_command() -> str:
     return (
         "docker compose -f clickeye-infra/docker/docker-compose.yml "
@@ -167,16 +213,37 @@ def _restart_command() -> str:
     )
 
 
-def _apply_map_line(lines: list[str] | None, map_line: str) -> list[str]:
-    """MAP 라인만 교체/추가하고 나머지 라인은 원문 그대로 보존.
+_ENV_LINE_RE = re.compile(r"^\s*[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _is_preservable(line: str) -> bool:
+    """보존해도 되는 기존 라인인지 — 빈 줄 / 주석 / 정상 `KEY=VALUE` 만 허용.
+
+    렌더는 MAP 이외 라인을 보존하므로, 과거에 주입된 오염 라인이 있으면 그것까지 영구히
+    되쓴다. 보존 시점에 다시 구조를 검사해 그 외 형태(제어문자 포함 라인 등)를 드롭하면
+    이미 오염된 파일도 렌더 1회로 스스로 정화된다.
+    """
+    if _has_control_char(line):
+        return False
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        return True
+    return _ENV_LINE_RE.match(line) is not None
+
+
+def _apply_map_line(lines: list[str] | None, map_line: str) -> tuple[list[str], int]:
+    """MAP 라인만 교체/추가하고 나머지 **정상 형태** 라인은 원문 그대로 보존.
 
     중복 MAP 라인이 있으면 첫 라인 자리에서 교체하고 나머지는 제거한다(수신부는 마지막
     값만 보므로 중복이 남으면 렌더 결과와 실제 적용값이 어긋난다).
+
+    반환: (렌더 라인 목록, 드롭한 오염 라인 수).
     """
     if lines is None:
-        return _HEADER.splitlines() + [map_line]
+        return _HEADER.splitlines() + [map_line], 0
 
     out: list[str] = []
+    dropped = 0
     replaced = False
     for line in lines:
         if _is_assignment(line, _MAP_KEY):
@@ -184,10 +251,14 @@ def _apply_map_line(lines: list[str] | None, map_line: str) -> list[str]:
                 out.append(map_line)
                 replaced = True
             continue
+        if not _is_preservable(line):
+            # 시크릿이 섞여 있을 수 있으므로 내용은 로그·응답 어디에도 남기지 않는다.
+            dropped += 1
+            continue
         out.append(line)
     if not replaced:
         out.append(map_line)
-    return out
+    return out, dropped
 
 
 async def render(db: AsyncSession, actor_id: UUID) -> WebhookEnvRenderResult:
@@ -224,13 +295,13 @@ async def render(db: AsyncSession, actor_id: UUID) -> WebhookEnvRenderResult:
 
     path = _target_path()
     lines = _read_lines(path)
-    rendered = _apply_map_line(lines, map_line)
+    rendered, dropped_line_count = _apply_map_line(lines, map_line)
 
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     content = "\n".join(rendered)
     if content:
         content += "\n"
-    _secure_write(path, content.encode("utf-8"))
+    _atomic_secure_write(path, content.encode("utf-8"))
 
     now = datetime.now(UTC)
     db.add(
@@ -250,6 +321,7 @@ async def render(db: AsyncSession, actor_id: UUID) -> WebhookEnvRenderResult:
         rendered_path=str(path),
         rendered_at=now,
         entry_count=len(entries),
+        dropped_line_count=dropped_line_count,
         skipped=skipped,
         legacy_present=_has_legacy_secret(rendered),
         restart_command=_restart_command(),

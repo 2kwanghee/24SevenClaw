@@ -3366,6 +3366,10 @@ export type WebhookEnvRenderResult = {
      */
     entry_count: number;
     /**
+     * 보존 대상이 아니어서 제거한 비정상 라인 수(제어문자 포함 등). 내용은 미반환
+     */
+    dropped_line_count?: number;
+    /**
      * 파서 파괴 문자로 제외된 항목
      */
     skipped?: Array<WebhookEnvSkippedItem>;

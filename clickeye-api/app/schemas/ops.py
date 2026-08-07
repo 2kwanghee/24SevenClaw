@@ -130,6 +130,10 @@ class WebhookEnvRenderResult(BaseModel):
     rendered_path: str = Field(description="렌더된 webhook.env 경로")
     rendered_at: datetime = Field(description="렌더 시각")
     entry_count: int = Field(description="MAP 에 기록된 teamId=secret 항목 수")
+    dropped_line_count: int = Field(
+        default=0,
+        description="보존 대상이 아니어서 제거한 비정상 라인 수(제어문자 포함 등). 내용은 미반환",
+    )
     skipped: list[WebhookEnvSkippedItem] = Field(
         default_factory=list, description="파서 파괴 문자로 제외된 항목"
     )
