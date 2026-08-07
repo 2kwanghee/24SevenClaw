@@ -60,6 +60,7 @@ version: ...       # 선택
 | [aws-deployment-guide-ec2.md](aws-deployment-guide-ec2.md) | EC2 1대 docker-compose 배포(초보자용) | current |
 | [spec/run_guide.md](spec/run_guide.md) | 서비스 구동(API/web/webhook 컨테이너+호스트 워커/ngrok/DB) | current |
 | [user-guide/linear-realtime-tracking.md](user-guide/linear-realtime-tracking.md) | 딜리버리 콘솔 기반 Linear 실시간 연동 | current |
+| [operations-cautions.md](operations-cautions.md) | 운영 시 주의사항 — webhook 시크릿 관리·파이프라인 락·WSL 이슈·alembic 검증 | current |
 
 ### product — 제품/내러티브
 | 문서 | 목적 | status |
