@@ -303,6 +303,60 @@ export interface OpsEnvRenderResponse {
   [key: string]: unknown;
 }
 
+// webhook.env 자동 배선 (WEBHOOK_SECRET_MAP 렌더) — 시크릿 평문은 응답에 없음.
+
+export interface OpsWebhookProject {
+  project_id: string;
+  project_name: string;
+  team_id: string;
+  has_secret: boolean;
+}
+
+/** 파일의 MAP 집합과 DB 산출 집합의 차이 1건 — 시크릿 값은 담기지 않는다. */
+export interface OpsWebhookDrift {
+  team_id: string;
+  /** added=추가될 팀 / removed=제거될 팀(폐기 시크릿) / changed=시크릿이 바뀐 팀 */
+  state: "added" | "removed" | "changed";
+}
+
+/**
+ * 운영 경고 코드.
+ * - map_line_removed: 항목 0개라 WEBHOOK_SECRET_MAP 라인을 쓰지 않음
+ * - receiver_startup_blocked: 항목 0개 + 레거시 없음 → 재기동 시 수신부가 기동 거부
+ */
+export type OpsWebhookWarning =
+  | "map_line_removed"
+  | "receiver_startup_blocked";
+
+export interface OpsWebhookStatus {
+  rendered_path: string;
+  file_exists: boolean;
+  map_line_present: boolean;
+  legacy_present: boolean;
+  projects: OpsWebhookProject[];
+  file_entry_count: number;
+  expected_entry_count: number;
+  drift: OpsWebhookDrift[];
+  warnings: OpsWebhookWarning[];
+}
+
+export interface OpsWebhookSkipped {
+  project_id: string;
+  project_name: string;
+  team_id: string;
+  reason: string;
+}
+
+export interface OpsWebhookRenderResult {
+  rendered_path: string;
+  rendered_at: string;
+  entry_count: number;
+  skipped: OpsWebhookSkipped[];
+  legacy_present: boolean;
+  warnings: OpsWebhookWarning[];
+  restart_command: string;
+}
+
 export interface OpsTableInfo {
   key: string;
   label: string;
@@ -376,6 +430,19 @@ export const ops = {
       method: "POST",
       body: JSON.stringify({ confirm } satisfies OpsEnvRenderRequest),
     }),
+
+  getWebhookStatus: (token: string) =>
+    authRequest<OpsWebhookStatus>(
+      "/api/v1/admin/ops/env/webhook/status",
+      token,
+    ),
+
+  renderWebhook: (token: string) =>
+    authRequest<OpsWebhookRenderResult>(
+      "/api/v1/admin/ops/env/webhook/render",
+      token,
+      { method: "POST" },
+    ),
 
   listTables: (token: string) =>
     authRequest<OpsTableInfo[]>("/api/v1/admin/ops/tables", token),

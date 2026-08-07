@@ -11908,6 +11908,60 @@
         ]
       }
     },
+    "/api/v1/admin/ops/env/webhook/status": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Webhook Env Status",
+        "description": "webhook.env 현재 상태 + MAP 후보 프로젝트 목록(시크릿 값 미반환).",
+        "operationId": "webhook_env_status_api_v1_admin_ops_env_webhook_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEnvStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/ops/env/webhook/render": {
+      "post": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Render Webhook Env",
+        "description": "webhook.env 의 WEBHOOK_SECRET_MAP 라인 렌더 + 재기동 명령 문자열 반환.\n\nMAP 라인만 교체하며 다른 라인은 보존한다. docker/재기동은 실행하지 않는다.",
+        "operationId": "render_webhook_env_api_v1_admin_ops_env_webhook_render_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEnvRenderResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/ops/tables": {
       "get": {
         "tags": [
@@ -28759,6 +28813,231 @@
         ],
         "title": "VerificationRecordRequest",
         "description": "정합성 게이트 결과 본문 — passed 여부와 실행 리포트(게이트별 exit/로그 요약).\n\nreport 는 필수다 — \"통과했다\"는 주장에는 증거가 따라야 한다(빈 리포트 금지)."
+      },
+      "WebhookEnvDriftItem": {
+        "properties": {
+          "team_id": {
+            "type": "string",
+            "title": "Team Id",
+            "description": "차이가 발생한 Linear 팀 ID"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "changed"
+            ],
+            "title": "State",
+            "description": "added=렌더 시 추가될 팀 / removed=렌더 시 제거될 팀(폐기 시크릿이 아직 유효) / changed=같은 팀의 시크릿 집합이 달라짐"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_id",
+          "state"
+        ],
+        "title": "WebhookEnvDriftItem",
+        "description": "파일의 MAP 항목 집합과 DB 산출 항목 집합의 차이 1건.\n\n시크릿 값은 어떤 형태로도 포함하지 않는다 — team_id 와 상태 라벨만 반환한다."
+      },
+      "WebhookEnvProjectItem": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "프로젝트 ID"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name",
+            "description": "프로젝트명"
+          },
+          "team_id": {
+            "type": "string",
+            "title": "Team Id",
+            "description": "Linear 팀 ID(MAP 의 좌변)"
+          },
+          "has_secret": {
+            "type": "boolean",
+            "title": "Has Secret",
+            "description": "webhook signing secret 보유 여부(값은 미반환)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "project_name",
+          "team_id",
+          "has_secret"
+        ],
+        "title": "WebhookEnvProjectItem",
+        "description": "WEBHOOK_SECRET_MAP 후보 1건 — 시크릿 평문은 절대 포함하지 않는다."
+      },
+      "WebhookEnvRenderResult": {
+        "properties": {
+          "rendered_path": {
+            "type": "string",
+            "title": "Rendered Path",
+            "description": "렌더된 webhook.env 경로"
+          },
+          "rendered_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Rendered At",
+            "description": "렌더 시각"
+          },
+          "entry_count": {
+            "type": "integer",
+            "title": "Entry Count",
+            "description": "MAP 에 기록된 teamId=secret 항목 수"
+          },
+          "dropped_line_count": {
+            "type": "integer",
+            "title": "Dropped Line Count",
+            "description": "보존 대상이 아니어서 제거한 비정상 라인 수(제어문자 포함 등). 내용은 미반환",
+            "default": 0
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEnvSkippedItem"
+            },
+            "type": "array",
+            "title": "Skipped",
+            "description": "파서 파괴 문자로 제외된 항목"
+          },
+          "legacy_present": {
+            "type": "boolean",
+            "title": "Legacy Present",
+            "description": "값이 채워진 WEBHOOK_SECRET(S) 라인이 남아 있는지(팀 검사 미적용 경고)"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 제거함 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
+          },
+          "restart_command": {
+            "type": "string",
+            "title": "Restart Command",
+            "description": "사용자가 수동 실행할 webhook 재생성 명령(백엔드는 실행하지 않음)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rendered_path",
+          "rendered_at",
+          "entry_count",
+          "legacy_present",
+          "restart_command"
+        ],
+        "title": "WebhookEnvRenderResult",
+        "description": "webhook.env 렌더 결과 — MAP 라인만 교체하며 docker/재기동은 실행하지 않는다."
+      },
+      "WebhookEnvSkippedItem": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "제외된 프로젝트 ID"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name",
+            "description": "제외된 프로젝트명"
+          },
+          "team_id": {
+            "type": "string",
+            "title": "Team Id",
+            "description": "Linear 팀 ID"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "제외 사유(시크릿 값은 포함하지 않음)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "project_name",
+          "team_id",
+          "reason"
+        ],
+        "title": "WebhookEnvSkippedItem",
+        "description": "파서 파괴 문자로 MAP 에서 제외된 항목(fail-closed) — 시크릿 값 미포함."
+      },
+      "WebhookEnvStatus": {
+        "properties": {
+          "rendered_path": {
+            "type": "string",
+            "title": "Rendered Path",
+            "description": "렌더 대상 webhook.env 경로"
+          },
+          "file_exists": {
+            "type": "boolean",
+            "title": "File Exists",
+            "description": "파일 존재 여부"
+          },
+          "map_line_present": {
+            "type": "boolean",
+            "title": "Map Line Present",
+            "description": "WEBHOOK_SECRET_MAP= 라인 존재 여부"
+          },
+          "legacy_present": {
+            "type": "boolean",
+            "title": "Legacy Present",
+            "description": "값이 채워진 WEBHOOK_SECRET(S) 라인 존재 여부(그 시크릿은 팀 검사 미적용)"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEnvProjectItem"
+            },
+            "type": "array",
+            "title": "Projects",
+            "description": "Linear 자격증명이 등록된 프로젝트 목록"
+          },
+          "file_entry_count": {
+            "type": "integer",
+            "title": "File Entry Count",
+            "description": "파일 MAP 라인에서 수신부가 유효로 볼 항목 수",
+            "default": 0
+          },
+          "expected_entry_count": {
+            "type": "integer",
+            "title": "Expected Entry Count",
+            "description": "지금 렌더하면 기록될 항목 수(fail-closed 제외분 반영)",
+            "default": 0
+          },
+          "drift": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEnvDriftItem"
+            },
+            "type": "array",
+            "title": "Drift",
+            "description": "파일과 DB 산출 결과의 차이(= 아직 렌더로 반영되지 않은 변경)"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 쓰지 않음 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rendered_path",
+          "file_exists",
+          "map_line_present",
+          "legacy_present"
+        ],
+        "title": "WebhookEnvStatus",
+        "description": "렌더 대상 파일의 현재 상태 + MAP 후보 목록 + 미반영 드리프트."
       },
       "WeeklyThroughput": {
         "properties": {

@@ -38,6 +38,15 @@ export function useOpsEnv() {
   });
 }
 
+export function useOpsWebhookStatus() {
+  const token = useAccessToken();
+  return useQuery({
+    queryKey: [...OPS_KEY, "env", "webhook"],
+    queryFn: () => ops.getWebhookStatus(token),
+    enabled: !!token,
+  });
+}
+
 export function useOpsTables() {
   const token = useAccessToken();
   return useQuery({
@@ -92,6 +101,16 @@ export function useRenderOpsEnv() {
   return useMutation({
     mutationFn: (confirm: boolean) => ops.renderEnv(token, confirm),
     onSuccess: () => qc.invalidateQueries({ queryKey: [...OPS_KEY, "env"] }),
+  });
+}
+
+export function useRenderOpsWebhook() {
+  const token = useAccessToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => ops.renderWebhook(token),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: [...OPS_KEY, "env", "webhook"] }),
   });
 }
 

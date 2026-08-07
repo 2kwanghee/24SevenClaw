@@ -1,7 +1,12 @@
+import re
 from datetime import datetime
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
+
+# Linear 팀 식별자(UUID 또는 팀 키)에서 실제로 쓰이는 문자만. 운영 패널이 이 값을
+# `WEBHOOK_SECRET_MAP` 의 좌변으로 렌더하므로 구분자(`,` `=`)와 공백·제어문자를 배제한다.
+_TEAM_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 class LinearValidateRequest(BaseModel):
@@ -51,6 +56,36 @@ class ProjectLinearCredentialsSave(BaseModel):
     tunnel_url: str | None = Field(
         None, description="webhook 수신 공개 URL (https). 미지정 시 사용자 전역 tunnel_url 폴백"
     )
+
+    @field_validator("team_id")
+    @classmethod
+    def _validate_team_id(cls, value: str) -> str:
+        """MAP 좌변으로 렌더되므로 Linear 식별자 문자만 허용(화이트리스트)."""
+        if not _TEAM_ID_RE.match(value):
+            raise ValueError("team_id 는 영숫자와 '-', '_' 만 사용할 수 있습니다")
+        return value
+
+    @field_validator("webhook_secret")
+    @classmethod
+    def _validate_webhook_secret(cls, value: str | None) -> str | None:
+        """`WEBHOOK_SECRET_MAP` 라인에 그대로 실리는 값이므로 라인/항목 구분자를 배제한다.
+
+        렌더 측(`webhook_env_service._skip_reason`)이 주 방어선이지만, 거기서 걸린 값은
+        조용히 제외될 뿐 저장은 된다. 저장 시점에 거부해야 운영자가 원인을 알 수 있고,
+        `\\x0b`·`\\x85`·`\\u2028` 같은 유니코드 개행으로 env 라인을 쪼개려는 시도가
+        DB 에 남지 않는다. 빈 문자열은 미지정과 동일하게 취급한다.
+        """
+        if value is None:
+            return None
+        if not value:
+            return None
+        if value.splitlines() != [value] or value.strip() != value:
+            raise ValueError("webhook_secret 에 개행·공백 문자를 포함할 수 없습니다")
+        if any(ch < " " or ch == "\x7f" for ch in value):
+            raise ValueError("webhook_secret 에 제어문자를 포함할 수 없습니다")
+        if "," in value or "=" in value:
+            raise ValueError("webhook_secret 에 ',' 또는 '=' 를 포함할 수 없습니다")
+        return value
 
     @field_validator("tunnel_url")
     @classmethod

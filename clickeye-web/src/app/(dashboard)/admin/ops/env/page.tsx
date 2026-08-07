@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { RoleGuard } from "@/components/common/role-guard";
 import { EnvPanel } from "@/components/admin/ops/env-panel";
+import { WebhookEnvCard } from "@/components/admin/ops/webhook-env-card";
 
 export default function AdminOpsEnvPage() {
   const t = useTranslations("ops.env");
@@ -20,6 +21,7 @@ export default function AdminOpsEnvPage() {
           </p>
         </div>
         <EnvPanel />
+        <WebhookEnvCard />
       </div>
     </RoleGuard>
   );

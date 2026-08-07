@@ -13,8 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import require_ops_feature, require_superadmin
 from app.models.user import User
-from app.schemas.ops import EnvRenderRequest, EnvRenderResult, EnvVarItem, EnvVarUpsert
-from app.services.ops import env_service
+from app.schemas.ops import (
+    EnvRenderRequest,
+    EnvRenderResult,
+    EnvVarItem,
+    EnvVarUpsert,
+    WebhookEnvRenderResult,
+    WebhookEnvStatus,
+)
+from app.services.ops import env_service, webhook_env_service
 
 router = APIRouter(
     prefix="/admin/ops",
@@ -66,3 +73,21 @@ async def render_env(
             400,
         )
     return await env_service.render_to_file(db, user.id)  # type: ignore[arg-type]
+
+
+@router.get("/env/webhook/status", response_model=WebhookEnvStatus)
+async def webhook_env_status(db: AsyncSession = Depends(get_db)) -> WebhookEnvStatus:
+    """webhook.env 현재 상태 + MAP 후보 프로젝트 목록(시크릿 값 미반환)."""
+    return await webhook_env_service.preview(db)
+
+
+@router.post("/env/webhook/render", response_model=WebhookEnvRenderResult)
+async def render_webhook_env(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_superadmin),
+) -> WebhookEnvRenderResult:
+    """webhook.env 의 WEBHOOK_SECRET_MAP 라인 렌더 + 재기동 명령 문자열 반환.
+
+    MAP 라인만 교체하며 다른 라인은 보존한다. docker/재기동은 실행하지 않는다.
+    """
+    return await webhook_env_service.render(db, user.id)  # type: ignore[arg-type]
