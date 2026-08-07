@@ -663,9 +663,8 @@ def main():
     log(f"Linear Webhook 서버 시작: http://0.0.0.0:{args.port}")
     log(f"  Webhook URL: http://<서버IP>:{args.port}/webhook/linear")
     log(f"  Health check: http://localhost:{args.port}/health")
-    log(
-        f"  서명 검증: {f'활성 (시크릿 {len(WEBHOOK_SECRETS)}개)' if WEBHOOK_SECRETS else '비활성 (WEBHOOK_SECRET 미설정)'}"
-    )
+    sig_status = f"활성 (시크릿 {len(WEBHOOK_SECRETS)}개)" if WEBHOOK_SECRETS else "비활성 (WEBHOOK_SECRET 미설정)"
+    log(f"  서명 검증: {sig_status}")
     bound_teams = {t for teams in WEBHOOK_SECRET_TEAMS.values() for t in teams}
     log(
         f"  팀 바인딩: 시크릿 {len(WEBHOOK_SECRET_TEAMS)}개 / 팀 {len(bound_teams)}개"
