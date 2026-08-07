@@ -2054,6 +2054,8 @@ export type ProjectKpiResponse = {
 export type ProjectLinearCredentialsResponse = {
     api_key_masked: string;
     team_id: string;
+    webhook_secret_set: boolean;
+    linear_webhook_id: string | null;
     updated_at: string;
 };
 
@@ -2066,6 +2068,14 @@ export type ProjectLinearCredentialsSave = {
      * Linear 팀 UUID
      */
     team_id: string;
+    /**
+     * 이 프로젝트 워크스페이스의 webhook signing secret
+     */
+    webhook_secret?: string | null;
+    /**
+     * webhook 수신 공개 URL (https). 미지정 시 사용자 전역 tunnel_url 폴백
+     */
+    tunnel_url?: string | null;
 };
 
 export type ProjectLinearStatusResponse = {

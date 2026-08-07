@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
@@ -31,6 +32,21 @@ from app.schemas.integrations import (
 )
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+
+logger = logging.getLogger(__name__)
+
+
+def _project_webhook_label(project_id: UUID) -> str:
+    """프로젝트 저장 경로가 쓰는 Linear webhook label.
+
+    label 은 워크스페이스 단위로 유일해야 훅이 서로 독립된다. 공용 "ClickEye" 를 쓰면
+    같은 워크스페이스를 공유하는 다른 프로젝트나 사용자 전역 자격증명의 훅을 덮어써
+    앞선 linear_webhook_id 가 유령 ID 가 된다.
+
+    옛 공용 label 로 등록된 기존 프로젝트 훅은 마이그레이션하지 않는다 — 다음 저장 때
+    이 label 로 새 훅이 생기고, 옛 훅은 운영자가 Linear 콘솔에서 정리한다.
+    """
+    return f"ClickEye:{project_id}"
 
 
 async def _upsert_project_linear_credentials(
@@ -118,6 +134,21 @@ async def _require_project_access(db: AsyncSession, project_id: UUID, user: User
         )
 
 
+async def _fallback_tunnel_url(db: AsyncSession, user: User) -> str | None:
+    """요청에 tunnel_url 이 없을 때 쓰는 폴백 — 요청 사용자의 전역 Linear 설정값.
+
+    수신 서버는 프로젝트마다 따로 뜨지 않고 하나의 공개 URL 을 공유하므로, 프로젝트별
+    자격증명이라도 tunnel 은 사용자 전역 설정을 그대로 재사용하는 것이 기본값이다.
+    """
+    from app.models.user_linear_credentials import UserLinearCredentials
+
+    result = await db.execute(
+        select(UserLinearCredentials).where(UserLinearCredentials.user_id == user.id)
+    )
+    creds = result.scalar_one_or_none()
+    return str(creds.tunnel_url) if creds is not None and creds.tunnel_url else None
+
+
 @router.put(
     "/projects/{project_id}/linear-credentials",
     response_model=ProjectLinearCredentialsResponse,
@@ -129,12 +160,57 @@ async def save_project_linear_credentials(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectLinearCredentialsResponse:
-    """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹."""
+    """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.
+
+    webhook_secret 은 프로젝트 워크스페이스의 signing secret 이라 검증 측(수신 서버)이
+    원문을 그대로 비교해야 하므로 평문 저장한다(전역 user_linear_credentials 와 동일 취급).
+    tunnel 이 해석되고 secret 이 있으면 Linear webhook 을 자동 등록하되, 등록 실패가
+    자격증명 저장을 되돌리지는 않는다(전역 플로우와 동일).
+    """
+    from app.core.crypto import decrypt as _decrypt
+    from app.services.linear_service import ensure_webhook
+
     await _require_project_access(db, project_id, user)
     creds = await _upsert_project_linear_credentials(db, project_id, data.api_key, data.team_id)
+
+    # 부분 갱신(전역 라우트 의미론): 값이 실제로 온 경우에만 덮어쓴다. 프론트는 저장 후
+    # 시크릿 입력을 비워 보내므로(null), 무조건 대입하면 두 번째 저장에서 시크릿이 지워진다.
+    if data.webhook_secret:
+        creds.webhook_secret = data.webhook_secret  # type: ignore[assignment]
+        creds.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+        await db.commit()
+        await db.refresh(creds)
+
+    tunnel = data.tunnel_url or await _fallback_tunnel_url(db, user)
+    # 이번 요청에 시크릿이 없어도 저장된 시크릿으로 등록/갱신한다 — team_id 만 바꾸는
+    # 두 번째 저장에서 훅이 옛 팀을 가리킨 채 남지 않도록.
+    secret = data.webhook_secret or (
+        str(creds.webhook_secret) if creds.webhook_secret is not None else None
+    )
+    if tunnel and secret:
+        try:
+            wh_id = await _run_sync(
+                ensure_webhook,
+                _decrypt(str(creds.encrypted_api_key)),
+                str(creds.team_id),
+                f"{tunnel.rstrip('/')}/webhook/linear",
+                secret,
+                _project_webhook_label(project_id),
+            )
+            creds.linear_webhook_id = wh_id
+            creds.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+            await db.commit()
+            await db.refresh(creds)
+        except Exception as exc:
+            # 등록 실패는 자격증명 저장을 되돌리지 않는다(전역 플로우와 동일). 다만
+            # 무언 실패는 운영자가 알 수 없으므로 남긴다 — 시크릿·API 키는 로그 금지.
+            logger.warning("프로젝트 Linear webhook 등록 실패 project=%s: %s", project_id, exc)
+
     return ProjectLinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
         team_id=str(creds.team_id),
+        webhook_secret_set=creds.webhook_secret is not None,
+        linear_webhook_id=creds.linear_webhook_id,
         updated_at=creds.updated_at or creds.created_at,
     )
 
@@ -163,6 +239,8 @@ async def get_project_linear_credentials(
     return ProjectLinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
         team_id=str(creds.team_id),
+        webhook_secret_set=creds.webhook_secret is not None,
+        linear_webhook_id=creds.linear_webhook_id,
         updated_at=creds.updated_at or creds.created_at,
     )
 
@@ -176,7 +254,10 @@ async def delete_project_linear_credentials(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """프로젝트별 Linear 자격증명 삭제."""
+    """프로젝트별 Linear 자격증명 삭제. 등록된 Linear webhook 도 함께 해지한다."""
+    from app.core.crypto import decrypt as _decrypt
+    from app.services.linear_service import delete_webhook
+
     await _require_project_access(db, project_id, user)
     result = await db.execute(
         select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
@@ -187,6 +268,24 @@ async def delete_project_linear_credentials(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="프로젝트 Linear 자격증명이 없습니다",
         )
+
+    # 자격증명이 사라지면 수신부는 이 훅의 서명을 더 이상 검증할 수 없다. 해지하지 않으면
+    # Linear 가 계속 전송한다. 해지 실패는 로깅만 하고 행 삭제는 그대로 진행한다.
+    if creds.linear_webhook_id:
+        try:
+            await _run_sync(
+                delete_webhook,
+                _decrypt(str(creds.encrypted_api_key)),
+                str(creds.linear_webhook_id),
+            )
+        except Exception as exc:
+            logger.warning(
+                "프로젝트 Linear webhook 해지 실패 project=%s webhook=%s: %s",
+                project_id,
+                creds.linear_webhook_id,
+                exc,
+            )
+
     await db.delete(creds)
     await db.commit()
 

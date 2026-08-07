@@ -9160,7 +9160,7 @@
           "integrations"
         ],
         "summary": "Save Project Linear Credentials",
-        "description": "프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.",
+        "description": "프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.\n\nwebhook_secret 은 프로젝트 워크스페이스의 signing secret 이라 검증 측(수신 서버)이\n원문을 그대로 비교해야 하므로 평문 저장한다(전역 user_linear_credentials 와 동일 취급).\ntunnel 이 해석되고 secret 이 있으면 Linear webhook 을 자동 등록하되, 등록 실패가\n자격증명 저장을 되돌리지는 않는다(전역 플로우와 동일).",
         "operationId": "save_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_put",
         "security": [
           {
@@ -9264,7 +9264,7 @@
           "integrations"
         ],
         "summary": "Delete Project Linear Credentials",
-        "description": "프로젝트별 Linear 자격증명 삭제.",
+        "description": "프로젝트별 Linear 자격증명 삭제. 등록된 Linear webhook 도 함께 해지한다.",
         "operationId": "delete_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_delete",
         "security": [
           {
@@ -22521,6 +22521,21 @@
             "type": "string",
             "title": "Team Id"
           },
+          "webhook_secret_set": {
+            "type": "boolean",
+            "title": "Webhook Secret Set"
+          },
+          "linear_webhook_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linear Webhook Id"
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
@@ -22531,6 +22546,8 @@
         "required": [
           "api_key_masked",
           "team_id",
+          "webhook_secret_set",
+          "linear_webhook_id",
           "updated_at"
         ],
         "title": "ProjectLinearCredentialsResponse"
@@ -22548,6 +22565,30 @@
             "minLength": 1,
             "title": "Team Id",
             "description": "Linear 팀 UUID"
+          },
+          "webhook_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Secret",
+            "description": "이 프로젝트 워크스페이스의 webhook signing secret"
+          },
+          "tunnel_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tunnel Url",
+            "description": "webhook 수신 공개 URL (https). 미지정 시 사용자 전역 tunnel_url 폴백"
           }
         },
         "type": "object",

@@ -10,6 +10,7 @@ import { z } from "zod";
 import {
   CheckCircle2,
   Key,
+  Link2,
   Loader2,
   Save,
   Trash2,
@@ -43,6 +44,8 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
       z.object({
         api_key: z.string().min(10, t("apiKeyInvalid")),
         team_id: z.string().min(1, t("teamIdRequired")),
+        webhook_secret: z.string().optional(),
+        tunnel_url: z.string().optional(),
       }),
     [t],
   );
@@ -56,7 +59,7 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { api_key: "", team_id: "" },
+    defaultValues: { api_key: "", team_id: "", webhook_secret: "", tunnel_url: "" },
   });
 
   const load = useCallback(async () => {
@@ -86,9 +89,11 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
       const data = await projectLinearCredentials.save(token, projectId, {
         api_key: form.api_key.trim(),
         team_id: form.team_id.trim(),
+        webhook_secret: form.webhook_secret?.trim() || null,
+        tunnel_url: form.tunnel_url?.trim() || null,
       });
       setSaved(data);
-      reset({ api_key: "", team_id: data.team_id });
+      reset({ api_key: "", team_id: data.team_id, webhook_secret: "", tunnel_url: "" });
       toast.success(t("saveSuccess"));
     } catch (err) {
       toast.error(err instanceof ApiClientError ? err.detail : t("saveFail"));
@@ -103,7 +108,7 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
     try {
       await projectLinearCredentials.delete(token, projectId);
       setSaved(null);
-      reset({ api_key: "", team_id: "" });
+      reset({ api_key: "", team_id: "", webhook_secret: "", tunnel_url: "" });
       toast.success(t("deleteSuccess"));
     } catch (err) {
       toast.error(err instanceof ApiClientError ? err.detail : t("deleteFail"));
@@ -157,6 +162,28 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
                     {saved.team_id}
                   </p>
                 </div>
+                {saved.linear_webhook_id ? (
+                  <div className="col-span-2 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <Link2 className="h-3.5 w-3.5" />
+                    <span className="font-medium">{t("webhookRegistered")}</span>
+                  </div>
+                ) : saved.webhook_secret_set ? (
+                  <div className="col-span-2 flex items-center gap-1.5 text-[var(--text-secondary)]">
+                    <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>{t("webhookSecretOnly")}</span>
+                  </div>
+                ) : null}
+
+                {/* 시크릿을 저장해도 수신부(무 DB 원칙)는 webhook.env 로 공급된 목록으로만
+                    검증한다 — 반영·재기동 전까지 모든 이벤트가 401 이므로 그 사실을 알린다. */}
+                {saved.webhook_secret_set && (
+                  <div className="col-span-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/40">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-400" />
+                    <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                      {t("webhookEnvNotice")}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
@@ -199,6 +226,44 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
                 <p className="mt-1 text-[11px] text-red-600">{errors.team_id.message}</p>
               )}
               <p className="mt-1 text-[11px] text-[var(--text-muted)]">{t("teamIdHelp")}</p>
+            </div>
+
+            {/* Webhook 설정 (옵션) */}
+            <div className="space-y-4 border-t border-[var(--border-subtle)] pt-4">
+              <h3 className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]">
+                <Link2 className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                {t("webhookSectionTitle")}
+                <span className="font-normal text-[var(--text-muted)]">
+                  {t("optional")}
+                </span>
+              </h3>
+
+              <div>
+                <label className="mb-1.5 block text-xs text-[var(--text-muted)]">
+                  {t("webhookSecretLabel")}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  placeholder="lin_wh_... (선택)"
+                  {...register("webhook_secret")}
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                />
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{t("webhookSecretHelp")}</p>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs text-[var(--text-muted)]">
+                  {t("tunnelUrlLabel")}
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://xxxx.trycloudflare.com"
+                  {...register("tunnel_url")}
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                />
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{t("tunnelUrlHelp")}</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
