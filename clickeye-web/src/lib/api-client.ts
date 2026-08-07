@@ -2041,11 +2041,41 @@ export interface ProjectLinearStatus {
   api_key_masked: string | null;
 }
 
+export interface ProjectLinearCredentialsResponse {
+  api_key_masked: string;
+  team_id: string;
+  updated_at: string;
+}
+
 export const projectLinearCredentials = {
   status: (token: string, projectId: string) =>
     authRequest<ProjectLinearStatus>(
       `/api/v1/integrations/projects/${projectId}/linear-credentials/status`,
       token,
+    ),
+
+  get: (token: string, projectId: string) =>
+    authRequest<ProjectLinearCredentialsResponse>(
+      `/api/v1/integrations/projects/${projectId}/linear-credentials`,
+      token,
+    ),
+
+  save: (
+    token: string,
+    projectId: string,
+    data: { api_key: string; team_id: string },
+  ) =>
+    authRequest<ProjectLinearCredentialsResponse>(
+      `/api/v1/integrations/projects/${projectId}/linear-credentials`,
+      token,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  delete: (token: string, projectId: string) =>
+    authRequest<void>(
+      `/api/v1/integrations/projects/${projectId}/linear-credentials`,
+      token,
+      { method: "DELETE" },
     ),
 };
 

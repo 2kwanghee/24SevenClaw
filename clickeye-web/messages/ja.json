@@ -504,7 +504,8 @@
     },
     "settings": {
       "members": "組織メンバー",
-      "anthropic": "Anthropic 認証情報"
+      "anthropic": "Anthropic 認証情報",
+      "linear": "Linear連携"
     },
     "admin": {
       "controlTower": "コントロールタワー",
@@ -1140,5 +1141,28 @@
       "backToList": "テーブル一覧へ",
       "sensitiveKeepHint": "変更時のみ入力（未入力なら現在値を維持）"
     }
+  },
+  "projectLinear": {
+    "title": "Linear連携",
+    "subtitle": "このプロジェクト専用のLinear APIキーとチームIDを登録します。",
+    "boardNotice": "登録すると、このプロジェクトのデリバリーボードのチケット詳細がこのキーで動作します。",
+    "statusLabel": "ステータス",
+    "registered": "登録済み",
+    "notRegistered": "まだ登録されていません。",
+    "apiKeyMaskedLabel": "APIキー",
+    "teamIdLabel": "チームID",
+    "apiKeyLabel": "Linear APIキー",
+    "apiKeyInvalid": "APIキーを正しく入力してください（lin_api_... 形式、10文字以上）",
+    "teamIdRequired": "チームIDを入力してください",
+    "apiKeyPlaceholderUpdate": "変更するには新しいキーを入力してください",
+    "apiKeyHelp": "キーはサーバーにFernet暗号化で保存され、保存後はマスク表示されます。",
+    "teamIdHelp": "LinearのチームURLのUUIDです。",
+    "updateBtn": "更新",
+    "saveBtn": "保存",
+    "deleteBtn": "削除",
+    "saveSuccess": "Linear認証情報を保存しました。",
+    "saveFail": "保存に失敗しました。",
+    "deleteSuccess": "Linear認証情報を削除しました。",
+    "deleteFail": "削除に失敗しました。"
   }
 }

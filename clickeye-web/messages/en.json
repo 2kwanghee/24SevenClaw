@@ -511,7 +511,8 @@
     },
     "settings": {
       "members": "Organization members",
-      "anthropic": "Anthropic credentials"
+      "anthropic": "Anthropic credentials",
+      "linear": "Linear"
     },
     "admin": {
       "controlTower": "Control tower",
@@ -1371,5 +1372,28 @@
         "empty": "Select a run to view its event timeline."
       }
     }
+  },
+  "projectLinear": {
+    "title": "Linear Integration",
+    "subtitle": "Register a Linear API key and team ID dedicated to this project.",
+    "boardNotice": "Once registered, this project's delivery board ticket details use this key.",
+    "statusLabel": "Status",
+    "registered": "Registered",
+    "notRegistered": "Not registered yet.",
+    "apiKeyMaskedLabel": "API Key",
+    "teamIdLabel": "Team ID",
+    "apiKeyLabel": "Linear API Key",
+    "apiKeyInvalid": "Enter a valid API key (lin_api_... format, at least 10 characters)",
+    "teamIdRequired": "Enter a team ID",
+    "apiKeyPlaceholderUpdate": "Enter a new key to change it",
+    "apiKeyHelp": "The key is stored Fernet-encrypted on the server and shown masked after saving.",
+    "teamIdHelp": "The UUID from your Linear team settings URL.",
+    "updateBtn": "Update",
+    "saveBtn": "Save",
+    "deleteBtn": "Delete",
+    "saveSuccess": "Linear credentials saved.",
+    "saveFail": "Failed to save.",
+    "deleteSuccess": "Linear credentials deleted.",
+    "deleteFail": "Failed to delete."
   }
 }

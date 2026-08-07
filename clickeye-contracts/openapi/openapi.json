@@ -9154,6 +9154,152 @@
         }
       }
     },
+    "/api/v1/integrations/projects/{project_id}/linear-credentials": {
+      "put": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Save Project Linear Credentials",
+        "description": "프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.",
+        "operationId": "save_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectLinearCredentialsSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLinearCredentialsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Get Project Linear Credentials",
+        "description": "프로젝트별 Linear 자격증명 조회 (API 키는 마스킹).",
+        "operationId": "get_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLinearCredentialsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Delete Project Linear Credentials",
+        "description": "프로젝트별 Linear 자격증명 삭제.",
+        "operationId": "delete_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/integrations/validate/linear": {
       "post": {
         "tags": [
@@ -22364,6 +22510,52 @@
           "generated_at"
         ],
         "title": "ProjectKPIResponse"
+      },
+      "ProjectLinearCredentialsResponse": {
+        "properties": {
+          "api_key_masked": {
+            "type": "string",
+            "title": "Api Key Masked"
+          },
+          "team_id": {
+            "type": "string",
+            "title": "Team Id"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "api_key_masked",
+          "team_id",
+          "updated_at"
+        ],
+        "title": "ProjectLinearCredentialsResponse"
+      },
+      "ProjectLinearCredentialsSave": {
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Api Key",
+            "description": "Linear API 키 (lin_api_...)"
+          },
+          "team_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Team Id",
+            "description": "Linear 팀 UUID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "api_key",
+          "team_id"
+        ],
+        "title": "ProjectLinearCredentialsSave"
       },
       "ProjectLinearStatusResponse": {
         "properties": {

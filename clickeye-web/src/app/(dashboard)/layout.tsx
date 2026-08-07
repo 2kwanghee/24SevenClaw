@@ -18,6 +18,7 @@ import {
   Shield,
   ScrollText,
   Users2,
+  Link2,
   FileText,
   Users,
   BarChart3,
@@ -129,6 +130,7 @@ const opsItems: NavItem[] = [
 const settingsItems: NavItem[] = [
   { href: "/settings/members", labelKey: "settings.members", icon: Users2 },
   { href: "/settings/anthropic", labelKey: "settings.anthropic", icon: Key },
+  { href: "/settings/linear", labelKey: "settings.linear", icon: Link2 },
 ];
 
 function NavLink({
