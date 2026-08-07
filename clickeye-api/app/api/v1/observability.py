@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -127,7 +127,10 @@ async def get_delivery_board_ticket_detail(
 
     자격증명 부재/호출 실패는 502 대신 200 + available:false 로 반환한다.
     """
-    return await ObservabilityService(db).delivery_board_ticket_detail(issue_id, user.id)
+    # Column[UUID] 추론 대응 — 런타임 값은 UUID (mypy strict, CI 실측 오류 수정)
+    return await ObservabilityService(db).delivery_board_ticket_detail(
+        issue_id, cast(UUID, user.id)
+    )
 
 
 @router.get("/seats", response_model=SeatObservabilityResponse)
