@@ -1394,6 +1394,14 @@
     "saveSuccess": "Linear 자격증명을 저장했습니다.",
     "saveFail": "저장에 실패했습니다.",
     "deleteSuccess": "Linear 자격증명을 삭제했습니다.",
-    "deleteFail": "삭제에 실패했습니다."
+    "deleteFail": "삭제에 실패했습니다.",
+    "webhookSectionTitle": "Webhook 설정",
+    "optional": "(선택)",
+    "webhookSecretLabel": "Webhook 시크릿",
+    "webhookSecretHelp": "입력하면 이 프로젝트의 Linear webhook 서명 검증에 사용됩니다. 시크릿과 터널 URL이 모두 있으면 webhook이 Linear에 자동 등록됩니다.",
+    "tunnelUrlLabel": "터널 URL",
+    "tunnelUrlHelp": "비우면 전역 설정의 터널 URL을 사용합니다.",
+    "webhookRegistered": "Webhook 등록됨",
+    "webhookSecretOnly": "시크릿 저장됨 · 미등록"
   }
 }

@@ -1163,6 +1163,14 @@
     "saveSuccess": "Linear認証情報を保存しました。",
     "saveFail": "保存に失敗しました。",
     "deleteSuccess": "Linear認証情報を削除しました。",
-    "deleteFail": "削除に失敗しました。"
+    "deleteFail": "削除に失敗しました。",
+    "webhookSectionTitle": "Webhook設定",
+    "optional": "（任意）",
+    "webhookSecretLabel": "Webhookシークレット",
+    "webhookSecretHelp": "入力すると、このプロジェクトのLinear webhook署名検証に使用されます。シークレットとトンネルURLの両方がある場合、webhookがLinearに自動登録されます。",
+    "tunnelUrlLabel": "トンネルURL",
+    "tunnelUrlHelp": "空欄の場合はグローバル設定のトンネルURLを使用します。",
+    "webhookRegistered": "Webhook登録済み",
+    "webhookSecretOnly": "シークレット保存済み · 未登録"
   }
 }

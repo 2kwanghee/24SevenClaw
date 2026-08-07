@@ -1394,6 +1394,14 @@
     "saveSuccess": "Linear credentials saved.",
     "saveFail": "Failed to save.",
     "deleteSuccess": "Linear credentials deleted.",
-    "deleteFail": "Failed to delete."
+    "deleteFail": "Failed to delete.",
+    "webhookSectionTitle": "Webhook Settings",
+    "optional": "(optional)",
+    "webhookSecretLabel": "Webhook Secret",
+    "webhookSecretHelp": "Used to verify Linear webhook signatures for this project. When both the secret and a tunnel URL are present, the webhook is auto-registered with Linear.",
+    "tunnelUrlLabel": "Tunnel URL",
+    "tunnelUrlHelp": "Leave empty to use the tunnel URL from global settings.",
+    "webhookRegistered": "Webhook registered",
+    "webhookSecretOnly": "Secret saved · not registered"
   }
 }

@@ -38,6 +38,10 @@ from linear_client import PROJECT_DIR
 DEFAULT_PORT = 9876
 DRY_RUN = False
 WEBHOOK_SECRET = None
+# 프로젝트마다 Linear 워크스페이스가 달라 signing secret 도 갈린다. 수신부는 어느
+# 워크스페이스가 보낸 요청인지 알 수 없으므로(무 DB 원칙) 후보 시크릿 전부와 대조해
+# 하나라도 맞으면 통과시킨다. WEBHOOK_SECRET(단일, 기존) + WEBHOOK_SECRETS(콤마 목록).
+WEBHOOK_SECRETS: list[str] = []
 
 # ── 수신전용(enqueue-only) 모드 ──
 # WEBHOOK_ENQUEUE_ONLY=true 면 _handle_event 가 trigger_* 대신 Redis 큐에 적재만 한다.
@@ -77,6 +81,11 @@ def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
     """Linear webhook 서명 검증."""
     expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature)
+
+
+def verify_signature_any(payload: bytes, signature: str, secrets: list) -> bool:
+    """후보 시크릿 중 하나라도 서명이 맞으면 통과 (프로젝트별 워크스페이스 대응)."""
+    return any(verify_signature(payload, signature, s) for s in secrets)
 
 
 def reset_retrigger_chain():
@@ -381,9 +390,9 @@ class WebhookHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length)
 
         # 서명 검증
-        if WEBHOOK_SECRET:
+        if WEBHOOK_SECRETS:
             signature = self.headers.get("Linear-Signature", "")
-            if not verify_signature(body, signature, WEBHOOK_SECRET):
+            if not verify_signature_any(body, signature, WEBHOOK_SECRETS):
                 log("REJECTED: 서명 검증 실패")
                 self._respond(401, {"error": "invalid signature"})
                 return
@@ -455,23 +464,41 @@ class WebhookHandler(BaseHTTPRequestHandler):
         pass
 
 
+def _split_secrets(raw: str) -> list:
+    """콤마 구분 시크릿 문자열 → 공백 트림·빈 항목 제거된 목록."""
+    return [s.strip() for s in raw.split(",") if s.strip()]
+
+
 def load_env():
-    """Load webhook secret from .env or env vars."""
-    global WEBHOOK_SECRET
+    """Load webhook secrets from env vars or .env.
 
-    secret = os.getenv("WEBHOOK_SECRET")
-    if secret:
-        WEBHOOK_SECRET = secret
-        return
+    WEBHOOK_SECRET(단일, 기존 계약)과 WEBHOOK_SECRETS(콤마 구분, 프로젝트별)를 모두 읽어
+    WEBHOOK_SECRETS 목록으로 합친다. 단일 시크릿만 설정된 환경은 목록 길이 1 → 동작 동일.
+    """
+    global WEBHOOK_SECRET, WEBHOOK_SECRETS
 
-    env_path = os.path.join(PROJECT_DIR, ".env")
-    if os.path.exists(env_path):
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("WEBHOOK_SECRET="):
-                    WEBHOOK_SECRET = line.split("=", 1)[1].strip()
-                    return
+    single = os.getenv("WEBHOOK_SECRET", "").strip()
+    multi = os.getenv("WEBHOOK_SECRETS", "").strip()
+
+    # env 로 아무것도 안 온 항목만 .env 폴백으로 채운다(env 우선, 기존 우선순위 유지).
+    if not single or not multi:
+        env_path = os.path.join(PROJECT_DIR, ".env")
+        if os.path.exists(env_path):
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not single and line.startswith("WEBHOOK_SECRET="):
+                        single = line.split("=", 1)[1].strip()
+                    elif not multi and line.startswith("WEBHOOK_SECRETS="):
+                        multi = line.split("=", 1)[1].strip()
+
+    WEBHOOK_SECRET = single or None
+
+    merged = []
+    for candidate in ([single] if single else []) + _split_secrets(multi):
+        if candidate not in merged:
+            merged.append(candidate)
+    WEBHOOK_SECRETS = merged
 
 
 def main():
@@ -491,15 +518,17 @@ def main():
     #   방어선이므로 WEBHOOK_SECRET 이 없으면 기동을 거부한다. 미검증 상태로 인터넷에
     #   노출되면 임의 POST 가 그대로 큐에 적재돼 호스트 파이프라인을 점화할 수 있다.
     #   호스트 단독 모드(ENQUEUE_ONLY 미설정)는 기존 경고만 유지 — 회귀 0.
-    if ENQUEUE_ONLY and not WEBHOOK_SECRET:
-        log("FATAL: 수신전용 모드는 WEBHOOK_SECRET 필수(공개 노출부) — 기동 거부")
+    if ENQUEUE_ONLY and not WEBHOOK_SECRETS:
+        log("FATAL: 수신전용 모드는 WEBHOOK_SECRET(S) 필수(공개 노출부) — 기동 거부")
         sys.exit(2)
 
     server = HTTPServer(("0.0.0.0", args.port), WebhookHandler)
     log(f"Linear Webhook 서버 시작: http://0.0.0.0:{args.port}")
     log(f"  Webhook URL: http://<서버IP>:{args.port}/webhook/linear")
     log(f"  Health check: http://localhost:{args.port}/health")
-    log(f"  서명 검증: {'활성' if WEBHOOK_SECRET else '비활성 (WEBHOOK_SECRET 미설정)'}")
+    log(
+        f"  서명 검증: {f'활성 (시크릿 {len(WEBHOOK_SECRETS)}개)' if WEBHOOK_SECRETS else '비활성 (WEBHOOK_SECRET 미설정)'}"
+    )
     log(f"  Dry-run: {DRY_RUN}")
     log("")
     log("Linear Settings → API → Webhooks 에서 위 URL을 등록하세요.")

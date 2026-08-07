@@ -118,6 +118,21 @@ async def _require_project_access(db: AsyncSession, project_id: UUID, user: User
         )
 
 
+async def _fallback_tunnel_url(db: AsyncSession, user: User) -> str | None:
+    """요청에 tunnel_url 이 없을 때 쓰는 폴백 — 요청 사용자의 전역 Linear 설정값.
+
+    수신 서버는 프로젝트마다 따로 뜨지 않고 하나의 공개 URL 을 공유하므로, 프로젝트별
+    자격증명이라도 tunnel 은 사용자 전역 설정을 그대로 재사용하는 것이 기본값이다.
+    """
+    from app.models.user_linear_credentials import UserLinearCredentials
+
+    result = await db.execute(
+        select(UserLinearCredentials).where(UserLinearCredentials.user_id == user.id)
+    )
+    creds = result.scalar_one_or_none()
+    return str(creds.tunnel_url) if creds is not None and creds.tunnel_url else None
+
+
 @router.put(
     "/projects/{project_id}/linear-credentials",
     response_model=ProjectLinearCredentialsResponse,
@@ -129,12 +144,47 @@ async def save_project_linear_credentials(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectLinearCredentialsResponse:
-    """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹."""
+    """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.
+
+    webhook_secret 은 프로젝트 워크스페이스의 signing secret 이라 검증 측(수신 서버)이
+    원문을 그대로 비교해야 하므로 평문 저장한다(전역 user_linear_credentials 와 동일 취급).
+    tunnel 이 해석되고 secret 이 있으면 Linear webhook 을 자동 등록하되, 등록 실패가
+    자격증명 저장을 되돌리지는 않는다(전역 플로우와 동일).
+    """
+    from app.core.crypto import decrypt as _decrypt
+    from app.services.linear_service import ensure_webhook
+
     await _require_project_access(db, project_id, user)
     creds = await _upsert_project_linear_credentials(db, project_id, data.api_key, data.team_id)
+
+    creds.webhook_secret = data.webhook_secret  # type: ignore[assignment]
+    creds.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+    await db.commit()
+    await db.refresh(creds)
+
+    tunnel = data.tunnel_url or await _fallback_tunnel_url(db, user)
+    if tunnel and data.webhook_secret:
+        try:
+            wh_id = await _run_sync(
+                ensure_webhook,
+                _decrypt(str(creds.encrypted_api_key)),
+                str(creds.team_id),
+                f"{tunnel.rstrip('/')}/webhook/linear",
+                data.webhook_secret,
+                "ClickEye",
+            )
+            creds.linear_webhook_id = wh_id  # type: ignore[assignment]
+            creds.updated_at = datetime.now(UTC)  # type: ignore[assignment]
+            await db.commit()
+            await db.refresh(creds)
+        except Exception:
+            pass  # webhook 등록 실패는 무시 (자격증명 저장은 성공)
+
     return ProjectLinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
         team_id=str(creds.team_id),
+        webhook_secret_set=creds.webhook_secret is not None,
+        linear_webhook_id=creds.linear_webhook_id,
         updated_at=creds.updated_at or creds.created_at,
     )
 
@@ -163,6 +213,8 @@ async def get_project_linear_credentials(
     return ProjectLinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
         team_id=str(creds.team_id),
+        webhook_secret_set=creds.webhook_secret is not None,
+        linear_webhook_id=creds.linear_webhook_id,
         updated_at=creds.updated_at or creds.created_at,
     )
 
