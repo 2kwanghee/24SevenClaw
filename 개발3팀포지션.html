@@ -1,0 +1,574 @@
+<title>AX 딜리버리 팀 브리프 — 하나의 팀, 세 개의 채널</title>
+<style>
+  :root {
+    --ink: #16242e;
+    --paper: #fbfcfc;
+    --surface: #f0f4f4;
+    --line: #d7dfe0;
+    --accent: #0e7c7b;
+    --accent-deep: #0a5a59;
+    --amber: #c97a1f;
+    --muted: #5c6b72;
+    --radius: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e6edee;
+      --paper: #121b1f;
+      --surface: #1a262b;
+      --line: #2c3b41;
+      --accent: #3db8b6;
+      --accent-deep: #5accca;
+      --amber: #e09a44;
+      --muted: #8fa1a8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e6edee;
+    --paper: #121b1f;
+    --surface: #1a262b;
+    --line: #2c3b41;
+    --accent: #3db8b6;
+    --accent-deep: #5accca;
+    --amber: #e09a44;
+    --muted: #8fa1a8;
+  }
+  :root[data-theme="light"] {
+    --ink: #16242e;
+    --paper: #fbfcfc;
+    --surface: #f0f4f4;
+    --line: #d7dfe0;
+    --accent: #0e7c7b;
+    --accent-deep: #0a5a59;
+    --amber: #c97a1f;
+    --muted: #5c6b72;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    font-family: "Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.7;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 56px 48px 72px;
+  }
+
+  /* ---------- 공통 타이포 ---------- */
+  .eyebrow {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1.28;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h3 { font-size: 15.5px; font-weight: 700; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .lede {
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+  .section {
+    margin-top: 72px;
+    padding-top: 36px;
+    border-top: 2px solid var(--ink);
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .section-head .no {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .section-sub { color: var(--muted); max-width: 66ch; margin-bottom: 24px; }
+
+  /* ---------- 표지 ---------- */
+  .cover { padding-top: 8px; }
+  .cover-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    margin-bottom: 44px;
+    border-bottom: 2px solid var(--ink);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .cover-meta strong { color: var(--ink); letter-spacing: 0.14em; }
+  .accent-word { color: var(--accent); }
+  .cover-claims {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 36px;
+  }
+  .claim {
+    background: var(--surface);
+    padding: 18px 18px 16px;
+  }
+  .claim .k {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .claim .v { font-size: 14px; font-weight: 700; line-height: 1.5; }
+
+  /* ---------- 인식 전환 테이블 ---------- */
+  .shift { display: grid; gap: 10px; }
+  .shift-row {
+    display: grid;
+    grid-template-columns: 1fr 28px 1.2fr;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .shift-row .from {
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--muted) 55%, transparent);
+    text-decoration-thickness: 1.5px;
+  }
+  .shift-row .arrow { color: var(--accent); font-weight: 800; text-align: center; }
+  .shift-row .to { font-weight: 700; font-size: 14.5px; }
+
+  /* ---------- 멀티캐스트 다이어그램 ---------- */
+  .diagram-wrap { margin: 8px 0 28px; overflow-x: auto; }
+  .diagram-wrap svg { display: block; width: 100%; height: auto; min-width: 560px; }
+
+  /* ---------- 채널 카드 ---------- */
+  .channels { display: grid; gap: 16px; }
+  .channel {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px 18px;
+    background: var(--paper);
+    position: relative;
+  }
+  .channel::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--accent);
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .channel.ch-amber::before { background: var(--amber); }
+  .channel-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .channel-head .tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .channel.ch-amber .channel-head .tag { color: var(--amber); }
+  .channel-head h3 { font-size: 17px; }
+  .channel p { color: var(--muted); font-size: 14.5px; max-width: 68ch; }
+  .channel ul {
+    margin: 10px 0 4px;
+    padding-left: 18px;
+    font-size: 14px;
+    display: grid;
+    gap: 4px;
+  }
+  .channel li::marker { color: var(--accent); }
+
+  /* ---------- 엔진(플랫폼) ---------- */
+  .engine-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .engine-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px 14px;
+  }
+  .engine-card h3 { color: var(--accent-deep); }
+  .engine-card p { font-size: 13.5px; color: var(--muted); margin-bottom: 0; }
+
+  /* ---------- 파이프라인 스텝 ---------- */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    counter-reset: step;
+  }
+  .flow-step {
+    counter-increment: step;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 14px 12px;
+  }
+  .flow-step::before {
+    content: counter(step, decimal-leading-zero);
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .flow-step strong { display: block; font-size: 13.5px; margin-bottom: 3px; }
+  .flow-step span { font-size: 12px; color: var(--muted); line-height: 1.5; display: block; }
+
+  /* ---------- 협업 방법 ---------- */
+  .ask-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ask-card {
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px 14px;
+  }
+  .ask-card h3 { color: var(--accent-deep); }
+  .ask-card ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+  .ask-card li::marker { color: var(--amber); }
+
+  .footer {
+    margin-top: 72px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- 반응형 ---------- */
+  @media (max-width: 720px) {
+    .sheet { padding: 36px 22px 56px; }
+    h1 { font-size: 30px; }
+    .cover-claims, .engine-grid, .ask-grid { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr 1fr; }
+    .shift-row { grid-template-columns: 1fr; gap: 6px; }
+    .shift-row .arrow { display: none; }
+  }
+
+  /* ---------- 인쇄 ---------- */
+  @page { size: A4; margin: 16mm 14mm; }
+  @media print {
+    :root {
+      --ink: #16242e; --paper: #ffffff; --surface: #f2f5f5;
+      --line: #c9d3d4; --accent: #0e7c7b; --accent-deep: #0a5a59;
+      --amber: #c97a1f; --muted: #4d5b62;
+    }
+    body { font-size: 12.5px; background: #fff; }
+    .sheet { max-width: none; padding: 0; }
+    h1 { font-size: 32px; }
+    .section { margin-top: 40px; padding-top: 24px; }
+    .section-break { break-before: page; margin-top: 0; padding-top: 0; border-top: none; }
+    .channel, .engine-card, .flow-step, .shift-row, .ask-card, .claim { break-inside: avoid; }
+    * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
+
+<div class="sheet">
+
+  <!-- ============ 표지 ============ -->
+  <header class="cover">
+    <div class="cover-meta">
+      <strong>TEAM BRIEF</strong>
+      <span>AX 딜리버리 팀 · 2026. 08</span>
+    </div>
+    <p class="eyebrow">One Team, Three Channels</p>
+    <h1>유지보수 팀이 아닙니다.<br>회사의 <span class="accent-word">AX 전환</span>을 딜리버리하는 팀입니다.</h1>
+    <p class="lede">
+      우리 팀은 사내 솔루션을 관리하는 데 머무르지 않습니다.
+      AI 개발 자동화 플랫폼 <strong>ClickEye</strong>를 직접 설계·운영하며,
+      이 엔진 위에서 <strong>AX 문화 조성 · SI 프로젝트 수행 · 타팀 업무 대행</strong>이라는
+      세 개의 채널로 동시에 가치를 전달합니다. 하나의 소스에서 여러 수신처로 —
+      우리가 스스로를 <strong>멀티캐스팅 팀</strong>이라 부르는 이유입니다.
+    </p>
+    <div class="cover-claims">
+      <div class="claim">
+        <span class="k">CHANNEL 01</span>
+        <span class="v">AX 전환 &amp; 사내 AI 문화 조성</span>
+      </div>
+      <div class="claim">
+        <span class="k">CHANNEL 02</span>
+        <span class="v">SI 프로젝트 딜리버리</span>
+      </div>
+      <div class="claim">
+        <span class="k">CHANNEL 03</span>
+        <span class="v">타팀 업무 대행 서비스</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 1. 인식의 전환 ============ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="no">01</span>
+      <h2>인식의 전환 — 우리가 실제로 하는 일</h2>
+    </div>
+    <p class="section-sub">
+      "솔루션 유지보수 팀"이라는 인식과 실제 역할 사이에는 간극이 있습니다.
+      아래는 그 간극을 바로잡는 세 줄 요약입니다.
+    </p>
+    <div class="shift">
+      <div class="shift-row">
+        <span class="from">사내 솔루션을 고쳐주는 팀</span>
+        <span class="arrow">→</span>
+        <span class="to">AI 딜리버리 팩토리를 설계하고 운영하는 팀</span>
+      </div>
+      <div class="shift-row">
+        <span class="from">요청이 오면 처리하는 지원 조직</span>
+        <span class="arrow">→</span>
+        <span class="to">타팀의 업무를 통째로 맡아 수행하는 대행 서비스 조직</span>
+      </div>
+      <div class="shift-row">
+        <span class="from">IT 인프라를 관리하는 부서</span>
+        <span class="arrow">→</span>
+        <span class="to">전사 AX 전환의 방법론과 문화를 만들어 전파하는 조직</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. 멀티캐스트 구조 ============ -->
+  <section class="section section-break">
+    <div class="section-head">
+      <span class="no">02</span>
+      <h2>멀티캐스팅 — 하나의 엔진, 세 개의 채널</h2>
+    </div>
+    <p class="section-sub">
+      세 채널은 별개의 업무가 아니라 같은 엔진의 세 가지 출력입니다.
+      한 채널에서 축적한 역량이 나머지 두 채널의 품질을 끌어올립니다.
+    </p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 760 240" role="img" aria-label="ClickEye 엔진에서 세 개의 채널로 가치가 전달되는 멀티캐스트 구조도">
+        <defs>
+          <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+        <!-- 소스 노드 -->
+        <rect x="20" y="80" width="200" height="80" rx="8" fill="var(--accent)" opacity="0.12"/>
+        <rect x="20" y="80" width="200" height="80" rx="8" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <text x="120" y="114" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)">AX 딜리버리 팀</text>
+        <text x="120" y="136" text-anchor="middle" font-size="11.5" fill="var(--muted)">ClickEye 플랫폼 + AI 파이프라인</text>
+        <!-- 연결선 -->
+        <path d="M220 120 C 300 120, 300 44, 380 44" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrw)"/>
+        <path d="M220 120 L 380 120" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrw)"/>
+        <path d="M220 120 C 300 120, 300 196, 380 196" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrw)"/>
+        <!-- 채널 노드 -->
+        <g>
+          <rect x="388" y="16" width="352" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="408" y="40" font-size="13" font-weight="700" fill="var(--ink)">CH 01 · AX 전환 &amp; 문화 조성</text>
+          <text x="408" y="58" font-size="11" fill="var(--muted)">방법론 전파 · 교육 · 사내 AI 네이티브 개발 문화</text>
+        </g>
+        <g>
+          <rect x="388" y="92" width="352" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="408" y="116" font-size="13" font-weight="700" fill="var(--ink)">CH 02 · SI 프로젝트 딜리버리</text>
+          <text x="408" y="134" font-size="11" fill="var(--muted)">설계 → 실행 → 추적, AI 팀 오케스트레이션</text>
+        </g>
+        <g>
+          <rect x="388" y="168" width="352" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="408" y="192" font-size="13" font-weight="700" fill="var(--ink)">CH 03 · 타팀 업무 대행 서비스</text>
+          <text x="408" y="210" font-size="11" fill="var(--muted)">요청 접수 → AI 수행 → 사람 검수 → 납품</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="channels">
+      <article class="channel">
+        <div class="channel-head">
+          <span class="tag">CHANNEL 01</span>
+          <h3>AX 전환 &amp; 사내 AI 문화 조성</h3>
+        </div>
+        <p>
+          AI를 "써보는" 단계를 넘어 <strong>업무의 기본 방식으로 정착</strong>시키는 일을 합니다.
+          우리 팀이 매일 실전에서 검증한 방법론을 사내 표준으로 다듬어 전파합니다.
+        </p>
+        <ul>
+          <li>AI 에이전트 개발 방법론(하네스 엔지니어링, 모델 라우팅) 사내 전파</li>
+          <li>AI 산출물 품질을 보증하는 거버넌스 게이트 설계·운영 노하우 공유</li>
+          <li>타팀 대상 AI 도입 가이드, 교육, 온보딩 지원</li>
+        </ul>
+      </article>
+
+      <article class="channel">
+        <div class="channel-head">
+          <span class="tag">CHANNEL 02</span>
+          <h3>SI 프로젝트 딜리버리</h3>
+        </div>
+        <p>
+          ClickEye 딜리버리 콘솔에서 프로젝트를 <strong>설계하고, AI 팀을 투입해 실행하고, 전 과정을 추적</strong>합니다.
+          기존 SI 대비 소수 인원으로 더 넓은 범위를 커버하는 것이 핵심 경쟁력입니다.
+        </p>
+        <ul>
+          <li>인게이지먼트 설계부터 납품까지 웹 콘솔에서 일원 관리</li>
+          <li>Claude · Gemini · Cursor · Codex 멀티 에이전트 병렬 투입</li>
+          <li>티켓 기반 진행 추적 — 요청부터 납품까지 모든 단계가 기록으로 남음</li>
+        </ul>
+      </article>
+
+      <article class="channel ch-amber">
+        <div class="channel-head">
+          <span class="tag">CHANNEL 03</span>
+          <h3>타팀 업무 대행 서비스</h3>
+        </div>
+        <p>
+          "이 일 좀 도와주세요"가 아니라 <strong>"이 일을 통째로 맡아주세요"</strong>가 가능한 구조입니다.
+          요청은 티켓 하나로 접수되고, AI 파이프라인이 수행하며, 사람이 검수해 납품합니다.
+        </p>
+        <ul>
+          <li>반복 업무 자동화 — 리포트 생성, 데이터 정리, 문서 현행화</li>
+          <li>사내 도구 개발 — 타팀 전용 대시보드, 소규모 웹 도구, 스크립트</li>
+          <li>기존 시스템 개선 — 기능 추가, 화면 개선, 연동 작업</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ 3. 엔진 ============ -->
+  <section class="section section-break">
+    <div class="section-head">
+      <span class="no">03</span>
+      <h2>이것을 가능하게 하는 엔진 — ClickEye</h2>
+    </div>
+    <p class="section-sub">
+      세 채널을 동시에 감당할 수 있는 이유는 사람을 늘려서가 아니라,
+      우리가 직접 만든 AI 딜리버리 플랫폼이 반복 가능한 생산 체계를 제공하기 때문입니다.
+    </p>
+    <div class="engine-grid">
+      <div class="engine-card">
+        <h3>딜리버리 콘솔</h3>
+        <p>브라우저에서 프로젝트를 설계·실행·추적하는 웹 콘솔. 진행 상황이 실시간 대시보드로 공유되어 요청자가 언제든 상태를 확인할 수 있습니다.</p>
+      </div>
+      <div class="engine-card">
+        <h3>멀티 에이전트 오케스트레이션</h3>
+        <p>Claude Code, Gemini CLI, Cursor, Codex 등 복수의 AI 에이전트를 역할별로 배치하고 병렬 실행합니다. 계획·구현·리뷰를 서로 다른 에이전트가 분담합니다.</p>
+      </div>
+      <div class="engine-card">
+        <h3>거버넌스 게이트</h3>
+        <p>AI가 만든 결과물이 그대로 나가지 않습니다. 계약 검증·위험 분류·머지 게이트를 통과해야 납품되며, 고위험 변경은 자동으로 사람 승인 경로로 전환됩니다.</p>
+      </div>
+      <div class="engine-card">
+        <h3>자동화 파이프라인</h3>
+        <p>티켓 등록부터 개발·테스트·문서 현행화·납품까지 이어지는 자동 파이프라인. 모든 산출물이 티켓과 연결되어 추적 가능합니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. 작동 방식 ============ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="no">04</span>
+      <h2>일이 흘러가는 방식</h2>
+    </div>
+    <p class="section-sub">
+      어느 채널이든 동일한 다섯 단계를 거칩니다. 표준화된 흐름이기 때문에
+      품질이 담당자 개인기에 좌우되지 않습니다.
+    </p>
+    <div class="flow">
+      <div class="flow-step">
+        <strong>요청 접수</strong>
+        <span>티켓 한 장으로 접수. 구두 요청도 티켓으로 전환</span>
+      </div>
+      <div class="flow-step">
+        <strong>스펙 정제</strong>
+        <span>거친 요청을 AI가 구현 스펙으로 다듬고 범위 확정</span>
+      </div>
+      <div class="flow-step">
+        <strong>AI 수행</strong>
+        <span>역할 분담된 AI 팀이 병렬로 구현·테스트</span>
+      </div>
+      <div class="flow-step">
+        <strong>검증 게이트</strong>
+        <span>자동 검증 + 사람 검수. 고위험 건은 승인 필수</span>
+      </div>
+      <div class="flow-step">
+        <strong>납품 &amp; 추적</strong>
+        <span>결과 전달, 전 과정 기록 보존</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. 함께 일하는 법 ============ -->
+  <section class="section">
+    <div class="section-head">
+      <span class="no">05</span>
+      <h2>우리 팀과 함께 일하는 법</h2>
+    </div>
+    <div class="ask-grid">
+      <div class="ask-card">
+        <h3>이런 일을 맡겨 주세요</h3>
+        <ul>
+          <li>손이 부족해 미뤄둔 개발·자동화 과제</li>
+          <li>매주/매월 반복되는 수작업 업무</li>
+          <li>팀 전용 대시보드·도구가 필요한 경우</li>
+          <li>AI를 우리 팀 업무에 도입하고 싶은 경우</li>
+        </ul>
+      </div>
+      <div class="ask-card">
+        <h3>요청 방법</h3>
+        <ul>
+          <li>팀 채널 또는 담당자에게 요청 내용 전달</li>
+          <li>티켓 등록 후 진행 상황은 대시보드에서 확인</li>
+          <li>규모가 있는 건은 킥오프 미팅으로 범위 협의</li>
+          <li>완료 후 결과 리뷰와 인수인계까지 지원</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>AX 딜리버리 팀 — One Team, Three Channels</span>
+    <span>ClickEye Platform · 2026. 08</span>
+  </footer>
+
+</div>
