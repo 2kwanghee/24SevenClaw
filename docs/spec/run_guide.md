@@ -1,8 +1,8 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: needs-revision
-last_updated: 2026-08-05
+status: current
+last_updated: 2026-08-08
 related:
   - scripts/fullstack_run.sh
   - clickeye-api/scripts/service_key.py
@@ -190,9 +190,16 @@ curl -s http://127.0.0.1:9876/health
 # 응답: {"status":"ok","dry_run":false,"enqueue_only":true} 이면 정상
 ```
 
-> **WEBHOOK_SECRET 필수**: 수신전용 모드는 공개 노출부이므로 `WEBHOOK_SECRET`(Linear
-> Settings→API→Webhooks 의 Signing Secret)이 비어 있으면 컨테이너가 기동을 거부합니다.
-> 값은 `clickeye-infra/docker/.env` 또는 셸 환경에 두고 주입합니다.
+> **웹훅 시크릿 필수 (3-레벨 지원, CE-417)**: 수신전용 모드는 공개 노출부이므로 웹훅 시크릿이 
+> 비어 있으면 컨테이너가 기동을 거부합니다(fail-closed). 값은 `clickeye-infra/managed/webhook.env`
+> 또는 셸 환경에 주입합니다. 지원 방식:
+>
+> 1. **WEBHOOK_SECRET** — 레거시 단일 시크릿(Linear Settings→API→Webhooks 의 Signing Secret)
+> 2. **WEBHOOK_SECRETS** — 멀티 시크릿(콤마 분리, 하나 일치 통과, 팀 검사 없음 — 단일 조직용)
+> 3. **WEBHOOK_SECRET_MAP** — 프로젝트별 시크릿(`팀ID=시크릿` 쌍, 멀티 테넌트용). 서명 일치 후 
+>    팀 ID 강제 검사(크로스테넌트 사칭 방지). 예: `WEBHOOK_SECRET_MAP=team-a=lin_wh_...,team-b=lin_wh_...`
+>
+> 세 변수 모두 비어 있거나 형식 오류(예: `=` 없음)면 컨테이너는 기동을 거부합니다.
 
 ### 3-1b. 호스트 실행 워커 시작 (큐 소비 → 파이프라인 실행)
 

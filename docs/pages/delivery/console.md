@@ -1,7 +1,7 @@
 ---
 title: 딜리버리 콘솔 (인게이지먼트)
 category: page
-status: needs-revision   # I-14 IA 변경 확정 — 구현은 별도 승인 후
+status: current   # I-14 IA 변경 확정 — 구현은 별도 승인 후
 version: 1.0.0
 route: /delivery/[engagementId]
 pages:
