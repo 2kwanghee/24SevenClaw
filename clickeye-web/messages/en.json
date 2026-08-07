@@ -1056,6 +1056,30 @@
     }
   },
   "ops": {
+    "webhook": {
+      "title": "Webhook secret wiring",
+      "description": "Renders registered project webhook secrets into WEBHOOK_SECRET_MAP in webhook.env. Secret plaintext is never shown.",
+      "renderButton": "Render webhook.env",
+      "statusError": "Failed to load wiring status.",
+      "projectCount": "Target projects",
+      "projectCountValue": "{withSecret} / {total}",
+      "projectCountHint": "with secret / total",
+      "fileState": "File state",
+      "fileExists": "Exists",
+      "fileMissing": "Missing",
+      "mapLine": "MAP line",
+      "mapPresent": "Present",
+      "mapAbsent": "Absent",
+      "renderedPath": "Rendered path",
+      "legacyWarning": "Legacy WEBHOOK_SECRET(S) present — those secrets bypass team verification, so clear them for multi-tenant operation.",
+      "entryCount": "Entries",
+      "skippedTitle": "{count} skipped",
+      "restartCommand": "Restart command",
+      "restartNotice": "New secrets are not applied to inbound webhooks until restart. Run the command below manually in your ops environment.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "error": "Failed to render webhook.env."
+    },
     "containers": {
       "pageTitle": "Containers & Ports",
       "pageDescription": "View running container status and service port reachability. Read-only.",

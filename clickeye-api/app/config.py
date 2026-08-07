@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     docker_proxy_url: str = "http://dockerproxy:2375"
     # 관리형 env 파일 마운트 경로 (env CRUD PR 에서 사용).
     managed_env_path: str = "/app/managed/api.env"
+    # webhook 수신부 전용 관리형 env 파일 경로 (CE-421, WEBHOOK_SECRET_MAP 렌더 대상).
+    # managed_env_path 와 동일하게 컨테이너 마운트 절대경로를 기본으로 둔다.
+    webhook_env_path: str = "/app/managed/webhook.env"
     # 포트 프로브 대상 목록. 형식: "host:port" 또는 "service=host:port". JSON 배열로 주입.
     ops_port_targets: list[str] = []
     # 관리형 서비스명 목록 (env 렌더/재생성 안내 대상). JSON 배열로 주입.

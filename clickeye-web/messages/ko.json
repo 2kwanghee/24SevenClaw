@@ -1056,6 +1056,30 @@
     }
   },
   "ops": {
+    "webhook": {
+      "title": "Webhook 시크릿 배선",
+      "description": "등록된 프로젝트 webhook 시크릿을 webhook.env 의 WEBHOOK_SECRET_MAP 으로 렌더합니다. 시크릿 평문은 표시되지 않습니다.",
+      "renderButton": "webhook.env 렌더",
+      "statusError": "배선 상태를 불러오지 못했습니다.",
+      "projectCount": "대상 프로젝트",
+      "projectCountValue": "{withSecret} / {total}",
+      "projectCountHint": "시크릿 보유 / 전체",
+      "fileState": "파일 상태",
+      "fileExists": "존재함",
+      "fileMissing": "없음",
+      "mapLine": "MAP 라인",
+      "mapPresent": "있음",
+      "mapAbsent": "없음",
+      "renderedPath": "렌더 경로",
+      "legacyWarning": "레거시 WEBHOOK_SECRET(S) 공존 — 해당 시크릿은 팀 검사를 받지 않으므로 멀티 테넌트 운영이면 비우십시오.",
+      "entryCount": "기록 항목",
+      "skippedTitle": "제외된 항목 {count}건",
+      "restartCommand": "재기동 명령",
+      "restartNotice": "재기동 전까지 새 시크릿은 수신에 반영되지 않습니다. 아래 명령을 운영 환경에서 직접 실행하십시오.",
+      "copy": "복사",
+      "copied": "복사됨",
+      "error": "webhook.env 렌더에 실패했습니다."
+    },
     "containers": {
       "pageTitle": "컨테이너 & 포트",
       "pageDescription": "실행 중인 컨테이너 상태와 서비스 포트 연결 상태를 확인합니다. 조회 전용입니다.",

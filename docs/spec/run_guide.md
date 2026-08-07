@@ -1,7 +1,7 @@
 ---
 title: 서비스 실행 가이드 (운영자용)
 category: guide
-status: current
+status: needs-revision
 last_updated: 2026-08-08
 related:
   - scripts/fullstack_run.sh

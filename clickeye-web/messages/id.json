@@ -1048,6 +1048,30 @@
     }
   },
   "ops": {
+    "webhook": {
+      "title": "Perkabelan rahasia webhook",
+      "description": "Merender rahasia webhook proyek terdaftar ke WEBHOOK_SECRET_MAP di webhook.env. Teks asli rahasia tidak pernah ditampilkan.",
+      "renderButton": "Render webhook.env",
+      "statusError": "Gagal memuat status perkabelan.",
+      "projectCount": "Proyek target",
+      "projectCountValue": "{withSecret} / {total}",
+      "projectCountHint": "punya rahasia / total",
+      "fileState": "Status berkas",
+      "fileExists": "Ada",
+      "fileMissing": "Tidak ada",
+      "mapLine": "Baris MAP",
+      "mapPresent": "Ada",
+      "mapAbsent": "Tidak ada",
+      "renderedPath": "Path render",
+      "legacyWarning": "WEBHOOK_SECRET(S) lama masih ada — rahasia tersebut melewati verifikasi tim, jadi kosongkan untuk operasi multi-tenant.",
+      "entryCount": "Entri",
+      "skippedTitle": "{count} dilewati",
+      "restartCommand": "Perintah restart",
+      "restartNotice": "Rahasia baru tidak diterapkan ke webhook masuk hingga dimulai ulang. Jalankan perintah di bawah secara manual di lingkungan operasi Anda.",
+      "copy": "Salin",
+      "copied": "Disalin",
+      "error": "Gagal merender webhook.env."
+    },
     "containers": {
       "pageTitle": "Kontainer & Port",
       "pageDescription": "Lihat status kontainer yang berjalan dan keterjangkauan port layanan. Hanya-baca.",

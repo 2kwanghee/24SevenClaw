@@ -303,6 +303,39 @@ export interface OpsEnvRenderResponse {
   [key: string]: unknown;
 }
 
+// webhook.env 자동 배선 (WEBHOOK_SECRET_MAP 렌더) — 시크릿 평문은 응답에 없음.
+
+export interface OpsWebhookProject {
+  project_id: string;
+  project_name: string;
+  team_id: string;
+  has_secret: boolean;
+}
+
+export interface OpsWebhookStatus {
+  rendered_path: string;
+  file_exists: boolean;
+  map_line_present: boolean;
+  legacy_present: boolean;
+  projects: OpsWebhookProject[];
+}
+
+export interface OpsWebhookSkipped {
+  project_id: string;
+  project_name: string;
+  team_id: string;
+  reason: string;
+}
+
+export interface OpsWebhookRenderResult {
+  rendered_path: string;
+  rendered_at: string;
+  entry_count: number;
+  skipped: OpsWebhookSkipped[];
+  legacy_present: boolean;
+  restart_command: string;
+}
+
 export interface OpsTableInfo {
   key: string;
   label: string;
@@ -376,6 +409,19 @@ export const ops = {
       method: "POST",
       body: JSON.stringify({ confirm } satisfies OpsEnvRenderRequest),
     }),
+
+  getWebhookStatus: (token: string) =>
+    authRequest<OpsWebhookStatus>(
+      "/api/v1/admin/ops/env/webhook/status",
+      token,
+    ),
+
+  renderWebhook: (token: string) =>
+    authRequest<OpsWebhookRenderResult>(
+      "/api/v1/admin/ops/env/webhook/render",
+      token,
+      { method: "POST" },
+    ),
 
   listTables: (token: string) =>
     authRequest<OpsTableInfo[]>("/api/v1/admin/ops/tables", token),

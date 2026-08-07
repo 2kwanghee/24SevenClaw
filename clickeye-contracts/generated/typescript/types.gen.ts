@@ -3327,6 +3327,106 @@ export type VerificationRecordRequest = {
     report: string;
 };
 
+/**
+ * WEBHOOK_SECRET_MAP 후보 1건 — 시크릿 평문은 절대 포함하지 않는다.
+ */
+export type WebhookEnvProjectItem = {
+    /**
+     * 프로젝트 ID
+     */
+    project_id: string;
+    /**
+     * 프로젝트명
+     */
+    project_name: string;
+    /**
+     * Linear 팀 ID(MAP 의 좌변)
+     */
+    team_id: string;
+    /**
+     * webhook signing secret 보유 여부(값은 미반환)
+     */
+    has_secret: boolean;
+};
+
+/**
+ * webhook.env 렌더 결과 — MAP 라인만 교체하며 docker/재기동은 실행하지 않는다.
+ */
+export type WebhookEnvRenderResult = {
+    /**
+     * 렌더된 webhook.env 경로
+     */
+    rendered_path: string;
+    /**
+     * 렌더 시각
+     */
+    rendered_at: string;
+    /**
+     * MAP 에 기록된 teamId=secret 항목 수
+     */
+    entry_count: number;
+    /**
+     * 파서 파괴 문자로 제외된 항목
+     */
+    skipped?: Array<WebhookEnvSkippedItem>;
+    /**
+     * 값이 채워진 WEBHOOK_SECRET(S) 라인이 남아 있는지(팀 검사 미적용 경고)
+     */
+    legacy_present: boolean;
+    /**
+     * 사용자가 수동 실행할 webhook 재생성 명령(백엔드는 실행하지 않음)
+     */
+    restart_command: string;
+};
+
+/**
+ * 파서 파괴 문자로 MAP 에서 제외된 항목(fail-closed) — 시크릿 값 미포함.
+ */
+export type WebhookEnvSkippedItem = {
+    /**
+     * 제외된 프로젝트 ID
+     */
+    project_id: string;
+    /**
+     * 제외된 프로젝트명
+     */
+    project_name: string;
+    /**
+     * Linear 팀 ID
+     */
+    team_id: string;
+    /**
+     * 제외 사유(시크릿 값은 포함하지 않음)
+     */
+    reason: string;
+};
+
+/**
+ * 렌더 대상 파일의 현재 상태 + MAP 후보 목록.
+ */
+export type WebhookEnvStatus = {
+    /**
+     * 렌더 대상 webhook.env 경로
+     */
+    rendered_path: string;
+    /**
+     * 파일 존재 여부
+     */
+    file_exists: boolean;
+    /**
+     * WEBHOOK_SECRET_MAP= 라인 존재 여부
+     */
+    map_line_present: boolean;
+    /**
+     * 값이 채워진 WEBHOOK_SECRET(S) 라인 존재 여부(그 시크릿은 팀 검사 미적용)
+     */
+    legacy_present: boolean;
+    /**
+     * Linear 자격증명이 등록된 프로젝트 목록
+     */
+    projects?: Array<WebhookEnvProjectItem>;
+};
+
 export type WeeklyThroughput = {
     week_start: string;
     completed_count: number;
@@ -9141,6 +9241,38 @@ export type RenderEnvApiV1AdminOpsEnvRenderPostResponses = {
 };
 
 export type RenderEnvApiV1AdminOpsEnvRenderPostResponse = RenderEnvApiV1AdminOpsEnvRenderPostResponses[keyof RenderEnvApiV1AdminOpsEnvRenderPostResponses];
+
+export type WebhookEnvStatusApiV1AdminOpsEnvWebhookStatusGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/env/webhook/status';
+};
+
+export type WebhookEnvStatusApiV1AdminOpsEnvWebhookStatusGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: WebhookEnvStatus;
+};
+
+export type WebhookEnvStatusApiV1AdminOpsEnvWebhookStatusGetResponse = WebhookEnvStatusApiV1AdminOpsEnvWebhookStatusGetResponses[keyof WebhookEnvStatusApiV1AdminOpsEnvWebhookStatusGetResponses];
+
+export type RenderWebhookEnvApiV1AdminOpsEnvWebhookRenderPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/ops/env/webhook/render';
+};
+
+export type RenderWebhookEnvApiV1AdminOpsEnvWebhookRenderPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: WebhookEnvRenderResult;
+};
+
+export type RenderWebhookEnvApiV1AdminOpsEnvWebhookRenderPostResponse = RenderWebhookEnvApiV1AdminOpsEnvWebhookRenderPostResponses[keyof RenderWebhookEnvApiV1AdminOpsEnvWebhookRenderPostResponses];
 
 export type ListTablesApiV1AdminOpsTablesGetData = {
     body?: never;

@@ -1048,6 +1048,30 @@
     }
   },
   "ops": {
+    "webhook": {
+      "title": "Webhook シークレット配線",
+      "description": "登録済みプロジェクトの webhook シークレットを webhook.env の WEBHOOK_SECRET_MAP にレンダーします。シークレットの平文は表示されません。",
+      "renderButton": "webhook.env をレンダー",
+      "statusError": "配線状態の読み込みに失敗しました。",
+      "projectCount": "対象プロジェクト",
+      "projectCountValue": "{withSecret} / {total}",
+      "projectCountHint": "シークレット保有 / 全体",
+      "fileState": "ファイル状態",
+      "fileExists": "存在",
+      "fileMissing": "なし",
+      "mapLine": "MAP 行",
+      "mapPresent": "あり",
+      "mapAbsent": "なし",
+      "renderedPath": "レンダーパス",
+      "legacyWarning": "レガシー WEBHOOK_SECRET(S) が残存 — これらのシークレットはチーム検証を受けないため、マルチテナント運用では空にしてください。",
+      "entryCount": "記録項目",
+      "skippedTitle": "除外項目 {count}件",
+      "restartCommand": "再起動コマンド",
+      "restartNotice": "再起動するまで新しいシークレットは受信に反映されません。以下のコマンドを運用環境で手動実行してください。",
+      "copy": "コピー",
+      "copied": "コピーしました",
+      "error": "webhook.env のレンダーに失敗しました。"
+    },
     "containers": {
       "pageTitle": "コンテナとポート",
       "pageDescription": "稼働中のコンテナ状態とサービスポートの到達性を確認します。閲覧専用です。",
