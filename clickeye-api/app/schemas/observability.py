@@ -127,6 +127,7 @@ class DeliveryBoardTicketItem(BaseModel):
     """발급 티켓 1건 — 정규화된 현재 단계 + 단계 이력."""
 
     key: str
+    issue_id: str | None = None
     title: str
     stage: str
     stage_history: list[DeliveryBoardStageHistoryItem] = Field(default_factory=list)
@@ -149,3 +150,34 @@ class DeliveryBoardResponse(BaseModel):
     """딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411)."""
 
     projects: list[DeliveryBoardProjectItem] = Field(default_factory=list)
+
+
+class TicketDetailComment(BaseModel):
+    """Linear 이슈 코멘트 1건 (딜리버리 보드 티켓 상세 패널용)."""
+
+    body: str
+    created_at: datetime | None = None
+    author: str | None = None
+
+
+class DeliveryBoardTicketDetailResponse(BaseModel):
+    """티켓 1건의 Linear 원본 상세 — 카드 클릭 시 lazy 조회.
+
+    `available=False` 는 Linear 자격증명 부재 또는 호출 실패(인증/네트워크/이슈 미존재)를
+    뜻한다 — 프런트가 502 대신 "Linear 연결 불가" 안내를 표시한다(200 고정).
+    """
+
+    available: bool = False
+    identifier: str | None = None
+    title: str | None = None
+    description: str | None = None
+    url: str | None = None
+    state_name: str | None = None
+    state_type: str | None = None
+    assignee: str | None = None
+    labels: list[str] = Field(default_factory=list)
+    priority: int | None = None
+    priority_label: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    comments: list[TicketDetailComment] = Field(default_factory=list)

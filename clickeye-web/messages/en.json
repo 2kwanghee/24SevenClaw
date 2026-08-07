@@ -1233,6 +1233,24 @@
           "minutes": "{value}m",
           "hours": "{hours}h",
           "hoursMinutes": "{hours}h {minutes}m"
+        },
+        "tooltip": {
+          "stage": "Stage",
+          "outcome": "Outcome",
+          "duration": "Duration"
+        },
+        "detail": {
+          "unavailable": "Linear unavailable — no credentials or the lookup failed.",
+          "priority": "Priority",
+          "assignee": "Assignee",
+          "labels": "Labels",
+          "createdAt": "Created",
+          "updatedAt": "Updated",
+          "description": "Description",
+          "comments": "Comments",
+          "noComments": "No comments.",
+          "unknownAuthor": "Unknown",
+          "openInLinear": "Open in Linear"
         }
       },
       "sections": {

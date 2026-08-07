@@ -19,6 +19,7 @@ from app.dependencies import get_current_user, require_permission
 from app.models.user import User
 from app.schemas.observability import (
     DeliveryBoardResponse,
+    DeliveryBoardTicketDetailResponse,
     ObservabilitySummaryResponse,
     ProjectSummaryResponse,
     SeatObservabilityResponse,
@@ -111,6 +112,22 @@ async def get_delivery_board(
 ) -> DeliveryBoardResponse:
     """딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계(CE-411, 웹 E2 소비용)."""
     return await ObservabilityService(db).delivery_board()
+
+
+@router.get(
+    "/delivery-board/tickets/{issue_id}",
+    response_model=DeliveryBoardTicketDetailResponse,
+)
+async def get_delivery_board_ticket_detail(
+    issue_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DeliveryBoardTicketDetailResponse:
+    """티켓 카드 클릭 시 Linear 원본 상세(상태·담당·라벨·본문·코멘트)를 lazy 조회.
+
+    자격증명 부재/호출 실패는 502 대신 200 + available:false 로 반환한다.
+    """
+    return await ObservabilityService(db).delivery_board_ticket_detail(issue_id, user.id)
 
 
 @router.get("/seats", response_model=SeatObservabilityResponse)

@@ -8,6 +8,7 @@ delivery_events/llm_usage_ledger)을 조회만 한다. `runs`/`seats` 는 여기
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -29,6 +30,7 @@ from app.schemas.observability import (
     DeliveryBoardResponse,
     DeliveryBoardStageHistoryItem,
     DeliveryBoardStages,
+    DeliveryBoardTicketDetailResponse,
     DeliveryBoardTicketItem,
     ObservabilityDeliveryEventItem,
     ObservabilitySummaryResponse,
@@ -282,12 +284,14 @@ class ObservabilityService(BaseService):
                 issue_key = str(identifier)
                 events = events_by_issue.get(issue_key, [])
                 stage, history, outcome, duration_s = self._derive_ticket_progress(events)
-                active = bool(events) and (
-                    now - self._ev_time(events[-1])
-                ) <= timedelta(minutes=_BOARD_ACTIVE_WINDOW_MINUTES)
+                active = bool(events) and (now - self._ev_time(events[-1])) <= timedelta(
+                    minutes=_BOARD_ACTIVE_WINDOW_MINUTES
+                )
+                raw_issue_id = ticket.get("issue_id")
                 tickets.append(
                     DeliveryBoardTicketItem(
                         key=issue_key,
+                        issue_id=str(raw_issue_id) if raw_issue_id else None,
                         title=str(ticket.get("title") or ""),
                         stage=stage,
                         stage_history=history,
@@ -308,6 +312,77 @@ class ObservabilityService(BaseService):
             )
 
         return DeliveryBoardResponse(projects=projects)
+
+    async def delivery_board_ticket_detail(
+        self, issue_id: str, requesting_user_id: UUID
+    ) -> DeliveryBoardTicketDetailResponse:
+        """티켓 카드 클릭 시 Linear 원본 상세를 조회한다 (CE-, 보드 상세 패널).
+
+        자격증명 해석: 이슈를 발급한 프로젝트의 `ProjectLinearCredentials` 를 우선,
+        없으면 요청 관리자의 `UserLinearCredentials` 로 폴백한다(review_pipeline 의 동일
+        우선순위). 자격증명 부재/호출 실패/이슈 미존재는 모두 `available=False` 로 흡수
+        해 502 대신 200 을 유지한다(관측 라우터 전역 컨벤션).
+        """
+        creds = await self._resolve_issue_api_key(issue_id, requesting_user_id)
+        if creds is None:
+            return DeliveryBoardTicketDetailResponse(available=False)
+
+        from app.services import linear_service
+
+        try:
+            detail = await asyncio.to_thread(linear_service.get_issue_detail, creds, issue_id)
+        except Exception:
+            return DeliveryBoardTicketDetailResponse(available=False)
+        if detail is None:
+            return DeliveryBoardTicketDetailResponse(available=False)
+        return DeliveryBoardTicketDetailResponse(available=True, **detail)
+
+    async def _resolve_issue_api_key(self, issue_id: str, requesting_user_id: UUID) -> str | None:
+        """issue_id → 복호화된 Linear API 키. 프로젝트 자격증명 우선, 사용자 폴백.
+
+        이슈 상세 조회(`issue(id:)`)는 team_id 가 불필요하므로 api_key 만 반환한다.
+        """
+        from app.core.crypto import decrypt
+        from app.models.project_linear_credentials import ProjectLinearCredentials
+        from app.models.user_linear_credentials import UserLinearCredentials
+
+        owning_project_id = await self._project_id_for_issue(issue_id)
+        if owning_project_id is not None:
+            proj_creds = (
+                await self.db.execute(
+                    select(ProjectLinearCredentials).where(
+                        ProjectLinearCredentials.project_id == owning_project_id
+                    )
+                )
+            ).scalar_one_or_none()
+            if proj_creds is not None:
+                return decrypt(str(proj_creds.encrypted_api_key))
+
+        user_creds = (
+            await self.db.execute(
+                select(UserLinearCredentials).where(
+                    UserLinearCredentials.user_id == requesting_user_id
+                )
+            )
+        ).scalar_one_or_none()
+        if user_creds is not None:
+            return decrypt(str(user_creds.encrypted_api_key))
+        return None
+
+    async def _project_id_for_issue(self, issue_id: str) -> UUID | None:
+        """issue_id 를 발급 원장에 담고 있는 인테이크의 project_id 를 찾는다(없으면 None).
+
+        JSON contains 는 백엔드별로 지원 편차가 커 파이썬에서 원장을 훑는다(보드 규모 소).
+        """
+        stmt = select(IntakeRequest).where(
+            IntakeRequest.project_id.is_not(None),
+            IntakeRequest.tickets.is_not(None),
+        )
+        for intake in (await self.db.execute(stmt)).scalars().all():
+            for ticket in self._board_tickets_of(intake):
+                if str(ticket.get("issue_id")) == issue_id:
+                    return cast(UUID, intake.project_id)
+        return None
 
     # ── 내부 헬퍼 ────────────────────────────────────────────────────────────
 

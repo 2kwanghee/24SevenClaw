@@ -539,6 +539,141 @@ async def test_delivery_board_stages_use_delivery_events_first_occurrence(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# delivery-board/tickets/{issue_id} — 티켓 상세 (Linear 원본)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def _seed_issued_ticket_intake(
+    db_session: AsyncSession, *, issue_id: str = "issue-uuid-1"
+) -> Project:
+    project = await _seed_project(db_session)
+    intake = await _seed_intake(db_session)
+    intake.project_id = project.id
+    intake.status = "accepted"
+    intake.tickets_status = "issued"
+    intake.tickets = [{"identifier": "CE-600", "issue_id": issue_id, "title": "티켓"}]
+    db_session.add(intake)
+    await db_session.commit()
+    return project
+
+
+async def test_ticket_detail_requires_auth(client: AsyncClient) -> None:
+    resp = await client.get(f"{_BASE}/delivery-board/tickets/issue-uuid-1")
+    assert resp.status_code in (401, 403)
+
+
+async def test_ticket_detail_no_credentials_returns_available_false(
+    client: AsyncClient, db_session: AsyncSession, admin_auth_headers: dict
+) -> None:
+    await _seed_issued_ticket_intake(db_session)  # 프로젝트/사용자 자격증명 미설정
+
+    resp = await client.get(
+        f"{_BASE}/delivery-board/tickets/issue-uuid-1", headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["available"] is False
+    assert body["identifier"] is None
+
+
+async def test_ticket_detail_success_returns_linear_fields(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    admin_auth_headers: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.crypto import encrypt
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.services import linear_service
+
+    project = await _seed_issued_ticket_intake(db_session)
+    db_session.add(
+        ProjectLinearCredentials(
+            id=uuid.uuid4(),
+            project_id=project.id,
+            encrypted_api_key=encrypt("lin_api_test"),
+            team_id="team-uuid",
+        )
+    )
+    await db_session.commit()
+
+    captured: dict = {}
+
+    def _fake_detail(api_key: str, issue_id: str) -> dict:
+        captured["api_key"] = api_key
+        captured["issue_id"] = issue_id
+        return {
+            "identifier": "CE-600",
+            "title": "티켓 제목",
+            "description": "본문\n둘째 줄",
+            "url": "https://linear.app/x/issue/CE-600",
+            "state_name": "In Progress",
+            "state_type": "started",
+            "assignee": "홍길동",
+            "labels": ["backend", "urgent"],
+            "priority": 2,
+            "priority_label": "High",
+            "created_at": "2026-08-01T00:00:00Z",
+            "updated_at": "2026-08-02T00:00:00Z",
+            "comments": [
+                {"body": "코멘트1", "created_at": "2026-08-01T01:00:00Z", "author": "김철수"}
+            ],
+        }
+
+    monkeypatch.setattr(linear_service, "get_issue_detail", _fake_detail)
+
+    resp = await client.get(
+        f"{_BASE}/delivery-board/tickets/issue-uuid-1", headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["available"] is True
+    assert body["identifier"] == "CE-600"
+    assert body["state_name"] == "In Progress"
+    assert body["assignee"] == "홍길동"
+    assert body["labels"] == ["backend", "urgent"]
+    assert body["priority_label"] == "High"
+    assert len(body["comments"]) == 1
+    assert body["comments"][0]["author"] == "김철수"
+    # 발급 프로젝트의 자격증명(복호화)으로 호출됐는지 확인
+    assert captured["api_key"] == "lin_api_test"
+    assert captured["issue_id"] == "issue-uuid-1"
+
+
+async def test_ticket_detail_linear_error_returns_available_false(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    admin_auth_headers: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.core.crypto import encrypt
+    from app.models.project_linear_credentials import ProjectLinearCredentials
+    from app.services import linear_service
+
+    project = await _seed_issued_ticket_intake(db_session)
+    db_session.add(
+        ProjectLinearCredentials(
+            id=uuid.uuid4(),
+            project_id=project.id,
+            encrypted_api_key=encrypt("lin_api_test"),
+            team_id="team-uuid",
+        )
+    )
+    await db_session.commit()
+
+    def _boom(api_key: str, issue_id: str) -> dict:
+        raise RuntimeError("Linear API 오류 401")
+
+    monkeypatch.setattr(linear_service, "get_issue_detail", _boom)
+
+    resp = await client.get(
+        f"{_BASE}/delivery-board/tickets/issue-uuid-1", headers=admin_auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["available"] is False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # projects/{project_id}/summary — CE-402
 # ─────────────────────────────────────────────────────────────────────────────
 

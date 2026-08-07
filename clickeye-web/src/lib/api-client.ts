@@ -2915,12 +2915,39 @@ export interface DeliveryBoardStages {
 /** 발급 티켓 1건 — 정규화된 현재 단계(자유 문자열, 8단계 enum 계약 보장 없음) + 단계 이력 (CE-411 DeliveryBoardTicketItem). */
 export interface DeliveryBoardTicketItem {
   key: string;
+  issue_id?: string | null;
   title: string;
   stage: string;
   stage_history?: DeliveryBoardStageHistoryItem[];
   active?: boolean;
   outcome?: string | null;
   duration_s?: number | null;
+}
+
+/** 티켓 상세 패널 — Linear 코멘트 1건 (DeliveryBoardTicketDetailResponse.comments). */
+export interface TicketDetailComment {
+  body: string;
+  created_at?: string | null;
+  author?: string | null;
+}
+
+/** 티켓 카드 클릭 시 Linear 원본 상세. `available=false` 는 자격증명 부재/호출 실패
+ * (프런트가 "Linear 연결 불가" 안내로 전환) (CE 딜리버리 보드 상세 패널). */
+export interface DeliveryBoardTicketDetailResponse {
+  available: boolean;
+  identifier?: string | null;
+  title?: string | null;
+  description?: string | null;
+  url?: string | null;
+  state_name?: string | null;
+  state_type?: string | null;
+  assignee?: string | null;
+  labels?: string[];
+  priority?: number | null;
+  priority_label?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  comments?: TicketDetailComment[];
 }
 
 /** 프로젝트 1건 — 인테이크 단계 타임라인 + 발급 티켓 목록 (CE-411 DeliveryBoardProjectItem). */
@@ -3007,6 +3034,13 @@ export const observability = {
   /** 딜리버리 진행 보드 — 프로젝트별 티켓×단계 타임라인 집계 (CE-411) */
   deliveryBoard: (token: string) =>
     authRequest<DeliveryBoardResponse>("/api/v1/observability/delivery-board", token),
+
+  /** 티켓 카드 클릭 시 Linear 원본 상세 — lazy 조회, 자격증명 부재 시 available:false */
+  getTicketDetail: (token: string, issueId: string) =>
+    authRequest<DeliveryBoardTicketDetailResponse>(
+      `/api/v1/observability/delivery-board/tickets/${encodeURIComponent(issueId)}`,
+      token,
+    ),
 };
 
 export { ApiClientError, NetworkError };

@@ -12749,6 +12749,54 @@
         ]
       }
     },
+    "/api/v1/observability/delivery-board/tickets/{issue_id}": {
+      "get": {
+        "tags": [
+          "observability"
+        ],
+        "summary": "Get Delivery Board Ticket Detail",
+        "description": "티켓 카드 클릭 시 Linear 원본 상세(상태·담당·라벨·본문·코멘트)를 lazy 조회.\n\n자격증명 부재/호출 실패는 502 대신 200 + available:false 로 반환한다.",
+        "operationId": "get_delivery_board_ticket_detail_api_v1_observability_delivery_board_tickets__issue_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Issue Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryBoardTicketDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/observability/seats": {
       "get": {
         "tags": [
@@ -15353,11 +15401,171 @@
         "title": "DeliveryBoardStages",
         "description": "인테이크 → 프로젝트 승격까지의 단계별 최초 도달 시각(없으면 미도달)."
       },
+      "DeliveryBoardTicketDetailResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": false
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "state_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Name"
+          },
+          "state_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Type"
+          },
+          "assignee": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "priority_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Label"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/TicketDetailComment"
+            },
+            "type": "array",
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "title": "DeliveryBoardTicketDetailResponse",
+        "description": "티켓 1건의 Linear 원본 상세 — 카드 클릭 시 lazy 조회.\n\n`available=False` 는 Linear 자격증명 부재 또는 호출 실패(인증/네트워크/이슈 미존재)를\n뜻한다 — 프런트가 502 대신 \"Linear 연결 불가\" 안내를 표시한다(200 고정)."
+      },
       "DeliveryBoardTicketItem": {
         "properties": {
           "key": {
             "type": "string",
             "title": "Key"
+          },
+          "issue_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
           },
           "title": {
             "type": "string",
@@ -27836,6 +28044,43 @@
         ],
         "title": "TableSchema",
         "description": "테이블 스키마(컬럼 디스크립터 집합) 응답."
+      },
+      "TicketDetailComment": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "TicketDetailComment",
+        "description": "Linear 이슈 코멘트 1건 (딜리버리 보드 티켓 상세 패널용)."
       },
       "TicketsRecordRequest": {
         "properties": {
