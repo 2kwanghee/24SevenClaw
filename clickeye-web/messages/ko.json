@@ -1234,6 +1234,48 @@
           "hours": "{hours}시간",
           "hoursMinutes": "{hours}시간 {minutes}분"
         }
+      },
+      "sections": {
+        "progress": "딜리버리 진행 현황",
+        "projects": "프로젝트 상태",
+        "intake": "인테이크"
+      },
+      "progress": {
+        "inProgress": "진행중",
+        "done": "완료",
+        "failed": "실패",
+        "empty": "표시할 티켓이 없습니다.",
+        "ticketCount": "{count}건"
+      },
+      "projectTable": {
+        "tabsLabel": "프로젝트 상태 필터",
+        "tabs": {
+          "all": "전체",
+          "completed": "완료",
+          "inProgress": "진행중",
+          "notStarted": "미진행"
+        },
+        "colName": "프로젝트명",
+        "colStatus": "상태",
+        "colCreated": "생성일",
+        "empty": "프로젝트가 없습니다."
+      },
+      "intakeTable": {
+        "tabsLabel": "인테이크 상태 필터",
+        "tabs": {
+          "all": "전체",
+          "accepted": "승인",
+          "rejected": "거부",
+          "pending": "검토중"
+        },
+        "colTitle": "제목",
+        "colStatus": "상태",
+        "colTickets": "티켓 발급",
+        "colReceived": "접수일",
+        "goto": "인테이크 관리",
+        "empty": "인테이크가 없습니다.",
+        "ticketsIssued": "발급됨",
+        "ticketsNone": "미발급"
       }
     },
     "seats": {

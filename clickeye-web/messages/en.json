@@ -1234,6 +1234,48 @@
           "hours": "{hours}h",
           "hoursMinutes": "{hours}h {minutes}m"
         }
+      },
+      "sections": {
+        "progress": "Delivery Progress",
+        "projects": "Project Status",
+        "intake": "Intake"
+      },
+      "progress": {
+        "inProgress": "In progress",
+        "done": "Done",
+        "failed": "Failed",
+        "empty": "No tickets to display.",
+        "ticketCount": "{count} tickets"
+      },
+      "projectTable": {
+        "tabsLabel": "Project status filter",
+        "tabs": {
+          "all": "All",
+          "completed": "Completed",
+          "inProgress": "In progress",
+          "notStarted": "Not started"
+        },
+        "colName": "Project",
+        "colStatus": "Status",
+        "colCreated": "Created",
+        "empty": "No projects."
+      },
+      "intakeTable": {
+        "tabsLabel": "Intake status filter",
+        "tabs": {
+          "all": "All",
+          "accepted": "Accepted",
+          "rejected": "Rejected",
+          "pending": "Under review"
+        },
+        "colTitle": "Title",
+        "colStatus": "Status",
+        "colTickets": "Tickets",
+        "colReceived": "Received",
+        "goto": "Manage intake",
+        "empty": "No intakes.",
+        "ticketsIssued": "Issued",
+        "ticketsNone": "Not issued"
       }
     },
     "seats": {
