@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.linear_credentials import _mask_api_key
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.project import Project
 from app.models.project_linear_credentials import ProjectLinearCredentials
 from app.models.user import User
 from app.schemas.integrations import (
@@ -100,6 +101,23 @@ async def get_project_linear_status(
     )
 
 
+async def _require_project_access(db: AsyncSession, project_id: UUID, user: User) -> None:
+    """자격증명 라우트 소유권 가드 — 소유자 또는 admin/superadmin 만 (IDOR 차단, 리뷰 HIGH 반영).
+
+    admin+ 는 전 프로젝트 접근(운영 콘솔 전제), 그 외는 owner 스코프(projects.py 패턴).
+    스코프 밖이면 404 로 프로젝트 존재 여부를 숨긴다.
+    """
+    role = getattr(user, "system_role", "") or ""
+    conds = [Project.id == project_id]
+    if role not in ("admin", "superadmin"):
+        conds.append(Project.owner_id == user.id)
+    result = await db.execute(select(Project).where(*conds))
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="프로젝트를 찾을 수 없습니다"
+        )
+
+
 @router.put(
     "/projects/{project_id}/linear-credentials",
     response_model=ProjectLinearCredentialsResponse,
@@ -112,6 +130,7 @@ async def save_project_linear_credentials(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectLinearCredentialsResponse:
     """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹."""
+    await _require_project_access(db, project_id, user)
     creds = await _upsert_project_linear_credentials(db, project_id, data.api_key, data.team_id)
     return ProjectLinearCredentialsResponse(
         api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
@@ -131,6 +150,7 @@ async def get_project_linear_credentials(
     db: AsyncSession = Depends(get_db),
 ) -> ProjectLinearCredentialsResponse:
     """프로젝트별 Linear 자격증명 조회 (API 키는 마스킹)."""
+    await _require_project_access(db, project_id, user)
     result = await db.execute(
         select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
     )
@@ -157,6 +177,7 @@ async def delete_project_linear_credentials(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """프로젝트별 Linear 자격증명 삭제."""
+    await _require_project_access(db, project_id, user)
     result = await db.execute(
         select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
     )
