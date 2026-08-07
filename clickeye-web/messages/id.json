@@ -1172,6 +1172,6 @@
     "tunnelUrlHelp": "Kosongkan untuk memakai tunnel URL dari pengaturan global.",
     "webhookRegistered": "Webhook terdaftar",
     "webhookSecretOnly": "Secret tersimpan · belum terdaftar",
-    "webhookEnvNotice": "Agar berlaku, operator harus menambahkan secret ini ke WEBHOOK_SECRETS di webhook.env dan memulai ulang kontainer webhook. Sampai saat itu, event Linear proyek ini ditolak pada verifikasi tanda tangan."
+    "webhookEnvNotice": "Agar berlaku, operator harus menambahkannya ke WEBHOOK_SECRET_MAP di webhook.env dengan format \"ID tim=secret\" (ID tim seperti yang ditampilkan di atas) dan memulai ulang kontainer webhook. Sampai saat itu, event Linear proyek ini ditolak pada verifikasi tanda tangan."
   }
 }

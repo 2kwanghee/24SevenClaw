@@ -1172,6 +1172,6 @@
     "tunnelUrlHelp": "空欄の場合はグローバル設定のトンネルURLを使用します。",
     "webhookRegistered": "Webhook登録済み",
     "webhookSecretOnly": "シークレット保存済み · 未登録",
-    "webhookEnvNotice": "受信サーバーに反映するには、運用者がこのシークレットを webhook.env の WEBHOOK_SECRETS に追加し、webhook コンテナを再起動する必要があります。それまでこのプロジェクトの Linear イベントは署名検証で拒否されます。"
+    "webhookEnvNotice": "受信サーバーに反映するには、運用者が webhook.env の WEBHOOK_SECRET_MAP に「チームID=シークレット」の形式で追加し、webhook コンテナを再起動する必要があります（チームIDは上に表示された値）。それまでこのプロジェクトの Linear イベントは署名検証で拒否されます。"
   }
 }

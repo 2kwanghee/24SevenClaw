@@ -1403,6 +1403,6 @@
     "tunnelUrlHelp": "Leave empty to use the tunnel URL from global settings.",
     "webhookRegistered": "Webhook registered",
     "webhookSecretOnly": "Secret saved · not registered",
-    "webhookEnvNotice": "To take effect, an operator must add this secret to WEBHOOK_SECRETS in webhook.env and restart the webhook container. Until then, this project's Linear events are rejected at signature verification."
+    "webhookEnvNotice": "To take effect, an operator must add it to WEBHOOK_SECRET_MAP in webhook.env as \"team ID=secret\" (the team ID shown above) and restart the webhook container. Until then, this project's Linear events are rejected at signature verification."
   }
 }

@@ -1403,6 +1403,6 @@
     "tunnelUrlHelp": "비우면 전역 설정의 터널 URL을 사용합니다.",
     "webhookRegistered": "Webhook 등록됨",
     "webhookSecretOnly": "시크릿 저장됨 · 미등록",
-    "webhookEnvNotice": "수신 서버에 반영하려면 운영자가 이 시크릿을 webhook.env 의 WEBHOOK_SECRETS 에 추가하고 webhook 컨테이너를 재기동해야 합니다. 그전까지 이 프로젝트의 Linear 이벤트는 서명 검증에서 거부됩니다."
+    "webhookEnvNotice": "수신 서버에 반영하려면 운영자가 webhook.env 의 WEBHOOK_SECRET_MAP 에 '팀 ID=시크릿' 형식으로 추가하고 webhook 컨테이너를 재기동해야 합니다(팀 ID 는 위에 표시된 값). 그전까지 이 프로젝트의 Linear 이벤트는 서명 검증에서 거부됩니다."
   }
 }
