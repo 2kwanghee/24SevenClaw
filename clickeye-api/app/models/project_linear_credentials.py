@@ -15,5 +15,7 @@ class ProjectLinearCredentials(Base):
     )
     encrypted_api_key = Column(Text, nullable=False)
     team_id = Column(String(100), nullable=False)
+    webhook_secret = Column(String(200), nullable=True)
+    linear_webhook_id = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

@@ -42,6 +42,14 @@ mutation WebhookUpdate($id: String!, $input: WebhookUpdateInput!) {
 }
 """
 
+_WEBHOOK_DELETE = """
+mutation WebhookDelete($id: String!) {
+  webhookDelete(id: $id) {
+    success
+  }
+}
+"""
+
 _WEBHOOKS_QUERY = """
 query Webhooks {
   webhooks { nodes { id url label } }
@@ -388,6 +396,11 @@ def ensure_webhook(
 ) -> str:
     """Linear 워크스페이스에 webhook을 등록하거나 기존 URL을 갱신한다.
 
+    label 은 워크스페이스 안에서 훅을 식별하는 유일 키다. 같은 워크스페이스를 여러
+    프로젝트가 공유하면 공용 label 로는 서로의 훅을 덮어쓰므로, 프로젝트 저장 경로는
+    프로젝트별 고유 label(`ClickEye:<project_id>`)을 넘긴다. 전역(사용자) 경로는
+    기존 "ClickEye" 를 그대로 쓴다.
+
     Returns:
         생성/갱신된 webhook ID
     """
@@ -418,3 +431,16 @@ def ensure_webhook(
     result = _call(api_key, _WEBHOOK_CREATE, variables)
     webhook = result.get("webhookCreate", {}).get("webhook") or {}
     return str(webhook.get("id", ""))
+
+
+def delete_webhook(api_key: str, webhook_id: str) -> bool:
+    """Linear 워크스페이스에서 webhook 을 해지한다.
+
+    자격증명을 지우면 서버는 그 훅을 더 이상 검증·처리할 수 없으므로 원격 훅도 함께
+    거둬야 한다. 호출부는 실패를 로깅만 하고 삭제 자체는 계속 진행한다.
+
+    Returns:
+        해지 성공 여부.
+    """
+    data = _call(api_key, _WEBHOOK_DELETE, {"id": webhook_id})
+    return bool(data.get("webhookDelete", {}).get("success"))

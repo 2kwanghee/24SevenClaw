@@ -2044,7 +2044,17 @@ export interface ProjectLinearStatus {
 export interface ProjectLinearCredentialsResponse {
   api_key_masked: string;
   team_id: string;
+  webhook_secret_set: boolean;
+  linear_webhook_id: string | null;
   updated_at: string;
+}
+
+/** PUT 페이로드. webhook_secret/tunnel_url 은 옵션(비우면 null). */
+export interface ProjectLinearCredentialsSave {
+  api_key: string;
+  team_id: string;
+  webhook_secret?: string | null;
+  tunnel_url?: string | null;
 }
 
 export const projectLinearCredentials = {
@@ -2063,7 +2073,7 @@ export const projectLinearCredentials = {
   save: (
     token: string,
     projectId: string,
-    data: { api_key: string; team_id: string },
+    data: ProjectLinearCredentialsSave,
   ) =>
     authRequest<ProjectLinearCredentialsResponse>(
       `/api/v1/integrations/projects/${projectId}/linear-credentials`,

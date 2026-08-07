@@ -1163,6 +1163,15 @@
     "saveSuccess": "Kredensial Linear disimpan.",
     "saveFail": "Gagal menyimpan.",
     "deleteSuccess": "Kredensial Linear dihapus.",
-    "deleteFail": "Gagal menghapus."
+    "deleteFail": "Gagal menghapus.",
+    "webhookSectionTitle": "Pengaturan Webhook",
+    "optional": "(opsional)",
+    "webhookSecretLabel": "Webhook Secret",
+    "webhookSecretHelp": "Digunakan untuk memverifikasi tanda tangan webhook Linear proyek ini. Jika secret dan tunnel URL keduanya ada, webhook akan otomatis terdaftar di Linear.",
+    "tunnelUrlLabel": "Tunnel URL",
+    "tunnelUrlHelp": "Kosongkan untuk memakai tunnel URL dari pengaturan global.",
+    "webhookRegistered": "Webhook terdaftar",
+    "webhookSecretOnly": "Secret tersimpan · belum terdaftar",
+    "webhookEnvNotice": "Agar berlaku, operator harus menambahkannya ke WEBHOOK_SECRET_MAP di webhook.env dengan format \"ID tim=secret\" (ID tim seperti yang ditampilkan di atas) dan memulai ulang kontainer webhook. Sampai saat itu, event Linear proyek ini ditolak pada verifikasi tanda tangan."
   }
 }
