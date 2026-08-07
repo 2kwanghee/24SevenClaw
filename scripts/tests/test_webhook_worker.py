@@ -34,7 +34,6 @@ import redis  # noqa: E402
 import webhook_server  # noqa: E402
 import webhook_worker as w  # noqa: E402
 
-
 # ── Fake Redis (실제 네트워크 없음) ───────────────────────────────────────────
 
 

@@ -29,3 +29,45 @@ packages = ["governance"]
 # 방해하지 않도록, 이 루트는 단일 패키지로만 취급한다(워크스페이스 멤버 미선언).
 [tool.uv]
 package = true
+
+# ── scripts/ 파이프라인 린트 기준 (루트 전용) ──
+# CI 의 ruff 는 working-directory: clickeye-api 라서 scripts/ 는 린트 무풍지대였다.
+# 이 루트 설정으로 scripts/ 를 clickeye-api 와 동일 계열 규칙으로 검사한다.
+# clickeye-api/clickeye-web 등 하위 프로젝트는 각자 pyproject 로 독립 관리되므로 제외.
+# line-length 는 120 — 100 이면 E501 이 64줄이나 120 이면 6줄로 줄어 불필요한 수동 개행
+# churn 을 피한다(잔여 6줄 중 실제 코드 2줄은 개행, 생성물/데이터 문자열 4줄은 per-file-ignore).
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    "clickeye-api",
+    "clickeye-web",
+    "clickeye-contracts",
+    "clickeye-infra",
+    "clickeye-agent",
+    "node_modules",
+    "workspaces",
+    "templates",
+    ".claude",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+# B008: FastAPI Depends() 패턴(clickeye-api 관례와 동일)
+# 아래 rule 들은 파이프라인 스크립트의 동작 불변을 위해 의도적으로 남긴다:
+#   SIM115 — open() 핸들을 파이프라인 단계 간 유지하는 패턴(34건, 컨텍스트 매니저 전환 시 흐름 변형 위험)
+#   UP031  — printf %-포매팅(15건, --unsafe-fixes 금지 하에 수동 변환 churn·포맷 문자열 파손 위험)
+#   SIM105 — contextlib.suppress 전환(import churn, 동작 동일)
+#   SIM102/SIM108/SIM117 — 인라인 주석이 붙은 제어흐름을 축약하면 주석 위치·가독성 손실
+ignore = ["B008", "SIM102", "SIM105", "SIM108", "SIM115", "SIM117", "UP031"]
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path 조작 후 import 하는 부트스트랩 패턴 — E402(module-import-not-at-top) 불가피
+"scripts/linear_client.py" = ["E402"]
+"scripts/pipeline_config.py" = ["E402"]
+"scripts/sync_linear_docs.py" = ["E402"]
+"scripts/telegram_notify.py" = ["E402"]
+# 생성물/데이터 문자열의 긴 줄 — 삼중따옴표 TSX 템플릿·docx 예제 JSON/프로토콜 표라
+# 개행하면 산출물이 바뀐다(alembic per-file-ignore 와 동일 취지). E501 만 제외.
+"scripts/create_detail_page.py" = ["E501"]
+"scripts/generate_spec_docs.py" = ["E501"]

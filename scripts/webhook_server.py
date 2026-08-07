@@ -30,8 +30,8 @@ import sys
 import threading
 import time
 import urllib.request
-from datetime import datetime, timezone
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 sys.path.insert(0, os.path.dirname(__file__))
 from linear_client import PROJECT_DIR
@@ -318,7 +318,7 @@ def _enqueue_job(kind: str, identifier: str, state_name: str):
             "kind": kind,
             "identifier": identifier,
             "state": state_name,
-            "received_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "received_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         client.rpush(QUEUE_KEY, json.dumps(job))
         log(f"ENQUEUE: {kind} {identifier} state={state_name} → {QUEUE_KEY}")
@@ -663,9 +663,8 @@ def main():
     log(f"Linear Webhook 서버 시작: http://0.0.0.0:{args.port}")
     log(f"  Webhook URL: http://<서버IP>:{args.port}/webhook/linear")
     log(f"  Health check: http://localhost:{args.port}/health")
-    log(
-        f"  서명 검증: {f'활성 (시크릿 {len(WEBHOOK_SECRETS)}개)' if WEBHOOK_SECRETS else '비활성 (WEBHOOK_SECRET 미설정)'}"
-    )
+    sig_status = f"활성 (시크릿 {len(WEBHOOK_SECRETS)}개)" if WEBHOOK_SECRETS else "비활성 (WEBHOOK_SECRET 미설정)"
+    log(f"  서명 검증: {sig_status}")
     bound_teams = {t for teams in WEBHOOK_SECRET_TEAMS.values() for t in teams}
     log(
         f"  팀 바인딩: 시크릿 {len(WEBHOOK_SECRET_TEAMS)}개 / 팀 {len(bound_teams)}개"

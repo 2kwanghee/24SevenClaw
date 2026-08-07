@@ -72,7 +72,7 @@ def test_no_parent_omits_key():
 
 def test_parent_attr_absent_is_safe():
     # --parent 인자 없이 만들어진 args(getattr 기본값 경로)에서도 키가 없어야 한다.
-    inp = _run_cmd_task()
+    _run_cmd_task()
     # SimpleNamespace 에 parent="" 이 있으므로 위와 동일. 별도로 속성 제거해 검증.
     args = types.SimpleNamespace(
         title="t", summary="s", tags="", status="Wait", date="2026-08-05"

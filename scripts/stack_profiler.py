@@ -26,7 +26,7 @@ import json
 import os
 import re
 import sys
-from typing import Any, Optional
+from typing import Any
 
 try:
     import tomllib  # Python 3.11+
@@ -81,7 +81,7 @@ def _detect_package_manager_node(dir_path: str, pkg: dict[str, Any]) -> str:
     return "npm"
 
 
-def _detect_framework_node(deps: dict[str, Any]) -> Optional[str]:
+def _detect_framework_node(deps: dict[str, Any]) -> str | None:
     # 구체적인 것부터 — 첫 매치를 채택(결정론적 순서)
     candidates = [
         ("next", "next"),
@@ -99,7 +99,7 @@ def _detect_framework_node(deps: dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _profile_node(rel_path: str, dir_path: str) -> Optional[dict[str, Any]]:
+def _profile_node(rel_path: str, dir_path: str) -> dict[str, Any] | None:
     pkg_path = os.path.join(dir_path, "package.json")
     try:
         with open(pkg_path, encoding="utf-8") as fh:
@@ -122,7 +122,7 @@ def _profile_node(rel_path: str, dir_path: str) -> Optional[dict[str, Any]]:
     has_ts = ("typescript" in deps) or os.path.exists(os.path.join(dir_path, "tsconfig.json"))
     language = "typescript" if has_ts else "javascript"
 
-    def cmd_for(script: str) -> Optional[str]:
+    def cmd_for(script: str) -> str | None:
         return f"{pm} run {script}" if script in scripts else None
 
     return {
@@ -146,7 +146,7 @@ def _collect_python_deps_text(text: str) -> str:
     return text.lower()
 
 
-def _detect_framework_python(blob: str) -> Optional[str]:
+def _detect_framework_python(blob: str) -> str | None:
     candidates = [
         ("fastapi", "fastapi"),
         ("django", "django"),
@@ -325,7 +325,7 @@ def build_profile(repo: str, stacks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _cell(value: Optional[str]) -> str:
+def _cell(value: str | None) -> str:
     return f"`{value}`" if value else "—"
 
 
@@ -382,7 +382,7 @@ def render_gates(profile: dict[str, Any]) -> str:
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="스택 프로파일러 (Harness Tier 1)")
     p.add_argument("--repo", required=True, help="스캔 대상 레포 경로")
     p.add_argument("--out", default=None, help="산출 디렉터리(기본: <repo>/.claude)")

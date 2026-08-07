@@ -73,12 +73,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 # --dry-run 에서 DRY_RUN 플래그를 세팅하는 용도.
 import webhook_server as ws  # noqa: E402
 from webhook_server import (  # noqa: E402
-    trigger_pipeline,
-    trigger_confirmer,
-    _pipeline_lock,
-    log,
     QUEUE_KEY,
     REDIS_URL,
+    _pipeline_lock,
+    log,
+    trigger_confirmer,
+    trigger_pipeline,
 )
 
 BLPOP_TIMEOUT = 5      # 초 — --once 가 빈 큐에서 빠르게 빠져나오도록 짧게

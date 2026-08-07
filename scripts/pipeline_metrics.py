@@ -18,7 +18,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -31,7 +31,7 @@ DEFAULT_TIMEOUT = 10.0
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _parse_data(raw: str) -> dict:

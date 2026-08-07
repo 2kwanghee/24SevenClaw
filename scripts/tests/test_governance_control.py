@@ -216,7 +216,7 @@ def test_blockers_default_open_true():
 
 
 def test_content_signature_is_prefixed_sha256():
-    raw = "schema_version: '1.0'\n".encode()
+    raw = b"schema_version: '1.0'\n"
     sig = content_signature(raw)
     assert sig == "sha256:" + hashlib.sha256(raw).hexdigest()
     # 원문 1바이트 변화 → 다른 서명 (source_yaml 재대조의 근거)

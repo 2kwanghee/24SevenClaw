@@ -16,11 +16,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from linear_client import (
+    PROJECT_DIR,
     get_env,
     linear_request,
-    find_state_id,
-    from_linear_priority,
-    PROJECT_DIR,
 )
 
 
@@ -146,6 +144,7 @@ def send_telegram(message: str):
 
 def main():
     import argparse
+
     from pipeline_config import check_enabled
 
     check_enabled("FLOWOPS_LINEAR_CONFIRM", "Linear Confirm 자동 머지")
@@ -187,23 +186,23 @@ def main():
 
         commits = get_branch_commits(task["branch"])
         if not commits:
-            print(f"   SKIP: 머지할 커밋 없음")
+            print("   SKIP: 머지할 커밋 없음")
             skipped_tasks.append(task)
             continue
 
-        print(f"   커밋 목록:")
+        print("   커밋 목록:")
         for line in commits.split("\n"):
             print(f"     {line}")
 
         if args.dry_run:
-            print(f"   [DRY-RUN] 머지 대상 확인됨")
+            print("   [DRY-RUN] 머지 대상 확인됨")
             continue
 
         # PR이 존재하면 gh pr merge, 없으면 로컬 git merge
         if has_open_pr(task["branch"]):
             success, output = merge_pr(task["branch"])
             if success:
-                print(f"   MERGED (PR): squash-merge 완료")
+                print("   MERGED (PR): squash-merge 완료")
                 add_merge_comment(api_key, task["issue_id"], task["branch"])
                 merged_tasks.append(task)
             else:
@@ -213,9 +212,9 @@ def main():
             # PR 미존재 시 기존 로컬 머지 방식
             success, output = merge_branch(task["branch"])
             if success:
-                print(f"   MERGED (local): main에 머지 완료")
+                print("   MERGED (local): main에 머지 완료")
                 delete_branch(task["branch"])
-                print(f"   DELETED: 브랜치 삭제됨")
+                print("   DELETED: 브랜치 삭제됨")
                 add_merge_comment(api_key, task["issue_id"], task["branch"])
                 merged_tasks.append(task)
             else:
@@ -223,7 +222,7 @@ def main():
                 # 진행 중인 머지가 있을 때만 abort 시도
                 abort_code, _ = git_run("merge", "--abort")
                 if abort_code != 0:
-                    print(f"   WARN: merge --abort 불필요 (진행 중인 머지 없음)")
+                    print("   WARN: merge --abort 불필요 (진행 중인 머지 없음)")
                 skipped_tasks.append(task)
 
     # 3. 결과 요약

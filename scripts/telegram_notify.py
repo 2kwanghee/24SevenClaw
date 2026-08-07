@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import datetime
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -181,7 +181,7 @@ def get_recent_commits(n: int = 5) -> list[str]:
     project_dir = os.path.join(os.path.dirname(__file__), "..")
     try:
         result = subprocess.run(
-            ["git", "log", f"--oneline", f"-{n}"],
+            ["git", "log", "--oneline", f"-{n}"],
             capture_output=True,
             text=True,
             cwd=project_dir,
@@ -195,7 +195,6 @@ def get_recent_commits(n: int = 5) -> list[str]:
 
 def build_ralph_report(iterations: str | None = None, test_result: str | None = None) -> str:
     """Build a detailed Ralph Loop completion report."""
-    plan = parse_fix_plan()
     detailed = parse_fix_plan_detailed()
     now = datetime.now()
 
@@ -217,7 +216,7 @@ def build_ralph_report(iterations: str | None = None, test_result: str | None = 
 
     lines = []
     lines.append(f"{result_emoji} *Ralph Loop — {result_text}*")
-    lines.append(f"━━━━━━━━━━━━━━━━━━━━")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
     lines.append(f"🕐 {now.strftime('%Y-%m-%d %H:%M')}")
     if iterations:
         lines.append(f"🔄 반복 횟수: {iterations}회")
@@ -322,7 +321,6 @@ def build_pipeline_report(iterations: str | None = None, test_result: str | None
         fail_count = data.get("fail_count", 0)
 
         for title, info in tasks.items():
-            priority = info.get("priority", "P2")
             status = info.get("status", "incomplete")
             details = info.get("details", [])
             meta = task_mapping.get(title, {})

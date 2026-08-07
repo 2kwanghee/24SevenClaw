@@ -15,13 +15,11 @@ from datetime import date
 
 sys.path.insert(0, os.path.dirname(__file__))
 from linear_client import (
+    find_state_id,
+    from_linear_priority,
     get_env,
     linear_request,
-    find_state_id,
-    to_linear_priority,
-    from_linear_priority,
 )
-
 
 # ── log ──────────────────────────────────────────────────────────────────
 
@@ -211,7 +209,7 @@ def _resolve_label_ids(api_key: str, team_id: str, label_names: list[str]) -> li
     if not data or not data.get("team"):
         return []
 
-    existing = {l["name"]: l["id"] for l in data["team"]["labels"]["nodes"]}
+    existing = {lbl["name"]: lbl["id"] for lbl in data["team"]["labels"]["nodes"]}
     ids = []
 
     for name in label_names:
@@ -268,8 +266,11 @@ def main():
     # update
     p_update = sub.add_parser("update", help="Update issue state")
     p_update.add_argument("--issue-id", required=True, help="Linear issue UUID")
-    p_update.add_argument("--status", required=True,
-                          choices=["Wait", "Done", "In Progress", "Todo", "Backlog", "DayQueued", "NightQueued", "Confirm"])
+    p_update.add_argument(
+        "--status",
+        required=True,
+        choices=["Wait", "Done", "In Progress", "Todo", "Backlog", "DayQueued", "NightQueued", "Confirm"],
+    )
 
     args = parser.parse_args()
     api_key, team_id = get_env()

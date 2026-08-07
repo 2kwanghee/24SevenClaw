@@ -95,11 +95,10 @@ def _fastapi_client():
     """
     try:
         pytest.importorskip("fastapi")
-        from fastapi.testclient import TestClient
-
         # NOTE: 저장소 루트를 sys.path 에 주입하지 않는다 — path (c) 는 설치된 커널
         # 패키지를 통해 import 되어야 하며, editable 설치가 깨졌다면 여기서 실패해야 한다.
         from app.main import app  # type: ignore
+        from fastapi.testclient import TestClient
     except (ImportError, ModuleNotFoundError):
         return None
     return TestClient(app)
