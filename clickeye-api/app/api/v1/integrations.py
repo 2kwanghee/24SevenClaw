@@ -173,7 +173,7 @@ async def save_project_linear_credentials(
                 data.webhook_secret,
                 "ClickEye",
             )
-            creds.linear_webhook_id = wh_id  # type: ignore[assignment]
+            creds.linear_webhook_id = wh_id
             creds.updated_at = datetime.now(UTC)  # type: ignore[assignment]
             await db.commit()
             await db.refresh(creds)

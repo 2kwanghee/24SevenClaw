@@ -3137,6 +3137,11 @@ export const getProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinear
 /**
  * Save Project Linear Credentials
  * 프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹.
+ *
+ * webhook_secret 은 프로젝트 워크스페이스의 signing secret 이라 검증 측(수신 서버)이
+ * 원문을 그대로 비교해야 하므로 평문 저장한다(전역 user_linear_credentials 와 동일 취급).
+ * tunnel 이 해석되고 secret 이 있으면 Linear webhook 을 자동 등록하되, 등록 실패가
+ * 자격증명 저장을 되돌리지는 않는다(전역 플로우와 동일).
  */
 export const saveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPut = <ThrowOnError extends boolean = false>(options: Options<SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).put<SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutResponse, SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutError, ThrowOnError>({
