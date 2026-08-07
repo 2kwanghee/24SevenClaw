@@ -42,6 +42,10 @@ WEBHOOK_SECRET = None
 # 워크스페이스가 보낸 요청인지 알 수 없으므로(무 DB 원칙) 후보 시크릿 전부와 대조해
 # 하나라도 맞으면 통과시킨다. WEBHOOK_SECRET(단일, 기존) + WEBHOOK_SECRETS(콤마 목록).
 WEBHOOK_SECRETS: list[str] = []
+# 시크릿 환경변수가 "값과 함께 주어졌는지" — 파싱 결과가 비었을 때 fail-open 을 막는 플래그.
+# WEBHOOK_SECRET="   " 처럼 설정은 됐지만 유효 항목이 0개인 경우를 "미설정" 과 구분한다.
+# (구코드는 strip 전 값이 truthy 라 검증이 켜져 전부 거부됐다 — 그 fail-closed 를 유지)
+WEBHOOK_SECRETS_CONFIGURED = False
 
 # ── 수신전용(enqueue-only) 모드 ──
 # WEBHOOK_ENQUEUE_ONLY=true 면 _handle_event 가 trigger_* 대신 Redis 큐에 적재만 한다.
@@ -389,8 +393,9 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         body = self.rfile.read(content_length)
 
-        # 서명 검증
-        if WEBHOOK_SECRETS:
+        # 서명 검증. CONFIGURED 는 참인데 목록이 비었으면(공백만 설정 등) 검증을 끄지 않고
+        # 전부 거부한다 — main() 이 기동을 거부하므로 통상 도달하지 않는 2차 방어선.
+        if WEBHOOK_SECRETS or WEBHOOK_SECRETS_CONFIGURED:
             signature = self.headers.get("Linear-Signature", "")
             if not verify_signature_any(body, signature, WEBHOOK_SECRETS):
                 log("REJECTED: 서명 검증 실패")
@@ -474,23 +479,30 @@ def load_env():
 
     WEBHOOK_SECRET(단일, 기존 계약)과 WEBHOOK_SECRETS(콤마 구분, 프로젝트별)를 모두 읽어
     WEBHOOK_SECRETS 목록으로 합친다. 단일 시크릿만 설정된 환경은 목록 길이 1 → 동작 동일.
-    """
-    global WEBHOOK_SECRET, WEBHOOK_SECRETS
 
-    single = os.getenv("WEBHOOK_SECRET", "").strip()
-    multi = os.getenv("WEBHOOK_SECRETS", "").strip()
+    trim 전 원문(raw)을 따로 보관해 WEBHOOK_SECRETS_CONFIGURED 를 판정한다 — 공백만
+    설정된 값이 파싱 후 빈 목록이 되어 검증이 통째로 꺼지는 fail-open 을 막기 위함.
+    """
+    global WEBHOOK_SECRET, WEBHOOK_SECRETS, WEBHOOK_SECRETS_CONFIGURED
+
+    raw_single = os.getenv("WEBHOOK_SECRET", "")
+    raw_multi = os.getenv("WEBHOOK_SECRETS", "")
 
     # env 로 아무것도 안 온 항목만 .env 폴백으로 채운다(env 우선, 기존 우선순위 유지).
-    if not single or not multi:
+    if not raw_single or not raw_multi:
         env_path = os.path.join(PROJECT_DIR, ".env")
         if os.path.exists(env_path):
             with open(env_path) as f:
-                for line in f:
-                    line = line.strip()
-                    if not single and line.startswith("WEBHOOK_SECRET="):
-                        single = line.split("=", 1)[1].strip()
-                    elif not multi and line.startswith("WEBHOOK_SECRETS="):
-                        multi = line.split("=", 1)[1].strip()
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not raw_single and line.startswith("WEBHOOK_SECRET="):
+                        raw_single = raw_line.split("=", 1)[1].rstrip("\r\n")
+                    elif not raw_multi and line.startswith("WEBHOOK_SECRETS="):
+                        raw_multi = raw_line.split("=", 1)[1].rstrip("\r\n")
+
+    WEBHOOK_SECRETS_CONFIGURED = bool(raw_single or raw_multi)
+    single = raw_single.strip()
+    multi = raw_multi.strip()
 
     WEBHOOK_SECRET = single or None
 
@@ -520,6 +532,13 @@ def main():
     #   호스트 단독 모드(ENQUEUE_ONLY 미설정)는 기존 경고만 유지 — 회귀 0.
     if ENQUEUE_ONLY and not WEBHOOK_SECRETS:
         log("FATAL: 수신전용 모드는 WEBHOOK_SECRET(S) 필수(공개 노출부) — 기동 거부")
+        sys.exit(2)
+
+    # fail-closed: 시크릿을 설정하려는 의도가 명백한데(환경변수에 값 존재) 파싱 결과가
+    #   0개면 오타/공백 설정이다. 검증을 조용히 끄면 호스트 단독 모드가 무방비가 되므로
+    #   기동을 거부한다. 완전 미설정(두 변수 모두 없음)은 기존 경고 동작 그대로 — 회귀 0.
+    if WEBHOOK_SECRETS_CONFIGURED and not WEBHOOK_SECRETS:
+        log("FATAL: WEBHOOK_SECRET(S) 가 설정됐으나 유효한 시크릿이 0개(공백/빈 항목) — 기동 거부")
         sys.exit(2)
 
     server = HTTPServer(("0.0.0.0", args.port), WebhookHandler)

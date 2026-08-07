@@ -3102,7 +3102,7 @@ export const getProjectLinearStatusApiV1IntegrationsProjectsProjectIdLinearCrede
 
 /**
  * Delete Project Linear Credentials
- * 프로젝트별 Linear 자격증명 삭제.
+ * 프로젝트별 Linear 자격증명 삭제. 등록된 Linear webhook 도 함께 해지한다.
  */
 export const deleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteData, ThrowOnError>) => {
     return (options.client ?? _heyApiClient).delete<DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteResponse, DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteError, ThrowOnError>({

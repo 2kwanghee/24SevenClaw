@@ -84,6 +84,7 @@ def env_isolated(monkeypatch, tmp_path):
     monkeypatch.setattr(ws, "PROJECT_DIR", str(tmp_path))
     monkeypatch.setattr(ws, "WEBHOOK_SECRET", None)
     monkeypatch.setattr(ws, "WEBHOOK_SECRETS", [])
+    monkeypatch.setattr(ws, "WEBHOOK_SECRETS_CONFIGURED", False)
     return tmp_path
 
 
@@ -134,3 +135,78 @@ def test_load_env_none_configured(env_isolated):
     ws.load_env()
     assert ws.WEBHOOK_SECRET is None
     assert ws.WEBHOOK_SECRETS == []
+    assert ws.WEBHOOK_SECRETS_CONFIGURED is False
+
+
+# ── fail-open 회귀 방지: "설정됐으나 유효 항목 0개" 는 미설정과 다르다 ──
+
+
+def test_whitespace_only_secret_is_configured(monkeypatch, env_isolated):
+    """공백만 설정된 WEBHOOK_SECRET — 목록은 비지만 '설정됨' 으로 판정한다.
+
+    구코드는 strip 전 값이 truthy 라 검증이 켜져 전부 거부됐다. 신코드가 이를 '미설정'
+    으로 보면 검증이 통째로 꺼져 호스트 단독 모드가 무방비가 된다(fail-open).
+    """
+    monkeypatch.setenv("WEBHOOK_SECRET", "   ")
+    ws.load_env()
+    assert ws.WEBHOOK_SECRETS == []
+    assert ws.WEBHOOK_SECRETS_CONFIGURED is True
+
+
+def test_whitespace_only_multi_is_configured(monkeypatch, env_isolated):
+    """WEBHOOK_SECRETS 가 구분자·공백뿐이어도 '설정됨'."""
+    monkeypatch.setenv("WEBHOOK_SECRETS", " , , ")
+    ws.load_env()
+    assert ws.WEBHOOK_SECRETS == []
+    assert ws.WEBHOOK_SECRETS_CONFIGURED is True
+
+
+def test_empty_string_secret_is_not_configured(monkeypatch, env_isolated):
+    """빈 문자열은 기존대로 미설정 취급 — 빈 값을 넘기는 배포가 기동 거부되지 않는다."""
+    monkeypatch.setenv("WEBHOOK_SECRET", "")
+    monkeypatch.setenv("WEBHOOK_SECRETS", "")
+    ws.load_env()
+    assert ws.WEBHOOK_SECRETS == []
+    assert ws.WEBHOOK_SECRETS_CONFIGURED is False
+
+
+def test_dotenv_whitespace_only_is_configured(env_isolated):
+    """.env 경로도 동일 — 값 자리에 공백만 있으면 '설정됨'."""
+    (env_isolated / ".env").write_text("WEBHOOK_SECRET=   \n", encoding="utf-8")
+    ws.load_env()
+    assert ws.WEBHOOK_SECRETS == []
+    assert ws.WEBHOOK_SECRETS_CONFIGURED is True
+
+
+def _run_main(monkeypatch):
+    """main() 을 서버 기동 직전까지 실행 — 기동에 도달하면 RuntimeError 로 표시한다."""
+    monkeypatch.setattr(sys, "argv", ["webhook_server.py"])
+
+    def _must_not_serve(*a, **k):
+        raise RuntimeError("SERVER_STARTED")
+
+    monkeypatch.setattr(ws, "HTTPServer", _must_not_serve)
+    ws.main()
+
+
+def test_main_refuses_start_when_secrets_parse_empty(monkeypatch, env_isolated):
+    """설정됐는데 유효 시크릿 0개 → 기동 거부(exit 2). 검증을 끈 채 뜨지 않는다."""
+    monkeypatch.setenv("WEBHOOK_SECRET", "   ")
+    with pytest.raises(SystemExit) as exc:
+        _run_main(monkeypatch)
+    assert exc.value.code == 2
+
+
+def test_main_starts_when_nothing_configured(monkeypatch, env_isolated):
+    """완전 미설정 + 호스트 단독 모드는 기존대로 경고만 하고 기동한다 — 회귀 0."""
+    monkeypatch.setattr(ws, "ENQUEUE_ONLY", False)
+    with pytest.raises(RuntimeError, match="SERVER_STARTED"):
+        _run_main(monkeypatch)
+
+
+def test_post_rejects_when_configured_but_empty(monkeypatch):
+    """2차 방어선: 목록이 비어도 CONFIGURED 면 서명 검증 분기를 탄다(전부 거부)."""
+    monkeypatch.setattr(ws, "WEBHOOK_SECRETS", [])
+    monkeypatch.setattr(ws, "WEBHOOK_SECRETS_CONFIGURED", True)
+    assert bool(ws.WEBHOOK_SECRETS or ws.WEBHOOK_SECRETS_CONFIGURED) is True
+    assert ws.verify_signature_any(PAYLOAD, _sign(PAYLOAD, SECRET_A), ws.WEBHOOK_SECRETS) is False

@@ -9264,7 +9264,7 @@
           "integrations"
         ],
         "summary": "Delete Project Linear Credentials",
-        "description": "프로젝트별 Linear 자격증명 삭제.",
+        "description": "프로젝트별 Linear 자격증명 삭제. 등록된 Linear webhook 도 함께 해지한다.",
         "operationId": "delete_project_linear_credentials_api_v1_integrations_projects__project_id__linear_credentials_delete",
         "security": [
           {
@@ -22588,7 +22588,7 @@
               }
             ],
             "title": "Tunnel Url",
-            "description": "webhook 수신 공개 URL. 미지정 시 사용자 전역 tunnel_url 폴백"
+            "description": "webhook 수신 공개 URL (https). 미지정 시 사용자 전역 tunnel_url 폴백"
           }
         },
         "type": "object",

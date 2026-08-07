@@ -2073,7 +2073,7 @@ export type ProjectLinearCredentialsSave = {
      */
     webhook_secret?: string | null;
     /**
-     * webhook 수신 공개 URL. 미지정 시 사용자 전역 tunnel_url 폴백
+     * webhook 수신 공개 URL (https). 미지정 시 사용자 전역 tunnel_url 폴백
      */
     tunnel_url?: string | null;
 };
