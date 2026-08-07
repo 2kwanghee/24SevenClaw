@@ -44,9 +44,17 @@ class ProjectLinearStatusResponse(BaseModel):
 class ProjectLinearCredentialsSave(BaseModel):
     api_key: str = Field(..., min_length=1, description="Linear API 키 (lin_api_...)")
     team_id: str = Field(..., min_length=1, description="Linear 팀 UUID")
+    webhook_secret: str | None = Field(
+        None, description="이 프로젝트 워크스페이스의 webhook signing secret"
+    )
+    tunnel_url: str | None = Field(
+        None, description="webhook 수신 공개 URL. 미지정 시 사용자 전역 tunnel_url 폴백"
+    )
 
 
 class ProjectLinearCredentialsResponse(BaseModel):
     api_key_masked: str
     team_id: str
+    webhook_secret_set: bool
+    linear_webhook_id: str | None
     updated_at: datetime
