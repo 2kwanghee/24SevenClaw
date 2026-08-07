@@ -504,7 +504,8 @@
     },
     "settings": {
       "members": "Anggota organisasi",
-      "anthropic": "Kredensial Anthropic"
+      "anthropic": "Kredensial Anthropic",
+      "linear": "Linear"
     },
     "admin": {
       "controlTower": "Menara kontrol",
@@ -1140,5 +1141,28 @@
       "backToList": "Kembali ke tabel",
       "sensitiveKeepHint": "Isi hanya untuk mengubah (kosongkan untuk mempertahankan)"
     }
+  },
+  "projectLinear": {
+    "title": "Integrasi Linear",
+    "subtitle": "Daftarkan API key dan team ID Linear khusus untuk proyek ini.",
+    "boardNotice": "Setelah terdaftar, detail tiket delivery board proyek ini akan menggunakan key ini.",
+    "statusLabel": "Status",
+    "registered": "Terdaftar",
+    "notRegistered": "Belum terdaftar.",
+    "apiKeyMaskedLabel": "API Key",
+    "teamIdLabel": "Team ID",
+    "apiKeyLabel": "Linear API Key",
+    "apiKeyInvalid": "Masukkan API key yang valid (format lin_api_..., minimal 10 karakter)",
+    "teamIdRequired": "Masukkan team ID",
+    "apiKeyPlaceholderUpdate": "Masukkan key baru untuk mengubahnya",
+    "apiKeyHelp": "Key disimpan terenkripsi Fernet di server dan ditampilkan tersamar setelah disimpan.",
+    "teamIdHelp": "UUID dari URL pengaturan tim Linear Anda.",
+    "updateBtn": "Perbarui",
+    "saveBtn": "Simpan",
+    "deleteBtn": "Hapus",
+    "saveSuccess": "Kredensial Linear disimpan.",
+    "saveFail": "Gagal menyimpan.",
+    "deleteSuccess": "Kredensial Linear dihapus.",
+    "deleteFail": "Gagal menghapus."
   }
 }

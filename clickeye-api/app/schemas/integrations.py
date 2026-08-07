@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -37,3 +39,14 @@ class ProjectLinearStatusResponse(BaseModel):
     credentials_saved: bool
     team_id: str | None
     api_key_masked: str | None
+
+
+class ProjectLinearCredentialsSave(BaseModel):
+    api_key: str = Field(..., min_length=1, description="Linear API 키 (lin_api_...)")
+    team_id: str = Field(..., min_length=1, description="Linear 팀 UUID")
+
+
+class ProjectLinearCredentialsResponse(BaseModel):
+    api_key_masked: str
+    team_id: str
+    updated_at: datetime

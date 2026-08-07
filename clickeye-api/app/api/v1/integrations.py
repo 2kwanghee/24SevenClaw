@@ -9,23 +9,57 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.linear_credentials import _mask_api_key
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.project_linear_credentials import ProjectLinearCredentials
 from app.models.user import User
 from app.schemas.integrations import (
     IntegrationValidateResponse,
     LinearValidateRequest,
     NotionValidateRequest,
+    ProjectLinearCredentialsResponse,
+    ProjectLinearCredentialsSave,
     ProjectLinearStatusResponse,
     RegisterInitialTasksRequest,
     RegisterInitialTasksResponse,
 )
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
+
+
+async def _upsert_project_linear_credentials(
+    db: AsyncSession, project_id: UUID, api_key: str, team_id: str
+) -> ProjectLinearCredentials:
+    """프로젝트별 Linear 자격증명 upsert (Fernet 암호화). initial-tasks/PUT 라우트 공유."""
+    from app.core.crypto import encrypt
+
+    result = await db.execute(
+        select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
+    )
+    creds = result.scalar_one_or_none()
+    encrypted_key = encrypt(api_key)
+    now = datetime.now(UTC)
+
+    if creds is None:
+        creds = ProjectLinearCredentials(
+            project_id=project_id,
+            encrypted_api_key=encrypted_key,
+            team_id=team_id,
+        )
+        db.add(creds)
+    else:
+        creds.encrypted_api_key = encrypted_key  # type: ignore[assignment]
+        creds.team_id = team_id  # type: ignore[assignment]
+        creds.updated_at = now  # type: ignore[assignment]
+
+    await db.commit()
+    await db.refresh(creds)
+    return creds
 
 
 @router.get(
@@ -64,6 +98,76 @@ async def get_project_linear_status(
         team_id=str(creds.team_id),
         api_key_masked=masked,
     )
+
+
+@router.put(
+    "/projects/{project_id}/linear-credentials",
+    response_model=ProjectLinearCredentialsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def save_project_linear_credentials(
+    project_id: UUID,
+    data: ProjectLinearCredentialsSave,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectLinearCredentialsResponse:
+    """프로젝트별 Linear 자격증명 저장 (upsert). API 키는 Fernet 암호화, 응답은 마스킹."""
+    creds = await _upsert_project_linear_credentials(db, project_id, data.api_key, data.team_id)
+    return ProjectLinearCredentialsResponse(
+        api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
+        team_id=str(creds.team_id),
+        updated_at=creds.updated_at or creds.created_at,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/linear-credentials",
+    response_model=ProjectLinearCredentialsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_project_linear_credentials(
+    project_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProjectLinearCredentialsResponse:
+    """프로젝트별 Linear 자격증명 조회 (API 키는 마스킹)."""
+    result = await db.execute(
+        select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
+    )
+    creds = result.scalar_one_or_none()
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="프로젝트 Linear 자격증명이 없습니다",
+        )
+    return ProjectLinearCredentialsResponse(
+        api_key_masked=_mask_api_key(str(creds.encrypted_api_key)),
+        team_id=str(creds.team_id),
+        updated_at=creds.updated_at or creds.created_at,
+    )
+
+
+@router.delete(
+    "/projects/{project_id}/linear-credentials",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_project_linear_credentials(
+    project_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """프로젝트별 Linear 자격증명 삭제."""
+    result = await db.execute(
+        select(ProjectLinearCredentials).where(ProjectLinearCredentials.project_id == project_id)
+    )
+    creds = result.scalar_one_or_none()
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="프로젝트 Linear 자격증명이 없습니다",
+        )
+    await db.delete(creds)
+    await db.commit()
 
 
 _executor = ThreadPoolExecutor(max_workers=4)
@@ -147,34 +251,12 @@ async def register_initial_tasks(
         except Exception as exc:
             errors.append(f"Linear 태스크 등록 실패: {exc}")
 
-        # 프로젝트별 Linear 자격증명 저장 (upsert)
+        # 프로젝트별 Linear 자격증명 저장 (upsert) — 공유 헬퍼 재사용
         if data.save_credentials:
             try:
-                from app.core.crypto import encrypt
-                from app.models.project_linear_credentials import ProjectLinearCredentials
-
-                result = await db.execute(
-                    select(ProjectLinearCredentials).where(
-                        ProjectLinearCredentials.project_id == project_id
-                    )
+                await _upsert_project_linear_credentials(
+                    db, project_id, data.linear_api_key, data.linear_team_id
                 )
-                creds = result.scalar_one_or_none()
-                encrypted_key = encrypt(data.linear_api_key)
-                now = datetime.now(UTC)
-
-                if creds is None:
-                    creds = ProjectLinearCredentials(
-                        project_id=project_id,
-                        encrypted_api_key=encrypted_key,
-                        team_id=data.linear_team_id,
-                    )
-                    db.add(creds)
-                else:
-                    creds.encrypted_api_key = encrypted_key  # type: ignore[assignment]
-                    creds.team_id = data.linear_team_id  # type: ignore[assignment]
-                    creds.updated_at = now  # type: ignore[assignment]
-
-                await db.commit()
             except Exception as exc:
                 errors.append(f"Linear 자격증명 저장 실패: {exc}")
 

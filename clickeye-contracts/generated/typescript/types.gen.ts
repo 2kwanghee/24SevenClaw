@@ -2051,6 +2051,23 @@ export type ProjectKpiResponse = {
     generated_at: string;
 };
 
+export type ProjectLinearCredentialsResponse = {
+    api_key_masked: string;
+    team_id: string;
+    updated_at: string;
+};
+
+export type ProjectLinearCredentialsSave = {
+    /**
+     * Linear API 키 (lin_api_...)
+     */
+    api_key: string;
+    /**
+     * Linear 팀 UUID
+     */
+    team_id: string;
+};
+
 export type ProjectLinearStatusResponse = {
     credentials_saved: boolean;
     team_id: string | null;
@@ -7760,6 +7777,87 @@ export type GetProjectLinearStatusApiV1IntegrationsProjectsProjectIdLinearCreden
 };
 
 export type GetProjectLinearStatusApiV1IntegrationsProjectsProjectIdLinearCredentialsStatusGetResponse = GetProjectLinearStatusApiV1IntegrationsProjectsProjectIdLinearCredentialsStatusGetResponses[keyof GetProjectLinearStatusApiV1IntegrationsProjectsProjectIdLinearCredentialsStatusGetResponses];
+
+export type DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/projects/{project_id}/linear-credentials';
+};
+
+export type DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteError = DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteErrors[keyof DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteErrors];
+
+export type DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteResponse = DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteResponses[keyof DeleteProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsDeleteResponses];
+
+export type GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/projects/{project_id}/linear-credentials';
+};
+
+export type GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetError = GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetErrors[keyof GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetErrors];
+
+export type GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectLinearCredentialsResponse;
+};
+
+export type GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetResponse = GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetResponses[keyof GetProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsGetResponses];
+
+export type SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutData = {
+    body: ProjectLinearCredentialsSave;
+    path: {
+        project_id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/projects/{project_id}/linear-credentials';
+};
+
+export type SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutError = SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutErrors[keyof SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutErrors];
+
+export type SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProjectLinearCredentialsResponse;
+};
+
+export type SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutResponse = SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutResponses[keyof SaveProjectLinearCredentialsApiV1IntegrationsProjectsProjectIdLinearCredentialsPutResponses];
 
 export type ValidateLinearApiV1IntegrationsValidateLinearPostData = {
     body: LinearValidateRequest;

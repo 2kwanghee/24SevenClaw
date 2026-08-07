@@ -13,6 +13,7 @@ import {
 
 import { BentoCard } from "@/components/ui/bento";
 import { ProjectForm } from "@/components/projects/project-form";
+import { ProjectLinearCard } from "@/components/projects/project-linear-card";
 import { useProject, useUpdateProject } from "@/hooks/use-projects";
 import { ApiClientError } from "@/lib/api-client";
 
@@ -110,6 +111,9 @@ export default function ProjectSettingsPage() {
             }}
           />
         </BentoCard>
+
+        {/* Linear 연동 — 프로젝트별 자격증명 (보드 티켓 상세가 이 키로 동작) */}
+        <ProjectLinearCard projectId={projectId} />
 
         {/* 상태 변경 */}
         <BentoCard>
