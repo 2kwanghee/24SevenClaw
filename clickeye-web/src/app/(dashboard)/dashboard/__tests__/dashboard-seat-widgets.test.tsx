@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { SeatObservabilityEntry } from "@/lib/api-client";
 
-import { SeatRankingTable } from "../page";
+import { SeatRankingTable } from "@/components/dashboard/seat-widgets";
 
 /** next-intl useTranslations 모킹 — 이 레포에 기존 render 테스트 선례가 없어 새로 정의.
  * key 를 그대로 반환하고 {value} 형태의 보간만 단순 치환한다. */
