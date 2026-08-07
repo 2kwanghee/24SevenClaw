@@ -1,7 +1,7 @@
 ---
 title: 자동화 파이프라인 가이드 (v6)
 category: guide
-status: needs-revision
+status: current
 last_updated: 2026-08-05
 related:
   - scripts/auto_dev_pipeline.sh
