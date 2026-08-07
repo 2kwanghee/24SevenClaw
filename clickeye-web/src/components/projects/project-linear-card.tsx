@@ -173,6 +173,17 @@ export function ProjectLinearCard({ projectId }: ProjectLinearCardProps) {
                     <span>{t("webhookSecretOnly")}</span>
                   </div>
                 ) : null}
+
+                {/* 시크릿을 저장해도 수신부(무 DB 원칙)는 webhook.env 로 공급된 목록으로만
+                    검증한다 — 반영·재기동 전까지 모든 이벤트가 401 이므로 그 사실을 알린다. */}
+                {saved.webhook_secret_set && (
+                  <div className="col-span-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/40">
+                    <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-400" />
+                    <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                      {t("webhookEnvNotice")}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
