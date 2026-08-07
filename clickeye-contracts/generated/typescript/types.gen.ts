@@ -515,10 +515,34 @@ export type DeliveryBoardStages = {
 };
 
 /**
+ * 티켓 1건의 Linear 원본 상세 — 카드 클릭 시 lazy 조회.
+ *
+ * `available=False` 는 Linear 자격증명 부재 또는 호출 실패(인증/네트워크/이슈 미존재)를
+ * 뜻한다 — 프런트가 502 대신 "Linear 연결 불가" 안내를 표시한다(200 고정).
+ */
+export type DeliveryBoardTicketDetailResponse = {
+    available?: boolean;
+    identifier?: string | null;
+    title?: string | null;
+    description?: string | null;
+    url?: string | null;
+    state_name?: string | null;
+    state_type?: string | null;
+    assignee?: string | null;
+    labels?: Array<string>;
+    priority?: number | null;
+    priority_label?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    comments?: Array<TicketDetailComment>;
+};
+
+/**
  * 발급 티켓 1건 — 정규화된 현재 단계 + 단계 이력.
  */
 export type DeliveryBoardTicketItem = {
     key: string;
+    issue_id?: string | null;
     title: string;
     stage: string;
     stage_history?: Array<DeliveryBoardStageHistoryItem>;
@@ -3152,6 +3176,15 @@ export type TableSchema = {
      * 컬럼 디스크립터 목록
      */
     columns: Array<TableColumnSchema>;
+};
+
+/**
+ * Linear 이슈 코멘트 1건 (딜리버리 보드 티켓 상세 패널용).
+ */
+export type TicketDetailComment = {
+    body: string;
+    created_at?: string | null;
+    author?: string | null;
 };
 
 /**
@@ -9433,6 +9466,33 @@ export type GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses = {
 };
 
 export type GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponse = GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses[keyof GetDeliveryBoardApiV1ObservabilityDeliveryBoardGetResponses];
+
+export type GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetData = {
+    body?: never;
+    path: {
+        issue_id: string;
+    };
+    query?: never;
+    url: '/api/v1/observability/delivery-board/tickets/{issue_id}';
+};
+
+export type GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetError = GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetErrors[keyof GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetErrors];
+
+export type GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeliveryBoardTicketDetailResponse;
+};
+
+export type GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetResponse = GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetResponses[keyof GetDeliveryBoardTicketDetailApiV1ObservabilityDeliveryBoardTicketsIssueIdGetResponses];
 
 export type GetSeatsApiV1ObservabilitySeatsGetData = {
     body?: never;

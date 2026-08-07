@@ -96,3 +96,16 @@ export function useDeliveryBoard() {
     refetchInterval: 30_000,
   });
 }
+
+/** 티켓 상세(Linear 원본) — 카드 클릭 시에만 조회(lazy), 60s 동안 fresh 로 캐시. */
+export function useTicketDetail(issueId: string | null | undefined, enabled = true) {
+  const token = useAccessToken();
+
+  return useQuery({
+    queryKey: [...OBSERVABILITY_KEY, "delivery-board", "ticket", issueId],
+    queryFn: () => observability.getTicketDetail(token, issueId as string),
+    enabled: !!token && !!issueId && enabled,
+    retry: false,
+    staleTime: 60_000,
+  });
+}

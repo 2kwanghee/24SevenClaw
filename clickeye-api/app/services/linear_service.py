@@ -168,6 +168,72 @@ def update_issue_state_id(api_key: str, issue_id: str, state_id: str) -> bool:
         return False
 
 
+_ISSUE_DETAIL_QUERY = """
+query IssueDetail($id: String!) {
+  issue(id: $id) {
+    identifier
+    title
+    description
+    url
+    priority
+    priorityLabel
+    createdAt
+    updatedAt
+    state { name type }
+    assignee { displayName }
+    labels { nodes { name } }
+    comments(first: 20) {
+      nodes { body createdAt user { displayName } }
+    }
+  }
+}
+"""
+
+
+def get_issue_detail(api_key: str, issue_id: str) -> dict | None:  # type: ignore[type-arg]
+    """Linear 이슈 1건의 상세를 조회해 정규화된 dict 로 반환한다.
+
+    보드 상세 패널(관측 대시보드)이 티켓 카드 클릭 시 원본 Linear 정보를 보여주기
+    위해 사용한다. 이슈가 없으면 None. 인증/네트워크 오류는 `_call` 이 RuntimeError
+    로 올려주므로 호출측(observability_service)이 available:false 로 흡수한다.
+
+    Returns:
+        {identifier,title,description,url,state_name,state_type,assignee,labels,
+         priority,priority_label,created_at,updated_at,comments[{body,created_at,author}]}
+        또는 이슈 미존재 시 None.
+    """
+    data = _call(api_key, _ISSUE_DETAIL_QUERY, {"id": issue_id})
+    issue = data.get("issue")
+    if not issue:
+        return None
+    state = issue.get("state") or {}
+    assignee = issue.get("assignee") or {}
+    labels = (issue.get("labels") or {}).get("nodes") or []
+    comments = (issue.get("comments") or {}).get("nodes") or []
+    return {
+        "identifier": issue.get("identifier"),
+        "title": issue.get("title"),
+        "description": issue.get("description"),
+        "url": issue.get("url"),
+        "state_name": state.get("name"),
+        "state_type": state.get("type"),
+        "assignee": assignee.get("displayName"),
+        "labels": [str(lbl["name"]) for lbl in labels if lbl.get("name")],
+        "priority": issue.get("priority"),
+        "priority_label": issue.get("priorityLabel"),
+        "created_at": issue.get("createdAt"),
+        "updated_at": issue.get("updatedAt"),
+        "comments": [
+            {
+                "body": str(c.get("body") or ""),
+                "created_at": c.get("createdAt"),
+                "author": (c.get("user") or {}).get("displayName"),
+            }
+            for c in comments
+        ],
+    }
+
+
 _ISSUE_STATES_BY_ID_QUERY = """
 query IssueStatesById($ids: [ID!]!) {
   issues(
