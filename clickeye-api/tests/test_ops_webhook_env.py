@@ -170,7 +170,14 @@ async def test_render_creates_file_when_missing(
 async def test_render_keeps_rotation_pair_for_same_team(
     client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
 ) -> None:
-    """같은 팀에 시크릿이 둘이면(로테이션) 둘 다 남긴다 — 수신부가 허용하는 의미론."""
+    """같은 team_id 의 시크릿이 둘이면 둘 다 남긴다 — 수신부가 허용하는 의미론.
+
+    이는 로테이션(한 프로젝트의 구·신 시크릿)만이 아니다. 수신부는 시크릿을 **팀**에만
+    바인딩하고 프로젝트 개념이 없으므로, 같은 Linear 팀을 공유하는 **서로 다른 프로젝트**의
+    시크릿도 서로를 대변한다 — 한쪽 시크릿으로 서명한 요청이 같은 팀의 다른 프로젝트
+    이벤트로도 통과한다. 아래 두 프로젝트(Rot A/Rot B)가 정확히 그 형태이며, 테넌트 격리가
+    필요하면 팀을 분리해야 한다.
+    """
     headers = await _superadmin(client, db_session, "wh-rot@ops.com")
     await _add_credential(db_session, "o4@ops.com", "Rot A", "team-r", "lin_wh_old")
     await _add_credential(db_session, "o5@ops.com", "Rot B", "team-r", "lin_wh_new")
@@ -283,7 +290,9 @@ async def test_render_skips_unicode_line_separator_in_team_id(
 
     content = webhook_env_enabled.read_text(encoding="utf-8")
     assert content.count("WEBHOOK_SECRET=") == 0
-    assert "WEBHOOK_SECRET_MAP=\n" in content
+    # 유효 항목이 0개이므로 빈 MAP 라인을 쓰지 않는다(수신부 기동 거부 방지).
+    assert "WEBHOOK_SECRET_MAP=" not in content
+    assert body["warnings"] == ["map_line_removed", "receiver_startup_blocked"]
 
 
 @pytest.mark.asyncio
@@ -332,7 +341,192 @@ async def test_render_ignores_projects_without_secret(
     # 미등록은 제외 사유가 아니라 그냥 대상 아님.
     assert body["entry_count"] == 0
     assert body["skipped"] == []
-    assert "WEBHOOK_SECRET_MAP=\n" in webhook_env_enabled.read_text(encoding="utf-8")
+    assert "WEBHOOK_SECRET_MAP=" not in webhook_env_enabled.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# 항목 0개 — 빈 MAP 라인을 쓰지 않는다(수신부 fail-closed 회피)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_render_removes_map_line_when_no_entries(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """시크릿 보유 프로젝트가 0이면 기존 MAP 라인을 제거한다 — 빈 라인을 남기지 않는다.
+
+    빈 `WEBHOOK_SECRET_MAP=` 는 수신부가 "설정 의도 있음 + 유효 항목 0개"로 읽어 기동을
+    거부한다. 라인을 아예 없애면 미설정으로 판정되어 레거시 시크릿으로 기동할 수 있고,
+    폐기 시크릿도 파일에 남지 않는다.
+    """
+    headers = await _superadmin(client, db_session, "wh-empty@ops.com")
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(
+        "# 주석\nWEBHOOK_SECRET=legacy_single\nWEBHOOK_SECRET_MAP=old-team=old_secret\n",
+        encoding="utf-8",
+    )
+
+    resp = await client.post(_RENDER_URL, headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entry_count"] == 0
+    # 레거시가 살아 있으므로 기동 거부 경고는 붙지 않는다.
+    assert body["warnings"] == ["map_line_removed"]
+
+    content = webhook_env_enabled.read_text(encoding="utf-8")
+    assert "WEBHOOK_SECRET_MAP=" not in content
+    assert "old_secret" not in content
+    assert "WEBHOOK_SECRET=legacy_single" in content
+    assert "# 주석" in content
+
+
+@pytest.mark.asyncio
+async def test_render_warns_startup_blocked_without_legacy(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """항목 0개 + 레거시 없음 → 재기동하면 수신부가 기동 거부된다는 경고를 낸다."""
+    headers = await _superadmin(client, db_session, "wh-blocked@ops.com")
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text("WEBHOOK_SECRET_MAP=old-team=old_secret\n", encoding="utf-8")
+
+    resp = await client.post(_RENDER_URL, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["warnings"] == ["map_line_removed", "receiver_startup_blocked"]
+    assert "WEBHOOK_SECRET_MAP=" not in webhook_env_enabled.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# export / 공백 형태 할당 인식
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "existing",
+    [
+        "export WEBHOOK_SECRET_MAP=stale-team=stale_secret",
+        "WEBHOOK_SECRET_MAP = stale-team=stale_secret",
+        "  export  WEBHOOK_SECRET_MAP =stale-team=stale_secret",
+    ],
+)
+async def test_render_replaces_export_and_spaced_map_assignments(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path, existing: str
+) -> None:
+    """`export KEY=` · `KEY = ` 형태도 같은 MAP 할당으로 인식해 교체한다.
+
+    인식하지 못하면 새 라인이 덧붙고 옛 라인이 남는다 — env_file 은 뒤 라인이 이기므로
+    폐기 시크릿이 계속 유효해지거나 렌더 결과와 실제 적용값이 어긋난다.
+    """
+    headers = await _superadmin(client, db_session, f"wh-exp-{abs(hash(existing))}@ops.com")
+    await _add_credential(
+        db_session, f"exp-{abs(hash(existing))}@ops.com", "Exp", "team-e", "lin_wh_e"
+    )
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(f"# 주석\n{existing}\n", encoding="utf-8")
+
+    resp = await client.post(_RENDER_URL, headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["entry_count"] == 1
+
+    content = webhook_env_enabled.read_text(encoding="utf-8")
+    assert "stale_secret" not in content
+    assert content.count("WEBHOOK_SECRET_MAP") == 1
+    assert "WEBHOOK_SECRET_MAP=team-e=lin_wh_e\n" in content
+
+
+@pytest.mark.asyncio
+async def test_status_detects_export_form_legacy_secret(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """`export WEBHOOK_SECRET=` 형태의 레거시도 경고 대상으로 잡는다."""
+    headers = await _superadmin(client, db_session, "wh-exp-legacy@ops.com")
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text("export WEBHOOK_SECRET=legacy\n", encoding="utf-8")
+    resp = await client.get(_STATUS_URL, headers=headers)
+    assert resp.json()["legacy_present"] is True
+
+
+# ---------------------------------------------------------------------------
+# 드리프트 — 파일의 MAP 집합 vs DB 산출 집합
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_status_reports_drift_added_removed_changed(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """추가될 팀 / 제거될 팀(폐기 시크릿) / 값이 바뀐 팀 3종을 모두 산출한다."""
+    headers = await _superadmin(client, db_session, "wh-drift@ops.com")
+    # DB: team-add(신규), team-chg(값 변경). 파일: team-chg(옛값), team-del(자격증명 삭제됨).
+    await _add_credential(db_session, "d1@ops.com", "Add", "team-add", "lin_wh_add")
+    await _add_credential(db_session, "d2@ops.com", "Chg", "team-chg", "lin_wh_new")
+
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(
+        "WEBHOOK_SECRET_MAP=team-chg=lin_wh_old,team-del=lin_wh_del\n", encoding="utf-8"
+    )
+
+    resp = await client.get(_STATUS_URL, headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["file_entry_count"] == 2
+    assert body["expected_entry_count"] == 2
+    assert body["drift"] == [
+        {"team_id": "team-add", "state": "added"},
+        {"team_id": "team-chg", "state": "changed"},
+        {"team_id": "team-del", "state": "removed"},
+    ]
+    # 드리프트 응답에 시크릿 평문이 섞이면 안 된다.
+    assert "lin_wh_old" not in resp.text
+    assert "lin_wh_new" not in resp.text
+    assert "lin_wh_del" not in resp.text
+
+    # 렌더하면 드리프트가 사라진다.
+    await client.post(_RENDER_URL, headers=headers)
+    after = await client.get(_STATUS_URL, headers=headers)
+    assert after.json()["drift"] == []
+    assert after.json()["file_entry_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_status_drift_uses_last_map_line(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """MAP 라인이 여럿이면 수신부와 같이 마지막 라인을 실제 적용값으로 본다."""
+    headers = await _superadmin(client, db_session, "wh-drift-dup@ops.com")
+    await _add_credential(db_session, "d3@ops.com", "Dup", "team-d", "lin_wh_d")
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text(
+        "WEBHOOK_SECRET_MAP=team-d=lin_wh_d\nWEBHOOK_SECRET_MAP=team-other=lin_wh_o\n",
+        encoding="utf-8",
+    )
+
+    body = (await client.get(_STATUS_URL, headers=headers)).json()
+    assert body["drift"] == [
+        {"team_id": "team-d", "state": "added"},
+        {"team_id": "team-other", "state": "removed"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_status_warns_when_no_entries_and_no_legacy(
+    client: AsyncClient, db_session: AsyncSession, webhook_env_enabled: Path
+) -> None:
+    """렌더 전에도 "지금 렌더하면 수신부가 못 뜬다"를 알 수 있어야 한다."""
+    headers = await _superadmin(client, db_session, "wh-warn@ops.com")
+    webhook_env_enabled.parent.mkdir(parents=True, exist_ok=True)
+    webhook_env_enabled.write_text("WEBHOOK_SECRET_MAP=team-x=lin_wh_x\n", encoding="utf-8")
+
+    body = (await client.get(_STATUS_URL, headers=headers)).json()
+    assert body["expected_entry_count"] == 0
+    assert body["warnings"] == ["map_line_removed", "receiver_startup_blocked"]
+
+    # 레거시가 있으면 기동 거부 경고는 빠진다.
+    webhook_env_enabled.write_text(
+        "WEBHOOK_SECRET=legacy\nWEBHOOK_SECRET_MAP=team-x=lin_wh_x\n", encoding="utf-8"
+    )
+    body2 = (await client.get(_STATUS_URL, headers=headers)).json()
+    assert body2["warnings"] == ["map_line_removed"]
 
 
 # ---------------------------------------------------------------------------

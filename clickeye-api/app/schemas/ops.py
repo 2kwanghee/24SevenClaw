@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -101,8 +101,23 @@ class WebhookEnvProjectItem(BaseModel):
     has_secret: bool = Field(description="webhook signing secret 보유 여부(값은 미반환)")
 
 
+class WebhookEnvDriftItem(BaseModel):
+    """파일의 MAP 항목 집합과 DB 산출 항목 집합의 차이 1건.
+
+    시크릿 값은 어떤 형태로도 포함하지 않는다 — team_id 와 상태 라벨만 반환한다.
+    """
+
+    team_id: str = Field(description="차이가 발생한 Linear 팀 ID")
+    state: Literal["added", "removed", "changed"] = Field(
+        description=(
+            "added=렌더 시 추가될 팀 / removed=렌더 시 제거될 팀(폐기 시크릿이 아직 유효) / "
+            "changed=같은 팀의 시크릿 집합이 달라짐"
+        )
+    )
+
+
 class WebhookEnvStatus(BaseModel):
-    """렌더 대상 파일의 현재 상태 + MAP 후보 목록."""
+    """렌더 대상 파일의 현재 상태 + MAP 후보 목록 + 미반영 드리프트."""
 
     rendered_path: str = Field(description="렌더 대상 webhook.env 경로")
     file_exists: bool = Field(description="파일 존재 여부")
@@ -112,6 +127,23 @@ class WebhookEnvStatus(BaseModel):
     )
     projects: list[WebhookEnvProjectItem] = Field(
         default_factory=list, description="Linear 자격증명이 등록된 프로젝트 목록"
+    )
+    file_entry_count: int = Field(
+        default=0, description="파일 MAP 라인에서 수신부가 유효로 볼 항목 수"
+    )
+    expected_entry_count: int = Field(
+        default=0, description="지금 렌더하면 기록될 항목 수(fail-closed 제외분 반영)"
+    )
+    drift: list[WebhookEnvDriftItem] = Field(
+        default_factory=list,
+        description="파일과 DB 산출 결과의 차이(= 아직 렌더로 반영되지 않은 변경)",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description=(
+            "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 쓰지 않음 / "
+            "receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
+        ),
     )
 
 
@@ -139,6 +171,13 @@ class WebhookEnvRenderResult(BaseModel):
     )
     legacy_present: bool = Field(
         description="값이 채워진 WEBHOOK_SECRET(S) 라인이 남아 있는지(팀 검사 미적용 경고)"
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description=(
+            "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 제거함 / "
+            "receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
+        ),
     )
     restart_command: str = Field(
         description="사용자가 수동 실행할 webhook 재생성 명령(백엔드는 실행하지 않음)"

@@ -1078,7 +1078,21 @@
       "restartNotice": "New secrets are not applied to inbound webhooks until restart. Run the command below manually in your ops environment.",
       "copy": "Copy",
       "copied": "Copied",
-      "error": "Failed to render webhook.env."
+      "error": "Failed to render webhook.env.",
+      "driftLabel": "Unapplied changes",
+      "driftCount": "{count}",
+      "driftNone": "None",
+      "driftHint": "file {file} / on render {expected}",
+      "driftTitle": "{count} unapplied change(s) — render to apply them to the receiver",
+      "driftState": {
+        "added": "Team to be added (not yet verified by the receiver)",
+        "removed": "Team to be removed — the revoked secret is still valid on the receiver",
+        "changed": "Team whose secret changed (the file still holds the old value)"
+      },
+      "startupBlockedTitle": "Restarting will keep the receiver down",
+      "startupBlockedWarning": "There are zero valid secrets (no WEBHOOK_SECRET_MAP entries and no legacy WEBHOOK_SECRET(S)). Restarting now makes the receiver refuse to start (fail-closed) and webhook delivery stops. Register a webhook secret on a project and render again first.",
+      "mapRemovedWarning": "No secrets to map, so the WEBHOOK_SECRET_MAP line was not written (an empty line would block receiver startup, so it is removed). Any leftover revoked secrets are removed with it.",
+      "restartBlockedNotice": "Do not run this command right now — with zero valid secrets the receiver refuses to start. Register a secret, render again, then run it."
     },
     "containers": {
       "pageTitle": "Containers & Ports",

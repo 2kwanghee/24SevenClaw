@@ -26,10 +26,19 @@ export function WebhookEnvCard() {
   // 렌더 이후에는 렌더 결과의 legacy_present 가 최신이고, 그 전에는 status 값을 쓴다.
   const legacyPresent = result?.legacy_present ?? data?.legacy_present ?? false;
 
+  // 경고도 같은 규칙 — 렌더 결과가 있으면 그쪽이 파일의 최신 상태다.
+  const warnings = result?.warnings ?? data?.warnings ?? [];
+  // 유효 시크릿이 0개라 재기동하면 수신부가 fail-closed 로 기동을 거부하는 상태.
+  const startupBlocked = warnings.includes("receiver_startup_blocked");
+  const mapRemoved = warnings.includes("map_line_removed");
+
   // projects 는 Linear 자격증명이 등록된 전 프로젝트(has_secret=false 포함)라,
   // 실제 MAP 대상은 시크릿 보유 프로젝트만이다.
   const withSecret = data?.projects.filter((p) => p.has_secret).length ?? 0;
   const totalProjects = data?.projects.length ?? 0;
+
+  // 드리프트는 status 만 산출한다. 렌더 성공 시 status 쿼리가 무효화되어 자동 갱신된다.
+  const drift = data?.drift ?? [];
 
   async function handleRender() {
     try {
@@ -91,7 +100,7 @@ export function WebhookEnvCard() {
           {t("statusError")}
         </div>
       ) : data ? (
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
             <dt className="text-[11px] text-[var(--text-muted)]">
               {t("projectCount")}
@@ -122,6 +131,34 @@ export function WebhookEnvCard() {
               {data.map_line_present ? t("mapPresent") : t("mapAbsent")}
             </dd>
           </div>
+          <div
+            className={`rounded-lg border px-3 py-2 ${
+              drift.length > 0
+                ? "border-amber-300 bg-amber-50"
+                : "border-[var(--border-subtle)] bg-[var(--bg-hover)]"
+            }`}
+          >
+            <dt
+              className={`text-[11px] ${drift.length > 0 ? "text-amber-700" : "text-[var(--text-muted)]"}`}
+            >
+              {t("driftLabel")}
+            </dt>
+            <dd
+              className={`mt-0.5 text-sm font-semibold ${
+                drift.length > 0 ? "text-amber-800" : "text-[var(--text-primary)]"
+              }`}
+            >
+              {drift.length > 0
+                ? t("driftCount", { count: drift.length })
+                : t("driftNone")}
+            </dd>
+            <dd className="text-[10px] text-[var(--text-muted)]">
+              {t("driftHint", {
+                file: data.file_entry_count,
+                expected: data.expected_entry_count,
+              })}
+            </dd>
+          </div>
           <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] px-3 py-2">
             <dt className="text-[11px] text-[var(--text-muted)]">
               {t("renderedPath")}
@@ -131,6 +168,41 @@ export function WebhookEnvCard() {
             </dd>
           </div>
         </dl>
+      ) : null}
+
+      {drift.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5">
+          <p className="text-[11px] font-medium text-amber-800">
+            {t("driftTitle", { count: drift.length })}
+          </p>
+          <ul className="mt-1 space-y-0.5 text-[11px] text-amber-700">
+            {drift.map((d) => (
+              <li key={`${d.team_id}-${d.state}`} className="break-all">
+                <span className="font-mono">{d.team_id}</span>
+                {" — "}
+                {t(`driftState.${d.state}`)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {startupBlocked ? (
+        <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            <strong className="font-semibold">
+              {t("startupBlockedTitle")}
+            </strong>
+            <br />
+            {t("startupBlockedWarning")}
+          </span>
+        </div>
+      ) : mapRemoved ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t("mapRemovedWarning")}</span>
+        </div>
       ) : null}
 
       {legacyPresent && (
@@ -178,7 +250,8 @@ export function WebhookEnvCard() {
             </div>
           )}
 
-          <div>
+          {/* 기동 거부 상태에서는 재기동을 권하지 않는다 — 명령을 흐리고 위험 안내를 먼저 읽힌다. */}
+          <div className={startupBlocked ? "opacity-50" : undefined}>
             <div className="mb-1 flex items-center justify-between">
               <span className="text-[11px] font-medium text-[var(--text-muted)]">
                 {t("restartCommand")}
@@ -204,8 +277,14 @@ export function WebhookEnvCard() {
             <pre className="max-h-40 overflow-auto rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 text-xs text-[var(--text-primary)]">
               <code>{result.restart_command}</code>
             </pre>
-            <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-              {t("restartNotice")}
+            <p
+              className={`mt-2 rounded-md border px-3 py-2 text-[11px] leading-relaxed ${
+                startupBlocked
+                  ? "border-red-300 bg-red-50 text-red-800"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              {startupBlocked ? t("restartBlockedNotice") : t("restartNotice")}
             </p>
           </div>
         </div>

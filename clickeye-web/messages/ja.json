@@ -1070,7 +1070,21 @@
       "restartNotice": "再起動するまで新しいシークレットは受信に反映されません。以下のコマンドを運用環境で手動実行してください。",
       "copy": "コピー",
       "copied": "コピーしました",
-      "error": "webhook.env のレンダーに失敗しました。"
+      "error": "webhook.env のレンダーに失敗しました。",
+      "driftLabel": "未反映の変更",
+      "driftCount": "{count}件",
+      "driftNone": "なし",
+      "driftHint": "ファイル {file} / レンダー時 {expected}",
+      "driftTitle": "未反映の変更 {count}件 — レンダーすると受信側に適用されます",
+      "driftState": {
+        "added": "追加されるチーム（受信側でまだ検証されていません）",
+        "removed": "削除されるチーム — 廃止済みシークレットが受信側でまだ有効です",
+        "changed": "シークレットが変更されたチーム（ファイルには旧値が残存）"
+      },
+      "startupBlockedTitle": "再起動すると受信側が起動しません",
+      "startupBlockedWarning": "有効なシークレットが 0 件です（WEBHOOK_SECRET_MAP の項目なし + レガシー WEBHOOK_SECRET(S) なし）。この状態で再起動すると受信側が fail-closed で起動を拒否し、webhook 受信が停止します。先にプロジェクトへ webhook シークレットを登録し、再度レンダーしてください。",
+      "mapRemovedWarning": "MAP 対象のシークレットが 0 件のため WEBHOOK_SECRET_MAP 行を書き込みませんでした（空行は受信側の起動を妨げるため削除）。残っていた廃止済みシークレットも併せて削除されます。",
+      "restartBlockedNotice": "今はこのコマンドを実行しないでください — 有効なシークレットが 0 件のため受信側が起動を拒否します。シークレットを登録して再レンダーしてから実行してください。"
     },
     "containers": {
       "pageTitle": "コンテナとポート",

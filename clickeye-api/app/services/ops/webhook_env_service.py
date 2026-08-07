@@ -10,6 +10,11 @@
   콤마로 항목을, 첫 `=` 로 팀/시크릿을 자르고 양쪽을 trim 한다. 이 규칙을 깨는 값
   (콤마·개행·team_id 내 `=`·앞뒤 공백)은 **그 항목만 제외**한다. 그대로 렌더하면 인접
   항목까지 오분해되어 무관한 프로젝트가 조용히 거부 상태가 되기 때문.
+- **항목 0개면 라인을 지운다**: 빈 `WEBHOOK_SECRET_MAP=` 는 수신부에 "설정했는데 유효
+  항목 0개"로 읽혀 기동 거부를 유발한다. 그래서 항목이 없으면 라인 자체를 제거해 미설정
+  상태로 되돌린다(폐기 시크릿도 함께 사라진다).
+- **드리프트는 파일이 진실**: 별도 스냅샷 파일 없이 파일의 MAP 항목 집합과 DB 산출 집합을
+  직접 비교해 미반영 변경을 보고한다.
 - **적용은 수동**: 재기동 명령 문자열만 반환하며 docker 를 import 하지도 호출하지도
   않는다(api.env 렌더와 동일 철학).
 """
@@ -30,6 +35,7 @@ from app.core.exceptions import AppError
 from app.models.project import Project
 from app.models.project_linear_credentials import ProjectLinearCredentials
 from app.schemas.ops import (
+    WebhookEnvDriftItem,
     WebhookEnvProjectItem,
     WebhookEnvRenderResult,
     WebhookEnvSkippedItem,
@@ -70,8 +76,18 @@ def _read_lines(path: Path) -> list[str] | None:
         ) from exc
 
 
-def _is_assignment(line: str, key: str) -> bool:
-    return line.lstrip().startswith(f"{key}=")
+def _assignment_re(key: str) -> re.Pattern[str]:
+    """`KEY=` 뿐 아니라 `export KEY=` · `KEY = ` 형태까지 같은 할당으로 인식한다.
+
+    단순 `startswith(f"{key}=")` 는 이 변형들을 놓치므로, 수기로 `export
+    WEBHOOK_SECRET_MAP=...` 를 써 둔 파일에서 렌더가 새 라인을 덧붙이고 옛 라인이 그대로
+    남는다. env_file 은 뒤 라인이 이기므로 **폐기 시크릿이 계속 유효**해진다.
+    """
+    return re.compile(rf"^\s*(?:export\s+)?{re.escape(key)}\s*=")
+
+
+_MAP_ASSIGN_RE = _assignment_re(_MAP_KEY)
+_LEGACY_ASSIGN_RES = tuple(_assignment_re(key) for key in _LEGACY_KEYS)
 
 
 def _assigned_value(line: str) -> str:
@@ -79,7 +95,32 @@ def _assigned_value(line: str) -> str:
 
 
 def _has_map_line(lines: list[str] | None) -> bool:
-    return any(_is_assignment(line, _MAP_KEY) for line in lines or [])
+    return any(_MAP_ASSIGN_RE.match(line) for line in lines or [])
+
+
+def _file_map_entries(lines: list[str] | None) -> dict[str, set[str]]:
+    """파일의 MAP 라인을 **수신부와 같은 규칙**으로 파싱해 team_id → 시크릿 집합으로.
+
+    `scripts/webhook_server.py:_parse_secret_map` 계약: 콤마로 항목, 첫 `=` 로 팀/시크릿을
+    자르고 양쪽 trim, 한쪽이라도 비면 그 항목은 무효. MAP 라인이 여럿이면 env_file 의
+    "뒤 라인이 이긴다" 규칙대로 **마지막 라인만** 본다.
+    """
+    raw: str | None = None
+    for line in lines or []:
+        if _MAP_ASSIGN_RE.match(line):
+            raw = _assigned_value(line)
+    if not raw:
+        return {}
+    entries: dict[str, set[str]] = {}
+    for item in raw.split(","):
+        team, sep, secret = item.partition("=")
+        if not sep:
+            continue
+        team, secret = team.strip(), secret.strip()
+        if not team or not secret:
+            continue
+        entries.setdefault(team, set()).add(secret)
+    return entries
 
 
 def _has_legacy_secret(lines: list[str] | None) -> bool:
@@ -92,8 +133,8 @@ def _has_legacy_secret(lines: list[str] | None) -> bool:
         stripped = line.lstrip()
         if stripped.startswith("#"):
             continue
-        for key in _LEGACY_KEYS:
-            if _is_assignment(stripped, key) and _assigned_value(stripped):
+        for pattern in _LEGACY_ASSIGN_RES:
+            if pattern.match(stripped) and _assigned_value(stripped):
                 return True
     return False
 
@@ -153,16 +194,100 @@ async def _credential_rows(db: AsyncSession) -> list[tuple[ProjectLinearCredenti
     return [(row, str(name)) for row, name in result.all()]
 
 
+def _build_entries(
+    rows: list[tuple[ProjectLinearCredentials, str]],
+) -> tuple[list[str], list[WebhookEnvSkippedItem]]:
+    """DB 행에서 MAP 항목 문자열 목록과 fail-closed 제외 목록을 산출(정렬된 결정적 출력).
+
+    같은 team_id 를 가진 항목이 둘 이상이면 **전부** 남긴다. 수신부는 시크릿을 팀에만
+    바인딩하므로(프로젝트 개념이 없음) 이는 로테이션뿐 아니라 **같은 Linear 팀을 공유하는
+    서로 다른 프로젝트**에도 해당한다 — 그 경우 한 프로젝트의 시크릿으로 서명한 요청이 같은
+    팀의 다른 프로젝트 이벤트로도 통과한다. 수신부 의미론상 불가피하며, 테넌트 격리가
+    필요하면 팀을 분리해야 한다.
+    """
+    entries: list[str] = []
+    skipped: list[WebhookEnvSkippedItem] = []
+    for row, name in rows:
+        secret = row.webhook_secret or ""
+        if not secret.strip():
+            # 시크릿 미등록 프로젝트는 MAP 대상이 아니다(제외 사유로 보고하지 않음).
+            continue
+        team_id = str(row.team_id or "")
+        reason = _skip_reason(team_id, str(secret))
+        if reason is not None:
+            skipped.append(
+                WebhookEnvSkippedItem(
+                    project_id=row.project_id,
+                    project_name=name,
+                    team_id=team_id,
+                    reason=reason,
+                )
+            )
+            continue
+        entries.append(f"{team_id}={secret}")
+    entries.sort()
+    return entries, skipped
+
+
+def _entries_by_team(entries: list[str]) -> dict[str, set[str]]:
+    grouped: dict[str, set[str]] = {}
+    for entry in entries:
+        team, _, secret = entry.partition("=")
+        grouped.setdefault(team, set()).add(secret)
+    return grouped
+
+
+def _drift(
+    file_entries: dict[str, set[str]], desired: dict[str, set[str]]
+) -> list[WebhookEnvDriftItem]:
+    """파일과 DB 산출 결과의 차이. 스냅샷 파일 없이 **파일 자체를 진실로** 비교한다.
+
+    시크릿 값은 비교에만 쓰고 결과에는 team_id 와 상태 라벨만 담는다.
+    """
+    items: list[WebhookEnvDriftItem] = []
+    for team in sorted(set(file_entries) | set(desired)):
+        in_file, in_db = file_entries.get(team), desired.get(team)
+        if in_db is None:
+            # 파일에만 남은 팀 = 자격증명이 지워졌는데 수신부에서는 아직 유효한 폐기 시크릿.
+            items.append(WebhookEnvDriftItem(team_id=team, state="removed"))
+        elif in_file is None:
+            items.append(WebhookEnvDriftItem(team_id=team, state="added"))
+        elif in_file != in_db:
+            items.append(WebhookEnvDriftItem(team_id=team, state="changed"))
+    return items
+
+
+def _warnings(entry_count: int, legacy_present: bool) -> list[str]:
+    """항목 0개 상황의 운영 경고 코드(문구는 프론트가 i18n).
+
+    항목이 0개면 MAP 라인 자체를 쓰지 않는다. 그 상태에서 레거시 WEBHOOK_SECRET(S) 도
+    없으면 수신부는 유효 시크릿 0개로 **기동을 거부**한다(webhook_server.main fail-closed).
+    즉 재기동 명령을 그대로 실행하면 수신부가 내려간다.
+    """
+    if entry_count > 0:
+        return []
+    codes = ["map_line_removed"]
+    if not legacy_present:
+        codes.append("receiver_startup_blocked")
+    return codes
+
+
 async def preview(db: AsyncSession) -> WebhookEnvStatus:
-    """렌더 대상 파일 상태 + MAP 후보 목록(시크릿 평문 미반환)."""
+    """렌더 대상 파일 상태 + MAP 후보 목록 + 미반영 드리프트(시크릿 평문 미반환)."""
     path = _target_path()
     lines = _read_lines(path)
     rows = await _credential_rows(db)
+
+    entries, _ = _build_entries(rows)
+    file_entries = _file_map_entries(lines)
+    legacy_present = _has_legacy_secret(lines)
+    file_entry_count = sum(len(secrets) for secrets in file_entries.values())
+
     return WebhookEnvStatus(
         rendered_path=str(path),
         file_exists=lines is not None,
         map_line_present=_has_map_line(lines),
-        legacy_present=_has_legacy_secret(lines),
+        legacy_present=legacy_present,
         projects=[
             WebhookEnvProjectItem(
                 project_id=row.project_id,
@@ -172,6 +297,10 @@ async def preview(db: AsyncSession) -> WebhookEnvStatus:
             )
             for row, name in rows
         ],
+        file_entry_count=file_entry_count,
+        expected_entry_count=len(entries),
+        drift=_drift(file_entries, _entries_by_team(entries)),
+        warnings=_warnings(len(entries), legacy_present),
     )
 
 
@@ -207,13 +336,21 @@ def _atomic_secure_write(path: Path, data: bytes) -> None:
 
 
 def _restart_command() -> str:
+    """webhook 서비스 재생성 명령.
+
+    `webhook` 서비스는 `clickeye-infra/docker/docker-compose.yml` 에만 정의돼 있다
+    (`docker-compose.prod.yml` 에는 db/redis/migrate/api/web/dockerproxy 뿐 — webhook 없음).
+    형제 렌더인 `env_service._recreate_command()` 는 `docker/docker-compose.prod.yml` 로
+    안내하므로 **CWD 를 clickeye-infra 로 가정**한다. 그 기준을 그대로 승계하되, 두 카드가
+    같은 화면에 있어 오실행 위험이 있으므로 실행 위치를 명령에 명시한다.
+    """
     return (
-        "docker compose -f clickeye-infra/docker/docker-compose.yml "
+        "cd clickeye-infra && docker compose -f docker/docker-compose.yml "
         "up -d --no-build --force-recreate webhook"
     )
 
 
-_ENV_LINE_RE = re.compile(r"^\s*[A-Za-z_][A-Za-z0-9_]*=")
+_ENV_LINE_RE = re.compile(r"^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*=")
 
 
 def _is_preservable(line: str) -> bool:
@@ -231,23 +368,28 @@ def _is_preservable(line: str) -> bool:
     return _ENV_LINE_RE.match(line) is not None
 
 
-def _apply_map_line(lines: list[str] | None, map_line: str) -> tuple[list[str], int]:
-    """MAP 라인만 교체/추가하고 나머지 **정상 형태** 라인은 원문 그대로 보존.
+def _apply_map_line(lines: list[str] | None, map_line: str | None) -> tuple[list[str], int]:
+    """MAP 라인만 교체/추가/제거하고 나머지 **정상 형태** 라인은 원문 그대로 보존.
 
     중복 MAP 라인이 있으면 첫 라인 자리에서 교체하고 나머지는 제거한다(수신부는 마지막
     값만 보므로 중복이 남으면 렌더 결과와 실제 적용값이 어긋난다).
 
+    `map_line` 이 None 이면(= 렌더 항목 0개) 기존 MAP 라인을 **제거만** 한다. 빈
+    `WEBHOOK_SECRET_MAP=` 를 쓰면 수신부가 "MAP 설정 의도는 있는데 유효 항목 0개"로 보고
+    기동을 거부한다(webhook_server.main). 라인 자체를 없애면 "MAP 미설정"으로 판정되어
+    레거시 등 다른 소스가 있으면 정상 기동한다 — 그러면서도 폐기 시크릿은 남기지 않는다.
+
     반환: (렌더 라인 목록, 드롭한 오염 라인 수).
     """
     if lines is None:
-        return _HEADER.splitlines() + [map_line], 0
+        return _HEADER.splitlines() + ([map_line] if map_line is not None else []), 0
 
     out: list[str] = []
     dropped = 0
     replaced = False
     for line in lines:
-        if _is_assignment(line, _MAP_KEY):
-            if not replaced:
+        if _MAP_ASSIGN_RE.match(line):
+            if map_line is not None and not replaced:
                 out.append(map_line)
                 replaced = True
             continue
@@ -256,7 +398,7 @@ def _apply_map_line(lines: list[str] | None, map_line: str) -> tuple[list[str], 
             dropped += 1
             continue
         out.append(line)
-    if not replaced:
+    if map_line is not None and not replaced:
         out.append(map_line)
     return out, dropped
 
@@ -267,31 +409,10 @@ async def render(db: AsyncSession, actor_id: UUID) -> WebhookEnvRenderResult:
     재기동 명령 문자열만 반환하며 docker 는 실행하지 않는다.
     """
     rows = await _credential_rows(db)
+    entries, skipped = _build_entries(rows)
 
-    entries: list[str] = []
-    skipped: list[WebhookEnvSkippedItem] = []
-    for row, name in rows:
-        secret = row.webhook_secret or ""
-        if not secret.strip():
-            # 시크릿 미등록 프로젝트는 MAP 대상이 아니다(제외 사유로 보고하지 않음).
-            continue
-        team_id = str(row.team_id or "")
-        reason = _skip_reason(team_id, str(secret))
-        if reason is not None:
-            skipped.append(
-                WebhookEnvSkippedItem(
-                    project_id=row.project_id,
-                    project_name=name,
-                    team_id=team_id,
-                    reason=reason,
-                )
-            )
-            continue
-        entries.append(f"{team_id}={secret}")
-
-    # team_id 정렬로 결정적 출력. 같은 팀의 시크릿이 둘 이상이면 모두 남긴다(로테이션).
-    entries.sort()
-    map_line = f"{_MAP_KEY}={','.join(entries)}"
+    # 항목이 0개면 빈 MAP 라인을 쓰지 않고 제거한다(_apply_map_line 참조 — 수신부 fail-closed).
+    map_line = f"{_MAP_KEY}={','.join(entries)}" if entries else None
 
     path = _target_path()
     lines = _read_lines(path)
@@ -317,12 +438,14 @@ async def render(db: AsyncSession, actor_id: UUID) -> WebhookEnvRenderResult:
     )
     await db.commit()
 
+    legacy_present = _has_legacy_secret(rendered)
     return WebhookEnvRenderResult(
         rendered_path=str(path),
         rendered_at=now,
         entry_count=len(entries),
         dropped_line_count=dropped_line_count,
         skipped=skipped,
-        legacy_present=_has_legacy_secret(rendered),
+        legacy_present=legacy_present,
+        warnings=_warnings(len(entries), legacy_present),
         restart_command=_restart_command(),
     )

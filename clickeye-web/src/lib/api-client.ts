@@ -312,12 +312,32 @@ export interface OpsWebhookProject {
   has_secret: boolean;
 }
 
+/** 파일의 MAP 집합과 DB 산출 집합의 차이 1건 — 시크릿 값은 담기지 않는다. */
+export interface OpsWebhookDrift {
+  team_id: string;
+  /** added=추가될 팀 / removed=제거될 팀(폐기 시크릿) / changed=시크릿이 바뀐 팀 */
+  state: "added" | "removed" | "changed";
+}
+
+/**
+ * 운영 경고 코드.
+ * - map_line_removed: 항목 0개라 WEBHOOK_SECRET_MAP 라인을 쓰지 않음
+ * - receiver_startup_blocked: 항목 0개 + 레거시 없음 → 재기동 시 수신부가 기동 거부
+ */
+export type OpsWebhookWarning =
+  | "map_line_removed"
+  | "receiver_startup_blocked";
+
 export interface OpsWebhookStatus {
   rendered_path: string;
   file_exists: boolean;
   map_line_present: boolean;
   legacy_present: boolean;
   projects: OpsWebhookProject[];
+  file_entry_count: number;
+  expected_entry_count: number;
+  drift: OpsWebhookDrift[];
+  warnings: OpsWebhookWarning[];
 }
 
 export interface OpsWebhookSkipped {
@@ -333,6 +353,7 @@ export interface OpsWebhookRenderResult {
   entry_count: number;
   skipped: OpsWebhookSkipped[];
   legacy_present: boolean;
+  warnings: OpsWebhookWarning[];
   restart_command: string;
 }
 

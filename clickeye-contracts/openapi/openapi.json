@@ -28814,6 +28814,32 @@
         "title": "VerificationRecordRequest",
         "description": "정합성 게이트 결과 본문 — passed 여부와 실행 리포트(게이트별 exit/로그 요약).\n\nreport 는 필수다 — \"통과했다\"는 주장에는 증거가 따라야 한다(빈 리포트 금지)."
       },
+      "WebhookEnvDriftItem": {
+        "properties": {
+          "team_id": {
+            "type": "string",
+            "title": "Team Id",
+            "description": "차이가 발생한 Linear 팀 ID"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed",
+              "changed"
+            ],
+            "title": "State",
+            "description": "added=렌더 시 추가될 팀 / removed=렌더 시 제거될 팀(폐기 시크릿이 아직 유효) / changed=같은 팀의 시크릿 집합이 달라짐"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_id",
+          "state"
+        ],
+        "title": "WebhookEnvDriftItem",
+        "description": "파일의 MAP 항목 집합과 DB 산출 항목 집합의 차이 1건.\n\n시크릿 값은 어떤 형태로도 포함하지 않는다 — team_id 와 상태 라벨만 반환한다."
+      },
       "WebhookEnvProjectItem": {
         "properties": {
           "project_id": {
@@ -28884,6 +28910,14 @@
             "type": "boolean",
             "title": "Legacy Present",
             "description": "값이 채워진 WEBHOOK_SECRET(S) 라인이 남아 있는지(팀 검사 미적용 경고)"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 제거함 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
           },
           "restart_command": {
             "type": "string",
@@ -28965,6 +28999,34 @@
             "type": "array",
             "title": "Projects",
             "description": "Linear 자격증명이 등록된 프로젝트 목록"
+          },
+          "file_entry_count": {
+            "type": "integer",
+            "title": "File Entry Count",
+            "description": "파일 MAP 라인에서 수신부가 유효로 볼 항목 수",
+            "default": 0
+          },
+          "expected_entry_count": {
+            "type": "integer",
+            "title": "Expected Entry Count",
+            "description": "지금 렌더하면 기록될 항목 수(fail-closed 제외분 반영)",
+            "default": 0
+          },
+          "drift": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEnvDriftItem"
+            },
+            "type": "array",
+            "title": "Drift",
+            "description": "파일과 DB 산출 결과의 차이(= 아직 렌더로 반영되지 않은 변경)"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 쓰지 않음 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부"
           }
         },
         "type": "object",
@@ -28975,7 +29037,7 @@
           "legacy_present"
         ],
         "title": "WebhookEnvStatus",
-        "description": "렌더 대상 파일의 현재 상태 + MAP 후보 목록."
+        "description": "렌더 대상 파일의 현재 상태 + MAP 후보 목록 + 미반영 드리프트."
       },
       "WeeklyThroughput": {
         "properties": {

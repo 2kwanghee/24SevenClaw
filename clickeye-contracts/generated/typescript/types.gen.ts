@@ -3328,6 +3328,22 @@ export type VerificationRecordRequest = {
 };
 
 /**
+ * 파일의 MAP 항목 집합과 DB 산출 항목 집합의 차이 1건.
+ *
+ * 시크릿 값은 어떤 형태로도 포함하지 않는다 — team_id 와 상태 라벨만 반환한다.
+ */
+export type WebhookEnvDriftItem = {
+    /**
+     * 차이가 발생한 Linear 팀 ID
+     */
+    team_id: string;
+    /**
+     * added=렌더 시 추가될 팀 / removed=렌더 시 제거될 팀(폐기 시크릿이 아직 유효) / changed=같은 팀의 시크릿 집합이 달라짐
+     */
+    state: 'added' | 'removed' | 'changed';
+};
+
+/**
  * WEBHOOK_SECRET_MAP 후보 1건 — 시크릿 평문은 절대 포함하지 않는다.
  */
 export type WebhookEnvProjectItem = {
@@ -3378,6 +3394,10 @@ export type WebhookEnvRenderResult = {
      */
     legacy_present: boolean;
     /**
+     * 운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 제거함 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부
+     */
+    warnings?: Array<string>;
+    /**
      * 사용자가 수동 실행할 webhook 재생성 명령(백엔드는 실행하지 않음)
      */
     restart_command: string;
@@ -3406,7 +3426,7 @@ export type WebhookEnvSkippedItem = {
 };
 
 /**
- * 렌더 대상 파일의 현재 상태 + MAP 후보 목록.
+ * 렌더 대상 파일의 현재 상태 + MAP 후보 목록 + 미반영 드리프트.
  */
 export type WebhookEnvStatus = {
     /**
@@ -3429,6 +3449,22 @@ export type WebhookEnvStatus = {
      * Linear 자격증명이 등록된 프로젝트 목록
      */
     projects?: Array<WebhookEnvProjectItem>;
+    /**
+     * 파일 MAP 라인에서 수신부가 유효로 볼 항목 수
+     */
+    file_entry_count?: number;
+    /**
+     * 지금 렌더하면 기록될 항목 수(fail-closed 제외분 반영)
+     */
+    expected_entry_count?: number;
+    /**
+     * 파일과 DB 산출 결과의 차이(= 아직 렌더로 반영되지 않은 변경)
+     */
+    drift?: Array<WebhookEnvDriftItem>;
+    /**
+     * 운영 경고 코드. map_line_removed=항목 0개라 MAP 라인을 쓰지 않음 / receiver_startup_blocked=항목 0개 + 레거시 없음이라 재기동 시 수신부 기동 거부
+     */
+    warnings?: Array<string>;
 };
 
 export type WeeklyThroughput = {
