@@ -226,7 +226,7 @@ def run(argv=None) -> int:
 
     # 로그 스트리밍 파싱 — 대용량 로그를 메모리에 통째로 올리지 않고 줄 단위로 처리한다.
     try:
-        with open(args.log, "r", encoding="utf-8", errors="replace") as f:
+        with open(args.log, encoding="utf-8", errors="replace") as f:
             result_event, api_key_source = parse_log_lines(f)
     except OSError as e:
         _warn("로그 파일 읽기 실패 — 인제스트 스킵: %s" % e)

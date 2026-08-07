@@ -242,7 +242,7 @@ def create_pr(branch: str, title: str, body: str, auto_merge: bool = False) -> s
     if code != 0:
         # PR이 이미 존재하는 경우
         if "already exists" in output.lower():
-            print(f"SKIP: PR이 이미 존재합니다.")
+            print("SKIP: PR이 이미 존재합니다.")
             # 기존 PR URL 조회
             code2, url = run_cmd(["gh", "pr", "view", branch, "--json", "url", "-q", ".url"])
             return url if code2 == 0 else None
@@ -259,7 +259,7 @@ def create_pr(branch: str, title: str, body: str, auto_merge: bool = False) -> s
             "--auto", "--squash",
         ])
         if code == 0:
-            print(f"AUTO-MERGE: 활성화됨 (CI 통과 시 자동 머지)")
+            print("AUTO-MERGE: 활성화됨 (CI 통과 시 자동 머지)")
         else:
             print(f"WARN: auto-merge 설정 실패: {merge_output}")
 
@@ -317,7 +317,7 @@ def main():
     pr_body = build_pr_body(identifier, task_meta, fix_plan_result, test_summary, branch_info)
 
     if args.dry_run:
-        print(f"\n[DRY-RUN] PR 미리보기:")
+        print("\n[DRY-RUN] PR 미리보기:")
         print(f"Title: {pr_title}")
         print(f"Base: main ← Head: {branch}")
         print(f"\nBody:\n{pr_body}")

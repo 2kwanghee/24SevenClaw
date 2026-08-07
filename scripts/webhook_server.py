@@ -28,8 +28,8 @@ import sys
 import threading
 import time
 import urllib.request
-from datetime import datetime, timezone
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 sys.path.insert(0, os.path.dirname(__file__))
 from linear_client import PROJECT_DIR
@@ -280,7 +280,7 @@ def _enqueue_job(kind: str, identifier: str, state_name: str):
             "kind": kind,
             "identifier": identifier,
             "state": state_name,
-            "received_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "received_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         client.rpush(QUEUE_KEY, json.dumps(job))
         log(f"ENQUEUE: {kind} {identifier} state={state_name} → {QUEUE_KEY}")

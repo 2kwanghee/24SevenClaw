@@ -19,13 +19,12 @@ import json
 import os
 import re
 import sys
-from typing import Optional
 
 DOMAIN_FILE = "CLAUDE.domain.md"
 FILE_HEADER = "# 도메인 제약 프로파일 (자동 누적 — domain_profile_merge.py)"
 
 
-def extract_domain_section(text: str) -> Optional[str]:
+def extract_domain_section(text: str) -> str | None:
     """refined md 에서 도메인 제약 섹션(헤더 포함)을 추출. 부재 시 None.
 
     섹션 시작: `## ` 로 시작하고 '도메인 제약' 또는 'Domain Constraints' 를 포함하는 줄.
@@ -65,7 +64,7 @@ def _block(ticket: str, section: str) -> str:
     )
 
 
-def merge_block(existing: Optional[str], ticket: str, section: str) -> str:
+def merge_block(existing: str | None, ticket: str, section: str) -> str:
     """티켓 키 마커 블록을 멱등 병합 — 같은 키 있으면 교체, 없으면 append."""
     block = _block(ticket, section)
     if not existing:
@@ -89,7 +88,7 @@ def merge_block(existing: Optional[str], ticket: str, section: str) -> str:
     return merged
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="도메인 제약 병합기 (Harness Tier 2)")
     p.add_argument("--refined", required=True, help="정제 산출물 md 경로")
     p.add_argument("--target", required=True, help="구현 대상 워크디렉터리(.claude/ 상위)")

@@ -12,15 +12,13 @@ from __future__ import annotations
 
 import argparse
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 
 from docx import Document
-from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Cm, Inches, Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 
 # --- 경로 설정 ---
 ROOT = Path(__file__).resolve().parent.parent

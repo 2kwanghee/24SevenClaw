@@ -29,7 +29,6 @@ if _SCRIPTS_DIR not in sys.path:
 
 import usage_ingest as ui  # noqa: E402
 
-
 # ── 픽스처 ───────────────────────────────────────────────────────────────────
 
 

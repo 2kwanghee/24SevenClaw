@@ -14,7 +14,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from linear_client import get_env, linear_request, find_state_id, PROJECT_DIR
+from datetime import UTC
+
+from linear_client import PROJECT_DIR, find_state_id, get_env, linear_request
 
 TASK_MAPPING_PATH = os.path.join(PROJECT_DIR, ".ralph", ".task_mapping.json")
 FIX_PLAN_PATH = os.path.join(PROJECT_DIR, ".ralph", "fix_plan.md")
@@ -176,6 +178,7 @@ def update_issue_result(api_key: str, team_id: str, issue_id: str, report_text: 
 
 def main():
     import argparse
+
     from pipeline_config import check_enabled
 
     check_enabled("FLOWOPS_LINEAR_REPORT", "Linear 결과 보고")
@@ -236,9 +239,9 @@ def main():
 
     # 결과를 JSON으로 저장 (텔레그램 보고용)
     summary_path = os.path.join(PROJECT_DIR, ".ralph", ".pipeline_result.json")
-    from datetime import datetime, timezone
+    from datetime import datetime
     summary = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "tasks": {},
         "git_summary": git_summary,
         "test_summary": test_summary,

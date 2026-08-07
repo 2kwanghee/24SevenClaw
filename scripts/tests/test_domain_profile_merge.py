@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import domain_profile_merge as dpm  # noqa: E402
 
-
 REFINED_A = """# 구현 스펙
 
 ## 요약

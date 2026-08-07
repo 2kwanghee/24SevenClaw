@@ -238,7 +238,7 @@ def test_parity_cases_actually_exercise_distinct_verdicts():
     보증하지 않는다. block/pr/direct 와 governance off 분기가 모두 등장해야 한다.
     """
     seen = set()
-    for name, files, head, toggles, usage, metrics in _PARITY_CASES:
+    for _name, files, head, toggles, usage, metrics in _PARITY_CASES:
         prev = {k: os.environ.get(k) for k in toggles}
         try:
             os.environ.update(toggles)
@@ -318,12 +318,12 @@ def test_core_reexported_regexes_match_policy_defaults():
 def test_core_triage_threshold_reexports_match_policy():
     """core 의 트리아지 임계 기본값 재노출이 policy 의 dict 와 일치해야 한다."""
     assert (
-        g.TRIAGE_SCORE_REVIEW_DEFAULT
-        == gp.TRIAGE_THRESHOLD_DEFAULTS["FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW"]
+        gp.TRIAGE_THRESHOLD_DEFAULTS["FLOWOPS_GOVERNANCE_TRIAGE_SCORE_REVIEW"]
+        == g.TRIAGE_SCORE_REVIEW_DEFAULT
     )
     assert (
-        g.TRIAGE_SCORE_BLOCK_DEFAULT
-        == gp.TRIAGE_THRESHOLD_DEFAULTS["FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK"]
+        gp.TRIAGE_THRESHOLD_DEFAULTS["FLOWOPS_GOVERNANCE_TRIAGE_SCORE_BLOCK"]
+        == g.TRIAGE_SCORE_BLOCK_DEFAULT
     )
 
 

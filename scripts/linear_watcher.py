@@ -18,11 +18,11 @@ import sys
 # linear_client를 같은 디렉토리에서 import
 sys.path.insert(0, os.path.dirname(__file__))
 from linear_client import (
-    get_env,
-    linear_request,
+    PROJECT_DIR,
     find_state_id,
     from_linear_priority,
-    PROJECT_DIR,
+    get_env,
+    linear_request,
 )
 
 FIX_PLAN_PATH = os.path.join(PROJECT_DIR, ".ralph", "fix_plan.md")
@@ -219,7 +219,7 @@ def extract_task_info(issue: dict) -> dict:
     """Extract task information from a Linear issue."""
     identifier = issue["identifier"]  # e.g. "OPS-123"
     priority = from_linear_priority(issue.get("priority", 0))
-    labels = [l["name"] for l in issue.get("labels", {}).get("nodes", [])]
+    labels = [lbl["name"] for lbl in issue.get("labels", {}).get("nodes", [])]
     state_name = issue.get("state", {}).get("name", "")
     mode = "night" if state_name == "NightQueued" else "day"
     # "Queued" → DayQueued 동작과 동일 처리
@@ -375,6 +375,7 @@ def resolve_exclude_prefixes(cli_values: list[str] | None) -> list[str] | None:
 
 def main():
     import argparse
+
     from pipeline_config import check_enabled, is_enabled
 
     # --check-only 는 "할 일이 있는지" 를 exit code 로만 답하는 관측 모드다. 비활성 시
@@ -428,7 +429,8 @@ def main():
     if args.limit > 0:
         issues = issues[:args.limit]
     tasks = [extract_task_info(issue) for issue in issues]
-    print(f"FOUND: {len(tasks)}개 DayQueued/NightQueued 이슈{'(제한: ' + str(args.limit) + '개)' if args.limit > 0 else ''}")
+    limit_note = f"(제한: {args.limit}개)" if args.limit > 0 else ""
+    print(f"FOUND: {len(tasks)}개 DayQueued/NightQueued 이슈{limit_note}")
     for t in tasks:
         print(f"  [{t['priority']}] {t['identifier']} {t['title']} → {t['branch']}")
 

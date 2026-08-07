@@ -12,11 +12,10 @@ Hook: .claude/settings.json → SessionStart 이벤트에서 자동 실행
 """
 
 import hashlib
-import json
 import os
 import re
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 # ── 경로 설정 ──
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

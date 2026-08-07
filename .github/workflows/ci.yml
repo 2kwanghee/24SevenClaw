@@ -223,6 +223,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      # scripts/ 는 CI ruff(working-directory: clickeye-api)의 사각지대였다(CE-420).
+      # 루트 pyproject 의 [tool.ruff] 기준으로 검사한다. 버전은 clickeye-api 와 정렬(0.15.7).
+      # format --check 는 기존 스크립트가 포맷된 적이 없어 대량 실패하므로 범위 밖(check 만).
+      - name: Ruff lint (scripts/)
+        run: uvx ruff@0.15.7 check scripts/
+
       # 워크플로 셸 주입 차단 — run 블록에서 신뢰불가 입력을 `${{ }}` 로 치환하면 그 값이
       # 셸 소스가 되어 임의 명령이 실행된다(CE-375, 실측 PR #106). 되돌아오면 여기서 막는다.
       - name: Check workflow shell injection
