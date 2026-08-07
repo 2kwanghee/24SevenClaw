@@ -369,7 +369,9 @@ def _extract_team_id(data: dict):
     if not team_id:
         team = data.get("team")
         team_id = team.get("id") if isinstance(team, dict) else None
-    return team_id or None
+    # 문자열만 팀 식별자로 인정 — dict/list 가 오면 바인딩 대조(:in)에서 unhashable
+    # 예외로 커넥션이 끊긴다(적대적 재검 발견 1). None 반환이면 fail-closed 403.
+    return team_id if isinstance(team_id, str) and team_id else None
 
 
 def _payload_team_id(payload: dict):
@@ -670,6 +672,14 @@ def main():
         if WEBHOOK_SECRET_TEAMS
         else "  팀 바인딩: 없음 (WEBHOOK_SECRET_MAP 미설정 — 레거시 단일 테넌트)"
     )
+    # 바인딩과 비바인딩(레거시) 시크릿이 공존하면 레거시 시크릿은 팀 검사 없이 통과한다
+    # (적대적 재검 발견 2). 크로스테넌트 차단을 완성하려면 레거시 변수를 비워야 한다.
+    unbound = [s for s in WEBHOOK_SECRETS if s not in WEBHOOK_SECRET_TEAMS]
+    if WEBHOOK_SECRET_TEAMS and unbound:
+        log(
+            f"  WARN: 비바인딩 시크릿 {len(unbound)}개 공존 — 해당 시크릿 서명은 팀 검사를 "
+            "받지 않는다. 멀티 테넌트 운영이면 WEBHOOK_SECRET(S) 를 비우고 MAP 만 쓸 것."
+        )
     log(f"  Dry-run: {DRY_RUN}")
     log("")
     log("Linear Settings → API → Webhooks 에서 위 URL을 등록하세요.")
