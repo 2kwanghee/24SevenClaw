@@ -342,25 +342,17 @@ docker exec clickeye-api cat /app/.env
 
 ---
 
-### D2. ⚠️ **UNRESOLVED**: clickeye-infra/managed/api.env가 git에 추적됨
+### D2. ✅ **해소됨**: clickeye-infra/managed/api.env git 추적 해제 (2026-08-08)
 
-**문제**: `clickeye-infra/managed/api.env` 가 `.gitignore` 의 `managed/*.env` 규칙에도 불구하고 **git 에 추적되고 있습니다**(`git ls-files clickeye-infra/managed/` 로 확인). 한 번 추적된 파일은 이후 gitignore 규칙이 적용되지 않는다.
+**있었던 문제**: `clickeye-infra/managed/api.env` 가 `clickeye-infra/.gitignore` 의 `managed/*.env` 규칙에도 불구하고 **git 에 추적**되고 있었다(한 번 추적된 파일은 이후 gitignore 규칙이 적용되지 않는다). 커밋 내용은 주석 2줄로 시크릿은 없었으나, 운영 패널이 이 경로에 실제 시크릿을 렌더한 뒤 `git add -A` 하는 순간 평문이 커밋될 수 있었다.
 
-**현재 위험도 — 낮음(실측)**: 2026-08-08 기준 커밋된 내용은 주석 2줄뿐이고 **시크릿은 들어 있지 않다**(PR-1 단계의 빈 배관 파일). 다만 이 상태로 두면 운영 패널이 이 경로에 실제 시크릿을 렌더한 뒤 누군가 `git add -A` 를 하는 순간 **평문 시크릿이 커밋된다**. `webhook.env` 는 정상 제외 중이라 같은 사고가 나지 않는다.
+**조치 완료**: `git rm --cached clickeye-infra/managed/api.env`(파일은 존치, 인덱스에서만 제거). 이후 `managed/*.env` 규칙이 정상 적용됨을 `git check-ignore` 로 확인. 커밋 내용에 시크릿이 없었으므로 히스토리 재작성은 불필요했다.
 
-**조치**:
+**재발 방지 — 신규 관리형 env 파일을 만들 때**: 실제 값 파일(`*.env`)은 절대 `git add` 하지 말 것. 예시(`*.env.example`)만 추적한다. 추적 여부는 아래로 확인:
 ```bash
-git rm --cached clickeye-infra/managed/api.env
-# 커밋 후에는 gitignore 규칙이 정상 적용된다
+git ls-files clickeye-infra/managed/   # *.env(예시 제외)가 나오면 안 됨
 ```
-현재 커밋 내용에 시크릿이 없으므로 **히스토리 재작성(filter-branch 등)은 불필요하다**. 만약 이후 시크릿이 커밋된 것을 발견하면, 히스토리 정정보다 **해당 키 전량 폐기·재발급이 우선**이다(이미 원격에 올라간 값은 회수 불가로 간주).
-
-**확인 명령**:
-```bash
-git ls-files clickeye-infra/managed/   # api.env 가 나오면 아직 미조치
-```
-
-**근거**: `git ls-files clickeye-infra/managed/` 및 `git show HEAD:clickeye-infra/managed/api.env`(주석 2줄, 시크릿 없음) 실측
+만약 시크릿이 이미 커밋·푸시된 것을 발견하면, 히스토리 정정보다 **해당 키 전량 폐기·재발급이 우선**이다(원격에 올라간 값은 회수 불가로 간주).
 
 ---
 
